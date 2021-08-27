@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#3 $
  */
 
 #ifndef INDEX_LAYOUT_H
 #define INDEX_LAYOUT_H
 
 #include "buffer.h"
-#include "indexConfig.h"
+#include "config.h"
 #include "indexState.h"
 #include "ioFactory.h"
 #include "uds.h"

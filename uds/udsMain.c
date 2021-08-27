@@ -16,17 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#4 $
  */
 
 #include "uds.h"
 
 #include "config.h"
-#include "geometry.h"
-#include "index.h"
-#include "indexLayout.h"
-#include "indexSession.h"
-#include "loadType.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -229,138 +224,6 @@ uds_configuration_get_chapters_per_volume(struct uds_configuration *user_config)
 void uds_free_configuration(struct uds_configuration *user_config)
 {
 	UDS_FREE(user_config);
-}
-
-/**********************************************************************/
-int uds_create_index_session(struct uds_index_session **session)
-{
-	struct uds_index_session *index_session = NULL;
-	int result;
-	if (session == NULL) {
-		uds_log_error("missing session pointer");
-		return -EINVAL;
-	}
-
-	result = make_empty_index_session(&index_session);
-	if (result != UDS_SUCCESS) {
-		return uds_map_to_system_error(result);
-	}
-
-	*session = index_session;
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static int
-initialize_index_session_with_layout(struct uds_index_session *index_session,
-				     struct index_layout *layout,
-				     const struct uds_parameters *user_params,
-				     enum load_type load_type)
-{
-	struct configuration *index_config;
-	int result = ((load_type == LOAD_CREATE) ?
-			write_uds_index_config(layout,
-					       &index_session->user_config, 0) :
-			verify_uds_index_config(layout,
-						&index_session->user_config));
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = make_configuration(&index_session->user_config,
-				    &index_config);
-	if (result != UDS_SUCCESS) {
-		uds_log_error_strerror(result, "Failed to allocate config");
-		return result;
-	}
-
-	// Zero the stats for the new index.
-	memset(&index_session->stats, 0, sizeof(index_session->stats));
-
-	result = make_index(layout,
-			    index_config,
-			    user_params,
-			    load_type,
-			    &index_session->load_context,
-			    enter_callback_stage,
-			    &index_session->index);
-	free_configuration(index_config);
-	if (result != UDS_SUCCESS) {
-		uds_log_error_strerror(result, "Failed to make index");
-		return result;
-	}
-
-	log_uds_configuration(&index_session->user_config);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static int initialize_index_session(struct uds_index_session *index_session,
-				    const char *name,
-				    const struct uds_parameters *user_params,
-				    enum load_type load_type)
-{
-	struct index_layout *layout;
-	int result = make_uds_index_layout(name,
-					   load_type == LOAD_CREATE,
-					   &index_session->user_config,
-					   &layout);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = initialize_index_session_with_layout(index_session, layout,
-						      user_params, load_type);
-	put_uds_index_layout(layout);
-	return result;
-}
-
-/**********************************************************************/
-int uds_open_index(enum uds_open_index_type open_type,
-		   const char *name,
-		   const struct uds_parameters *user_params,
-		   struct uds_configuration *user_config,
-		   struct uds_index_session *session)
-{
-	int result;
-	enum load_type load_type;
-
-	if (name == NULL) {
-		uds_log_error("missing required index name");
-		return -EINVAL;
-	}
-	if (user_config == NULL) {
-		uds_log_error("missing required configuration");
-		return -EINVAL;
-	}
-	if (session == NULL) {
-		uds_log_error("missing required session pointer");
-		return -EINVAL;
-	}
-
-	result = start_loading_index_session(session);
-	if (result != UDS_SUCCESS) {
-		return uds_map_to_system_error(result);
-	}
-
-	session->user_config = *user_config;
-
-	// Map the external open_type to the internal load_type
-	load_type = open_type == UDS_CREATE ?
-		LOAD_CREATE :
-		open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
-	uds_log_notice("%s: %s", get_load_type(load_type), name);
-
-	result = initialize_index_session(session, name, user_params,
-					  load_type);
-	if (result != UDS_SUCCESS) {
-		uds_log_error_strerror(result, "Failed %s",
-				       get_load_type(load_type));
-		save_and_free_index(session);
-	}
-
-	finish_loading_index_session(session, result);
-	return uds_map_to_system_error(result);
 }
 
 /**********************************************************************/

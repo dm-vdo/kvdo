@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/pageCache.h#2 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -28,7 +28,7 @@
 #include "chapterIndex.h"
 #include "common.h"
 #include "compiler.h"
-#include "indexConfig.h"
+#include "geometry.h"
 #include "permassert.h"
 #include "request.h"
 #include "volumeStore.h"

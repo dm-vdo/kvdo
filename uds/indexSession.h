@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#3 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -139,36 +139,6 @@ struct uds_index_session {
 };
 
 /**
- * Check that the index session is usable.
- *
- * @param index_session  the session to query
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check check_index_session(struct uds_index_session *index_session);
-
-/**
- * Make sure that the index_session is allowed to load an index, and if so, set
- * its state to indicate that the load has started.
- *
- * @param index_session  the session to load with
- *
- * @return UDS_SUCCESS, or an error code if an index already exists.
- **/
-int __must_check
-start_loading_index_session(struct uds_index_session *index_session);
-
-/**
- * Update the index_session state after attempting to load an index, to
- * indicate that the load has completed, and whether or not it succeeded.
- *
- * @param index_session  the session that was loading
- * @param result        the result of the load operation
- **/
-void finish_loading_index_session(struct uds_index_session *index_session,
-				  int result);
-
-/**
  * Disable an index session due to an error.
  *
  * @param index_session  the session to be disabled
@@ -195,16 +165,6 @@ int __must_check get_index_session(struct uds_index_session *index_session);
 void release_index_session(struct uds_index_session *index_session);
 
 /**
- * Construct a new, empty index session.
- *
- * @param index_session_ptr   The pointer to receive the new session
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check
-make_empty_index_session(struct uds_index_session **index_session_ptr);
-
-/**
  * Save an index while the session is quiescent.
  *
  * During the call to #uds_save_index, there should be no other call to
@@ -215,12 +175,5 @@ make_empty_index_session(struct uds_index_session **index_session_ptr);
  * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_save_index(struct uds_index_session *index_session);
-
-/**
- * Close the index by saving the underlying index.
- *
- * @param index_session  The index session to be shut down and freed
- **/
-int save_and_free_index(struct uds_index_session *index_session);
 
 #endif /* INDEX_SESSION_H */

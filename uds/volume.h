@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.h#2 $
  */
 
 #ifndef VOLUME_H
@@ -24,8 +24,8 @@
 
 #include "cacheCounters.h"
 #include "common.h"
+#include "config.h"
 #include "chapterIndex.h"
-#include "indexConfig.h"
 #include "indexLayout.h"
 #include "indexPageMap.h"
 #include "pageCache.h"

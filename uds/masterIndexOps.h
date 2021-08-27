@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.h#2 $
  */
 
 #ifndef MASTERINDEXOPS_H
 #define MASTERINDEXOPS_H 1
 
 #include "compiler.h"
+#include "config.h"
 #include "deltaIndex.h"
 #include "indexComponent.h"
-#include "indexConfig.h"
 #include "uds-threads.h"
 #include "uds.h"
 

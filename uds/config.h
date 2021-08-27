@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#3 $
  */
 
 #ifndef CONFIG_H
@@ -25,12 +25,36 @@
 #include "bufferedReader.h"
 #include "bufferedWriter.h"
 #include "geometry.h"
-#include "uds.h"
+#include "nonce.h"
 
 enum {
 	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
 	DEFAULT_CACHE_CHAPTERS = 7,
 	DEFAULT_SPARSE_SAMPLE_RATE = 0
+};
+
+/**
+ * A set of configuration parameters for the indexer.
+ **/
+struct configuration {
+	/* Parameters for the volume */
+
+	/* The volume layout */
+	struct geometry *geometry;
+
+	/*
+	 * Size of the page cache and sparse chapter index cache, in
+	 * chapters
+	 */
+	unsigned int cache_chapters;
+
+	/** Parameters for the volume index */
+
+	/* The mean delta for the volume index */
+	unsigned int volume_index_mean_delta;
+
+	/* Sampling rate for sparse indexing */
+	unsigned int sparse_sample_rate;
 };
 
 /**
@@ -85,12 +109,6 @@ struct uds_configuration_6_02 {
 	uds_nonce_t nonce;
 };
 
-struct index_location {
-	char *host;
-	char *port;
-	char *directory;
-};
-
 /**
  * A set of configuration parameters for the indexer.
  **/
@@ -138,13 +156,6 @@ int __must_check read_config_contents(struct buffered_reader *reader,
 int __must_check write_config_contents(struct buffered_writer *writer,
 				       struct uds_configuration *config,
 				       uint32_t version);
-
-/**
- * Free the memory used by an index_location.
- *
- * @param loc   index location to free
- **/
-void free_index_location(struct index_location *loc);
 
 /**
  * Compare two configurations for equality.
