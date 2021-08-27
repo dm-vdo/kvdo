@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#119 $
  */
 
 /*
@@ -25,7 +25,7 @@
  * this file.
  */
 #include "errors.h"
-#include "kernelVDOInternals.h"
+#include "kernelVDO.h"
 
 #include <linux/delay.h>
 
@@ -160,18 +160,11 @@ void dump_vdo_work_queue(struct vdo *vdo)
 }
 
 /**********************************************************************/
-void enqueue_vdo_thread_work(struct vdo_thread *thread,
-			     struct vdo_work_item *item)
-{
-	enqueue_work_queue(thread->request_queue, item);
-}
-
-/**********************************************************************/
 void enqueue_vdo_work(struct vdo *vdo,
 		      struct vdo_work_item *item,
 		      thread_id_t thread_id)
 {
-	enqueue_vdo_thread_work(&vdo->threads[thread_id], item);
+	enqueue_work_queue(vdo->threads[thread_id].request_queue, item);
 }
 
 /**********************************************************************/
@@ -215,8 +208,7 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
 			completion->callback,
 			VDO_REQ_Q_ACTION_COMPLETION);
-	enqueue_vdo_thread_work(&vdo->threads[thread_id],
-				&completion->work_item);
+	enqueue_vdo_work(vdo, &completion->work_item, thread_id);
 }
 
 /**********************************************************************/
