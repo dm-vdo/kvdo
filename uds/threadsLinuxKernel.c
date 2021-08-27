@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadsLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadsLinuxKernel.c#2 $
  */
 
 #include <linux/completion.h>
@@ -51,6 +51,7 @@ static int thread_starter(void *arg)
 {
 	struct registered_thread allocating_thread;
 	struct thread *kt = arg;
+
 	kt->thread_task = current;
 	perform_once(&kernel_thread_once, kernel_thread_init);
 	mutex_lock(&kernel_thread_mutex);
@@ -133,9 +134,10 @@ void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
 			  void *argument)
 {
 	struct thread *kt;
+
 	perform_once(&kernel_thread_once, kernel_thread_init);
 	mutex_lock(&kernel_thread_mutex);
-	hlist_for_each_entry (kt, &kernel_thread_list, thread_links) {
+	hlist_for_each_entry(kt, &kernel_thread_list, thread_links) {
 		apply_func(argument, kt->thread_task);
 	}
 	mutex_unlock(&kernel_thread_mutex);
@@ -146,9 +148,10 @@ void uds_thread_exit(void)
 {
 	struct thread *kt;
 	struct completion *completion = NULL;
+
 	perform_once(&kernel_thread_once, kernel_thread_init);
 	mutex_lock(&kernel_thread_mutex);
-	hlist_for_each_entry (kt, &kernel_thread_list, thread_links) {
+	hlist_for_each_entry(kt, &kernel_thread_list, thread_links) {
 		if (kt->thread_task == current) {
 			completion = &kt->thread_done;
 			break;
@@ -175,6 +178,7 @@ unsigned int uds_get_num_cores(void)
 int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
 	int result = uds_initialize_semaphore(&barrier->mutex, 1);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -187,6 +191,7 @@ int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 int uds_destroy_barrier(struct barrier *barrier)
 {
 	int result = uds_destroy_semaphore(&barrier->mutex);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -197,11 +202,13 @@ int uds_destroy_barrier(struct barrier *barrier)
 int uds_enter_barrier(struct barrier *barrier, bool *winner)
 {
 	bool last_thread;
+
 	uds_acquire_semaphore(&barrier->mutex);
 	last_thread = ++barrier->arrived == barrier->thread_count;
 	if (last_thread) {
 		// This is the last thread to arrive, so wake up the others
 		int i;
+
 		for (i = 1; i < barrier->thread_count; i++) {
 			uds_release_semaphore(&barrier->wait);
 		}

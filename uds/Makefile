@@ -1,6 +1,6 @@
-UDS_VERSION = 8.2.0.10
+UDS_VERSION = 8.2.0.13
 
-SOURCES =  $(notdir $(wildcard $(src)/*.c)) murmur/MurmurHash3.c
+SOURCES =  $(notdir $(wildcard $(src)/*.c)) murmur/murmurhash3.c
 SOURCES += $(addprefix util/,$(notdir $(wildcard $(src)/util/*.c)))
 OBJECTS = $(SOURCES:%.c=%.o)
 INCLUDES = -I$(src)

@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#161 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#162 $
  */
 
 #include "dataKVIO.h"
 
 #include <asm/unaligned.h>
 #include <linux/lz4.h>
+#include <linux/murmurhash3.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "murmur/MurmurHash3.h"
 #include "permassert.h"
 
 #include "atomicStats.h"
@@ -857,8 +857,8 @@ static void vdo_hash_data_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
-	MurmurHash3_x64_128(data_vio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
-			    &data_vio->chunk_name);
+	murmurhash3_128(data_vio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
+			&data_vio->chunk_name);
 
 	enqueue_data_vio_callback(data_vio);
 }

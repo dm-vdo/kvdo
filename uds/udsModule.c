@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#3 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#4 $
  */
 
 #include <linux/module.h>
@@ -25,7 +25,6 @@
 #include "errors.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "murmur/MurmurHash3.h"
 #include "sysfs.h"
 #include "threadDevice.h"
 #include "threadOnce.h"
@@ -115,7 +114,6 @@ EXPORT_SYMBOL_GPL(has_same_bytes);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(make_buffer);
 EXPORT_SYMBOL_GPL(make_funnel_queue);
-EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(perform_once);
 EXPORT_SYMBOL_GPL(put_boolean);
 EXPORT_SYMBOL_GPL(put_buffer);
