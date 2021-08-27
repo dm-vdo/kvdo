@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#109 $
  */
 
 #include "vdoLoad.h"
@@ -135,8 +135,6 @@ static void load_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 
-	assert_vdo_admin_operation_type(admin_completion,
-					VDO_ADMIN_OPERATION_LOAD);
 	assert_vdo_admin_phase_thread(admin_completion,
 				      __func__,
 				      LOAD_PHASE_NAMES);
@@ -321,6 +319,21 @@ int load_vdo(struct vdo *vdo)
 }
 
 /**
+ * Extract the vdo from an admin_completion, checking that the current
+ * operation is a pre-load.
+ *
+ * @param completion  The admin_completion's sub-task completion
+ *
+ * @return The vdo
+ **/
+static inline struct vdo *
+vdo_from_pre_load_sub_task(struct vdo_completion *completion)
+{
+	return vdo_from_admin_sub_task(completion,
+				       VDO_ADMIN_OPERATION_PRE_LOAD);
+}
+
+/**
  * Decode the VDO state from the super block and validate that it is correct.
  * On error from this method, the component states must be destroyed
  * explicitly. If this method returns successfully, the component states must
@@ -490,7 +503,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
  **/
 static void finish_operation_callback(struct vdo_completion *completion)
 {
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
 	finish_vdo_operation(&vdo->admin_state, completion->result);
 }
@@ -503,7 +516,7 @@ static void finish_operation_callback(struct vdo_completion *completion)
  **/
 static void load_vdo_components(struct vdo_completion *completion)
 {
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
 	prepare_vdo_admin_sub_task(vdo,
 				   finish_operation_callback,
@@ -520,11 +533,8 @@ static void pre_load_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
-	ASSERT_LOG_ONLY((admin_completion->type == VDO_ADMIN_OPERATION_LOAD),
-			"unexpected admin operation type %u when preloading",
-			admin_completion->type);
 	assert_on_admin_thread(vdo, __func__);
 	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
 					     VDO_ADMIN_STATE_PRE_LOADING,
@@ -544,7 +554,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 int prepare_to_load_vdo(struct vdo *vdo)
 {
 	return perform_vdo_admin_operation(vdo,
-					   VDO_ADMIN_OPERATION_LOAD,
+					   VDO_ADMIN_OPERATION_PRE_LOAD,
 					   NULL,
 					   pre_load_callback,
 					   pre_load_callback);
