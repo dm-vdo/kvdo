@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#4 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -77,6 +77,15 @@ make_uds_index_layout_from_factory(struct io_factory *factory,
 				   struct index_layout **layout_ptr);
 
 /**
+ * Get another reference to an index layout, incrementing its use count.
+ *
+ * @param layout      The index layout.
+ * @param layout_ptr  Where the new layout pointer is being stored.
+ **/
+void get_uds_index_layout(struct index_layout *layout,
+			  struct index_layout **layout_ptr);
+
+/**
  * Decrement the use count of an index layout.  If the count goes to zero, free
  * the index layout.
  *
@@ -108,15 +117,6 @@ int __must_check discard_uds_index_saves(struct index_layout *layout);
 int __must_check find_latest_uds_index_save_slot(struct index_layout *layout,
 						 unsigned int *num_zones_ptr,
 						 unsigned int *slot_ptr);
-
-/**
- * Get another reference to an index layout, incrementing its use count.
- *
- * @param layout      The index layout.
- * @param layout_ptr  Where the new layout pointer is being stored.
- **/
-void get_uds_index_layout(struct index_layout *layout,
-			  struct index_layout **layout_ptr);
 
 /**
  * Open a buffered reader for a specified state, kind, and zone.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#119 $
  */
 
 #include "blockMap.h"
@@ -28,7 +28,6 @@
 #include "actionManager.h"
 #include "adminState.h"
 #include "blockMapFormat.h"
-#include "blockMapInternals.h"
 #include "blockMapPage.h"
 #include "blockMapTree.h"
 #include "constants.h"

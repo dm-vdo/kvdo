@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#55 $
  */
 
 #include "blockMapRecovery.h"
@@ -25,7 +25,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMapInternals.h"
+#include "blockMap.h"
 #include "blockMapPage.h"
 #include "heap.h"
 #include "numUtils.h"

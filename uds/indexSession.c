@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#4 $
  */
 
 #include "indexSession.h"
@@ -77,40 +77,29 @@ static void handle_callbacks(struct uds_request *request)
 }
 
 /**********************************************************************/
-static int __must_check
-check_index_session(struct uds_index_session *index_session)
+int get_index_session(struct uds_index_session *index_session)
 {
 	unsigned int state;
+	int result = UDS_SUCCESS;
+
 	uds_lock_mutex(&index_session->request_mutex);
+	index_session->request_count++;
 	state = index_session->state;
 	uds_unlock_mutex(&index_session->request_mutex);
 
 	if (state == IS_FLAG_LOADED) {
 		return UDS_SUCCESS;
 	} else if (state & IS_FLAG_DISABLED) {
-		return UDS_DISABLED;
+		result = UDS_DISABLED;
 	} else if ((state & IS_FLAG_LOADING) || (state & IS_FLAG_SUSPENDED) ||
 		   (state & IS_FLAG_WAITING)) {
-		return -EBUSY;
+		result = -EBUSY;
+	} else {
+		result = UDS_NO_INDEX;
 	}
 
-	return UDS_NO_INDEX;
-}
-
-/**********************************************************************/
-int get_index_session(struct uds_index_session *index_session)
-{
-	int result;
-	uds_lock_mutex(&index_session->request_mutex);
-	index_session->request_count++;
-	uds_unlock_mutex(&index_session->request_mutex);
-
-	result = check_index_session(index_session);
-	if (result != UDS_SUCCESS) {
-		release_index_session(index_session);
-		return result;
-	}
-	return UDS_SUCCESS;
+	release_index_session(index_session);
+	return result;
 }
 
 /**********************************************************************/
@@ -170,7 +159,9 @@ static int __must_check
 make_empty_index_session(struct uds_index_session **index_session_ptr)
 {
 	struct uds_index_session *session;
-	int result = UDS_ALLOCATE(1, struct uds_index_session, __func__, &session);
+	int result;
+
+	result = UDS_ALLOCATE(1, struct uds_index_session, __func__, &session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -223,36 +214,39 @@ make_empty_index_session(struct uds_index_session **index_session_ptr)
 /**********************************************************************/
 int uds_create_index_session(struct uds_index_session **session)
 {
-	struct uds_index_session *index_session = NULL;
-	int result;
 	if (session == NULL) {
 		uds_log_error("missing session pointer");
 		return -EINVAL;
 	}
 
-	result = make_empty_index_session(&index_session);
-	if (result != UDS_SUCCESS) {
-		return uds_map_to_system_error(result);
-	}
-
-	*session = index_session;
-	return UDS_SUCCESS;
+	return uds_map_to_system_error(make_empty_index_session(session));
 }
 
 /**********************************************************************/
-static int
-initialize_index_session_with_layout(struct uds_index_session *index_session,
-				     struct index_layout *layout,
-				     const struct uds_parameters *user_params,
-				     enum load_type load_type)
+static int initialize_index_session(struct uds_index_session *index_session,
+				    const char *name,
+				    const struct uds_parameters *user_params,
+				    enum load_type load_type)
 {
+	struct index_layout *layout;
 	struct configuration *index_config;
-	int result = ((load_type == LOAD_CREATE) ?
-			write_uds_index_config(layout,
-					       &index_session->user_config, 0) :
-			verify_uds_index_config(layout,
-						&index_session->user_config));
+	int result;
+
+	result = make_uds_index_layout(name,
+				       load_type == LOAD_CREATE,
+				       &index_session->user_config,
+				       &layout);
 	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = ((load_type == LOAD_CREATE) ?
+		  write_uds_index_config(layout,
+					 &index_session->user_config, 0) :
+		  verify_uds_index_config(layout,
+					  &index_session->user_config));
+	if (result != UDS_SUCCESS) {
+		put_uds_index_layout(layout);
 		return result;
 	}
 
@@ -260,6 +254,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 				    &index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed to allocate config");
+		put_uds_index_layout(layout);
 		return result;
 	}
 
@@ -276,32 +271,13 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 	free_configuration(index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed to make index");
+		put_uds_index_layout(layout);
 		return result;
 	}
 
 	log_uds_configuration(&index_session->user_config);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static int initialize_index_session(struct uds_index_session *index_session,
-				    const char *name,
-				    const struct uds_parameters *user_params,
-				    enum load_type load_type)
-{
-	struct index_layout *layout;
-	int result = make_uds_index_layout(name,
-					   load_type == LOAD_CREATE,
-					   &index_session->user_config,
-					   &layout);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = initialize_index_session_with_layout(index_session, layout,
-						      user_params, load_type);
 	put_uds_index_layout(layout);
-	return result;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/

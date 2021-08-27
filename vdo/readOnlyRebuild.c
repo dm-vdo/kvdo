@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#71 $
  */
 
 #include "readOnlyRebuild.h"
@@ -24,7 +24,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "blockMapInternals.h"
+#include "blockMap.h"
 #include "blockMapRecovery.h"
 #include "completion.h"
 #include "numUtils.h"

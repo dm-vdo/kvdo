@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#5 $
  */
 
 #include "indexLayout.h"
@@ -39,15 +39,13 @@
  * begins on 4K block boundary. Save regions are further sub-divided into
  * regions of their own.
  *
- * Each region has a kind and an instance number. Some kinds only have
- * one instance and therefore use RL_SOLE_INSTANCE (-1) as the
- * instance number.  The RL_KIND_INDEX used to use instances to
- * represent sub-indices; now, however there is only ever one
- * sub-index and therefore one instance. A save region can either hold
- * a checkpoint or a clean shutdown (determined by the type). The
- * instances determine which available save slot is used.  The
- * RL_KIND_VOLUME_INDEX uses instances to record which zone is being
- * saved.
+ * Each region has a kind and an instance number. Some kinds only have one
+ * instance and therefore use RL_SOLE_INSTANCE (-1) as the instance number.
+ * The RL_KIND_INDEX used to use instances to represent sub-indices; now,
+ * however there is only ever one sub-index and therefore one instance. A save
+ * region holds a clean shutdown. The instances determine which available save
+ * slot is used. The RL_KIND_VOLUME_INDEX uses instances to record which zone
+ * is being saved.
  *
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *     | | |   I N D E X   0      101, 0    | ...  | |
@@ -57,13 +55,12 @@
  *     | | | 201 -1 | 202  0 | 202  1 |     |      |l|
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *
- * The header contains the encoded region layout table as well as the
- * saved index configuration record. The sub-index region and its
- * subdivisions are maintained in the same table.
+ * The header contains the encoded region layout table as well as the saved
+ * index configuration record. The sub-index region and its subdivisions are
+ * maintained in the same table.
  *
- * There are at least two save regions to preserve the old state
- * should the saving of a state be incomplete. They are used in a
- * round-robin fashion.
+ * There are at least two save regions to preserve the old state should the
+ * saving of a state be incomplete. They are used in a round-robin fashion.
  *
  * Anatomy of a save region:
  *
@@ -74,14 +71,11 @@
  *     | | -1  | 0    | 1    |     |    | -1  |
  *     +-+-----+------+------+-----+   -+-----+
  *
- * Every region header has a type (and version). In save regions,
- * the open chapter only appears in RL_TYPE_SAVE not RL_TYPE_CHECKPOINT,
- * although the same space is reserved for both.
+ * Every region header has a type (and version).
  *
- * The header contains the encoded region layout table as well as the
- * index state record for that save or checkpoint. Each save or
- * checkpoint has a unique generation number and nonce which is used
- * to seed the checksums of those regions.
+ * The header contains the encoded region layout table as well as the index
+ * state record for that save. Each save has a unique generation number and
+ * nonce which is used to seed the checksums of those regions.
  */
 
 struct index_save_data {
@@ -146,9 +140,6 @@ struct index_layout {
  * Note that the volume_index_blocks represent all zones and are sized for
  * the maximum number of blocks that would be needed regardless of the number
  * of zones (up to the maximum value) that are used at run time.
- *
- * Similarly, the number of saves is sized for the minimum safe value
- * assuming checkpointing is enabled, since that is also a run-time parameter.
  **/
 struct save_layout_sizes {
 	struct configuration config; // this is a captive copy
@@ -162,6 +153,7 @@ struct save_layout_sizes {
 	uint64_t save_blocks; // per sub-index
 	uint64_t sub_index_blocks; // per sub-index
 	uint64_t total_blocks; // for whole layout
+	size_t total_size; // in bytes, for whole layout
 };
 
 /*
@@ -210,14 +202,13 @@ static INLINE uint64_t block_count(uint64_t bytes, uint32_t block_size)
 }
 
 /**********************************************************************/
-static int __must_check compute_sizes(struct save_layout_sizes *sls,
-				      const struct uds_configuration *config,
-				      size_t block_size)
+static int __must_check compute_sizes(const struct uds_configuration *config,
+				      struct save_layout_sizes *sls)
 {
 	struct configuration *cfg = NULL;
 	int result;
 
-	if (config->bytes_per_page % block_size != 0) {
+	if ((config->bytes_per_page % UDS_BLOCK_SIZE) != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					      "page size not a multiple of block size");
 	}
@@ -239,10 +230,11 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 	free_configuration(cfg);
 
 	sls->num_saves = 2;
-	sls->block_size = block_size;
-	sls->volume_blocks = sls->geometry.bytes_per_volume / block_size;
+	sls->block_size = UDS_BLOCK_SIZE;
+	sls->volume_blocks = sls->geometry.bytes_per_volume / sls->block_size;
 
-	result = compute_volume_index_save_blocks(&sls->config, block_size,
+	result = compute_volume_index_save_blocks(&sls->config,
+						  sls->block_size,
 						  &sls->volume_index_blocks);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
@@ -251,16 +243,17 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 
 	sls->page_map_blocks =
 		block_count(compute_index_page_map_save_size(&sls->geometry),
-			    block_size);
+			    sls->block_size);
 	sls->open_chapter_blocks =
 		block_count(compute_saved_open_chapter_size(&sls->geometry),
-			    block_size);
+			    sls->block_size);
 	sls->save_blocks =
 		1 + (sls->volume_index_blocks + sls->page_map_blocks +
 		     sls->open_chapter_blocks);
 	sls->sub_index_blocks =
 		sls->volume_blocks + (sls->num_saves * sls->save_blocks);
 	sls->total_blocks = 3 + sls->sub_index_blocks;
+	sls->total_size = sls->total_blocks * sls->block_size;
 
 	return UDS_SUCCESS;
 }
@@ -277,12 +270,12 @@ int uds_compute_index_size(const struct uds_configuration *config,
 		return -EINVAL;
 	}
 
-	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE);
+	result = compute_sizes(config, &sizes);
 	if (result != UDS_SUCCESS) {
 		return uds_map_to_system_error(result);
 	}
 
-	*index_size = sizes.total_blocks * sizes.block_size;
+	*index_size = sizes.total_size;
 	return UDS_SUCCESS;
 }
 
@@ -1369,33 +1362,22 @@ static int __must_check setup_sub_index(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
 /**
  * Initialize a single file layout using the save layout sizes specified.
  *
  * @param layout  the layout to initialize
- * @param offset  the offset in bytes from the start of the backing storage
- * @param size    the size in bytes of the backing storage
  * @param sls     a populated struct save_layout_sizes object
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int __must_check
 init_single_file_layout(struct index_layout *layout,
-			uint64_t offset,
-			uint64_t size,
 			struct save_layout_sizes *sls)
 {
 	uint64_t next_block;
 	int result;
 
 	layout->total_blocks = sls->total_blocks;
-
-	if (size < sls->total_blocks * sls->block_size) {
-		uds_log_error("not enough space for index as configured");
-		return -ENOSPC;
-	}
-
 	generate_super_block_data(sls->block_size,
 				  sls->num_saves,
 				  sls->open_chapter_blocks,
@@ -1407,7 +1389,7 @@ init_single_file_layout(struct index_layout *layout,
 		return result;
 	}
 
-	next_block = offset / sls->block_size;
+	next_block = layout->offset / sls->block_size;
 
 	setup_layout(&layout->header,
 		     &next_block,
@@ -1426,7 +1408,7 @@ init_single_file_layout(struct index_layout *layout,
 	}
 	setup_layout(&layout->seal, &next_block, 1, RL_KIND_SEAL,
 		     RL_SOLE_INSTANCE);
-	if (next_block * sls->block_size > offset + size) {
+	if (next_block * sls->block_size > layout->offset + sls->total_size) {
 		return uds_log_error_strerror(UDS_UNEXPECTED_RESULT,
 					      "layout does not fit as expected");
 	}
@@ -2464,33 +2446,17 @@ int discard_uds_index_saves(struct index_layout *layout)
 
 /**********************************************************************/
 static int create_index_layout(struct index_layout *layout,
-			       uint64_t size,
 			       const struct uds_configuration *config)
 {
 	struct save_layout_sizes sizes;
-	uint64_t index_size;
 	int result;
 
-	if (config == NULL) {
-		uds_log_error("missing index configuration");
-		return -EINVAL;
-	}
-
-	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE);
+	result = compute_sizes(config, &sizes);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	// XXX This should include offset in the calculation (size +
-	// offset is checked later so insufficient space will be
-	// caught eventually, but better to catch it early)
-	index_size = sizes.total_blocks * sizes.block_size;
-	if (size < index_size) {
-		uds_log_error("layout requires at least %llu bytes",
-			      (unsigned long long) index_size);
-		return -ENOSPC;
-	}
 
-	result = init_single_file_layout(layout, layout->offset, size, &sizes);
+	result = init_single_file_layout(layout, &sizes);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2504,6 +2470,7 @@ static int create_index_layout(struct index_layout *layout,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	return UDS_SUCCESS;
 }
 
@@ -2609,32 +2576,34 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 {
 	struct index_layout *layout = NULL;
 	uint64_t config_size;
+	size_t size;
 	int result;
+
 	// Get the device size and round it down to a multiple of
 	// UDS_BLOCK_SIZE.
-	size_t size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
-	if (named_size > size) {
+	size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
+	if (size < named_size + offset) {
 		uds_log_error("index storage (%zu) is smaller than the requested size %llu",
 			      size,
-			      (unsigned long long) named_size);
+			      (unsigned long long) (named_size + offset));
 		return -ENOSPC;
 	}
 	if ((named_size > 0) && (named_size < size)) {
 		size = named_size;
 	}
 
-	// Get the index size according the the config
+	// Get the index size according to the config
 	result = uds_compute_index_size(config, &config_size);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	if (size < config_size) {
 		uds_log_error("index storage (%zu) is smaller than the required size %llu",
 			      size,
 			      (unsigned long long) config_size);
 		return -ENOSPC;
 	}
-	size = config_size;
 
 	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
 	if (result != UDS_SUCCESS) {
@@ -2647,7 +2616,7 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 
 	if (new_layout) {
 		// Populate the layout from the UDS configuration
-		result = create_index_layout(layout, size, config);
+		result = create_index_layout(layout, config);
 	} else {
 		// Populate the layout from the saved index.
 		result = load_index_layout(layout);
