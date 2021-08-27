@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#173 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#174 $
  */
 
 /*
@@ -61,11 +61,171 @@
 #include "vdoResizeLogical.h"
 
 #include "bio.h"
+#include "batchProcessor.h"
 #include "dedupeIndex.h"
 #include "ioSubmitter.h"
 #include "kernelVDO.h"
 #include "vdoCommon.h"
 #include "workQueue.h"
+
+static const struct vdo_work_queue_type bio_ack_q_type = {
+	.action_table = {
+		{
+			.name = "bio_ack",
+			.code = BIO_ACK_Q_ACTION_ACK,
+			.priority = 0
+		},
+	},
+};
+
+static const struct vdo_work_queue_type cpu_q_type = {
+	.action_table = {
+		{
+			.name = "cpu_complete_vio",
+			.code = CPU_Q_ACTION_COMPLETE_VIO,
+			.priority = 0
+		},
+		{
+			.name = "cpu_compress_block",
+			.code = CPU_Q_ACTION_COMPRESS_BLOCK,
+			.priority = 0
+		},
+		{
+			.name = "cpu_hash_block",
+			.code = CPU_Q_ACTION_HASH_BLOCK,
+			.priority = 0
+		},
+		{
+			.name = "cpu_event_reporter",
+			.code = CPU_Q_ACTION_EVENT_REPORTER,
+			.priority = 0
+		},
+	},
+};
+
+/**********************************************************************/
+int make_vdo(unsigned int instance,
+	     struct device_config *config,
+	     char **reason,
+	     struct vdo **vdo_ptr)
+{
+	int result;
+	struct vdo *vdo;
+	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
+
+	// VDO-3769 - Set a generic reason so we don't ever return garbage.
+	*reason = "Unspecified error";
+
+	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
+	if (result != UDS_SUCCESS) {
+		*reason = "Cannot allocate VDO";
+		release_vdo_instance(instance);
+		return result;
+	}
+
+	result = initialize_vdo(vdo, config, instance, reason);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	// From here on, the caller will clean up if there is an error.
+	*vdo_ptr = vdo;
+
+	snprintf(thread_name_prefix,
+		 sizeof(thread_name_prefix),
+		 "%s%u",
+		 THIS_MODULE->name,
+		 instance);
+
+	result = make_batch_processor(vdo,
+				      return_data_vio_batch_to_pool,
+				      vdo,
+				      &vdo->data_vio_releaser);
+	if (result != UDS_SUCCESS) {
+		*reason = "Cannot allocate vio-freeing batch processor";
+		return result;
+	}
+
+	// Dedupe Index
+	BUG_ON(thread_name_prefix[0] == '\0');
+	result = make_vdo_dedupe_index(&vdo->dedupe_index,
+				       vdo,
+				       thread_name_prefix);
+	if (result != UDS_SUCCESS) {
+		*reason = "Cannot initialize dedupe index";
+		return result;
+	}
+
+	/*
+	 * Part 3 - Do initializations that depend upon other previous
+	 * initializations, but have no order dependencies at freeing time.
+	 * Order dependencies for initialization are identified using BUG_ON.
+	 */
+
+
+	// Data vio pool
+	BUG_ON(vdo->device_config->logical_block_size <= 0);
+	BUG_ON(vdo->request_limiter.limit <= 0);
+	BUG_ON(vdo->device_config->owned_device == NULL);
+	result = make_data_vio_buffer_pool(vdo->request_limiter.limit,
+					   &vdo->data_vio_pool);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot allocate vio data";
+		return result;
+	}
+
+	// Base-code thread, etc
+	result = make_vdo_threads(vdo, thread_name_prefix, reason);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	// Bio queue
+	result = make_vdo_io_submitter(thread_name_prefix,
+				       config->thread_counts.bio_threads,
+				       config->thread_counts.bio_rotation_interval,
+				       vdo->request_limiter.limit,
+				       vdo,
+				       &vdo->io_submitter);
+	if (result != VDO_SUCCESS) {
+		*reason = "bio submission initialization failed";
+		return result;
+	}
+
+	// Bio ack queue
+	if (use_bio_ack_queue(vdo)) {
+		result = make_work_queue(thread_name_prefix,
+					 "ackQ",
+					 &vdo->work_queue_directory,
+					 vdo,
+					 vdo,
+					 &bio_ack_q_type,
+					 config->thread_counts.bio_ack_threads,
+					 NULL,
+					 &vdo->bio_ack_queue);
+		if (result != VDO_SUCCESS) {
+			*reason = "bio ack queue initialization failed";
+			return result;
+		}
+	}
+
+	// CPU Queues
+	result = make_work_queue(thread_name_prefix,
+				 "cpuQ",
+				 &vdo->work_queue_directory,
+				 vdo,
+				 vdo,
+				 &cpu_q_type,
+				 config->thread_counts.cpu_threads,
+				 (void **) vdo->compression_context,
+				 &vdo->cpu_queue);
+	if (result != VDO_SUCCESS) {
+		*reason = "CPU queue initialization failed";
+		return result;
+	}
+
+	return VDO_SUCCESS;
+}
 
 /**********************************************************************/
 static void finish_vdo(struct vdo *vdo)

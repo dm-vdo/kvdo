@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#103 $
  */
 
 #ifndef KERNELLAYER_H
@@ -63,22 +63,6 @@ enum cpu_q_action {
 enum bio_ack_q_action {
 	BIO_ACK_Q_ACTION_ACK,
 };
-
-/**
- * Creates a vdo.
- *
- * @param instance   Device instantiation counter
- * @param config     The device configuration
- * @param reason     The reason for any failure during this call
- * @param vdo_ptr    A pointer to hold the created vdo
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-make_kernel_layer(unsigned int instance,
-		  struct device_config *config,
-		  char **reason,
-		  struct vdo **vdo_ptr);
 
 /**
  * Function call to begin processing a bio passed in from the block layer

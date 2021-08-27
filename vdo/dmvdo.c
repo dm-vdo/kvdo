@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#154 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#155 $
  */
 
 #include <linux/module.h>
@@ -380,7 +380,6 @@ static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
 {
-	char *failure_reason;
 	struct vdo *vdo;
 	int result;
 
@@ -409,15 +408,11 @@ static int vdo_initialize(struct dm_target *ti,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = make_kernel_layer(instance,
-				   config,
-				   &failure_reason,
-				   &vdo);
+	result = make_vdo(instance, config, &ti->error, &vdo);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
 			      result,
-			      failure_reason);
-		ti->error = failure_reason;
+			      ti->error);
 		destroy_vdo(vdo);
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#48 $
  */
 
 #ifndef VDO_H
@@ -26,6 +26,22 @@
 
 #include "deviceConfig.h"
 #include "types.h"
+
+/**
+ * Allocate and initialize a vdo.
+ *
+ * @param instance   Device instantiation counter
+ * @param config     The device configuration
+ * @param reason     The reason for any failure during this call
+ * @param vdo_ptr    A pointer to hold the created vdo
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+make_vdo(unsigned int instance,
+	 struct device_config *config,
+	 char **reason,
+	 struct vdo **vdo_ptr);
 
 /**
  * Destroy a vdo instance.
