@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#162 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#163 $
  */
 
 #include "dataKVIO.h"
@@ -134,7 +134,10 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 		free_buffer_pointers(&fbp);
 	}
 
-	complete_many_requests(vdo, count);
+	// Notify the limiter, so it can wake any blocked processes.
+	if (count > 0) {
+		limiter_release_many(&vdo->request_limiter, count);
+	}
 }
 
 /**********************************************************************/

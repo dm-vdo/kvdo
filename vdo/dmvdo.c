@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#155 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#156 $
  */
 
 #include <linux/module.h>
@@ -26,10 +26,12 @@
 #include "threadDevice.h"
 #include "threadRegistry.h"
 
+#include "bio.h"
 #include "constants.h"
 #include "dedupeIndex.h"
 #include "deviceRegistry.h"
 #include "dump.h"
+#include "flush.h"
 #include "instanceNumber.h"
 #include "ioSubmitter.h"
 #include "kernelLayer.h"
@@ -41,8 +43,6 @@
 #include "vdoLoad.h"
 #include "vdoResume.h"
 #include "vdoSuspend.h"
-
-/**********************************************************************/
 
 /**
  * Get the vdo associated with a dm target structure.
@@ -85,7 +85,52 @@ static struct vdo *get_vdo_for_target(struct dm_target *ti)
  **/
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-	return vdo_launch_bio(get_vdo_for_target(ti), bio);
+	int result;
+	struct vdo *vdo = get_vdo_for_target(ti);
+	uint64_t arrival_jiffies = jiffies;
+	struct vdo_work_queue *current_work_queue;
+	bool has_discard_permit = false;
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&vdo->admin_state);
+
+	ASSERT_LOG_ONLY(code->normal,
+			"vdo should not receive bios while in state %s",
+			code->name);
+
+	// Count all incoming bios.
+	vdo_count_bios(&vdo->stats.bios_in, bio);
+
+
+	// Handle empty bios.  Empty flush bios are not associated with a vio.
+	if ((bio_op(bio) == REQ_OP_FLUSH) ||
+	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+		launch_vdo_flush(vdo, bio);
+		return DM_MAPIO_SUBMITTED;
+	}
+
+	// This could deadlock,
+	current_work_queue = get_current_work_queue();
+	BUG_ON((current_work_queue != NULL)
+	       && (vdo == get_work_queue_owner(current_work_queue)));
+
+	if (bio_op(bio) == REQ_OP_DISCARD) {
+		limiter_wait_for_one_free(&vdo->discard_limiter);
+		has_discard_permit = true;
+	}
+	limiter_wait_for_one_free(&vdo->request_limiter);
+
+	result = vdo_launch_data_vio_from_bio(vdo,
+					      bio,
+					      arrival_jiffies,
+					      has_discard_permit);
+	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
+	// now.
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	return DM_MAPIO_SUBMITTED;
+
 }
 
 /**********************************************************************/

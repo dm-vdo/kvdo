@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#79 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -28,7 +28,6 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 
-#include "deadlockQueue.h"
 #include "threadRegistry.h"
 
 #include "adminCompletion.h"
@@ -63,9 +62,6 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
-
-	/** Incoming bios we've had to buffer to avoid deadlock. */
-	struct deadlock_queue deadlock_queue;
 
 	/**
 	 * Bio submission manager used for sending bios to the storage

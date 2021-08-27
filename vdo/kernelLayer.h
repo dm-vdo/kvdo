@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#104 $
  */
 
 #ifndef KERNELLAYER_H
@@ -36,7 +36,6 @@
 
 #include "batchProcessor.h"
 #include "bufferPool.h"
-#include "deadlockQueue.h"
 #include "deviceConfig.h"
 #include "kernelTypes.h"
 #include "kernelVDO.h"
@@ -63,18 +62,6 @@ enum cpu_q_action {
 enum bio_ack_q_action {
 	BIO_ACK_Q_ACTION_ACK,
 };
-
-/**
- * Function call to begin processing a bio passed in from the block layer
- *
- * @param vdo  The VDO instance
- * @param bio  The bio from the block layer
- *
- * @return value to return from the VDO map function.  Either an error code
- *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdo_map_bio for
- *         details).
- **/
-int vdo_launch_bio(struct vdo *vdo, struct bio *bio);
 
 /**
  * Convert a block number (or count) to a (512-byte-)sector number.
@@ -121,15 +108,5 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 
 	return to_bytes(sector_number & sectors_per_block_mask);
 }
-
-/**
- * Update bookkeeping for the completion of some number of requests, so that
- * more incoming requests can be accepted.
- *
- * @param vdo    The vdo
- * @param count  The number of completed requests
- **/
-void complete_many_requests(struct vdo *vdo, uint32_t count);
-
 
 #endif /* KERNELLAYER_H */
