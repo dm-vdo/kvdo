@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#52 $
  */
 
 #include "vio.h"
@@ -29,7 +29,7 @@
 #include "permassert.h"
 
 #include "dataVIO.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 /**********************************************************************/
 int create_metadata_vio(struct vdo *vdo,

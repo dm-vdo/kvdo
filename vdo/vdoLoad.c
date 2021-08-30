@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#110 $
  */
 
 #include "vdoLoad.h"
@@ -42,8 +42,8 @@
 #include "superBlockCodec.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdo.h"
 #include "vdoInit.h"
-#include "vdoInternal.h"
 #include "vdoRecovery.h"
 #include "vdoSuspend.h"
 

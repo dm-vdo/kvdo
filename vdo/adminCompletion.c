@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#47 $
  */
 
 #include "adminCompletion.h"
@@ -31,7 +31,7 @@
 #include "completion.h"
 #include "threadConfig.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 /**********************************************************************/
 void assert_vdo_admin_operation_type(struct admin_completion *completion,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#51 $
  */
 
 #include "vdoResizeLogical.h"
@@ -27,7 +27,7 @@
 #include "blockMap.h"
 #include "completion.h"
 #include "threadConfig.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 enum {
 	GROW_LOGICAL_PHASE_START = 0,

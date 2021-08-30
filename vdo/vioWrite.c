@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#84 $
  */
 
 /*
@@ -120,7 +120,7 @@
 #include "slab.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "vioRead.h"
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#36 $
  */
 
 #include "vdoLayout.h"
@@ -31,7 +31,7 @@
 #include "slabSummary.h"
 #include "statusCodes.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 static const enum partition_id REQUIRED_PARTITIONS[] = {
 	VDO_BLOCK_MAP_PARTITION,

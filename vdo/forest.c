@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#55 $
  */
 
 #include "forest.h"
@@ -35,7 +35,7 @@
 #include "slabDepot.h"
 #include "slabJournal.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "vio.h"
 #include "vioPool.h"
 

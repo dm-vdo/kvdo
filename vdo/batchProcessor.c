@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#24 $
  */
 
 #include "batchProcessor.h"
@@ -26,7 +26,7 @@
 #include "memoryAlloc.h"
 
 #include "constants.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 #include "kernelLayer.h"
 

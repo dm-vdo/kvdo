@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#174 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#175 $
  */
 
 /*
@@ -24,7 +24,7 @@
  * well as functions for constructing and destroying vdo instances (in memory).
  */
 
-#include "vdoInternal.h"
+#include "vdo.h"
 
 #include <linux/device-mapper.h>
 #include <linux/kernel.h>

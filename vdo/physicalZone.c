@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#38 $
  */
 
 #include "physicalZone.h"
@@ -35,7 +35,7 @@
 #include "pbnLock.h"
 #include "pbnLockPool.h"
 #include "slabDepot.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 enum {
 	// Each user data_vio needs a PBN read lock and write lock, and each

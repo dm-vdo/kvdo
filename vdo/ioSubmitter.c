@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#90 $
  */
 
 #include "ioSubmitter.h"
@@ -30,7 +30,7 @@
 #include "bio.h"
 #include "dataKVIO.h"
 #include "logger.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 /*
  * Submission of bio operations to the underlying storage device will

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#46 $
  */
 
 #include "vdoResume.h"
@@ -34,7 +34,7 @@
 #include "slabDepot.h"
 #include "slabSummary.h"
 #include "threadConfig.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
 

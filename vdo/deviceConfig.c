@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#5 $
  */
 
 #include "deviceConfig.h"
@@ -28,7 +28,7 @@
 #include "stringUtils.h"
 
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 #include "vdoStringUtils.h"
 

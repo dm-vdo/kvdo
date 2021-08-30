@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#91 $
  */
 
 #include "kvio.h"
@@ -28,7 +28,6 @@
 
 #include "numUtils.h"
 #include "vdo.h"
-#include "vdoInternal.h"
 #include "waitQueue.h"
 
 #include "bio.h"

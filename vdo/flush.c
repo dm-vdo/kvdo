@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#60 $
  */
 
 #include "flush.h"
@@ -36,7 +36,7 @@
 #include "readOnlyNotifier.h"
 #include "slabDepot.h"
 #include "threadConfig.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 
 struct flusher {
 	struct vdo_completion completion;

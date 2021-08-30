@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#27 $
  */
 
 #include "vdoInit.h"
@@ -37,7 +37,7 @@
 #include "poolSysfs.h"
 #include "threadConfig.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "volumeGeometry.h"
 
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#105 $
  */
 
 #ifndef KERNELLAYER_H
@@ -31,7 +31,6 @@
 #include "intMap.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoInternal.h"
 #include "waitQueue.h"
 
 #include "batchProcessor.h"

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#126 $
  */
 
 #include "slabDepot.h"
@@ -46,7 +46,6 @@
 #include "threadConfig.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoInternal.h"
 #include "vdoState.h"
 
 /**********************************************************************/

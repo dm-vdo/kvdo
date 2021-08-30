@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#117 $
  */
 
 #include "vdoRecovery.h"
@@ -41,7 +41,7 @@
 #include "slabJournal.h"
 #include "threadConfig.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "waitQueue.h"
 
 /**

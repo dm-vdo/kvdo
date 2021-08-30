@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#128 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#129 $
  */
 
 #include "recoveryJournal.h"
@@ -37,7 +37,6 @@
 #include "slabDepot.h"
 #include "slabJournal.h"
 #include "vdo.h"
-#include "vdoInternal.h"
 #include "waitQueue.h"
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;

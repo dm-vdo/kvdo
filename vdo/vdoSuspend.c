@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#53 $
  */
 
 #include "vdoSuspend.h"
@@ -33,8 +33,8 @@
 #include "slabDepot.h"
 #include "slabSummary.h"
 #include "threadConfig.h"
+#include "vdo.h"
 #include "vdoInit.h"
-#include "vdoInternal.h"
 
 enum {
 	SUSPEND_PHASE_START = 0,

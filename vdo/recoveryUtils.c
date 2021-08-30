@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#50 $
  */
 
 #include "recoveryUtils.h"
@@ -30,9 +30,9 @@
 #include "recoveryJournalEntry.h"
 #include "recoveryJournal.h"
 #include "slabDepot.h"
+#include "vdo.h"
 #include "vdoComponent.h"
 #include "vdoComponentStates.h"
-#include "vdoInternal.h"
 
 /**
  * Finish loading the journal by freeing the extent and notifying the parent.

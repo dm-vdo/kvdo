@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#49 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -25,7 +25,6 @@
 #include "completion.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoInternal.h"
 
 #include "kernelTypes.h"
 #include "workQueue.h"

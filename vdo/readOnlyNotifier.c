@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#45 $
  */
 
 #include "readOnlyNotifier.h"
@@ -199,8 +199,9 @@ void free_vdo_read_only_notifier(struct read_only_notifier *notifier)
  * @param notifier  The notifier
  * @param caller    The name of the function (for logging)
  **/
-static void assert_on_admin_thread(struct read_only_notifier *notifier,
-				   const char *caller)
+static void
+assert_notifier_on_admin_thread(struct read_only_notifier *notifier,
+				const char *caller)
 {
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
@@ -220,7 +221,7 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 		return;
 	}
 
-	assert_on_admin_thread(notifier, __func__);
+	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
 		finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
 		return;
@@ -264,7 +265,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 	struct read_only_notifier *notifier = as_notifier(completion);
 	struct vdo_completion *waiter = notifier->waiter;
 
-	assert_on_admin_thread(notifier, __func__);
+	assert_notifier_on_admin_thread(notifier, __func__);
 	smp_wmb();
 	atomic_set(&notifier->state, NOTIFIED);
 
@@ -338,7 +339,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 {
 	int state;
 
-	assert_on_admin_thread(notifier, __func__);
+	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
 		finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
 		return;
