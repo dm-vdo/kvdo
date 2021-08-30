@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds-threads.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds-threads.h#2 $
  */
 
 #ifndef UDS_THREADS_H
@@ -290,7 +290,7 @@ static INLINE void uds_acquire_semaphore(struct semaphore *semaphore)
 		 * still keep consuming CPU time slices and swamp other threads
 		 * trying to do computational work. [VDO-4980]
 		 */
-		msleep(1);
+		fsleep(1000);
 	}
 }
 

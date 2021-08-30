@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/loggerLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/loggerLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -201,7 +201,6 @@ void __uds_log_message(int priority,
 /**********************************************************************/
 void uds_pause_for_logger(void)
 {
-	// Hopefully, a few milliseconds of sleep will be large enough
-	// for the kernel log buffer to be flushed.
-	msleep(4);
+	/* Allow a few milliseconds for the kernel log buffer to be flushed. */
+	fsleep(4000);
 }

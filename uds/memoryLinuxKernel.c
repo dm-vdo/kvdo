@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/memoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/memoryLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -176,7 +176,8 @@ static void remove_vmalloc_block(void *ptr)
 
 
 /**
- * Determine whether allocating a memory block should use kmalloc or vmalloc.
+ * Determine whether allocating a memory block should use kmalloc or
+ * __vmalloc.
  *
  * vmalloc can allocate any integral number of pages.
  *
@@ -255,17 +256,12 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		p = kmalloc(size, gfp_flags | __GFP_NOWARN);
 		if (p == NULL) {
 			/*
-			 * If we had just done kmalloc(size, gfp_flags) it is
-			 * possible that the allocation would fail (see
-			 * VDO-3688).  The kernel log would then contain a long
-			 * report about the failure.  Although the failure
-			 * occurs because there is no page available to
-			 * allocate, by the time it logs the available space,
-			 * there is a page available.  So hopefully a short
-			 * sleep will allow the page reclaimer to free a single
-			 * page, which is all that we need.
+			 * It is possible for kmalloc to fail to allocate
+			 * memory because there is no page available (see
+			 * VDO-3688). A short sleep may allow the page
+			 * reclaimer to free a page.
 			 */
-			msleep(1);
+			fsleep(1000);
 			p = kmalloc(size, gfp_flags);
 		}
 		if (p != NULL) {
@@ -277,16 +273,11 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
 		    UDS_SUCCESS) {
 			/*
-			 * If we just do __vmalloc(size, gfp_flags,
-			 * PAGE_KERNEL) it is possible that the allocation will
-			 * fail (see VDO-3661).  The kernel log will then
-			 * contain a long report about the failure.  Although
-			 * the failure occurs because there are not enough
-			 * pages available to allocate, by the time it logs the
-			 * available space, there may enough pages available
-			 * for smaller allocations.  So hopefully a short sleep
-			 * will allow the page reclaimer to free enough pages
-			 * for us.
+			 * It is possible for __vmalloc to fail to allocate
+			 * memory because there are no pages available (see
+			 * VDO-3661). A short sleep may allow the page
+			 * reclaimer to free enough pages for a small
+			 * allocation.
 			 *
 			 * For larger allocations, the kernel page_alloc code
 			 * is racing against the page reclaimer.  If the page
@@ -311,7 +302,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 				     1000)) {
 					break;
 				}
-				msleep(1);
+				fsleep(1000);
 			}
 			if (p == NULL) {
 				// Try one more time, logging a failure for
