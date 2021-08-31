@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#157 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#158 $
  */
 
 #include <linux/module.h>
@@ -34,7 +34,6 @@
 #include "flush.h"
 #include "instanceNumber.h"
 #include "ioSubmitter.h"
-#include "kernelLayer.h"
 #include "messageStats.h"
 #include "stringUtils.h"
 #include "threadConfig.h"
@@ -176,10 +175,13 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       iterate_devices_callout_fn fn,
 			       void *data)
 {
-	struct vdo *vdo = get_vdo_for_target(ti);
-	sector_t len = block_to_sector(vdo->device_config->physical_blocks);
+	struct device_config *config = get_vdo_for_target(ti)->device_config;
 
-	return fn(ti, vdo->device_config->owned_device, 0, len, data);
+	return fn(ti,
+		  config->owned_device,
+		  0,
+		  config->physical_blocks * VDO_SECTORS_PER_BLOCK,
+		  data);
 }
 
 /*

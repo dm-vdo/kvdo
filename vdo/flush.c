@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#61 $
  */
 
 #include "flush.h"
@@ -26,7 +26,6 @@
 #include "permassert.h"
 
 #include "ioSubmitter.h"
-#include "kernelLayer.h"
 #include "kernelVDO.h"
 
 #include "blockAllocator.h"

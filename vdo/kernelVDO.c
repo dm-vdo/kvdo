@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#120 $
  */
 
 /*
@@ -29,6 +29,7 @@
 
 #include <linux/delay.h>
 
+#include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
@@ -42,9 +43,7 @@
 #include "vdoResume.h"
 #include "vdoSuspend.h"
 
-#include "kernelLayer.h"
 #include "kvio.h"
-#include "logger.h"
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 

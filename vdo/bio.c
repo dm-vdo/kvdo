@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#64 $
  */
 
 #include "bio.h"
@@ -29,7 +29,6 @@
 #include "permassert.h"
 
 #include "atomicStats.h"
-#include "kernelLayer.h"
 #include "kvio.h"
 #include "vdo.h"
 
@@ -99,7 +98,7 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 	case REQ_OP_DISCARD:
 		atomic64_inc(&bio_stats->discard);
 		break;
-		// All other operations are filtered out in kernelLayer.c, or
+		// All other operations are filtered out in dmvdo.c, or
 		// not created by VDO, so shouldn't exist.
 	default:
 		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
@@ -175,7 +174,7 @@ static void vdo_set_bio_properties(struct bio *bio,
 	if ((vio != NULL) && (pbn != VDO_GEOMETRY_BLOCK_LOCATION)) {
 		pbn -= vio->vdo->geometry.bio_offset;
 	}
-	bio->bi_iter.bi_sector = block_to_sector(pbn);
+	bio->bi_iter.bi_sector = pbn * VDO_SECTORS_PER_BLOCK;
 }
 
 /**********************************************************************/

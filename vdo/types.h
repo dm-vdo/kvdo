@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#91 $
  */
 
 #ifndef TYPES_H
@@ -232,6 +232,26 @@ static inline bool is_vdo_metadata_vio_type(enum vio_type type)
 		!is_vdo_data_vio_type(type) &&
 		!is_vdo_compressed_write_vio_type(type));
 }
+
+enum bio_q_action {
+	BIO_Q_ACTION_COMPRESSED_DATA,
+	BIO_Q_ACTION_DATA,
+	BIO_Q_ACTION_FLUSH,
+	BIO_Q_ACTION_HIGH,
+	BIO_Q_ACTION_METADATA,
+	BIO_Q_ACTION_VERIFY
+};
+
+enum cpu_q_action {
+	CPU_Q_ACTION_COMPLETE_VIO,
+	CPU_Q_ACTION_COMPRESS_BLOCK,
+	CPU_Q_ACTION_EVENT_REPORTER,
+	CPU_Q_ACTION_HASH_BLOCK,
+};
+
+enum bio_ack_q_action {
+	BIO_ACK_Q_ACTION_ACK,
+};
 
 /**
  * Priority levels for asynchronous I/O operations performed on a vio.

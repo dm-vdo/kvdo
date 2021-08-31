@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#164 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#165 $
  */
 
 #include "dataKVIO.h"
@@ -31,11 +31,14 @@
 
 #include "atomicStats.h"
 #include "compressedBlock.h"
+#include "constants.h"
 #include "dataVIO.h"
 #include "hashLock.h"
 #include "vdo.h"
 
+#include "batchProcessor.h"
 #include "bio.h"
+#include "bufferPool.h"
 #include "dedupeIndex.h"
 #include "kvio.h"
 #include "ioSubmitter.h"
@@ -55,9 +58,9 @@ static void dump_pooled_data_vio(void *data);
  * any remaining IO done doesn't care how important finishing the finished bio
  * was.
  *
- * Note that kernelLayer.c contains the complete list of flags we believe may
- * be set; the following list explains the action taken with each of those
- * flags VDO could receive:
+ * Note that bio.c contains the complete list of flags we believe may be set;
+ * the following list explains the action taken with each of those flags VDO
+ * could receive:
  *
  * REQ_SYNC: Passed down if the user bio is not yet completed, since it
  * indicates the user bio completion is required for further work to be
@@ -77,6 +80,9 @@ static void dump_pooled_data_vio(void *data);
  **/
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
+
+static const unsigned int VDO_SECTORS_PER_BLOCK_MASK =
+	VDO_SECTORS_PER_BLOCK - 1;
 
 /**********************************************************************/
 static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
@@ -674,7 +680,8 @@ static int vdo_create_vio_from_bio(struct vdo *vdo,
 		       NULL,
 		       vdo,
 		       NULL);
-	data_vio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
+	data_vio->offset = to_bytes(bio->bi_iter.bi_sector
+				    & VDO_SECTORS_PER_BLOCK_MASK);
 	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 				(data_vio->offset != 0));
 
@@ -793,11 +800,8 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
-	logical_block_number_t lbn =
-		sector_to_block(bio->bi_iter.bi_sector -
-				vdo->starting_sector_offset);
+	logical_block_number_t lbn;
 	struct vio *vio;
-
 
 	result = vdo_create_vio_from_bio(vdo,
 					 bio,
@@ -841,6 +845,8 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 		operation |= VIO_FLUSH_AFTER;
 	}
 
+	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
+	       / VDO_SECTORS_PER_BLOCK);
 	prepare_data_vio(data_vio, lbn, operation, is_trim, callback);
 
 	vio = data_vio_as_vio(data_vio);
