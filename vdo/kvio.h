@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#42 $
  */
 
 #ifndef KVIO_H
@@ -44,17 +44,17 @@ static inline void enqueue_vio_work(struct vdo_work_queue *queue,
  * @param vio             The vio to set up
  * @param work            The function pointer to execute
  * @param stats_function  A function pointer to record for stats, or NULL
- * @param action          Action code, mapping to a relative priority
+ * @param priority        The priority of the work
  **/
 static inline void setup_vio_work(struct vio *vio,
 				  vdo_work_function work,
 				  void *stats_function,
-				  unsigned int action)
+				  enum vdo_work_item_priority priority)
 {
 	setup_work_item(work_item_from_vio(vio),
 			work,
 			stats_function,
-			action);
+			priority);
 }
 
 /**
@@ -63,16 +63,16 @@ static inline void setup_vio_work(struct vio *vio,
  * @param vio             The vio to set up
  * @param work            The function pointer to execute
  * @param stats_function  A function pointer to record for stats, or NULL
- * @param action          Action code, mapping to a relative priority
- * @param queue           The queue on which to enqueue the kvio
+ * @param priority        The priority of the work
+ * @param queue           The queue on which to enqueue the vio
  **/
 static inline void launch_vio(struct vio *vio,
 			      vdo_work_function work,
 			      void *stats_function,
-			      unsigned int action,
+			      enum vdo_work_item_priority priority,
 			      struct vdo_work_queue *queue)
 {
-	setup_vio_work(vio, work, stats_function, action);
+	setup_vio_work(vio, work, stats_function, priority);
 	enqueue_vio_work(queue, vio);
 }
 

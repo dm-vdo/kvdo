@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#28 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -25,13 +25,13 @@
 #include <linux/kobject.h>
 #include <linux/sched.h> /* for TASK_COMM_LEN */
 
-#include "kernelTypes.h"
 #include "util/funnelQueue.h"
+
+#include "kernelTypes.h"
+#include "types.h"
 
 enum {
 	MAX_VDO_WORK_QUEUE_NAME_LEN = TASK_COMM_LEN,
-	/** Maximum number of action definitions per work queue type */
-	VDO_WORK_QUEUE_ACTION_COUNT = 8,
 	/** Number of priority values available */
 	VDO_WORK_QUEUE_PRIORITY_COUNT = 4,
 };
@@ -47,11 +47,8 @@ struct vdo_work_item {
 	 * An index into the statistics table; filled in by workQueueStats code
 	 */
 	unsigned int stat_table_index;
-	/**
-	 * The action code given to setup_work_item, from which a priority will
-	 * be determined.
-	 **/
-	unsigned int action;
+	/** The priority of the work to be done */
+	enum vdo_work_item_priority priority;
 	/**
 	 * The work queue in which the item is enqueued, or NULL if not
 	 * enqueued.
@@ -61,54 +58,6 @@ struct vdo_work_item {
 	 * Time of enqueueing, in ns, for recording queue (waiting) time stats
 	 */
 	uint64_t enqueue_time;
-};
-
-/**
- * Table entries defining an action.
- *
- * Actions are intended to distinguish general classes of activity for
- * prioritization purposes, but not necessarily to indicate specific work
- * functions. They are indicated to setup_work_item numerically, using an
- * enumerator defined per kind of work queue -- bio submission work queue
- * actions use bio_q_action, cpu actions use cpu_q_action, etc. For example,
- * for the CPU work queues, data compression can be prioritized separately
- * from final cleanup processing of a vio or from dedupe verification; base
- * code threads prioritize all VIO callback invocation the same, but separate
- * from sync or heartbeat operations. The bio acknowledgement work queue, on
- * the other hand, only does one thing, so it only defines one action code.
- *
- * Action codes values must be small integers, 0 through
- * VDO_WORK_QUEUE_ACTION_COUNT-1, and should not be duplicated for a queue
- * type.
- *
- * A table of vdo_work_queue_action entries embedded in struct
- * vdo_work_queue_type specifies the name, code, and priority for each type
- * of action in the work queue. The table can have at most
- * VDO_WORK_QUEUE_ACTION_COUNT entries, but a NULL name indicates an earlier
- * end to the table.
- *
- * Priorities may be specified as values from 0 through
- * VDO_WORK_QUEUE_PRIORITY_COUNT-1, higher values indicating higher priority.
- * Priorities are just strong suggestions; it's possible for a lower-priority
- * work item scheduled right after a high-priority one to be run first, if the
- * worker thread happens to be scanning its queues at just the wrong moment,
- * but the high-priority item will be picked up next.
- *
- * Internally, the priorities in this table are used to initialize another
- * table in the constructed work queue object, and in internal builds,
- * device-mapper messages can be sent to change the priority for an action,
- * identified by name, in a running VDO device. Doing so does not affect the
- * priorities for other devices, or for future VDO device creation.
- **/
-struct vdo_work_queue_action {
-	/** Name of the action */
-	char *name;
-
-	/** The action code (per-type enum) */
-	unsigned int code;
-
-	/** The initial priority for this action */
-	unsigned int priority;
 };
 
 /**
@@ -123,18 +72,17 @@ struct vdo_work_queue_type {
 	/** A function to call in the new thread when shutting down */
 	void (*finish)(void *);
 
-	/** Table of actions for this work queue */
-	struct vdo_work_queue_action action_table[VDO_WORK_QUEUE_ACTION_COUNT];
+	/** The largest priority value used by this queue */
+	uint8_t max_priority;
 };
 
 /**
  * Create a work queue.
  *
- * If multiple threads are requested, work items will be distributed to them in
- * round-robin fashion.
+ * <p>If multiple threads are requested, work items will be distributed to them
+ * in round-robin fashion.
  *
- * @param [in]  thread_name_prefix  The per-device prefix to use in thread
- *                                  names
+ * @param [in]  thread_name_prefix  The per-device prefix to use in thread names
  * @param [in]  name                The queue name
  * @param [in]  parent_kobject      The parent sysfs node
  * @param [in]  owner               The VDO owning the work queue
@@ -144,8 +92,7 @@ struct vdo_work_queue_type {
  *                                  data pointers, one for each service thread,
  *                                  to use instead of sharing 'private'
  * @param [in]  type                The work queue type defining the lifecycle
- *                                  functions, queue actions, priorities, and
- *                                  timeout behavior
+ *                                  functions, priorities, and timeout behavior
  * @param [in]  thread_count        Number of service threads to set up
  * @param [out] queue_ptr           Where to store the queue handle
  *
@@ -168,18 +115,15 @@ int make_work_queue(const char *thread_name_prefix,
  * have been initialized to all-zero. Resetting a previously-used work
  * item does not require another memset.
  *
- * The action code is typically defined in a work-queue-type-specific
- * enumeration; see the description of struct vdo_work_queue_action.
- *
  * @param item            The work item to initialize
  * @param work            The function pointer to execute
  * @param stats_function  A function pointer to record for stats, or NULL
- * @param action          Action code, for determination of priority
+ * @param priority        The priority of the work to be done
  **/
 void setup_work_item(struct vdo_work_item *item,
 		     vdo_work_function work,
 		     void *stats_function,
-		     unsigned int action);
+		     enum vdo_work_item_priority priority);
 
 /**
  * Add a work item to a work queue.
@@ -232,21 +176,6 @@ void dump_work_queue(struct vdo_work_queue *queue);
 void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      char *buffer,
 			      size_t length);
-
-
-/**
- * Checks whether two work items have the same action codes
- *
- * @param item1  The first item
- * @param item2  The second item
- *
- * @return TRUE if the actions are the same, FALSE otherwise
- */
-static inline bool are_work_item_actions_equal(struct vdo_work_item *item1,
-					       struct vdo_work_item *item2)
-{
-	return item1->action == item2->action;
-}
 
 /**
  * Returns the private data for the current thread's work queue.

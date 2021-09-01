@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -232,29 +232,28 @@ static int initialize_index_session(struct uds_index_session *index_session,
 	struct configuration *index_config;
 	int result;
 
-	result = make_uds_index_layout(name,
-				       load_type == LOAD_CREATE,
-				       &index_session->user_config,
-				       &layout);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ((load_type == LOAD_CREATE) ?
-		  write_uds_index_config(layout,
-					 &index_session->user_config, 0) :
-		  verify_uds_index_config(layout,
-					  &index_session->user_config));
-	if (result != UDS_SUCCESS) {
-		put_uds_index_layout(layout);
-		return result;
-	}
-
 	result = make_configuration(&index_session->user_config,
 				    &index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed to allocate config");
+		return result;
+	}
+
+	result = make_uds_index_layout(name,
+				       load_type == LOAD_CREATE,
+				       index_config,
+				       &layout);
+	if (result != UDS_SUCCESS) {
+		free_configuration(index_config);
+		return result;
+	}
+
+	result = ((load_type == LOAD_CREATE) ?
+		  write_uds_index_config(layout, index_config, 0) :
+		  verify_uds_index_config(layout, index_config));
+	if (result != UDS_SUCCESS) {
 		put_uds_index_layout(layout);
+		free_configuration(index_config);
 		return result;
 	}
 
@@ -268,16 +267,15 @@ static int initialize_index_session(struct uds_index_session *index_session,
 			    &index_session->load_context,
 			    enter_callback_stage,
 			    &index_session->index);
-	free_configuration(index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed to make index");
-		put_uds_index_layout(layout);
-		return result;
+	} else {
+		log_uds_configuration(index_config);
 	}
 
-	log_uds_configuration(&index_session->user_config);
 	put_uds_index_layout(layout);
-	return UDS_SUCCESS;
+	free_configuration(index_config);
+	return result;
 }
 
 /**********************************************************************/

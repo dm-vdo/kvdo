@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/indexLayoutLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/indexLayoutLinuxKernel.c#2 $
  */
 
 #include "indexLayout.h"
@@ -26,7 +26,7 @@
 /**********************************************************************/
 int make_uds_index_layout(const char *name,
 			  bool new_layout,
-			  const struct uds_configuration *config,
+			  const struct configuration *config,
 			  struct index_layout **layout_ptr)
 {
 	char *dev = NULL;

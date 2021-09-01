@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#34 $
  */
 
 #include "logger.h"
@@ -122,7 +122,7 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 	launch_data_vio_on_cpu_queue(data_vio,
 				     verify_duplication_work,
 				     NULL,
-				     CPU_Q_ACTION_COMPRESS_BLOCK);
+				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
 /**********************************************************************/
@@ -140,7 +140,7 @@ void verify_data_vio_duplication(struct data_vio *data_vio)
 	vdo_read_block(data_vio,
 		       data_vio->duplicate.pbn,
 		       data_vio->duplicate.state,
-		       BIO_Q_ACTION_VERIFY,
+		       BIO_Q_VERIFY_PRIORITY,
 		       verify_read_block_callback);
 }
 

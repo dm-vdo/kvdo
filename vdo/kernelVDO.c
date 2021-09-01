@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#121 $
  */
 
 /*
@@ -67,24 +67,7 @@ static void finish_vdo_request_queue(void *ptr)
 static const struct vdo_work_queue_type request_queue_type = {
 	.start = start_vdo_request_queue,
 	.finish = finish_vdo_request_queue,
-	.action_table = {
-
-			{ .name = "req_completion",
-			  .code = VDO_REQ_Q_ACTION_COMPLETION,
-			  .priority = 1 },
-			{ .name = "req_flush",
-			  .code = VDO_REQ_Q_ACTION_FLUSH,
-			  .priority = 2 },
-			{ .name = "req_map_bio",
-			  .code = VDO_REQ_Q_ACTION_MAP_BIO,
-			  .priority = 0 },
-			{ .name = "req_sync",
-			  .code = VDO_REQ_Q_ACTION_SYNC,
-			  .priority = 2 },
-			{ .name = "req_vio_callback",
-			  .code = VDO_REQ_Q_ACTION_VIO_CALLBACK,
-			  .priority = 1 },
-		},
+	.max_priority = VDO_REQ_Q_MAX_PRIORITY,
 };
 
 /**********************************************************************/
@@ -147,7 +130,6 @@ int make_vdo_threads(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-
 /**********************************************************************/
 void dump_vdo_work_queue(struct vdo *vdo)
 {
@@ -170,7 +152,7 @@ void enqueue_vdo_work(struct vdo *vdo,
 void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
 		 void *stats_function,
-		 unsigned int action)
+		 enum vdo_work_item_priority priority)
 {
 	thread_id_t thread_id = vio_as_completion(vio)->callback_thread_id;
 
@@ -178,7 +160,7 @@ void enqueue_vio(struct vio *vio,
 	launch_vio(vio,
 		   work,
 		   stats_function,
-		   action,
+		   priority,
 		   vio->vdo->threads[thread_id].request_queue);
 }
 
@@ -206,7 +188,7 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
 			completion->callback,
-			VDO_REQ_Q_ACTION_COMPLETION);
+			VDO_REQ_Q_COMPLETION_PRIORITY);
 	enqueue_vdo_work(vdo, &completion->work_item, thread_id);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#113 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#114 $
  */
 
 #include "dedupeIndex.h"
@@ -32,12 +32,12 @@
 #include "stringUtils.h"
 #include "uds.h"
 
+#include "types.h"
+
 struct uds_attribute {
 	struct attribute attr;
 	const char *(*show_string)(struct dedupe_index *);
 };
-
-enum { UDS_Q_ACTION };
 
 // These are the values in the atomic dedupe_context.request_state field
 enum {
@@ -502,7 +502,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 		setup_work_item(work_item_from_vio(vio),
 				start_index_operation,
 				NULL,
-				UDS_Q_ACTION);
+				UDS_Q_PRIORITY);
 
 		spin_lock(&index->state_lock);
 		if (index->deduping) {
@@ -646,7 +646,7 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 		setup_work_item(&index->work_item,
 				change_dedupe_state,
 				NULL,
-				UDS_Q_ACTION);
+				UDS_Q_PRIORITY);
 		enqueue_work_queue(index->uds_queue, &index->work_item);
 		return;
 	}
@@ -720,7 +720,6 @@ void resume_vdo_dedupe_index(struct dedupe_index *index)
 	launch_dedupe_state_change(index);
 	spin_unlock(&index->state_lock);
 }
-
 
 /**********************************************************************/
 void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue)
@@ -936,11 +935,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	static const struct vdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
-		.action_table = {
-			{ .name = "uds_action",
-			  .code = UDS_Q_ACTION,
-			  .priority = 0 },
-		},
+		.max_priority = UDS_Q_MAX_PRIORITY,
 	};
 	set_vdo_dedupe_index_timeout_interval(vdo_dedupe_index_timeout_interval);
 	set_vdo_dedupe_index_min_timer_interval(vdo_dedupe_index_min_timer_interval);

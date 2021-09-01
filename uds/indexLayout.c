@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#6 $
  */
 
 #include "indexLayout.h"
@@ -142,8 +142,6 @@ struct index_layout {
  * of zones (up to the maximum value) that are used at run time.
  **/
 struct save_layout_sizes {
-	struct configuration config; // this is a captive copy
-	struct geometry geometry; // this is a captive copy
 	unsigned int num_saves; // per sub-index
 	size_t block_size; // in bytes
 	uint64_t volume_blocks; // per sub-index
@@ -202,38 +200,24 @@ static INLINE uint64_t block_count(uint64_t bytes, uint32_t block_size)
 }
 
 /**********************************************************************/
-static int __must_check compute_sizes(const struct uds_configuration *config,
+static int __must_check compute_sizes(const struct configuration *config,
 				      struct save_layout_sizes *sls)
 {
-	struct configuration *cfg = NULL;
+	struct geometry *geometry = config->geometry;
 	int result;
 
-	if ((config->bytes_per_page % UDS_BLOCK_SIZE) != 0) {
+	if ((geometry->bytes_per_page % UDS_BLOCK_SIZE) != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					      "page size not a multiple of block size");
 	}
 
-	result = make_configuration(config, &cfg);
-	if (result != UDS_SUCCESS) {
-		return uds_log_error_strerror(result,
-					      "cannot compute layout size");
-	}
-
 	memset(sls, 0, sizeof(*sls));
-
-	// internalize the configuration and geometry...
-
-	sls->geometry = *cfg->geometry;
-	sls->config = *cfg;
-	sls->config.geometry = &sls->geometry;
-
-	free_configuration(cfg);
 
 	sls->num_saves = 2;
 	sls->block_size = UDS_BLOCK_SIZE;
-	sls->volume_blocks = sls->geometry.bytes_per_volume / sls->block_size;
+	sls->volume_blocks = geometry->bytes_per_volume / sls->block_size;
 
-	result = compute_volume_index_save_blocks(&sls->config,
+	result = compute_volume_index_save_blocks(config,
 						  sls->block_size,
 						  &sls->volume_index_blocks);
 	if (result != UDS_SUCCESS) {
@@ -242,10 +226,10 @@ static int __must_check compute_sizes(const struct uds_configuration *config,
 	}
 
 	sls->page_map_blocks =
-		block_count(compute_index_page_map_save_size(&sls->geometry),
+		block_count(compute_index_page_map_save_size(geometry),
 			    sls->block_size);
 	sls->open_chapter_blocks =
-		block_count(compute_saved_open_chapter_size(&sls->geometry),
+		block_count(compute_saved_open_chapter_size(geometry),
 			    sls->block_size);
 	sls->save_blocks =
 		1 + (sls->volume_index_blocks + sls->page_map_blocks +
@@ -262,6 +246,7 @@ static int __must_check compute_sizes(const struct uds_configuration *config,
 int uds_compute_index_size(const struct uds_configuration *config,
 			   uint64_t *index_size)
 {
+	struct configuration *index_config;
 	struct save_layout_sizes sizes;
 	int result;
 
@@ -270,7 +255,14 @@ int uds_compute_index_size(const struct uds_configuration *config,
 		return -EINVAL;
 	}
 
-	result = compute_sizes(config, &sizes);
+	result = make_configuration(config, &index_config);
+	if (result != UDS_SUCCESS) {
+		uds_log_error_strerror(result, "cannot compute index size");
+		return uds_map_to_system_error(result);
+	}
+
+	result = compute_sizes(index_config, &sizes);
+        free_configuration(index_config);
 	if (result != UDS_SUCCESS) {
 		return uds_map_to_system_error(result);
 	}
@@ -1880,7 +1872,7 @@ void get_uds_index_layout(struct index_layout *layout,
 
 /**********************************************************************/
 int write_uds_index_config(struct index_layout *layout,
-			   struct uds_configuration *config,
+			   struct configuration *config,
 			   off_t offset)
 {
 	struct buffered_writer *writer = NULL;
@@ -1909,10 +1901,9 @@ int write_uds_index_config(struct index_layout *layout,
 
 /**********************************************************************/
 int verify_uds_index_config(struct index_layout *layout,
-			    struct uds_configuration *config)
+			    struct configuration *config)
 {
 	struct buffered_reader *reader = NULL;
-	struct uds_configuration stored_config;
 	uint64_t offset = layout->super.volume_offset -
 		layout->super.start_offset;
 	int result = open_layout_reader(layout, &layout->config,
@@ -1923,20 +1914,13 @@ int verify_uds_index_config(struct index_layout *layout,
 					      "failed to open config reader");
 	}
 
-	result = read_config_contents(reader, &stored_config);
+	result = validate_config_contents(reader, config);
 	if (result != UDS_SUCCESS) {
 		free_buffered_reader(reader);
 		return uds_log_error_strerror(result,
 					      "failed to read config region");
 	}
 	free_buffered_reader(reader);
-
-	if (!are_uds_configurations_equal(&stored_config, config)) {
-		uds_log_warning("Supplied configuration does not match save");
-		return UDS_NO_INDEX;
-	}
-
-	*config = stored_config;
 	return UDS_SUCCESS;
 }
 
@@ -2446,7 +2430,7 @@ int discard_uds_index_saves(struct index_layout *layout)
 
 /**********************************************************************/
 static int create_index_layout(struct index_layout *layout,
-			       const struct uds_configuration *config)
+			       const struct configuration *config)
 {
 	struct save_layout_sizes sizes;
 	int result;
@@ -2571,11 +2555,11 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 				       off_t offset,
 				       uint64_t named_size,
 				       bool new_layout,
-				       const struct uds_configuration *config,
+				       const struct configuration *config,
 				       struct index_layout **layout_ptr)
 {
 	struct index_layout *layout = NULL;
-	uint64_t config_size;
+	struct save_layout_sizes sizes;
 	size_t size;
 	int result;
 
@@ -2592,16 +2576,15 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 		size = named_size;
 	}
 
-	// Get the index size according to the config
-	result = uds_compute_index_size(config, &config_size);
+	result = compute_sizes(config, &sizes);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	if (size < config_size) {
+	if (size < sizes.total_size) {
 		uds_log_error("index storage (%zu) is smaller than the required size %llu",
 			      size,
-			      (unsigned long long) config_size);
+			      (unsigned long long) sizes.total_size);
 		return -ENOSPC;
 	}
 
@@ -2632,7 +2615,7 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 
 /**********************************************************************/
 int update_uds_layout(struct index_layout *layout,
-		      struct uds_configuration *config,
+		      struct configuration *config,
 		      off_t lvm_offset,
 		      off_t offset)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#91 $
  */
 
 #include "ioSubmitter.h"
@@ -30,6 +30,7 @@
 #include "bio.h"
 #include "dataKVIO.h"
 #include "logger.h"
+#include "types.h"
 #include "vdo.h"
 
 /*
@@ -82,27 +83,7 @@ static void finish_bio_queue(void *ptr)
 static const struct vdo_work_queue_type bio_queue_type = {
 	.start = start_bio_queue,
 	.finish = finish_bio_queue,
-	.action_table = {
-
-			{ .name = "bio_compressed_data",
-			  .code = BIO_Q_ACTION_COMPRESSED_DATA,
-			  .priority = 0 },
-			{ .name = "bio_data",
-			  .code = BIO_Q_ACTION_DATA,
-			  .priority = 0 },
-			{ .name = "bio_flush",
-			  .code = BIO_Q_ACTION_FLUSH,
-			  .priority = 2 },
-			{ .name = "bio_high",
-			  .code = BIO_Q_ACTION_HIGH,
-			  .priority = 2 },
-			{ .name = "bio_metadata",
-			  .code = BIO_Q_ACTION_METADATA,
-			  .priority = 1 },
-			{ .name = "bio_verify",
-			  .code = BIO_Q_ACTION_VERIFY,
-			  .priority = 1 },
-		},
+	.max_priority = BIO_Q_MAX_PRIORITY,
 };
 
 /**
@@ -334,8 +315,8 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		return NULL;
 	}
 
-	if (!are_work_item_actions_equal(work_item_from_vio(vio),
-					 work_item_from_vio(vio_merge))) {
+	if (work_item_from_vio(vio)->priority
+	    != work_item_from_vio(vio_merge)->priority) {
 		return NULL;
 	}
 
@@ -473,14 +454,14 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 }
 
 /**********************************************************************/
-void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
+void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
 	struct bio_queue_data *bio_queue_data =
 		bio_queue_data_for_pbn(vio->vdo->io_submitter, vio->physical);
 	bool merged = false;
 
-	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
+	setup_vio_work(vio, process_bio_map, bio->bi_end_io, priority);
 
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);
@@ -638,7 +619,6 @@ void vdo_dump_bio_work_queue(struct io_submitter *io_submitter)
 		dump_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
 }
-
 
 /**********************************************************************/
 void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,

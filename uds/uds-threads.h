@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds-threads.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds-threads.h#3 $
  */
 
 #ifndef UDS_THREADS_H
@@ -45,15 +45,6 @@ struct barrier {
 	int thread_count;       // Total number of threads using this barrier
 };
 
-/**
- * Apply a function to every thread that we have created.
- *
- * @param apply_func  The function to apply
- * @param argument    The first argument to apply_func
- *
- **/
-void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
-			  void *argument);
 
 /**
  * Create a thread, logging any cause of failure.

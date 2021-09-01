@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#176 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#177 $
  */
 
 /*
@@ -70,39 +70,17 @@
 #include "workQueue.h"
 
 static const struct vdo_work_queue_type bio_ack_q_type = {
-	.action_table = {
-		{
-			.name = "bio_ack",
-			.code = BIO_ACK_Q_ACTION_ACK,
-			.priority = 0
-		},
-	},
+	.start = NULL,
+	.finish = NULL,
+	.max_priority = BIO_ACK_Q_MAX_PRIORITY,
 };
 
 static const struct vdo_work_queue_type cpu_q_type = {
-	.action_table = {
-		{
-			.name = "cpu_complete_vio",
-			.code = CPU_Q_ACTION_COMPLETE_VIO,
-			.priority = 0
-		},
-		{
-			.name = "cpu_compress_block",
-			.code = CPU_Q_ACTION_COMPRESS_BLOCK,
-			.priority = 0
-		},
-		{
-			.name = "cpu_hash_block",
-			.code = CPU_Q_ACTION_HASH_BLOCK,
-			.priority = 0
-		},
-		{
-			.name = "cpu_event_reporter",
-			.code = CPU_Q_ACTION_EVENT_REPORTER,
-			.priority = 0
-		},
-	},
+	.start = NULL,
+	.finish = NULL,
+	.max_priority = CPU_Q_MAX_PRIORITY,
 };
+
 
 /**********************************************************************/
 int make_vdo(unsigned int instance,

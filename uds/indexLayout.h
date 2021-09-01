@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#5 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -42,14 +42,14 @@ struct index_layout;
  *                    backward compatibility a string without an equals is
  *                    treated as a platform-specific default parameter value.
  * @param new_layout  Whether this is a new layout.
- * @param config      The UDS configuration required for a new layout.
+ * @param config      The configuration required for a new layout.
  * @param layout_ptr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check make_uds_index_layout(const char *name,
 				       bool new_layout,
-				       const struct uds_configuration *config,
+				       const struct configuration *config,
 				       struct index_layout **layout_ptr);
 
 /**
@@ -63,7 +63,7 @@ int __must_check make_uds_index_layout(const char *name,
  * @param named_size  The size in bytes of the space within the block storage
  *                    address space, as specified in the name string.
  * @param new_layout  Whether this is a new layout.
- * @param config      The UDS configuration required for a new layout.
+ * @param config      The configuration required for a new layout.
  * @param layout_ptr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
@@ -73,7 +73,7 @@ make_uds_index_layout_from_factory(struct io_factory *factory,
 				   off_t offset,
 				   uint64_t named_size,
 				   bool new_layout,
-				   const struct uds_configuration *config,
+				   const struct configuration *config,
 				   struct index_layout **layout_ptr);
 
 /**
@@ -189,7 +189,7 @@ int __must_check open_uds_volume_bufio(struct index_layout *layout,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check verify_uds_index_config(struct index_layout *layout,
-					 struct uds_configuration *config);
+					 struct configuration *config);
 
 /**
  * Determine which index save slot to use for a new index save.
@@ -216,7 +216,7 @@ int __must_check setup_uds_index_save_slot(struct index_layout *layout,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check write_uds_index_config(struct index_layout *layout,
-					struct uds_configuration *config,
+					struct configuration *config,
 					off_t offset);
 
 /**
@@ -241,7 +241,7 @@ get_uds_index_state_buffer(struct index_layout *layout, unsigned int slot);
  * @return  UDS_SUCCESS or a error code
  */
 int update_uds_layout(struct index_layout *layout,
-		      struct uds_configuration *config,
+		      struct configuration *config,
 		      off_t lvm_offset,
 		      off_t offset);
 

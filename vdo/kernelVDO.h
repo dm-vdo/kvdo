@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#50 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,14 +28,6 @@
 
 #include "kernelTypes.h"
 #include "workQueue.h"
-
-enum {
-	VDO_REQ_Q_ACTION_COMPLETION,
-	VDO_REQ_Q_ACTION_FLUSH,
-	VDO_REQ_Q_ACTION_MAP_BIO,
-	VDO_REQ_Q_ACTION_SYNC,
-	VDO_REQ_Q_ACTION_VIO_CALLBACK
-};
 
 /**
  * Make base threads.
@@ -50,7 +42,6 @@ enum {
 int make_vdo_threads(struct vdo *vdo,
 		     const char *thread_name_prefix,
 		     char **reason);
-
 
 /**
  * Dump to the kernel log any work-queue info associated with the base code.
@@ -87,11 +78,11 @@ void enqueue_vdo_work(struct vdo *vdo,
  * @param vio             The vio with the work item to be run
  * @param work            The function pointer to execute
  * @param stats_function  A function pointer to record for stats, or NULL
- * @param action          Action code, mapping to a relative priority
+ * @param priority        The priority of the work
  **/
 void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
 		 void *stats_function,
-		 unsigned int action);
+		 enum vdo_work_item_priority priority);
 
 #endif // KERNEL_VDO_H

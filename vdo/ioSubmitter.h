@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#18 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -72,7 +72,6 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter);
  **/
 void vdo_dump_bio_work_queue(struct io_submitter *io_submitter);
 
-
 /**
  * Enqueue a work item to run in the work queue(s) used for bio
  * submissions from the physical layer.
@@ -89,18 +88,17 @@ void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,
 /**
  * Submit bio but don't block.
  *
- * Submits the bio to a helper work queue which sits in a loop
- * submitting bios. The worker thread may block if the target device
- * is busy, which is why we don't want to do the submission in the
- * original calling thread.
+ * <p>Submits the bio to a helper work queue which sits in a loop submitting
+ * bios. The worker thread may block if the target device is busy, which is why
+ * we don't want to do the submission in the original calling thread.
  *
- * The bi_private field of the bio must point to a vio associated
- * with the operation. The bi_end_io callback is invoked when the I/O
- * operation completes.
+ * <p>The bi_private field of the bio must point to a vio associated with the
+ * operation. The bi_end_io callback is invoked when the I/O operation
+ * completes.
  *
- * @param bio     the block I/O operation descriptor to submit
- * @param action  the action code specifying the priority for the operation
+ * @param bio       the block I/O operation descriptor to submit
+ * @param priority  the priority for the operation
  **/
-void vdo_submit_bio(struct bio *bio, enum bio_q_action action);
+void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority);
 
 #endif // IOSUBMITTER_H

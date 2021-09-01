@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#34 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -40,7 +40,6 @@ int __must_check
 make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		      struct vdo *vdo,
 		      const char *thread_name_prefix);
-
 
 /**
  * Do the dedupe section of dmsetup message vdo0 0 dump ...

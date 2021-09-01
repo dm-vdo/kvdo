@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#72 $
  */
 
 #include "workQueue.h"
@@ -110,7 +110,7 @@ poll_for_work_item(struct simple_work_queue *queue)
 	struct vdo_work_item *item = NULL;
 	int i;
 
-	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
+	for (i = queue->num_priority_lists - 1; i >= 0; i--) {
 		struct funnel_queue_entry *link =
 			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
@@ -133,25 +133,22 @@ poll_for_work_item(struct simple_work_queue *queue)
 static void enqueue_work_queue_item(struct simple_work_queue *queue,
 				    struct vdo_work_item *item)
 {
-	unsigned int priority;
-
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
 			item, item->work, item->stats_function, queue,
 			item->my_queue);
-	if (ASSERT(item->action < VDO_WORK_QUEUE_ACTION_COUNT,
-		   "action is in range for queue") != VDO_SUCCESS) {
-		item->action = 0;
+	if (ASSERT(item->priority < queue->num_priority_lists,
+		   "priority is in range for queue") != VDO_SUCCESS) {
+		item->priority = 0;
 	}
-	priority = READ_ONCE(queue->priority_map[item->action]);
 
 	// Update statistics.
-	update_stats_for_enqueue(&queue->stats, item, priority);
+	update_stats_for_enqueue(&queue->stats, item);
 
 	item->my_queue = &queue->common;
 
 	// Funnel queue handles the synchronization for the put.
-	funnel_queue_put(queue->priority_lists[priority],
+	funnel_queue_put(queue->priority_lists[item->priority],
 			 &item->work_queue_entry_link);
 
 	/*
@@ -458,7 +455,7 @@ static int work_queue_runner(void *ptr)
 void setup_work_item(struct vdo_work_item *item,
 		     vdo_work_function work,
 		     void *stats_function,
-		     unsigned int action)
+		     enum vdo_work_item_priority priority)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"setup_work_item not called on enqueued work item");
@@ -466,7 +463,7 @@ void setup_work_item(struct vdo_work_item *item,
 	item->stats_function =
 		((stats_function == NULL) ? (void *) work : stats_function);
 	item->stat_table_index = 0;
-	item->action = action;
+	item->priority = priority;
 	item->my_queue = NULL;
 }
 
@@ -488,17 +485,15 @@ static bool queue_started(struct simple_work_queue *queue)
 /**
  * Create a simple work queue with a worker thread.
  *
- * @param [in]  thread_name_prefix The per-device prefix to use in
- *                                 thread names
- * @param [in]  name               The queue name
- * @param [in]  parent_kobject     The parent sysfs node
- * @param [in]  owner              The VDO owning the work queue
- * @param [in]  private            Private data of the queue for use by work
- *                                 items or other queue-specific functions
- * @param [in]  type               The work queue type defining the lifecycle
- *                                 functions, queue actions, priorities, and
- *                                 timeout behavior
- * @param [out] queue_ptr          Where to store the queue handle
+ * @param [in]  thread_name_prefix  The per-device prefix to use in thread names
+ * @param [in]  name                The queue name
+ * @param [in]  parent_kobject      The parent sysfs node
+ * @param [in]  owner               The VDO owning the work queue
+ * @param [in]  private             Private data of the queue for use by work
+ *                                  items or other queue-specific functions
+ * @param [in]  type                The work queue type defining the lifecycle
+ *                                  functions, priorities, and timeout behavior
+ * @param [out] queue_ptr           Where to store the queue handle
  *
  * @return VDO_SUCCESS or an error code
  **/
@@ -511,14 +506,19 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 				  struct simple_work_queue **queue_ptr)
 {
 	struct simple_work_queue *queue;
-	unsigned int num_priority_lists = 1;
 	int i;
 	struct task_struct *thread = NULL;
+	int result;
 
-	int result = UDS_ALLOCATE(1,
-				  struct simple_work_queue,
-				  "simple work queue",
-				  &queue);
+	ASSERT_LOG_ONLY(type->max_priority < VDO_WORK_QUEUE_PRIORITY_COUNT,
+			"queue priority count %u within limit %u",
+			type->max_priority,
+			VDO_WORK_QUEUE_PRIORITY_COUNT - 1);
+
+	result = UDS_ALLOCATE(1,
+			      struct simple_work_queue,
+			      "simple work queue",
+			      &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -526,39 +526,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	queue->type = type;
 	queue->private = private;
 	queue->common.owner = owner;
-
-	for (i = 0; i < VDO_WORK_QUEUE_ACTION_COUNT; i++) {
-		const struct vdo_work_queue_action *action =
-			&queue->type->action_table[i];
-		unsigned int code, priority;
-
-		if (action->name == NULL) {
-			break;
-		}
-		code = action->code;
-		priority = action->priority;
-
-		result = ASSERT(
-			code < VDO_WORK_QUEUE_ACTION_COUNT,
-			"invalid action code %u in work queue initialization",
-			code);
-		if (result != VDO_SUCCESS) {
-			UDS_FREE(queue);
-			return result;
-		}
-		result = ASSERT(
-			priority < VDO_WORK_QUEUE_PRIORITY_COUNT,
-			"invalid action priority %u in work queue initialization",
-			priority);
-		if (result != VDO_SUCCESS) {
-			UDS_FREE(queue);
-			return result;
-		}
-		queue->priority_map[code] = priority;
-		if (num_priority_lists <= priority) {
-			num_priority_lists = priority + 1;
-		}
-	}
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
@@ -579,16 +546,18 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		free_simple_work_queue(queue);
 		return result;
 	}
-	queue->num_priority_lists = num_priority_lists;
-	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
+
+	queue->num_priority_lists = type->max_priority + 1;
+	for (i = 0; i < queue->num_priority_lists; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
 			return result;
 		}
 	}
-	result =
-		initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
+
+	result = initialize_work_queue_stats(&queue->stats,
+					     &queue->common.kobj);
 	if (result != 0) {
 		uds_log_error("Cannot initialize statistics tracking: %d",
 			      result);
@@ -597,7 +566,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	}
 
 	queue->started = false;
-
 	thread = kthread_run(work_queue_runner,
 			     queue,
 			     "%s:%s",
@@ -898,7 +866,6 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 }
 
 // Misc
-
 
 /**
  * Return the work queue pointer recorded at initialization time in

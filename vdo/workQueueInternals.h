@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#18 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -68,13 +68,7 @@ struct simple_work_queue {
 	 * unused funnel queues.
 	 **/
 	unsigned int num_priority_lists;
-	/**
-	 * Map from action codes to priorities.
-	 *
-	 * This mapping can be changed at run time in internal builds, for
-	 * tuning purposes.
-	 **/
-	uint8_t priority_map[VDO_WORK_QUEUE_ACTION_COUNT];
+
 	/** The funnel queues */
 	struct funnel_queue *priority_lists[VDO_WORK_QUEUE_PRIORITY_COUNT];
 	/** The kernel thread */

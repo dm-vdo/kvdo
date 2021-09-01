@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#20 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -180,11 +180,9 @@ unsigned int count_vdo_work_items_pending(const struct vdo_work_item_stats *stat
  *
  * @param stats     The statistics structure
  * @param item      The work item enqueued
- * @param priority  The work item's priority
  **/
 void update_vdo_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
-					    struct vdo_work_item *item,
-					    int priority);
+					    struct vdo_work_item *item);
 
 /**
  * Update the work queue statistics with the wall-clock time for

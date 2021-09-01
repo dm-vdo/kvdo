@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadsLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadsLinuxKernel.c#3 $
  */
 
 #include <linux/completion.h>
@@ -129,19 +129,6 @@ int uds_join_threads(struct thread *kt)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
-			  void *argument)
-{
-	struct thread *kt;
-
-	perform_once(&kernel_thread_once, kernel_thread_init);
-	mutex_lock(&kernel_thread_mutex);
-	hlist_for_each_entry(kt, &kernel_thread_list, thread_links) {
-		apply_func(argument, kt->thread_task);
-	}
-	mutex_unlock(&kernel_thread_mutex);
-}
 
 /**********************************************************************/
 void uds_thread_exit(void)

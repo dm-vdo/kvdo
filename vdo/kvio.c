@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#92 $
  */
 
 #include "kvio.h"
@@ -52,7 +52,7 @@ void enqueue_vio_callback(struct vio *vio)
 	enqueue_vio(vio,
 		    vdo_handle_vio_callback,
 		    vio_as_completion(vio)->callback,
-		    VDO_REQ_Q_ACTION_VIO_CALLBACK);
+		    VDO_REQ_Q_VIO_CALLBACK_PRIORITY);
 }
 
 /**********************************************************************/
@@ -90,20 +90,21 @@ void write_compressed_block_vio(struct vio *vio)
 		return;
 	}
 
-	vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
+	vdo_submit_bio(bio, BIO_Q_COMPRESSED_DATA_PRIORITY);
 }
 
 /**
- * Get the bio queue action for a metadata vio based on that vio's priority.
+ * Convert a vio's priority to a work item priority.
  *
  * @param vio  The vio
  *
- * @return The action with which to submit the vio's bio.
+ * @return The priority with which to submit the vio's bio.
  **/
-static inline enum bio_q_action get_metadata_action(struct vio *vio)
+static inline enum vdo_work_item_priority
+get_metadata_priority(struct vio *vio)
 {
-	return ((vio->priority == VIO_PRIORITY_HIGH) ? BIO_Q_ACTION_HIGH :
-						       BIO_Q_ACTION_METADATA);
+	return ((vio->priority == VIO_PRIORITY_HIGH)
+		? BIO_Q_HIGH_PRIORITY : BIO_Q_METADATA_PRIORITY);
 }
 
 /**********************************************************************/
@@ -163,5 +164,5 @@ void submit_metadata_vio(struct vio *vio)
 	}
 
 	// Perform the metadata IO, using the metadata vio's own bio.
-	vdo_submit_bio(bio, get_metadata_action(vio));
+	vdo_submit_bio(bio, get_metadata_priority(vio));
 }

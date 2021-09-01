@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#158 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#159 $
  */
 
 #include <linux/module.h>
@@ -231,7 +231,6 @@ static void vdo_status(struct dm_target *ti,
 	}
 }
 
-
 /**
  * Get the size of a vdo's underlying device, in blocks.
  *
@@ -283,7 +282,6 @@ process_vdo_message_locked(struct vdo *vdo,
 		}
 
 		break;
-
 
 	default:
 		break;
