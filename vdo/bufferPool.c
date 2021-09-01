@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#19 $
  */
 
 #include "bufferPool.h"
@@ -171,7 +171,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 	// for 4ms (till the second clock tick).  These numbers chosen in
 	// October 2012 running on an lfarm.
 	enum { ELEMENTS_PER_BATCH = 35 };
-	enum { SLEEP_FOR_SYSLOG = 4 };
+	enum { SLEEP_FOR_SYSLOG = 4000 };
 
 	if (pool == NULL) {
 		return;
@@ -189,7 +189,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 				if (++dumped >= ELEMENTS_PER_BATCH) {
 					spin_unlock(&pool->lock);
 					dumped = 0;
-					msleep(SLEEP_FOR_SYSLOG);
+					fsleep(SLEEP_FOR_SYSLOG);
 					spin_lock(&pool->lock);
 				}
 			}

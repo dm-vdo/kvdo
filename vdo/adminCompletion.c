@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#48 $
  */
 
 #include "adminCompletion.h"
@@ -179,7 +179,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0) {
 		// However, if we get a signal in a user-mode process, we could
 		// spin...
-		msleep(1);
+		fsleep(1000);
 	}
 
 	result = admin_completion->completion.result;
