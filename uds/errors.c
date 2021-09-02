@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/errors.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/errors.c#4 $
  */
 
 #include "errors.h"
@@ -181,7 +181,7 @@ static const char *system_string_error(int errnum, char *buf, size_t buflen)
 {
 	size_t len;
 	const char *error_string = NULL;
-	if ((errnum > 0) && (errnum < COUNT_OF(message_table))) {
+	if ((errnum > 0) && (errnum < ARRAY_SIZE(message_table))) {
 		error_string = message_table[errnum];
 	}
 

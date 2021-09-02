@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#39 $
  */
 
 #include "completion.h"
@@ -168,7 +168,7 @@ get_vdo_completion_type_name(enum vdo_completion_type completion_type)
 {
 	// Try to catch failures to update the array when the enum values
 	// change.
-	STATIC_ASSERT(COUNT_OF(VDO_COMPLETION_TYPE_NAMES) ==
+	STATIC_ASSERT(ARRAY_SIZE(VDO_COMPLETION_TYPE_NAMES) ==
 		      (VDO_MAX_COMPLETION_TYPE - VDO_UNSET_COMPLETION_TYPE));
 
 	if (completion_type >= VDO_MAX_COMPLETION_TYPE) {

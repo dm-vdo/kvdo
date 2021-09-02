@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/compiler.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/compiler.h#2 $
  */
 
 #ifndef COMMON_COMPILER_H
@@ -29,12 +29,6 @@
 #endif // >=5.9.0
 
 #include <linux/compiler.h>
-
-// Count the elements in a static array while attempting to catch some type
-// errors. (See http://stackoverflow.com/a/1598827 for an explanation.)
-#define COUNT_OF(x)					\
-	((sizeof(x) / sizeof(0 [x])) /			\
-	 ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
 
 
 #define const_container_of(ptr, type, member)                           \

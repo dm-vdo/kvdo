@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#64 $
  */
 
 #include "dataVIO.h"
@@ -163,7 +163,7 @@ const char *get_data_vio_operation_name(struct data_vio *data_vio)
 {
 	STATIC_ASSERT((MAX_VIO_ASYNC_OPERATION_NUMBER -
 		       MIN_VIO_ASYNC_OPERATION_NUMBER) ==
-		      COUNT_OF(ASYNC_OPERATION_NAMES));
+		      ARRAY_SIZE(ASYNC_OPERATION_NAMES));
 
 	return ((data_vio->last_async_operation <
 		 MAX_VIO_ASYNC_OPERATION_NUMBER) ?

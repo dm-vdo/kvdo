@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#70 $
  */
 
 /**
@@ -157,9 +157,10 @@ struct pbn_lock *get_vdo_duplicate_lock(struct data_vio *data_vio)
 const char *get_vdo_hash_lock_state_name(enum hash_lock_state state)
 {
 	// Catch if a state has been added without updating the name array.
-	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1) == COUNT_OF(LOCK_STATE_NAMES));
-	return (state < COUNT_OF(LOCK_STATE_NAMES)) ? LOCK_STATE_NAMES[state]
-						    : NULL;
+	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1)
+		      == ARRAY_SIZE(LOCK_STATE_NAMES));
+	return (state < ARRAY_SIZE(LOCK_STATE_NAMES)) ? LOCK_STATE_NAMES[state]
+						      : NULL;
 }
 
 /**

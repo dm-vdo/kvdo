@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#57 $
  */
 
 #include "volumeGeometry.h"
@@ -92,7 +92,7 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 		return true;
 	}
 
-	for (i = 0; i < COUNT_OF(COMPATIBLE_RELEASE_VERSIONS); i++) {
+	for (i = 0; i < ARRAY_SIZE(COMPATIBLE_RELEASE_VERSIONS); i++) {
 		if (version == COMPATIBLE_RELEASE_VERSIONS[i]) {
 			return true;
 		}

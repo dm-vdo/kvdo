@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#82 $
  */
 
 #include "vdoPageCache.h"
@@ -373,9 +373,9 @@ get_page_state_name(enum vdo_page_buffer_state state)
 	static const char *state_names[] = {
 		"UDS_FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
 	};
-	STATIC_ASSERT(COUNT_OF(state_names) == PAGE_STATE_COUNT);
+	STATIC_ASSERT(ARRAY_SIZE(state_names) == PAGE_STATE_COUNT);
 
-	result = ASSERT(state < COUNT_OF(state_names),
+	result = ASSERT(state < ARRAY_SIZE(state_names),
 			"Unknown page_state value %d",
 			state);
 	if (result != UDS_SUCCESS) {

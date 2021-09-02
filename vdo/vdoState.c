@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#6 $
  */
 
 #include "vdoState.h"
@@ -40,9 +40,9 @@ const char *get_vdo_state_name(enum vdo_state state)
 	int result;
 
 	// Catch if a state has been added without updating the name array.
-	STATIC_ASSERT(COUNT_OF(VDO_STATE_NAMES) == VDO_STATE_COUNT);
+	STATIC_ASSERT(ARRAY_SIZE(VDO_STATE_NAMES) == VDO_STATE_COUNT);
 
-	result = ASSERT(state < COUNT_OF(VDO_STATE_NAMES),
+	result = ASSERT(state < ARRAY_SIZE(VDO_STATE_NAMES),
 			"vdo_state value %u must have a registered name",
 			state);
 	if (result != UDS_SUCCESS) {

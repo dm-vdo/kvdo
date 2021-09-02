@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/logger.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/logger.c#4 $
  */
 
 #include "logger.h"
@@ -90,7 +90,8 @@ int uds_log_string_to_priority(const char *string)
 /**********************************************************************/
 const char *uds_log_priority_to_string(int priority)
 {
-	if ((priority < 0) || (priority >= (int) COUNT_OF(PRIORITY_STRINGS))) {
+	if ((priority < 0) ||
+	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS))) {
 		return "unknown";
 	}
 	return PRIORITY_STRINGS[priority];
