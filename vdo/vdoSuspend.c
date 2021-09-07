@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#54 $
  */
 
 #include "vdoSuspend.h"
@@ -28,11 +28,13 @@
 #include "blockMap.h"
 #include "completion.h"
 #include "dedupeIndex.h"
+#include "kernelTypes.h"
 #include "logicalZone.h"
 #include "recoveryJournal.h"
 #include "slabDepot.h"
 #include "slabSummary.h"
 #include "threadConfig.h"
+#include "types.h"
 #include "vdo.h"
 #include "vdoInit.h"
 

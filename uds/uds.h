@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#5 $
  */
 
 /**
@@ -409,16 +409,6 @@ uds_configuration_get_nonce(struct uds_configuration *conf);
  **/
 uds_memory_config_size_t __must_check
 uds_configuration_get_memory(struct uds_configuration *conf);
-
-/**
- * Fetches a configuration's chapters per volume value.
- *
- * @param [in] conf  The configuration to check
- *
- * @return The number of chapters per volume
- **/
-unsigned int __must_check
-uds_configuration_get_chapters_per_volume(struct uds_configuration *conf);
 
 /**
  * Frees memory used by a configuration.

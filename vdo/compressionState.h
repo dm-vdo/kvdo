@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#11 $
  */
 
 #ifndef COMPRESSION_STATE_H
 #define COMPRESSION_STATE_H
 
+#include "kernelTypes.h"
 #include "types.h"
 
 /**

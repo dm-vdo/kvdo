@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#7 $
  */
 
 #ifndef REFERENCE_COUNT_REBUILD_H
 #define REFERENCE_COUNT_REBUILD_H
 
+#include "kernelTypes.h"
 #include "types.h"
 
 /**

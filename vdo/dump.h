@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#8 $
  */
 
 #ifndef DUMP_H
 #define DUMP_H
 
-#include "types.h"
+#include "kernelTypes.h"
 
 /**
  * Dump internal state and/or statistics to the kernel log, as specified by

@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#5 $
  */
 
 #ifndef VDO_RESUME_H
 #define VDO_RESUME_H
 
+#include "kernelTypes.h"
 #include "types.h"
 
 /**

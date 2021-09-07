@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#22 $
  */
 
 #include "threadConfig.h"
@@ -27,6 +27,7 @@
 #include "permassert.h"
 
 #include "constants.h"
+#include "kernelTypes.h"
 #include "statusCodes.h"
 #include "types.h"
 
@@ -82,7 +83,8 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 
 /**********************************************************************/
 static void
-assign_thread_ids(thread_id_t thread_ids[], zone_count_t count,
+assign_thread_ids(thread_id_t thread_ids[],
+		  zone_count_t count,
 		  thread_id_t *id_ptr)
 {
 	zone_count_t zone;

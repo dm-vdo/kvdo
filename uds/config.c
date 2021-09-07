@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.c#4 $
  */
 
 #include "config.h"
@@ -484,32 +484,120 @@ int write_config_contents(struct buffered_writer *writer,
 	return result;
 }
 
+/**
+ * Compute configuration parameters that change with memory size. If you
+ * change these values, you should also:
+ *
+ * Change Configuration_n1, which tests these values and expects to see them
+ *
+ * @param [in]  mem_gb                      Maximum memory allocation, in GB
+ * @param [in]  sparse                      If true, create a sparse index;
+ *                                          if false, create a dense index
+ * @param [out] chapters_per_volume         Number of chapters per volume
+ * @param [out] record_pages_per_chapter    Nunber of record pages per chapter
+ * @param [out] sparse_chapters_per_volume  Number of sparse chapters
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
+				bool sparse,
+				unsigned int *chapters_per_volume,
+				unsigned int *record_pages_per_chapter,
+				unsigned int *sparse_chapters_per_volume)
+{
+	unsigned int reduced_chapters = 0;
+	unsigned int base_chapters;
+
+	if (mem_gb == UDS_MEMORY_CONFIG_256MB) {
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_512MB) {
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_768MB) {
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if ((mem_gb >= 1) && (mem_gb <= UDS_MEMORY_CONFIG_MAX)) {
+		base_chapters = mem_gb * DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_REDUCED_256MB) {
+		reduced_chapters = 1;
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_REDUCED_512MB) {
+		reduced_chapters = 1;
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_REDUCED_768MB) {
+		reduced_chapters = 1;
+		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
+		*record_pages_per_chapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if ((mem_gb >= 1 + UDS_MEMORY_CONFIG_REDUCED) &&
+		   (mem_gb <= UDS_MEMORY_CONFIG_REDUCED_MAX)) {
+		reduced_chapters = 1;
+		base_chapters = ((mem_gb - UDS_MEMORY_CONFIG_REDUCED) *
+				 DEFAULT_CHAPTERS_PER_VOLUME);
+		*record_pages_per_chapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else {
+		uds_log_error("received invalid memory size");
+		return -EINVAL;
+	}
+
+	if (sparse) {
+		// Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
+		// footprint
+		*sparse_chapters_per_volume =
+			(9 * base_chapters) + (base_chapters / 2);
+		base_chapters *= 10;
+        } else {
+		*sparse_chapters_per_volume = 0;
+	}
+
+	*chapters_per_volume = base_chapters - reduced_chapters;
+        return UDS_SUCCESS;
+}
+
 /**********************************************************************/
 int make_configuration(const struct uds_configuration *conf,
 		       struct configuration **config_ptr)
 {
 	struct configuration *config;
-	int result = UDS_ALLOCATE(1, struct configuration, "configuration",
-				  &config);
+	unsigned int chapters_per_volume = 0;
+	unsigned int record_pages_per_chapter = 0;
+	unsigned int sparse_chapters_per_volume = 0;
+	int result;
+
+	result = compute_memory_sizes(conf->memory_size,
+				      conf->sparse,
+				      &chapters_per_volume,
+				      &record_pages_per_chapter,
+				      &sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = make_geometry(conf->bytes_per_page,
-			       conf->record_pages_per_chapter,
-			       conf->chapters_per_volume,
-			       conf->sparse_chapters_per_volume,
-			       conf->remapped_virtual,
-			       conf->remapped_physical,
+        result = UDS_ALLOCATE(1, struct configuration, __func__, &config);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = make_geometry(DEFAULT_BYTES_PER_PAGE,
+			       record_pages_per_chapter,
+			       chapters_per_volume,
+			       sparse_chapters_per_volume,
+			       0,
+			       0,
 			       &config->geometry);
 	if (result != UDS_SUCCESS) {
 		free_configuration(config);
 		return result;
 	}
 
-	config->sparse_sample_rate = conf->sparse_sample_rate;
-	config->cache_chapters = conf->cache_chapters;
-	config->volume_index_mean_delta = conf->volume_index_mean_delta;
+	config->cache_chapters = DEFAULT_CACHE_CHAPTERS;
+	config->volume_index_mean_delta =
+		DEFAULT_VOLUME_INDEX_MEAN_DELTA;
+	config->sparse_sample_rate =
+		((conf->sparse) ? DEFAULT_SPARSE_SAMPLE_RATE : 0);
 	config->nonce = conf->nonce;
 
 	*config_ptr = config;

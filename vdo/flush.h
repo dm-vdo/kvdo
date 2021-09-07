@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#15 $
  */
 
 #ifndef FLUSH_H
 #define FLUSH_H
 
 #include "bio.h"
-#include "workQueue.h"
-
+#include "kernelTypes.h"
 #include "types.h"
 #include "waitQueue.h"
+#include "workQueue.h"
 
 /**
  * A marker for tracking which journal entries are affected by a flush request.

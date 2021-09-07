@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#48 $
  */
 
 #include "actionManager.h"
@@ -26,6 +26,7 @@
 
 #include "adminState.h"
 #include "completion.h"
+#include "kernelTypes.h"
 #include "statusCodes.h"
 #include "types.h"
 #include "vdo.h"

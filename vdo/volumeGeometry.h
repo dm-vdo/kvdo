@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#31 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -28,6 +28,7 @@
 
 #include "uds.h"
 
+#include "kernelTypes.h"
 #include "types.h"
 
 enum {

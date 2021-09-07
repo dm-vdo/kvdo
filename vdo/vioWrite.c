@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#85 $
  */
 
 /*
@@ -115,11 +115,13 @@
 #include "compressionState.h"
 #include "dataVIO.h"
 #include "hashLock.h"
+#include "kernelTypes.h"
 #include "recoveryJournal.h"
 #include "referenceOperation.h"
 #include "slab.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
+#include "types.h"
 #include "vdo.h"
 #include "vioRead.h"
 

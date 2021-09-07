@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#115 $
  */
 
 #include "blockMapTree.h"
@@ -31,6 +31,7 @@
 #include "dataVIO.h"
 #include "dirtyLists.h"
 #include "forest.h"
+#include "kernelTypes.h"
 #include "numUtils.h"
 #include "recoveryJournal.h"
 #include "referenceOperation.h"

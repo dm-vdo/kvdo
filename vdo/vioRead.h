@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#4 $
  */
 
 #ifndef VIO_READ_H
 #define VIO_READ_H
 
-#include "types.h"
+#include "kernelTypes.h"
 
 /**
  * Start the asynchronous processing of the data_vio for a read or

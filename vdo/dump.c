@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#48 $
  */
 
 #include "dump.h"
@@ -26,14 +26,15 @@
 #include "memoryAlloc.h"
 #include "typeDefs.h"
 
-#include "constants.h"
-#include "vdo.h"
-
 #include "bufferPool.h"
+#include "constants.h"
 #include "dedupeIndex.h"
 #include "histogram.h"
 #include "ioSubmitter.h"
+#include "kernelTypes.h"
 #include "logger.h"
+#include "types.h"
+#include "vdo.h"
 #include "vdoInit.h"
 
 enum dump_options {

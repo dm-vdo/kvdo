@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#41 $
  */
 
 #ifndef COMPLETION_H
@@ -24,9 +24,9 @@
 
 #include "permassert.h"
 
+#include "kernelTypes.h"
 #include "statusCodes.h"
 #include "types.h"
-
 #include "workQueue.h"
 
 enum vdo_completion_type {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.h#3 $
  */
 
 #ifndef VOLUME_H
@@ -62,8 +62,6 @@ enum index_lookup_mode {
 struct volume {
 	/* The layout of the volume */
 	struct geometry *geometry;
-	/* The configuration of the volume */
-	struct configuration *config;
 	/* The access to the volume's backing store */
 	struct volume_store volume_store;
 	/* A single page used for writing to the volume */

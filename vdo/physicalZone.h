@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#16 $
  */
 
 #ifndef PHYSICAL_ZONE_H
 #define PHYSICAL_ZONE_H
 
+#include "kernelTypes.h"
 #include "pbnLock.h"
 #include "types.h"
 

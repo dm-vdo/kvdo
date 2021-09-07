@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#45 $
  */
 
 #include "allocatingVIO.h"
@@ -28,6 +28,7 @@
 #include "allocationSelector.h"
 #include "blockAllocator.h"
 #include "dataVIO.h"
+#include "kernelTypes.h"
 #include "pbnLock.h"
 #include "slabDepot.h"
 #include "types.h"

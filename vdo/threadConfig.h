@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#13 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -24,6 +24,7 @@
 
 #include "permassert.h"
 
+#include "kernelTypes.h"
 #include "types.h"
 
 struct thread_config {

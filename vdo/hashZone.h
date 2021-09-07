@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#14 $
  */
 
 #ifndef HASH_ZONE_H
@@ -24,6 +24,7 @@
 
 #include "uds.h"
 
+#include "kernelTypes.h"
 #include "statistics.h"
 #include "types.h"
 

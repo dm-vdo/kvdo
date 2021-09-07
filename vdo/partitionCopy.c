@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#34 $
  */
 
 #include "partitionCopy.h"
@@ -27,7 +27,9 @@
 #include "completion.h"
 #include "constants.h"
 #include "extent.h"
+#include "kernelTypes.h"
 #include "numUtils.h"
+#include "types.h"
 
 enum {
 	STRIDE_LENGTH = 2048

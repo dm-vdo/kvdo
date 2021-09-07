@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#6 $
  */
 
 #ifndef VIO_WRITE_H
 #define VIO_WRITE_H
 
-#include "types.h"
+#include "kernelTypes.h"
 
 /**
  * Start the asynchronous processing of a data_vio for a write request which has

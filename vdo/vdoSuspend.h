@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.h#5 $
  */
 
 #ifndef VDO_SUSPEND_H
 #define VDO_SUSPEND_H
 
-#include "types.h"
+#include "kernelTypes.h"
 
 /**
  * Ensure that the vdo has no outstanding I/O and will issue none until it is

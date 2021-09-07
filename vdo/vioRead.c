@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#29 $
  */
 
 #include "vioRead.h"
@@ -25,6 +25,7 @@
 
 #include "blockMap.h"
 #include "dataVIO.h"
+#include "kernelTypes.h"
 #include "vdo.h"
 #include "vioWrite.h"
 

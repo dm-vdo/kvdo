@@ -16,15 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#93 $
  */
 
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "blockMappingState.h"
+#include "compiler.h"
 #include "typeDefs.h"
 
+#include "blockMappingState.h"
 
 /**
  * A size type in blocks.
@@ -35,11 +36,6 @@ typedef uint64_t block_count_t;
  * The size of a block.
  **/
 typedef uint16_t block_size_t;
-
-/**
- * A count of compressed fragments
- **/
-typedef uint8_t compressed_fragment_count_t;
 
 /**
  * A height within a tree.
@@ -65,11 +61,6 @@ typedef uint32_t page_count_t;
  * A page number.
  **/
 typedef uint32_t page_number_t;
-
-/**
- * The size of a page.  Must be evenly divisible by block size.
- **/
-typedef uint32_t page_size_t;
 
 /**
  * The physical (well, less logical) block number at which the block is found
@@ -117,68 +108,9 @@ typedef uint16_t slab_count_t;
 typedef uint16_t slot_number_t;
 
 /**
- * A number of vios.
- **/
-typedef uint16_t vio_count_t;
-
-/**
- * A VDO thread configuration.
- **/
-struct thread_config;
-
-/**
- * A thread counter
- **/
-typedef uint8_t thread_count_t;
-
-/**
- * A thread ID
- *
- * Base-code threads are numbered sequentially starting from 0.
- **/
-typedef uint8_t thread_id_t;
-
-/**
- * The thread ID returned when the current base code thread ID cannot be found
- * or is otherwise undefined.
- **/
-static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
-
-/**
  * A zone counter
  **/
 typedef uint8_t zone_count_t;
-
-/**
- * The type of request a vio is performing
- **/
-enum vio_operation {
-	VIO_UNSPECIFIED_OPERATION = 0,
-	VIO_READ = 1,
-	VIO_WRITE = 2,
-	VIO_READ_MODIFY_WRITE = VIO_READ | VIO_WRITE,
-	VIO_READ_WRITE_MASK = VIO_READ_MODIFY_WRITE,
-	VIO_FLUSH_BEFORE = 4,
-	VIO_FLUSH_AFTER = 8,
-} __packed;
-
-/**
- * vio types for statistics and instrumentation.
- **/
-enum vio_type {
-	VIO_TYPE_UNINITIALIZED = 0,
-	VIO_TYPE_DATA,
-	VIO_TYPE_BLOCK_ALLOCATOR,
-	VIO_TYPE_BLOCK_MAP,
-	VIO_TYPE_BLOCK_MAP_INTERIOR,
-	VIO_TYPE_COMPRESSED_BLOCK,
-	VIO_TYPE_PARTITION_COPY,
-	VIO_TYPE_RECOVERY_JOURNAL,
-	VIO_TYPE_SLAB_JOURNAL,
-	VIO_TYPE_SLAB_SUMMARY,
-	VIO_TYPE_SUPER_BLOCK,
-	VIO_TYPE_TEST,
-} __packed;
 
 /**
  * The current operation on a physical block (from the point of view of the
@@ -202,74 +134,6 @@ enum partition_id {
 } __packed;
 
 /**
- * Check whether a vio_type is for servicing an external data request.
- *
- * @param type  The vio_type to check
- **/
-static inline bool is_vdo_data_vio_type(enum vio_type type)
-{
-	return (type == VIO_TYPE_DATA);
-}
-
-/**
- * Check whether a vio_type is for compressed block writes
- *
- * @param type  The vio_type to check
- **/
-static inline bool is_vdo_compressed_write_vio_type(enum vio_type type)
-{
-	return (type == VIO_TYPE_COMPRESSED_BLOCK);
-}
-
-/**
- * Check whether a vio_type is for metadata
- *
- * @param type  The vio_type to check
- **/
-static inline bool is_vdo_metadata_vio_type(enum vio_type type)
-{
-	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!is_vdo_data_vio_type(type) &&
-		!is_vdo_compressed_write_vio_type(type));
-}
-
-enum vdo_work_item_priority {
-	BIO_ACK_Q_ACK_PRIORITY = 0,
-	BIO_ACK_Q_MAX_PRIORITY = 0,
-	BIO_Q_COMPRESSED_DATA_PRIORITY = 0,
-	BIO_Q_DATA_PRIORITY = 0,
-	BIO_Q_FLUSH_PRIORITY = 2,
-	BIO_Q_HIGH_PRIORITY = 2,
-	BIO_Q_METADATA_PRIORITY = 1,
-	BIO_Q_VERIFY_PRIORITY = 1,
-	BIO_Q_MAX_PRIORITY = 2,
-	CPU_Q_COMPLETE_VIO_PRIORITY = 0,
-	CPU_Q_COMPRESS_BLOCK_PRIORITY = 0,
-	CPU_Q_EVENT_REPORTER_PRIORITY = 0,
-	CPU_Q_HASH_BLOCK_PRIORITY = 0,
-	CPU_Q_MAX_PRIORITY = 0,
-	UDS_Q_PRIORITY = 0,
-	UDS_Q_MAX_PRIORITY = 0,
-	VDO_REQ_Q_COMPLETION_PRIORITY = 1,
-	VDO_REQ_Q_FLUSH_PRIORITY = 2,
-	VDO_REQ_Q_MAP_BIO_PRIORITY = 0,
-	VDO_REQ_Q_SYNC_PRIORITY = 2,
-	VDO_REQ_Q_VIO_CALLBACK_PRIORITY = 1,
-	VDO_REQ_Q_MAX_PRIORITY = 2,
-};
-
-/**
- * Priority levels for asynchronous I/O operations performed on a vio.
- **/
-enum vio_priority {
-	VIO_PRIORITY_LOW = 0,
-	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
-	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
-	VIO_PRIORITY_METADATA,
-	VIO_PRIORITY_HIGH,
-} __packed;
-
-/**
  * Metadata types for the vdo.
  **/
 enum vdo_metadata_type {
@@ -277,19 +141,17 @@ enum vdo_metadata_type {
 	VDO_METADATA_SLAB_JOURNAL,
 } __packed;
 
-enum vdo_zone_type {
-	VDO_ZONE_TYPE_ADMIN,
-	VDO_ZONE_TYPE_JOURNAL,
-	VDO_ZONE_TYPE_LOGICAL,
-	VDO_ZONE_TYPE_PHYSICAL,
-};
-
 /**
  * A position in the block map where a block map entry is stored.
  **/
 struct block_map_slot {
 	physical_block_number_t pbn;
 	slot_number_t slot;
+};
+
+struct data_location {
+	physical_block_number_t pbn;
+	enum block_mapping_state state;
 };
 
 /**
@@ -322,62 +184,6 @@ struct slab_config {
 	block_count_t slab_journal_scrubbing_threshold;
 } __packed;
 
-/**
- * Forward declarations of abstract types
- **/
-struct action_manager;
-struct allocating_vio;
-struct allocation_selector;
-struct block_allocator;
-struct block_map;
-struct block_map_tree_zone;
-struct block_map_zone;
-struct data_vio;
-struct device_config;
-struct flusher;
-struct forest;
-struct hash_lock;
-struct hash_zone;
-struct index_config;
-struct input_bin;
-struct io_submitter;
-struct lbn_lock;
-struct lock_counter;
-struct logical_zone;
-struct logical_zones;
-struct pbn_lock;
-typedef struct physicalLayer PhysicalLayer;
-struct physical_zone;
-struct recovery_journal;
-struct read_only_notifier;
-struct ref_counts;
-struct vdo_slab;
-struct slab_depot;
-struct slab_journal;
-struct slab_journal_entry;
-struct slab_scrubber;
-struct slab_summary;
-struct slab_summary_zone;
-struct vdo;
-struct vdo_completion;
 struct vdo_config;
-struct vdo_extent;
-struct vdo_flush;
-struct vdo_layout;
-struct vdo_statistics;
-struct vdo_work_item;
-struct vio;
-struct vio_pool;
-
-struct data_location {
-	physical_block_number_t pbn;
-	enum block_mapping_state state;
-};
-
-struct zoned_pbn {
-	physical_block_number_t pbn;
-	enum block_mapping_state state;
-	struct physical_zone *zone;
-};
 
 #endif // TYPES_H

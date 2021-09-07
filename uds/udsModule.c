@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#5 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#6 $
  */
 
 #include <linux/module.h>
@@ -65,7 +65,6 @@ EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_768MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_MAX);
 EXPORT_SYMBOL_GPL(uds_close_index);
 EXPORT_SYMBOL_GPL(uds_compute_index_size);
-EXPORT_SYMBOL_GPL(uds_configuration_get_chapters_per_volume);
 EXPORT_SYMBOL_GPL(uds_configuration_get_memory);
 EXPORT_SYMBOL_GPL(uds_configuration_get_nonce);
 EXPORT_SYMBOL_GPL(uds_configuration_get_sparse);

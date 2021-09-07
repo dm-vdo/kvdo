@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#12 $
  */
 
 #ifndef VDO_LOAD_H
 #define VDO_LOAD_H
 
-#include "types.h"
+#include "kernelTypes.h"
 
 /**
  * Load a vdo for normal operation. This method must not be called from a base

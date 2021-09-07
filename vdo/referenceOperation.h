@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#13 $
  */
 
 #ifndef REFERENCE_OPERATION_H
 #define REFERENCE_OPERATION_H
 
+#include "kernelTypes.h"
 #include "types.h"
 
 struct reference_operation;

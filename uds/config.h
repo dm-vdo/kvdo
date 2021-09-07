@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#5 $
  */
 
 #ifndef CONFIG_H
@@ -30,7 +30,7 @@
 enum {
 	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
 	DEFAULT_CACHE_CHAPTERS = 7,
-	DEFAULT_SPARSE_SAMPLE_RATE = 0
+	DEFAULT_SPARSE_SAMPLE_RATE = 32,
 };
 
 /**
@@ -64,28 +64,12 @@ struct configuration {
  * In-memory structure of data for configuring a new index.
  **/
 struct uds_configuration {
-	/** Smaller (16), Small (64) or large (256) indices */
-	unsigned int record_pages_per_chapter;
-	/** Total number of chapters per volume */
-	unsigned int chapters_per_volume;
-	/** Number of sparse chapters per volume */
-	unsigned int sparse_chapters_per_volume;
-	/** Size of the page cache, in chapters */
-	unsigned int cache_chapters;
-	/** Unused field */
-	unsigned int unused;
-	/** The volume index mean delta to use */
-	unsigned int volume_index_mean_delta;
-	/** Size of a page, used for both record pages and index pages */
-	unsigned int bytes_per_page;
-	/** Sampling rate for sparse indexing */
-	unsigned int sparse_sample_rate;
-	/** Index Owner's nonce */
+	/** The maximum memory allocation, in GB */
+	uds_memory_config_size_t memory_size;
+	/** Whether the index should include sparse chapters */
+	bool sparse;
+	/** A 64-bit nonce to validate the index */
 	uds_nonce_t nonce;
-	/** Virtual chapter remapped from physical chapter 0 */
-	uint64_t remapped_virtual;
-	/** New physical chapter which remapped chapter was moved to */
-	uint64_t remapped_physical;
 };
 
 /**
