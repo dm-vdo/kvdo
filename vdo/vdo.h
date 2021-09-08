@@ -1,4 +1,5 @@
-/* * Copyright Red Hat
+/*
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#51 $
  */
 
 #ifndef VDO_H
@@ -443,15 +444,6 @@ struct block_map * __must_check get_block_map(const struct vdo *vdo);
  * @return the slab depot from the vdo
  **/
 struct slab_depot * __must_check get_slab_depot(struct vdo *vdo);
-
-/**
- * Get the recovery journal from a vdo.
- *
- * @param vdo  The vdo whose recovery journal is desired
- *
- * @return the recovery journal from the vdo
- **/
-struct recovery_journal * __must_check get_recovery_journal(struct vdo *vdo);
 
 /**
  * Check whether a vdo is in read-only mode.
