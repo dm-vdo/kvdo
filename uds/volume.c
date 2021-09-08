@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.c#4 $
  */
 
 #include "volume.h"
@@ -773,7 +773,8 @@ int read_chapter_index_from_volume(const struct volume *volume,
 			      physical_page,
 			      geometry->index_pages_per_chapter);
 
-	result = initialize_volume_page(geometry, &volume_page);
+	result = initialize_volume_page(geometry->bytes_per_page,
+					&volume_page);
 	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
 		byte *index_page;
 		int result = read_volume_page(&volume->volume_store,
@@ -1432,7 +1433,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 		free_volume(volume);
 		return result;
 	}
-	result = initialize_volume_page(config->geometry,
+	result = initialize_volume_page(config->geometry->bytes_per_page,
 					&volume->scratch_page);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);

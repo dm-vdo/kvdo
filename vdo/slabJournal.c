@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#112 $
  */
 
 #include "slabJournal.h"
@@ -254,8 +254,16 @@ bool is_vdo_slab_journal_blank(const struct slab_journal *journal)
 		(journal->tail_header.entry_count == 0));
 }
 
-/**********************************************************************/
-bool is_vdo_slab_journal_dirty(const struct slab_journal *journal)
+/**
+ * Check whether the slab journal is on the block allocator's list of dirty
+ * journals.
+ *
+ * @param journal  The journal to query
+ *
+ * @return <code>true</code> if the journal has been added to the dirty list
+ **/
+static bool
+is_vdo_slab_journal_dirty(const struct slab_journal *journal)
 {
 	return (journal->recovery_lock != 0);
 }
@@ -643,7 +651,7 @@ static void complete_write(struct vdo_completion *completion)
 
 /**
  * Callback from acquire_vdo_block_allocator_vio() registered in
- * commit_vdo_slab_journal_tail().
+ * commit_tail().
  *
  * @param waiter       The vio pool waiter which was just notified
  * @param vio_context  The vio pool entry for the write
@@ -706,7 +714,12 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 }
 
 /**********************************************************************/
-void commit_vdo_slab_journal_tail(struct slab_journal *journal)
+/**
+ * Commit the tail block of the slab journal.
+ *
+ * @param journal  The journal whose tail block should be committed
+ **/
+static void commit_tail(struct slab_journal *journal)
 {
 	int result;
 
@@ -744,11 +757,19 @@ void commit_vdo_slab_journal_tail(struct slab_journal *journal)
 	}
 }
 
-/**********************************************************************/
-void encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header,
-			       slab_journal_payload *payload,
-			       slab_block_number sbn,
-			       enum journal_operation operation)
+/**
+ * Encode a slab journal entry (exposed for unit tests).
+ *
+ * @param tail_header  The unpacked header for the block
+ * @param payload      The journal block payload to hold the entry
+ * @param sbn          The slab block number of the entry to encode
+ * @param operation    The type of the entry
+ **/
+static void
+encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header,
+			      slab_journal_payload *payload,
+			      slab_block_number sbn,
+			      enum journal_operation operation)
 {
 	journal_entry_count_t entry_number = tail_header->entry_count++;
 
@@ -814,7 +835,7 @@ static void add_entry(struct slab_journal *journal,
 				  operation);
 	journal->tail_header.recovery_point = *recovery_point;
 	if (block_is_full(journal)) {
-		commit_vdo_slab_journal_tail(journal);
+		commit_tail(journal);
 	}
 }
 
@@ -838,7 +859,7 @@ bool attempt_replay_into_vdo_slab_journal(struct slab_journal *journal,
 	     (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT))) {
 		// The tail block does not have room for the entry we are
 		// attempting to add so commit the tail block now.
-		commit_vdo_slab_journal_tail(journal);
+		commit_tail(journal);
 	}
 
 	if (journal->waiting_to_commit) {
@@ -1025,7 +1046,7 @@ static void add_entries(struct slab_journal *journal)
 			    journal->full_entries_per_block)) {
 			// The tail block does not have room for a block map
 			// increment, so commit it now.
-			commit_vdo_slab_journal_tail(journal);
+			commit_tail(journal);
 			if (journal->waiting_to_commit) {
 				WRITE_ONCE(journal->events->tail_busy_count,
 					   journal->events->tail_busy_count
@@ -1106,7 +1127,7 @@ static void add_entries(struct slab_journal *journal)
 	if (is_vdo_slab_draining(journal->slab) &&
 	    !is_vdo_state_suspending(&journal->slab->state) &&
 	    !has_waiters(&journal->entry_waiters)) {
-		commit_vdo_slab_journal_tail(journal);
+		commit_tail(journal);
 	}
 }
 
@@ -1186,7 +1207,7 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 	}
 
 	// All locks are held by the block which is in progress; write it.
-	commit_vdo_slab_journal_tail(journal);
+	commit_tail(journal);
 	return true;
 }
 
@@ -1213,7 +1234,7 @@ void drain_vdo_slab_journal(struct slab_journal *journal)
 		return;
 	}
 
-	commit_vdo_slab_journal_tail(journal);
+	commit_tail(journal);
 }
 
 /**

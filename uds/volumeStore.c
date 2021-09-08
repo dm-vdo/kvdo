@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volumeStore.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volumeStore.c#2 $
  */
 
 #include "geometry.h"
@@ -41,8 +41,7 @@ void destroy_volume_page(struct volume_page *volume_page)
 }
 
 /**********************************************************************/
-int initialize_volume_page(const struct geometry *geometry,
-			   struct volume_page *volume_page)
+int initialize_volume_page(size_t page_size, struct volume_page *volume_page)
 {
 	volume_page->vp_buffer = NULL;
 	return UDS_SUCCESS;

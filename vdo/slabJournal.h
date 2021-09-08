@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#28 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -141,19 +141,6 @@ struct slab_journal {
 };
 
 /**
- * Encode a slab journal entry (exposed for unit tests).
- *
- * @param tail_header  The unpacked header for the block
- * @param payload      The journal block payload to hold the entry
- * @param sbn          The slab block number of the entry to encode
- * @param operation    The type of the entry
- **/
-void encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header,
-				   slab_journal_payload * payload,
-				   slab_block_number sbn,
-				   enum journal_operation operation);
-
-/**
  * Generate the packed encoding of a slab journal entry.
  *
  * @param packed        The entry into which to pack the values
@@ -238,16 +225,6 @@ void free_vdo_slab_journal(struct slab_journal *journal);
 bool __must_check is_vdo_slab_journal_blank(const struct slab_journal *journal);
 
 /**
- * Check whether the slab journal is on the block allocator's list of dirty
- * journals.
- *
- * @param journal  The journal to query
- *
- * @return <code>true</code> if the journal has been added to the dirty list
- **/
-bool __must_check is_vdo_slab_journal_dirty(const struct slab_journal *journal);
-
-/**
  * Check whether a slab journal is active.
  *
  * @param journal  The slab journal to check
@@ -326,13 +303,6 @@ vdo_release_recovery_journal_lock(struct slab_journal *journal,
 				  sequence_number_t recovery_lock);
 
 /**
- * Commit the tail block of a slab journal.
- *
- * @param journal  The journal whose tail block should be committed
- **/
-void commit_vdo_slab_journal_tail(struct slab_journal *journal);
-
-/**
  * Drain slab journal I/O. Depending upon the type of drain (as recorded in
  * the journal's slab), any dirty journal blocks may be written out.
  *
@@ -371,7 +341,6 @@ get_vdo_slab_journal_block_offset(struct slab_journal *journal,
 {
 	return (sequence % journal->size);
 }
-
 
 /**
  * Dump the slab journal.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/cachedChapterIndex.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/cachedChapterIndex.c#2 $
  */
 
 #include "cachedChapterIndex.h"
@@ -49,7 +49,7 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 	}
 
 	for (i = 0; i < chapter->index_pages_count; i++) {
-		result = initialize_volume_page(geometry,
+		result = initialize_volume_page(geometry->bytes_per_page,
 						&chapter->volume_pages[i]);
 		if (result != UDS_SUCCESS) {
 			return result;

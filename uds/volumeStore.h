@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volumeStore.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volumeStore.h#2 $
  */
 
 #ifndef VOLUME_STORE_H
@@ -28,7 +28,6 @@
 
 #include <linux/dm-bufio.h>
 
-struct geometry;
 struct index_layout;
 
 
@@ -71,12 +70,12 @@ get_page_data(const struct volume_page *volume_page)
 /**
  * Initialize a volume page buffer.
  *
- * @param geometry    The volume geometry
+ * @param page_size    The size of the page in bytes
  * @param volume_page  The volume page buffer
  *
  * @return UDS_SUCCESS or an error status
  **/
-int __must_check initialize_volume_page(const struct geometry *geometry,
+int __must_check initialize_volume_page(size_t page_size,
 					struct volume_page *volume_page);
 
 /**

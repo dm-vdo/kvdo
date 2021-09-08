@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#3 $
  */
 
 #include "pageCache.h"
@@ -336,7 +336,8 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 
 	for (i = 0; i < cache->num_cache_entries; i++) {
 		struct cached_page *page = &cache->cache[i];
-		result = initialize_volume_page(geometry, &page->cp_page_data);
+		result = initialize_volume_page(geometry->bytes_per_page,
+						&page->cp_page_data);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
