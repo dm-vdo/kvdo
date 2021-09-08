@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#51 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -49,15 +49,6 @@ int make_vdo_threads(struct vdo *vdo,
  * @param vdo  The vdo object to be examined
  **/
 void dump_vdo_work_queue(struct vdo *vdo);
-
-/**
- * Gets the latest statistics gathered by the base code.
- *
- * @param vdo    the vdo object
- * @param stats  the statistics struct to fill in
- **/
-void get_kvdo_statistics(struct vdo *vdo,
-			 struct vdo_statistics *stats);
 
 
 /**
