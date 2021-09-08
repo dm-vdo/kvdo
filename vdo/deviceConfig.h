@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#4 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -125,9 +125,9 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-validate_new_device_config(struct device_config *to_validate,
-			   struct device_config *config,
-			   bool may_grow,
-			   char **error_ptr);
+validate_new_vdo_device_config(struct device_config *to_validate,
+			       struct device_config *config,
+			       bool may_grow,
+			       char **error_ptr);
 
 #endif // DEVICE_CONFIG_H

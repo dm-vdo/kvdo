@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#177 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#178 $
  */
 
 /*
@@ -359,10 +359,10 @@ int prepare_to_modify_vdo(struct vdo *vdo,
 			  bool may_grow,
 			  char **error_ptr)
 {
-	int result = validate_new_device_config(config,
-						vdo->device_config,
-						may_grow,
-						error_ptr);
+	int result = validate_new_vdo_device_config(config,
+						    vdo->device_config,
+						    may_grow,
+						    error_ptr);
 	if (result != VDO_SUCCESS) {
 		return -EINVAL;
 	}

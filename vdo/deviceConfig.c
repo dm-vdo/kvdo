@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#6 $
  */
 
 #include "deviceConfig.h"
@@ -728,10 +728,10 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
 }
 
 /**********************************************************************/
-int validate_new_device_config(struct device_config *to_validate,
-			       struct device_config *config,
-			       bool may_grow,
-			       char **error_ptr)
+int validate_new_vdo_device_config(struct device_config *to_validate,
+				   struct device_config *config,
+				   bool may_grow,
+				   char **error_ptr)
 {
 	if (to_validate->owning_target->begin !=
 	    config->owning_target->begin) {
