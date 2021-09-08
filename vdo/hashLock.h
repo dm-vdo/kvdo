@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#10 $
  */
 
 #ifndef HASH_LOCK_H
@@ -140,7 +140,8 @@ static inline void initialize_vdo_hash_lock(struct hash_lock *lock)
  *
  * @return The short string representing the state
  **/
-const char * __must_check get_vdo_hash_lock_state_name(enum hash_lock_state state);
+const char * __must_check
+get_vdo_hash_lock_state_name(enum hash_lock_state state);
 
 /**
  * Get the PBN lock on the duplicate data location for a data_vio from the
