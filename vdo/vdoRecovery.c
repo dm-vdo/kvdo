@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#118 $
  */
 
 #include "vdoRecovery.h"
@@ -964,7 +964,7 @@ static void apply_to_depot(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
 		as_vdo_recovery_completion(completion->parent);
-	struct slab_depot *depot = get_slab_depot(recovery->vdo);
+	struct slab_depot *depot = recovery->vdo->depot;
 
 	assert_on_admin_thread(recovery->vdo, __func__);
 	prepare_sub_task(recovery,
@@ -1442,7 +1442,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 				 finish_vdo_completion_parent_callback,
 				 finish_vdo_completion_parent_callback,
 				 VDO_ZONE_TYPE_ADMIN);
-		load_vdo_slab_depot(get_slab_depot(vdo),
+		load_vdo_slab_depot(vdo->depot,
 				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
 				    recovery);

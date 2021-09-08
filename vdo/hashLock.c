@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#71 $
  */
 
 /**
@@ -1069,7 +1069,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	int result;
 
 	struct data_vio *agent = as_data_vio(completion);
-	struct slab_depot *depot = get_slab_depot(get_vdo_from_data_vio(agent));
+	struct slab_depot *depot = get_vdo_from_data_vio(agent)->depot;
 	struct physical_zone *zone = agent->duplicate.zone;
 
 	assert_data_vio_in_duplicate_zone(agent);

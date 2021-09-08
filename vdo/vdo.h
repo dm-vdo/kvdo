@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#52 $
  */
 
 #ifndef VDO_H
@@ -435,15 +435,6 @@ int enable_read_only_entry(struct vdo *vdo);
  * @return the block map from the vdo
  **/
 struct block_map * __must_check get_block_map(const struct vdo *vdo);
-
-/**
- * Get the slab depot from a vdo.
- *
- * @param vdo  The vdo whose slab depot is desired
- *
- * @return the slab depot from the vdo
- **/
-struct slab_depot * __must_check get_slab_depot(struct vdo *vdo);
 
 /**
  * Check whether a vdo is in read-only mode.
