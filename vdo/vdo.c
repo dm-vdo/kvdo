@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#178 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#179 $
  */
 
 /*
@@ -719,6 +719,39 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 
 
 /**
+ * Get the number of physical blocks in use by user data.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The number of blocks allocated for user data
+ **/
+static block_count_t __must_check
+get_vdo_physical_blocks_allocated(const struct vdo *vdo)
+{
+	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
+		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
+}
+
+
+/**
+ * Get the number of physical blocks used by vdo metadata.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The number of overhead blocks
+ **/
+static block_count_t __must_check
+get_vdo_physical_blocks_overhead(const struct vdo *vdo)
+{
+	// XXX config.physical_blocks is actually mutated during resize and is in
+	// a packed structure, but resize runs on admin thread so we're usually
+	// OK.
+	return (vdo->states.vdo.config.physical_blocks -
+		get_vdo_slab_depot_data_blocks(vdo->depot) +
+		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
+}
+
+/**
  * Populate a vdo_statistics structure on the admin thread.
  *
  * @param vdo    The vdo
@@ -825,30 +858,6 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 				       fetch_vdo_statistics_callback,
 				       vdo->thread_config->admin_thread,
 				       stats);
-}
-
-/**********************************************************************/
-block_count_t get_vdo_physical_blocks_allocated(const struct vdo *vdo)
-{
-	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
-		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
-}
-
-/**********************************************************************/
-block_count_t get_vdo_physical_blocks_free(const struct vdo *vdo)
-{
-	return get_vdo_slab_depot_free_blocks(vdo->depot);
-}
-
-/**********************************************************************/
-block_count_t get_vdo_physical_blocks_overhead(const struct vdo *vdo)
-{
-	// XXX config.physical_blocks is actually mutated during resize and is in
-	// a packed structure, but resize runs on admin thread so we're usually
-	// OK.
-	return (vdo->states.vdo.config.physical_blocks -
-		get_vdo_slab_depot_data_blocks(vdo->depot) +
-		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/

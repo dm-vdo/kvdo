@@ -15,7 +15,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#50 $
  */
 
 #ifndef VDO_H
@@ -315,34 +315,6 @@ bool get_vdo_compressing(struct vdo *vdo);
 void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 /**
- * Get the number of physical blocks in use by user data.
- *
- * @param vdo  The vdo
- *
- * @return The number of blocks allocated for user data
- **/
-block_count_t __must_check
-get_vdo_physical_blocks_allocated(const struct vdo *vdo);
-
-/**
- * Get the number of unallocated physical blocks.
- *
- * @param vdo  The vdo
- *
- * @return The number of free blocks
- **/
-block_count_t __must_check get_vdo_physical_blocks_free(const struct vdo *vdo);
-
-/**
- * Get the number of physical blocks used by vdo metadata.
- *
- * @param vdo  The vdo
- *
- * @return The number of overhead blocks
- **/
-block_count_t __must_check get_vdo_physical_blocks_overhead(const struct vdo *vdo);
-
-/**
  * Get the thread config of the vdo.
  *
  * @param vdo  The vdo
@@ -609,8 +581,6 @@ int __must_check get_physical_zone(const struct vdo *vdo,
 // Asynchronous callback to share a duplicate block. This is only public so
 // test code may compare it against the current callback in the completion.
 void share_block(struct vdo_completion *completion);
-
-// TEST SUPPORT ONLY BEYOND THIS POINT
 
 /**
  * Dump status information about a vdo to the log for debugging.
