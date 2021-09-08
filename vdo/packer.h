@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#21 $
  */
 
 #ifndef PACKER_H
@@ -172,15 +172,6 @@ void free_vdo_packer(struct packer *packer);
  **/
 bool __must_check
 vdo_data_is_sufficiently_compressible(struct data_vio *data_vio);
-
-/**
- * Get the thread ID of the packer's zone.
- *
- * @param packer  The packer
- *
- * @return The packer's thread ID
- **/
-thread_id_t get_vdo_packer_thread_id(struct packer *packer);
 
 /**
  * Get the current statistics from the packer.

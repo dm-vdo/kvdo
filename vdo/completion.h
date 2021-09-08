@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#42 $
  */
 
 #ifndef COMPLETION_H
@@ -223,17 +223,6 @@ void noop_vdo_completion_callback(struct vdo_completion *completion __always_unu
  **/
 int assert_vdo_completion_type(enum vdo_completion_type actual,
 			       enum vdo_completion_type expected);
-
-/**
- * Return the name of a completion type.
- *
- * @param completion_type  the completion type
- *
- * @return a pointer to a static string; if the completion_type is unknown
- *         this is to a static buffer that may be overwritten.
- **/
-const char *
-get_vdo_completion_type_name(enum vdo_completion_type completion_type);
 
 /**
  * Set the callback for a completion.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#94 $
  */
 
 #ifndef DATA_VIO_H
@@ -1015,14 +1015,6 @@ void clear_data_vio_mapped_location(struct data_vio *data_vio);
 int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state);
-
-/**
- * Attempt to acquire the lock on a logical block. This is the start of the
- * path for all external requests. It is registered in prepare_data_vio().
- *
- * @param completion  The data_vio for an external data request as a completion
- **/
-void vdo_attempt_logical_block_lock(struct vdo_completion *completion);
 
 /**
  * Release the lock on the logical block, if any, that a data_vio has acquired.

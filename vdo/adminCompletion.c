@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#49 $
  */
 
 #include "adminCompletion.h"
@@ -103,11 +103,18 @@ reset_vdo_admin_sub_task(struct vdo_completion *completion)
 	return completion;
 }
 
-/**********************************************************************/
-void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
-					  vdo_action *callback,
-					  vdo_action *error_handler,
-					  thread_id_t thread_id)
+/**
+ * Prepare the sub-task completion of a vdo's admin_completion
+ *
+ * @param vdo            The vdo
+ * @param callback       The callback for the sub-task
+ * @param error_handler  The error handler for the sub-task
+ * @param thread_id      The ID of the thread on which to run the callback
+ **/
+static void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
+						 vdo_action *callback,
+						 vdo_action *error_handler,
+						 thread_id_t thread_id)
 {
 	prepare_vdo_completion_for_requeue(&vdo->admin_completion.sub_task_completion,
 					   callback,

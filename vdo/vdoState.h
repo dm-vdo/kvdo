@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#8 $
  */
 
 #ifndef VDO_STATE_H
@@ -42,14 +42,6 @@ enum vdo_state {
 	VDO_STATE_COUNT
 };
 
-/**
- * Get the name of a VDO state code for logging purposes.
- *
- * @param state  The state code
- *
- * @return The name of the state code
- **/
-const char * __must_check get_vdo_state_name(enum vdo_state state);
 
 /**
  * Return a user-visible string describing the current VDO state.

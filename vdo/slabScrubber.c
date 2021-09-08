@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#84 $
  */
 
 #include "slabScrubber.h"
@@ -138,7 +138,14 @@ static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 }
 
 /**********************************************************************/
-bool vdo_has_slabs_to_scrub(struct slab_scrubber *scrubber)
+/**
+ * Check whether a scrubber has slabs to scrub.
+ *
+ * @param scrubber  The scrubber to check
+ *
+ * @return <code>true</code> if the scrubber has slabs to scrub
+ **/
+static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
 {
 	return (get_next_slab(scrubber) != NULL);
 }
@@ -187,7 +194,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 {
 	bool notify;
 
-	if (!vdo_has_slabs_to_scrub(scrubber)) {
+	if (!has_slabs_to_scrub(scrubber)) {
 		free_extent_and_buffer(scrubber);
 	}
 
@@ -479,7 +486,7 @@ void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 			       error_handler,
 			       thread_id,
 			       parent);
-	if (!vdo_has_slabs_to_scrub(scrubber)) {
+	if (!has_slabs_to_scrub(scrubber)) {
 		finish_scrubbing(scrubber);
 		return;
 	}
@@ -525,7 +532,7 @@ void resume_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 {
 	int result;
 
-	if (!vdo_has_slabs_to_scrub(scrubber)) {
+	if (!has_slabs_to_scrub(scrubber)) {
 		complete_vdo_completion(parent);
 		return;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#42 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -90,16 +90,6 @@ struct admin_state {
  * A method to be called once an admin operation may be initiated.
  **/
 typedef void vdo_admin_initiator(struct admin_state *state);
-
-/**
- * Get the name of an admin_state_code for logging purposes.
- *
- * @param code  The admin_state_code
- *
- * @return The name of the state's code
- **/
-const char * __must_check
-get_vdo_admin_state_code_name(const struct admin_state_code *code);
 
 /**
  * Get the name of an admin_state's code for logging purposes.

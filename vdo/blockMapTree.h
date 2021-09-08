@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#23 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -87,20 +87,6 @@ as_vdo_block_map_page(struct tree_page *tree_page)
 {
 	return (struct block_map_page *) tree_page->page_buffer;
 }
-
-/**
- * Replace the VIOPool in a tree zone. This method is used by unit tests.
- *
- * @param zone       The zone whose pool is to be replaced
- * @param vdo        The vdo from which to make VIOs
- * @param pool_size  The size of the new pool
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			       struct vdo *vdo,
-			       size_t pool_size);
 
 /**
  * Check whether a buffer contains a valid page. If the page is bad, log an

@@ -16,41 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#7 $
  */
 
 #include "vdoState.h"
 
 #include "permassert.h"
 
-static const char *VDO_STATE_NAMES[] = {
-	[VDO_CLEAN] = "CLEAN",
-	[VDO_DIRTY] = "DIRTY",
-	[VDO_FORCE_REBUILD] = "FORCE_REBUILD",
-	[VDO_NEW] = "NEW",
-	[VDO_READ_ONLY_MODE] = "READ_ONLY_MODE",
-	[VDO_REBUILD_FOR_UPGRADE] = "REBUILD_FOR_UPGRADE",
-	[VDO_RECOVERING] = "RECOVERING",
-	[VDO_REPLAYING] = "REPLAYING",
-};
-
-/**********************************************************************/
-const char *get_vdo_state_name(enum vdo_state state)
-{
-	int result;
-
-	// Catch if a state has been added without updating the name array.
-	STATIC_ASSERT(ARRAY_SIZE(VDO_STATE_NAMES) == VDO_STATE_COUNT);
-
-	result = ASSERT(state < ARRAY_SIZE(VDO_STATE_NAMES),
-			"vdo_state value %u must have a registered name",
-			state);
-	if (result != UDS_SUCCESS) {
-		return "INVALID VDO STATE CODE";
-	}
-
-	return VDO_STATE_NAMES[state];
-}
 
 /**********************************************************************/
 const char *describe_vdo_state(enum vdo_state state)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#11 $
  */
 
 #ifndef PRIORITY_TABLE_H
@@ -78,15 +78,6 @@ void free_priority_table(struct priority_table *table);
  **/
 void priority_table_enqueue(struct priority_table *table, unsigned int priority,
 			    struct list_head *entry);
-
-/**
- * Reset a priority table, leaving it in the same empty state as when newly
- * constructed. NOTE: The table does not own the entries stored in it and they
- * are not freed (or even unlinked from each other) by this call.
- *
- * @param table  The table to reset
- **/
-void reset_priority_table(struct priority_table *table);
 
 /**
  * Find the highest-priority entry in the table, remove it from the table, and

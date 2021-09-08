@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#32 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -133,15 +133,6 @@ struct slab_summary {
 	/** The currently active zones */
 	struct slab_summary_zone *zones[];
 };
-
-/**
- * Treating the current entries buffer as the on-disk value of all zones,
- * update every zone to the correct values for every slab.
- *
- * @param summary       The summary whose entries should be combined
- **/
-void vdo_slab_summary_combine_zones(struct slab_summary *summary);
-
 
 /**
  * Create a slab summary.
@@ -272,20 +263,6 @@ vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
 block_count_t __must_check
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 				slab_count_t slab_number);
-
-/**
- * Get the stored ref_counts state information for a single slab. Used
- * in testing only.
- *
- * @param [in]  summary_zone      The slab_summary_zone to use
- * @param [in]  slab_number       The slab number to get information for
- * @param [out] free_block_hint   The approximate number of free blocks
- * @param [out] is_clean          Whether the slab is clean
- **/
-void vdo_get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-					 slab_count_t slab_number,
-					 size_t *free_block_hint,
-					 bool *is_clean);
 
 /**
  * Get the stored slab statuses for all slabs in a zone.

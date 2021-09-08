@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#17 $
  */
 
 #include "priorityTable.h"
@@ -94,6 +94,23 @@ int make_priority_table(unsigned int max_priority,
 	return VDO_SUCCESS;
 }
 
+/**
+ * Reset a priority table, leaving it in the same empty state as when newly
+ * constructed. NOTE: The table does not own the entries stored in it and they
+ * are not freed (or even unlinked from each other) by this call.
+ *
+ * @param table  The table to reset
+ **/
+static void reset_priority_table(struct priority_table *table)
+{
+	unsigned int priority;
+
+	table->search_vector = 0;
+	for (priority = 0; priority <= table->max_priority; priority++) {
+		list_del_init(&table->buckets[priority].queue);
+	}
+}
+
 /**********************************************************************/
 void free_priority_table(struct priority_table *table)
 {
@@ -106,17 +123,6 @@ void free_priority_table(struct priority_table *table)
 	reset_priority_table(table);
 
 	UDS_FREE(table);
-}
-
-/**********************************************************************/
-void reset_priority_table(struct priority_table *table)
-{
-	unsigned int priority;
-
-	table->search_vector = 0;
-	for (priority = 0; priority <= table->max_priority; priority++) {
-		list_del_init(&table->buckets[priority].queue);
-	}
 }
 
 /**********************************************************************/

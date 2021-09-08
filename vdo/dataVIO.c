@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#65 $
  */
 
 #include "dataVIO.h"
@@ -92,6 +92,9 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 }
 
 /**********************************************************************/
+void attempt_logical_block_lock(struct vdo_completion *completion);
+
+/**********************************************************************/
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
 		      enum vio_operation operation,
@@ -122,7 +125,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 						VDO_MAPPING_STATE_UNCOMPRESSED);
 	reset_vdo_completion(vio_as_completion(vio));
 	set_data_vio_logical_callback(data_vio,
-				      vdo_attempt_logical_block_lock);
+				      attempt_logical_block_lock);
 }
 
 /**********************************************************************/
@@ -240,8 +243,13 @@ static void launch_locked_request(struct data_vio *data_vio)
 	}
 }
 
-/**********************************************************************/
-void vdo_attempt_logical_block_lock(struct vdo_completion *completion)
+/**
+ * Attempt to acquire the lock on a logical block. This is the start of the
+ * path for all external requests. It is registered in prepare_data_vio().
+ *
+ * @param completion  The data_vio for an external data request as a completion
+ **/
+void attempt_logical_block_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct lbn_lock *lock = &data_vio->logical;

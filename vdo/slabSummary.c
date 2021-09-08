@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#79 $
  */
 
 #include "slabSummary.h"
@@ -554,16 +554,6 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 }
 
 /**********************************************************************/
-void vdo_get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-					 slab_count_t slab_number,
-					 size_t *free_block_hint, bool *is_clean)
-{
-	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
-	*free_block_hint = entry->fullness_hint;
-	*is_clean = !entry->is_dirty;
-}
-
-/**********************************************************************/
 void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 				      slab_count_t slab_count,
 				      struct slab_status *statuses)
@@ -604,8 +594,13 @@ static void finish_combining_zones(struct vdo_completion *completion)
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 
-/**********************************************************************/
-void vdo_slab_summary_combine_zones(struct slab_summary *summary)
+/**
+ * Treating the current entries buffer as the on-disk value of all zones,
+ * update every zone to the correct values for every slab.
+ *
+ * @param summary       The summary whose entries should be combined
+ **/
+static void combine_zones(struct slab_summary *summary)
 {
 	// Combine all the old summary data into the portion of the buffer
 	// corresponding to the first zone.
@@ -652,7 +647,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
 	struct vdo_extent *extent = vdo_completion_as_extent(completion);
 
 	// Combine the zones so each zone is correct for all slabs.
-	vdo_slab_summary_combine_zones(summary);
+	combine_zones(summary);
 
 	// Write the combined summary back out.
 	extent->completion.callback = finish_combining_zones;

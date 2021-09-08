@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.h#5 $
  */
 
 #ifndef SUPER_BLOCK_CODEC_H
@@ -76,13 +76,5 @@ int __must_check encode_vdo_super_block(struct super_block_codec *codec);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check decode_vdo_super_block(struct super_block_codec *codec);
-
-/**
- * Get the encoded size of the fixed (non-component data) portion of a super
- * block (this is for unit testing).
- *
- * @return The encoded size of the fixed portion of the super block
- **/
-size_t __must_check get_vdo_super_block_fixed_size(void);
 
 #endif // SUPER_BLOCK_CODEC_H

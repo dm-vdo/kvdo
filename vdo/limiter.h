@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#5 $
  */
 
 #ifndef LIMITER_H
@@ -56,15 +56,6 @@ struct limiter {
 void initialize_limiter(struct limiter *limiter, uint32_t limit);
 
 /**
- * Determine whether there are any active resources
- *
- * @param limiter  The limiter
- *
- * @return true if there are no active resources
- **/
-bool limiter_is_idle(struct limiter *limiter);
-
-/**
  * Release resources, making them available for other uses
  *
  * @param limiter  The limiter
@@ -99,16 +90,5 @@ void drain_vdo_limiter(struct limiter *limiter,
  * @param limiter  The limiter
  **/
 void limiter_wait_for_one_free(struct limiter *limiter);
-
-/**
- * Attempt to reserve one resource, without waiting. After returning from this
- * routine, if allocation was successful, the caller may use the resource, and
- * must call limiter_release after freeing the resource.
- *
- * @param limiter  The limiter
- *
- * @return true iff the resource was allocated
- **/
-bool limiter_poll(struct limiter *limiter);
 
 #endif /* LIMITER_H */

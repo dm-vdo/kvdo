@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#18 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -26,17 +26,6 @@
 #include "types.h"
 
 struct vdo_super_block;
-
-/**
- * Make a new super block.
- *
- * @param [in]  vdo              The vdo containing the super block on disk
- * @param [out] super_block_ptr  A pointer to hold the new super block
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check make_vdo_super_block(struct vdo *vdo,
-				      struct vdo_super_block **super_block_ptr);
 
 /**
  * Free a super block.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#32 $
  */
 
 #include "blockMapPage.h"
@@ -35,13 +35,6 @@ static const struct version_number BLOCK_MAP_4_1 = {
 	.major_version = 4,
 	.minor_version = 1,
 };
-
-/**********************************************************************/
-bool is_current_vdo_block_map_page(const struct block_map_page *page)
-{
-	return are_same_vdo_version(BLOCK_MAP_4_1,
-				    unpack_vdo_version_number(page->version));
-}
 
 /**********************************************************************/
 struct block_map_page *format_vdo_block_map_page(void *buffer,

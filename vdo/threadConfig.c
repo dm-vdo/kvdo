@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#23 $
  */
 
 #include "threadConfig.h"
@@ -94,6 +94,30 @@ assign_thread_ids(thread_id_t thread_ids[],
 	}
 }
 
+/**
+ * Make a thread configuration that uses only one thread.
+ *
+ * @param [out] config_ptr      A pointer to hold the new thread configuration
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int
+vdo_make_one_thread_config(struct thread_config **config_ptr)
+{
+	struct thread_config *config;
+	int result = allocate_thread_config(1, 1, 1, 1, &config);
+
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	config->logical_threads[0] = 0;
+	config->physical_threads[0] = 0;
+	config->hash_zone_threads[0] = 0;
+	*config_ptr = config;
+	return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 int make_vdo_thread_config(zone_count_t logical_zone_count,
 			   zone_count_t physical_zone_count,
@@ -143,23 +167,6 @@ int make_vdo_thread_config(zone_count_t logical_zone_count,
 
 	ASSERT_LOG_ONLY(id == total, "correct number of thread IDs assigned");
 
-	*config_ptr = config;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int vdo_make_one_thread_config(struct thread_config **config_ptr)
-{
-	struct thread_config *config;
-	int result = allocate_thread_config(1, 1, 1, 1, &config);
-
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	config->logical_threads[0] = 0;
-	config->physical_threads[0] = 0;
-	config->hash_zone_threads[0] = 0;
 	*config_ptr = config;
 	return VDO_SUCCESS;
 }

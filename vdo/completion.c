@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#40 $
  */
 
 #include "completion.h"
@@ -162,9 +162,16 @@ preserve_vdo_completion_error_and_continue(struct vdo_completion *completion)
 	invoke_vdo_completion_callback(completion);
 }
 
-/**********************************************************************/
-const char *
-get_vdo_completion_type_name(enum vdo_completion_type completion_type)
+/**
+ * Return the name of a completion type.
+ *
+ * @param completion_type  the completion type
+ *
+ * @return a pointer to a static string; if the completion_type is unknown
+ *         this is to a static buffer that may be overwritten.
+ **/
+static const char *
+get_completion_type_name(enum vdo_completion_type completion_type)
 {
 	// Try to catch failures to update the array when the enum values
 	// change.
@@ -191,6 +198,6 @@ int assert_vdo_completion_type(enum vdo_completion_type actual,
 {
 	return ASSERT((expected == actual),
 		      "completion type is %s instead of %s",
-		      get_vdo_completion_type_name(actual),
-		      get_vdo_completion_type_name(expected));
+		      get_completion_type_name(actual),
+		      get_completion_type_name(expected));
 }

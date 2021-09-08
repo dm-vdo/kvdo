@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#44 $
  */
 
 #include "adminState.h"
@@ -186,8 +186,15 @@ static const struct admin_state_code VDO_CODE_RESUMING = {
 const struct admin_state_code *VDO_ADMIN_STATE_RESUMING =
 	&VDO_CODE_RESUMING;
 
-/**********************************************************************/
-const char *get_vdo_admin_state_code_name(const struct admin_state_code *code)
+/**
+ * Get the name of an admin_state_code for logging purposes.
+ *
+ * @param code  The admin_state_code
+ *
+ * @return The name of the state's code
+ **/
+static const char *
+get_vdo_admin_state_code_name(const struct admin_state_code *code)
 {
 	return code->name;
 }

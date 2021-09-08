@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#21 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -126,16 +126,6 @@ get_vdo_block_map_page_pbn(const struct block_map_page *page)
 {
 	return __le64_to_cpu(page->header.pbn);
 }
-
-/**
- * Check whether a block map page is of the current version.
- *
- * @param page  The page to check
- *
- * @return <code>true</code> if the page has the current version
- **/
-bool __must_check
-is_current_vdo_block_map_page(const struct block_map_page *page);
 
 /**
  * Format a block map page in memory.

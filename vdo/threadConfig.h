@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#14 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -58,14 +58,6 @@ int __must_check make_vdo_thread_config(zone_count_t logical_zone_count,
 					zone_count_t hash_zone_count,
 					struct thread_config **config_ptr);
 
-/**
- * Make a thread configuration that uses only one thread.
- *
- * @param [out] config_ptr      A pointer to hold the new thread configuration
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check vdo_make_one_thread_config(struct thread_config **config_ptr);
 
 /**
  * Destroy a thread configuration.
