@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#53 $
  */
 
 #ifndef VDO_H
@@ -426,15 +426,6 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent);
  * @return VDO_SUCCESS or an error
  **/
 int enable_read_only_entry(struct vdo *vdo);
-
-/**
- * Get the block map.
- *
- * @param vdo  The vdo whose block map is desired
- *
- * @return the block map from the vdo
- **/
-struct block_map * __must_check get_block_map(const struct vdo *vdo);
 
 /**
  * Check whether a vdo is in read-only mode.

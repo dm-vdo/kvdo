@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#53 $
  */
 
 #include "vdoResizeLogical.h"
@@ -86,7 +86,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 						    &admin_completion->completion,
 						    NULL)) {
 			vdo->states.vdo.config.logical_blocks =
-				vdo_get_new_entry_count(get_block_map(vdo));
+				vdo_get_new_entry_count(vdo->block_map);
 			save_vdo_components(vdo,
 					    reset_vdo_admin_sub_task(completion));
 		}
@@ -94,7 +94,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		return;
 
 	case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-		grow_vdo_block_map(get_block_map(vdo),
+		grow_vdo_block_map(vdo->block_map,
 				   reset_vdo_admin_sub_task(completion));
 		return;
 
@@ -127,11 +127,10 @@ static void handle_growth_error(struct vdo_completion *completion)
 		// We've failed to write the new size in the super block, so set
 		// our in memory config back to the old size.
 		struct vdo *vdo = admin_completion->vdo;
-		struct block_map *map = get_block_map(vdo);
 
 		vdo->states.vdo.config.logical_blocks =
-			vdo_get_number_of_block_map_entries(map);
-		vdo_abandon_block_map_growth(map);
+			vdo_get_number_of_block_map_entries(vdo->block_map);
+		vdo_abandon_block_map_growth(vdo->block_map);
 	}
 
 	admin_completion->phase = GROW_LOGICAL_PHASE_ERROR;
@@ -182,7 +181,7 @@ int prepare_vdo_to_grow_logical(struct vdo *vdo,
 		     (unsigned long long) new_logical_blocks);
 	ASSERT_LOG_ONLY((new_logical_blocks > logical_blocks),
 			"New logical size is larger than current size");
-	result = vdo_prepare_to_grow_block_map(get_block_map(vdo),
+	result = vdo_prepare_to_grow_block_map(vdo->block_map,
 					       new_logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;

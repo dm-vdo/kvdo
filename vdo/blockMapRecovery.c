@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#57 $
  */
 
 #include "blockMapRecovery.h"
@@ -186,7 +186,6 @@ make_vdo_recovery_completion(struct vdo *vdo,
 			     struct block_map_recovery_completion **recovery_ptr)
 {
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
-	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
 		min(get_vdo_configured_cache_size(vdo) >> 1,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
@@ -205,7 +204,7 @@ make_vdo_recovery_completion(struct vdo *vdo,
 				  VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
 				  VDO_SUB_TASK_COMPLETION);
-	recovery->block_map = block_map;
+	recovery->block_map = vdo->block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
