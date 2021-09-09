@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#19 $
  */
 
 #include "statusCodes.h"
@@ -109,7 +109,7 @@ int register_vdo_status_codes(void)
 }
 
 /**********************************************************************/
-int map_to_system_error(int error)
+int vdo_map_to_system_error(int error)
 {
 	char error_name[80], error_message[ERRBUF_SIZE];
 

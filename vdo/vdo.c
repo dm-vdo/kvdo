@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#183 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#184 $
  */
 
 /*
@@ -383,8 +383,8 @@ int prepare_to_modify_vdo(struct vdo *vdo,
 			if (result == VDO_PARAMETER_MISMATCH) {
 				/*
 				 * If we don't trap this case,
-				 * map_to_system_error() will remap it to -EIO,
-				 * which is misleading and ahistorical.
+				 * vdo_map_to_system_error() will remap it to
+				 * -EIO, which is misleading and ahistorical.
 				 */
 				result = -EINVAL;
 			}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#159 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#160 $
  */
 
 #include <linux/module.h>
@@ -373,9 +373,9 @@ static int vdo_message(struct dm_target *ti,
 		write_vdo_stats(vdo, result_buffer, maxlen);
 		result = 1;
 	} else {
-		result = map_to_system_error(process_vdo_message(vdo,
-								 argc,
-								 argv));
+		result = vdo_map_to_system_error(process_vdo_message(vdo,
+								     argc,
+								     argv));
 	}
 
 	uds_unregister_thread_device_id();
@@ -538,7 +538,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 					       may_grow,
 					       &ti->error);
 		if (result != VDO_SUCCESS) {
-			result = map_to_system_error(result);
+			result = vdo_map_to_system_error(result);
 			free_vdo_device_config(UDS_FORGET(config));
 		} else {
 			set_device_config_vdo(config, old_vdo);
@@ -553,7 +553,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
 		// vdo_initialize calls into various VDO routines, so map error
-		result = map_to_system_error(result);
+		result = vdo_map_to_system_error(result);
 		free_vdo_device_config(config);
 	}
 
@@ -648,7 +648,7 @@ static int vdo_preresume(struct dm_target *ti)
 		result = load_vdo(vdo);
 		if (result != VDO_SUCCESS) {
 			uds_unregister_thread_device_id();
-			return map_to_system_error(result);
+			return vdo_map_to_system_error(result);
 		}
 
 	}
@@ -661,7 +661,7 @@ static int vdo_preresume(struct dm_target *ti)
 	}
 
 	uds_unregister_thread_device_id();
-	return map_to_system_error(result);
+	return vdo_map_to_system_error(result);
 }
 
 /**********************************************************************/
