@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#86 $
  */
 
 /*
@@ -51,7 +51,7 @@
  *       if (is_duplicate) {
  *         verifyAdvice() (read verify)
  *         if (is_duplicate and canAddReference) {
- *           share_block()
+ *           share_vdo_block()
  *           addJournalEntryForDedupe()
  *           increment_for_dedupe()
  *           read_old_block_mapping_for_dedupe()
@@ -640,7 +640,7 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 
 /**
  * Add a recovery journal entry for the increment resulting from deduplication.
- * This callback is registered in share_block().
+ * This callback is registered in share_vdo_block().
  *
  * @param completion  The data_vio which has been deduplicated
  **/
@@ -664,7 +664,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
  *
  * @param completion The completion of the write in progress
  **/
-void share_block(struct vdo_completion *completion)
+void share_vdo_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
@@ -738,8 +738,8 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 			"zero blocks should not be hashed");
 
 	data_vio->hash_zone =
-		select_hash_zone(get_vdo_from_data_vio(data_vio),
-				 &data_vio->chunk_name);
+		select_vdo_hash_zone(get_vdo_from_data_vio(data_vio),
+				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio, lock_hash_in_zone);
 }

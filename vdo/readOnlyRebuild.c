@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#74 $
  */
 
 #include "readOnlyRebuild.h"
@@ -211,7 +211,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
 
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
 		// A "rebuild" for upgrade should not increment this count.
 		vdo->states.vdo.complete_recoveries++;
@@ -398,7 +398,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 
 	uds_log_info("Finished reading recovery journal");
-	assert_on_logical_zone_thread(vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
 
 	found_entries =
 		find_vdo_recovery_journal_head_and_tail(vdo->recovery_journal,
@@ -439,7 +439,7 @@ static void load_journal_callback(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
 
-	assert_on_logical_zone_thread(vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
 
 	prepare_vdo_completion(completion,
 			       apply_journal_entries,

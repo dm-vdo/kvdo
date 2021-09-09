@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#65 $
  */
 
 #include "vdoResize.h"
@@ -215,7 +215,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 
 	reset_vdo_admin_sub_task(completion);
 
@@ -226,7 +226,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	}
 
 	// This check should only be done from a base code thread.
-	if (in_recovery_mode(vdo)) {
+	if (in_vdo_recovery_mode(vdo)) {
 		finish_vdo_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
 		return;
 	}

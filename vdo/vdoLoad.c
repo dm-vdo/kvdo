@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#112 $
  */
 
 #include "vdoLoad.h"
@@ -114,11 +114,11 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
  **/
 static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
-	if (requires_read_only_rebuild(vdo)) {
+	if (requires_vdo_read_only_rebuild(vdo)) {
 		return VDO_SLAB_DEPOT_REBUILD_LOAD;
 	}
 
-	if (requires_recovery(vdo)) {
+	if (requires_vdo_recovery(vdo)) {
 		return VDO_SLAB_DEPOT_RECOVERY_LOAD;
 	}
 
@@ -170,12 +170,12 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		reset_vdo_admin_sub_task(completion);
-		if (requires_read_only_rebuild(vdo)) {
+		if (requires_vdo_read_only_rebuild(vdo)) {
 			launch_vdo_rebuild(vdo, completion);
 			return;
 		}
 
-		if (requires_rebuild(vdo)) {
+		if (requires_vdo_rebuild(vdo)) {
 			vdo_launch_recovery(vdo, completion);
 			return;
 		}
@@ -202,8 +202,8 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
-		if (requires_recovery(vdo)) {
-			enter_recovery_mode(vdo);
+		if (requires_vdo_recovery(vdo)) {
+			enter_vdo_recovery_mode(vdo);
 		}
 
 		vdo_scrub_all_unrecovered_slabs(vdo->depot,
@@ -269,7 +269,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
-	if (requires_read_only_rebuild(vdo)
+	if (requires_vdo_read_only_rebuild(vdo)
 	    && (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 
@@ -399,7 +399,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = make_vdo_read_only_notifier(in_read_only_mode(vdo),
+	result = make_vdo_read_only_notifier(in_vdo_read_only_mode(vdo),
 					     thread_config,
 					     vdo,
 					     &vdo->read_only_notifier);
@@ -407,7 +407,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = enable_read_only_entry(vdo);
+	result = enable_vdo_read_only_entry(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -536,7 +536,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
 					     VDO_ADMIN_STATE_PRE_LOADING,
 					     &admin_completion->completion,

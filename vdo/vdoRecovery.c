@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#120 $
  */
 
 #include "vdoRecovery.h"
@@ -625,7 +625,7 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 
-	assert_on_logical_zone_thread(vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
 
 	// Extract the journal entries for the block map recovery.
 	result = extract_journal_entries(recovery);
@@ -650,7 +650,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 
 	uds_log_info("Saving recovery progress");
 	set_vdo_state(vdo, VDO_REPLAYING);
@@ -678,7 +678,7 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 
 	uds_log_info("Replayed %zu journal entries into slab journals",
 		     recovery->entries_added_to_slab_journals);
@@ -898,9 +898,11 @@ void vdo_replay_into_slab_journals(struct block_allocator *allocator,
 {
 	struct recovery_completion *recovery = context;
 
-	assert_on_physical_zone_thread(recovery->vdo, allocator->zone_number,
-				       __func__);
-	if ((recovery->journal_data == NULL) || is_replaying(recovery->vdo)) {
+	assert_on_vdo_physical_zone_thread(recovery->vdo,
+					   allocator->zone_number,
+					   __func__);
+	if ((recovery->journal_data == NULL) ||
+	    is_vdo_replaying(recovery->vdo)) {
 		// there's nothing to replay
 		notify_vdo_slab_journals_are_recovered(allocator, VDO_SUCCESS);
 		return;
@@ -966,7 +968,7 @@ static void apply_to_depot(struct vdo_completion *completion)
 		as_vdo_recovery_completion(completion->parent);
 	struct slab_depot *depot = recovery->vdo->depot;
 
-	assert_on_admin_thread(recovery->vdo, __func__);
+	assert_on_vdo_admin_thread(recovery->vdo, __func__);
 	prepare_sub_task(recovery,
 			 finish_recovering_depot,
 			 finish_vdo_completion_parent_callback,
@@ -1157,7 +1159,7 @@ static void process_fetched_page(struct vdo_completion *completion)
 	const struct block_map_page *page;
 	struct data_location location;
 
-	assert_on_logical_zone_thread(recovery->vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(recovery->vdo, 0, __func__);
 
 	page = dereference_readable_vdo_page(completion);
 	location =
@@ -1180,7 +1182,7 @@ static void handle_fetch_error(struct vdo_completion *completion)
 	struct missing_decref *decref = completion->parent;
 	struct recovery_completion *recovery = decref->recovery;
 
-	assert_on_logical_zone_thread(recovery->vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(recovery->vdo, 0, __func__);
 
 	// If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read
 	// from the journal was bad, so convert the error code
@@ -1240,7 +1242,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 
 	// We need to be on logical zone 0's thread since we are going to use
 	// its page cache.
-	assert_on_logical_zone_thread(vdo, 0, __func__);
+	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
 	result = find_missing_decrefs(recovery);
 	if (abort_recovery_on_error(result, recovery)) {
 		return;
@@ -1453,7 +1455,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		     (unsigned long long) recovery->highest_tail,
 		     (unsigned long long) recovery->tail);
 
-	if (is_replaying(vdo)) {
+	if (is_vdo_replaying(vdo)) {
 		// We need to know how many entries the block map rebuild
 		// completion will need to hold.
 		result = count_increment_entries(recovery);

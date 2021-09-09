@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#54 $
  */
 
 #ifndef VDO_H
@@ -193,7 +193,7 @@ set_vdo_active_config(struct vdo *vdo, struct device_config *config)
 }
 
 /**
- * Indicate whether the vdonis configured to use a separate work queue for
+ * Indicate whether the vdo is configured to use a separate work queue for
  * acknowledging received and processed bios.
  *
  * Note that this directly controls the handling of write operations, but the
@@ -204,7 +204,7 @@ set_vdo_active_config(struct vdo *vdo, struct device_config *config)
  *
  * @return Whether a bio-acknowledgement work queue is in use
  **/
-static inline bool use_bio_ack_queue(struct vdo *vdo)
+static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 {
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
@@ -425,7 +425,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent);
  *
  * @return VDO_SUCCESS or an error
  **/
-int enable_read_only_entry(struct vdo *vdo);
+int enable_vdo_read_only_entry(struct vdo *vdo);
 
 /**
  * Check whether a vdo is in read-only mode.
@@ -434,7 +434,7 @@ int enable_read_only_entry(struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo is in read-only mode
  **/
-bool __must_check in_read_only_mode(const struct vdo *vdo);
+bool __must_check in_vdo_read_only_mode(const struct vdo *vdo);
 
 /**
  * Check whether the vdo requires a read-only mode rebuild.
@@ -443,7 +443,7 @@ bool __must_check in_read_only_mode(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo requires a read-only rebuild
  **/
-bool __must_check requires_read_only_rebuild(const struct vdo *vdo);
+bool __must_check requires_vdo_read_only_rebuild(const struct vdo *vdo);
 
 /**
  * Check whether a vdo requires rebuilding.
@@ -452,7 +452,7 @@ bool __must_check requires_read_only_rebuild(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo must be rebuilt
  **/
-bool __must_check requires_rebuild(const struct vdo *vdo);
+bool __must_check requires_vdo_rebuild(const struct vdo *vdo);
 
 /**
  * Check whether a vdo should enter recovery mode.
@@ -461,7 +461,7 @@ bool __must_check requires_rebuild(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo requires recovery
  **/
-bool __must_check requires_recovery(const struct vdo *vdo);
+bool __must_check requires_vdo_recovery(const struct vdo *vdo);
 
 /**
  * Check whether a vdo was replaying the recovery journal into the block map
@@ -472,7 +472,7 @@ bool __must_check requires_recovery(const struct vdo *vdo);
  * @return <code>true</code> if the vdo crashed while reconstructing the
  *         block map
  **/
-bool __must_check is_replaying(const struct vdo *vdo);
+bool __must_check is_vdo_replaying(const struct vdo *vdo);
 
 /**
  * Check whether the vdo is in recovery mode.
@@ -481,14 +481,14 @@ bool __must_check is_replaying(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo is in recovery mode
  **/
-bool __must_check in_recovery_mode(const struct vdo *vdo);
+bool __must_check in_vdo_recovery_mode(const struct vdo *vdo);
 
 /**
  * Put the vdo into recovery mode
  *
  * @param vdo  The vdo
  **/
-void enter_recovery_mode(struct vdo *vdo);
+void enter_vdo_recovery_mode(struct vdo *vdo);
 
 /**
  * Assert that we are running on the admin thread.
@@ -497,7 +497,7 @@ void enter_recovery_mode(struct vdo *vdo);
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assert_on_admin_thread(const struct vdo *vdo, const char *name);
+void assert_on_vdo_admin_thread(const struct vdo *vdo, const char *name);
 
 /**
  * Assert that this function was called on the specified logical zone thread.
@@ -506,9 +506,9 @@ void assert_on_admin_thread(const struct vdo *vdo, const char *name);
  * @param logical_zone  The number of the logical zone
  * @param name          The name of the calling function
  **/
-void assert_on_logical_zone_thread(const struct vdo *vdo,
-				   zone_count_t logical_zone,
-				   const char *name);
+void assert_on_vdo_logical_zone_thread(const struct vdo *vdo,
+				       zone_count_t logical_zone,
+				       const char *name);
 
 /**
  * Assert that this function was called on the specified physical zone thread.
@@ -517,9 +517,9 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
  * @param physical_zone  The number of the physical zone
  * @param name           The name of the calling function
  **/
-void assert_on_physical_zone_thread(const struct vdo *vdo,
-				    zone_count_t physical_zone,
-				    const char *name);
+void assert_on_vdo_physical_zone_thread(const struct vdo *vdo,
+					zone_count_t physical_zone,
+					const char *name);
 
 /**
  * Select the hash zone responsible for locking a given chunk name.
@@ -530,7 +530,7 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
  * @return  The hash zone responsible for the chunk name
  **/
 struct hash_zone * __must_check
-select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
+select_vdo_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 
 /**
  * Get the physical zone responsible for a given physical block number of a
@@ -547,14 +547,14 @@ select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int __must_check get_physical_zone(const struct vdo *vdo,
-				   physical_block_number_t pbn,
-				   struct physical_zone **zone_ptr);
+int __must_check get_vdo_physical_zone(const struct vdo *vdo,
+				       physical_block_number_t pbn,
+				       struct physical_zone **zone_ptr);
 
 /**********************************************************************/
 // Asynchronous callback to share a duplicate block. This is only public so
 // test code may compare it against the current callback in the completion.
-void share_block(struct vdo_completion *completion);
+void share_vdo_block(struct vdo_completion *completion);
 
 /**
  * Dump status information about a vdo to the log for debugging.

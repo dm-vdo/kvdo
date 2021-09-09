@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#182 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#183 $
  */
 
 /*
@@ -172,7 +172,7 @@ int make_vdo(unsigned int instance,
 	}
 
 	// Bio ack queue
-	if (use_bio_ack_queue(vdo)) {
+	if (vdo_uses_bio_ack_queue(vdo)) {
 		result = make_work_queue(thread_name_prefix,
 					 "ackQ",
 					 &vdo->work_queue_directory,
@@ -508,7 +508,7 @@ static void notify_vdo_of_read_only_mode(void *listener,
 {
 	struct vdo *vdo = listener;
 
-	if (in_read_only_mode(vdo)) {
+	if (in_vdo_read_only_mode(vdo)) {
 		complete_vdo_completion(parent);
 	}
 
@@ -517,7 +517,7 @@ static void notify_vdo_of_read_only_mode(void *listener,
 }
 
 /**********************************************************************/
-int enable_read_only_entry(struct vdo *vdo)
+int enable_vdo_read_only_entry(struct vdo *vdo)
 {
 	return register_vdo_read_only_listener(vdo->read_only_notifier,
 					       vdo,
@@ -526,7 +526,7 @@ int enable_read_only_entry(struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool in_read_only_mode(const struct vdo *vdo)
+bool in_vdo_read_only_mode(const struct vdo *vdo)
 {
 	return (get_vdo_state(vdo) == VDO_READ_ONLY_MODE);
 }
@@ -538,14 +538,14 @@ bool vdo_was_new(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool requires_read_only_rebuild(const struct vdo *vdo)
+bool requires_vdo_read_only_rebuild(const struct vdo *vdo)
 {
 	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
 		(vdo->load_state == VDO_REBUILD_FOR_UPGRADE));
 }
 
 /**********************************************************************/
-bool requires_rebuild(const struct vdo *vdo)
+bool requires_vdo_rebuild(const struct vdo *vdo)
 {
 	switch (get_vdo_state(vdo)) {
 	case VDO_DIRTY:
@@ -560,7 +560,7 @@ bool requires_rebuild(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool requires_recovery(const struct vdo *vdo)
+bool requires_vdo_recovery(const struct vdo *vdo)
 {
 	return ((vdo->load_state == VDO_DIRTY) ||
 		(vdo->load_state == VDO_REPLAYING) ||
@@ -568,23 +568,23 @@ bool requires_recovery(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool is_replaying(const struct vdo *vdo)
+bool is_vdo_replaying(const struct vdo *vdo)
 {
 	return (get_vdo_state(vdo) == VDO_REPLAYING);
 }
 
 /**********************************************************************/
-bool in_recovery_mode(const struct vdo *vdo)
+bool in_vdo_recovery_mode(const struct vdo *vdo)
 {
 	return (get_vdo_state(vdo) == VDO_RECOVERING);
 }
 
 /**********************************************************************/
-void enter_recovery_mode(struct vdo *vdo)
+void enter_vdo_recovery_mode(struct vdo *vdo)
 {
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 
-	if (in_read_only_mode(vdo)) {
+	if (in_vdo_read_only_mode(vdo)) {
 		return;
 	}
 
@@ -763,7 +763,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	struct recovery_journal *journal = vdo->recovery_journal;
 	enum vdo_state state = get_vdo_state(vdo);
 
-	assert_on_admin_thread(vdo, __func__);
+	assert_on_vdo_admin_thread(vdo, __func__);
 
 	// start with a clean slate
 	memset(stats, 0, sizeof(struct vdo_statistics));
@@ -910,7 +910,7 @@ void dump_vdo_status(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-void assert_on_admin_thread(const struct vdo *vdo, const char *name)
+void assert_on_vdo_admin_thread(const struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 vdo->thread_config->admin_thread),
@@ -919,9 +919,9 @@ void assert_on_admin_thread(const struct vdo *vdo, const char *name)
 }
 
 /**********************************************************************/
-void assert_on_logical_zone_thread(const struct vdo *vdo,
-				   zone_count_t logical_zone,
-				   const char *name)
+void assert_on_vdo_logical_zone_thread(const struct vdo *vdo,
+				       zone_count_t logical_zone,
+				       const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 vdo_get_logical_zone_thread(vdo->thread_config,
@@ -931,9 +931,9 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-void assert_on_physical_zone_thread(const struct vdo *vdo,
-				    zone_count_t physical_zone,
-				    const char *name)
+void assert_on_vdo_physical_zone_thread(const struct vdo *vdo,
+					zone_count_t physical_zone,
+					const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 vdo_get_physical_zone_thread(vdo->thread_config,
@@ -943,8 +943,8 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-struct hash_zone *select_hash_zone(const struct vdo *vdo,
-				   const struct uds_chunk_name *name)
+struct hash_zone *select_vdo_hash_zone(const struct vdo *vdo,
+				       const struct uds_chunk_name *name)
 {
 	/*
 	 * Use a fragment of the chunk name as a hash code. To ensure uniform
@@ -968,9 +968,9 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-int get_physical_zone(const struct vdo *vdo,
-		      physical_block_number_t pbn,
-		      struct physical_zone **zone_ptr)
+int get_vdo_physical_zone(const struct vdo *vdo,
+			  physical_block_number_t pbn,
+			  struct physical_zone **zone_ptr)
 {
 	struct vdo_slab *slab;
 	int result;
@@ -1024,7 +1024,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 		return no_advice;
 	}
 
-	result = get_physical_zone(vdo, advice->pbn, &zone);
+	result = get_vdo_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
 		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
 			      (unsigned long long) advice->pbn,

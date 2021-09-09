@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#55 $
  */
 
 #include "vdoSuspend.h"
@@ -151,7 +151,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * result of this suspend will be VDO_READ_ONLY and not
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
-		if (in_read_only_mode(vdo)) {
+		if (in_vdo_read_only_mode(vdo)) {
 			set_vdo_completion_result(&admin_completion->completion,
 						  VDO_READ_ONLY);
 		}
