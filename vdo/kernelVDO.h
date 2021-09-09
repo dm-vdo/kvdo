@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#52 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,20 +28,6 @@
 
 #include "kernelTypes.h"
 #include "workQueue.h"
-
-/**
- * Make base threads.
- *
- * @param [in]  vdo                 The vdo to be initialized
- * @param [in]  thread_name_prefix  The per-device prefix to use in thread
- *                                  names
- * @param [out] reason              The reason for failure
- *
- * @return VDO_SUCCESS or an error code
- **/
-int make_vdo_threads(struct vdo *vdo,
-		     const char *thread_name_prefix,
-		     char **reason);
 
 /**
  * Dump to the kernel log any work-queue info associated with the base code.

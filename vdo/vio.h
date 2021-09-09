@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#54 $
  */
 
 #ifndef VIO_H
@@ -404,5 +404,19 @@ void submit_metadata_vio(struct vio *vio);
  * @param vio  The compressed write vio to write
  **/
 void write_compressed_block_vio(struct vio *vio);
+
+/**
+ * Convert a vio's priority to a work item priority.
+ *
+ * @param vio  The vio
+ *
+ * @return The priority with which to submit the vio's bio.
+ **/
+static inline enum vdo_work_item_priority
+get_metadata_priority(struct vio *vio)
+{
+	return ((vio->priority == VIO_PRIORITY_HIGH)
+		? BIO_Q_HIGH_PRIORITY : BIO_Q_METADATA_PRIORITY);
+}
 
 #endif // VIO_H

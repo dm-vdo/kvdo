@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/kernelTypes.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/kernelTypes.h#2 $
  */
 
 #ifndef KERNEL_TYPES_H
 #define KERNEL_TYPES_H
 
 #include "types.h"
-
 
 /**
  * A count of compressed fragments
