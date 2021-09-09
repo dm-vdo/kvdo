@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#6 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -229,20 +229,5 @@ int __must_check write_uds_index_config(struct index_layout *layout,
  **/
 struct buffer *__must_check
 get_uds_index_state_buffer(struct index_layout *layout, unsigned int slot);
-
-/**
- * Update and write out an index layout and configuration with a block offset
- *
- * @param layout      The index_layout to be reconfigured
- * @param config      The configuration to be written with the layout
- * @param lvm_offset  The adjustment for lvm space, in bytes
- * @param offset      The offset in bytes to move the index
- *
- * @return  UDS_SUCCESS or a error code
- */
-int update_uds_layout(struct index_layout *layout,
-		      struct configuration *config,
-		      off_t lvm_offset,
-		      off_t offset);
 
 #endif // INDEX_LAYOUT_H

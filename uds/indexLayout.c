@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#7 $
  */
 
 #include "indexLayout.h"
@@ -2611,30 +2611,4 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 
 	*layout_ptr = layout;
 	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int update_uds_layout(struct index_layout *layout,
-		      struct configuration *config,
-		      off_t lvm_offset,
-		      off_t offset)
-{
-	int result = UDS_SUCCESS;
-	off_t offset_blocks = offset / UDS_BLOCK_SIZE;
-	off_t lvm_blocks = lvm_offset / UDS_BLOCK_SIZE;
-	struct super_block_data super = layout->super;
-	struct sub_index_layout index = layout->index;
-	layout->super.start_offset = lvm_blocks;
-	layout->super.volume_offset = offset_blocks;
-	layout->index.sub_index.num_blocks -= offset_blocks;
-	layout->index.volume.num_blocks -= offset_blocks;
-	layout->total_blocks -= offset_blocks;
-	layout->super.version = 7;
-	result = save_single_file_layout(layout, offset_blocks);
-	if (result == UDS_SUCCESS) {
-		result = write_uds_index_config(layout, config, offset_blocks);
-	}
-	layout->index = index;
-	layout->super = super;
-	return result;
 }

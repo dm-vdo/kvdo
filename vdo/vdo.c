@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#186 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#187 $
  */
 
 /*
@@ -824,7 +824,6 @@ get_vdo_physical_blocks_allocated(const struct vdo *vdo)
 	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
-
 
 /**
  * Get the number of physical blocks used by vdo metadata.
