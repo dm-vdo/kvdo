@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#3 $
  */
 
 #include "sysfs.h"
@@ -29,6 +29,12 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 #include "uds.h"
+
+#if defined(__KERNEL__) && defined(MODULE)
+#define UDS_SYSFS_NAME THIS_MODULE->name
+#else // compiled into the kernel
+#define UDS_SYSFS_NAME "uds"
+#endif
 
 static struct {
 	struct kobject kobj; // /sys/uds
@@ -189,7 +195,7 @@ int init_uds_sysfs(void)
 
 	memset(&object_root, 0, sizeof(object_root));
 	kobject_init(&object_root.kobj, &empty_object_type);
-	result = kobject_add(&object_root.kobj, NULL, THIS_MODULE->name);
+	result = kobject_add(&object_root.kobj, NULL, UDS_SYSFS_NAME);
 	if (result == 0) {
 		object_root.flag = true;
 		kobject_init(&object_root.parameter_kobj,
