@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#50 $
  */
 
 #include "dump.h"
@@ -92,7 +92,7 @@ static void do_dump(struct vdo *vdo,
 	uint32_t active, maximum;
 	int64_t outstanding;
 
-	uds_log_info("%s dump triggered via %s", THIS_MODULE->name, why);
+	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
 	// XXX Add in number of outstanding requests being processed by vdo
 
 	active = READ_ONCE(vdo->request_limiter.active);
@@ -134,7 +134,7 @@ static void do_dump(struct vdo *vdo,
 	}
 
 	report_uds_memory_usage();
-	uds_log_info("end of %s dump", THIS_MODULE->name);
+	uds_log_info("end of %s dump", UDS_LOGGING_MODULE_NAME);
 }
 
 /**********************************************************************/
