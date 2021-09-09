@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#33 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -261,8 +261,8 @@ vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
  * @return An approximation to the free blocks in the slab
  **/
 block_count_t __must_check
-get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				slab_count_t slab_number);
+vdo_get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
+				    slab_count_t slab_number);
 
 /**
  * Get the stored slab statuses for all slabs in a zone.

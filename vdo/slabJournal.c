@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#113 $
  */
 
 #include "slabJournal.h"
@@ -550,8 +550,8 @@ static void update_tail_block_location(struct slab_journal *journal)
 
 	if (is_unrecovered_vdo_slab(journal->slab)) {
 		free_block_count =
-			get_summarized_free_block_count(journal->summary,
-							journal->slab->slab_number);
+			vdo_get_summarized_free_block_count(journal->summary,
+							    journal->slab->slab_number);
 	} else {
 		free_block_count = get_slab_free_block_count(journal->slab);
 	}

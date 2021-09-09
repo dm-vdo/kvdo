@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#80 $
  */
 
 #include "slabSummary.h"
@@ -544,8 +544,8 @@ bool vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
 
 /**********************************************************************/
 block_count_t
-get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				slab_count_t slab_number)
+vdo_get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
+				    slab_count_t slab_number)
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
 
