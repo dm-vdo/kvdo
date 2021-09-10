@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#87 $
  */
 
 /*
@@ -68,7 +68,7 @@
  *       if (not canAddReference) {
  *         vdo_update_dedupe_index()
  *       }
- *       # vio_compress_data()
+ *       # launch_compress_data_vio()
  *       if (compressing and not mooted and has no waiters) {
  *         compress_data_vio()
  *         pack_compressed_data()
@@ -574,7 +574,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 
 /**
  * Attempt to pack the compressed data_vio into a block. This is the callback
- * registered in vio_compress_data().
+ * registered in launch_compress_data_vio().
  *
  * @param completion  The completion of a compressed data_vio
  **/
@@ -599,7 +599,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void vio_compress_data(struct data_vio *data_vio)
+void launch_compress_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_duplicate,
 			"compressing a non-duplicate block");
@@ -660,11 +660,12 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 }
 
 /**
- * Share a block in the block map if it is a duplicate.
+ * Share a duplicate block in the block map. This callback is registered in
+ * launch_deduplicate_data_vio().
  *
  * @param completion The completion of the write in progress
  **/
-void share_vdo_block(struct vdo_completion *completion)
+static void share_vdo_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
@@ -674,13 +675,19 @@ void share_vdo_block(struct vdo_completion *completion)
 	}
 
 	if (!data_vio->is_duplicate) {
-		vio_compress_data(data_vio);
+		launch_compress_data_vio(data_vio);
 		return;
 	}
 
 	data_vio->new_mapped = data_vio->duplicate;
 	launch_data_vio_journal_callback(data_vio,
 					 add_recovery_journal_entry_for_dedupe);
+}
+
+/**********************************************************************/
+void launch_deduplicate_data_vio(struct data_vio *data_vio)
+{
+	launch_data_vio_duplicate_zone_callback(data_vio, share_vdo_block);
 }
 
 /**
@@ -708,10 +715,10 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 	}
 
 	if (data_vio->hash_lock == NULL) {
-		// It's extremely unlikely, but in the case of a hash collision,
-		// the data_vio will not obtain a reference to the lock and
-		// cannot deduplicate.
-		vio_compress_data(data_vio);
+		// It's extremely unlikely, but in the case of a hash
+		// collision, the data_vio will not obtain a reference to the
+		// lock and cannot deduplicate.
+		launch_compress_data_vio(data_vio);
 		return;
 	}
 

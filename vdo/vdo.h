@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#58 $
  */
 
 #ifndef VDO_H
@@ -531,11 +531,6 @@ select_vdo_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 int __must_check get_vdo_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);
-
-/**********************************************************************/
-// Asynchronous callback to share a duplicate block. This is only public so
-// test code may compare it against the current callback in the completion.
-void share_vdo_block(struct vdo_completion *completion);
 
 /**
  * Dump status information about a vdo to the log for debugging.

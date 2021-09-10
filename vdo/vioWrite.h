@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#7 $
  */
 
 #ifndef VIO_WRITE_H
@@ -46,6 +46,15 @@ void cleanup_write_data_vio(struct data_vio *data_vio);
  *
  * @param data_vio   The data_vio to be compressed
  **/
-void vio_compress_data(struct data_vio *data_vio);
+void launch_compress_data_vio(struct data_vio *data_vio);
+
+/**
+ * Continue a write by deduplicating a write data_vio against a verified
+ * existing block containing the data. This is a re-entry point to vio_write
+ * used by hash locks.
+ *
+ * @param data_vio   The data_vio to be deduplicated
+ **/
+void launch_deduplicate_data_vio(struct data_vio *data_vio);
 
 #endif /* VIO_WRITE_H */
