@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#10 $
  */
 
 #ifndef VDO_STRING_UTILS_H
 #define VDO_STRING_UTILS_H
 
-#include <linux/kernel.h>
+#include <linux/types.h>
 
 /**
  * Split the input string into substrings, separated at occurrences of
@@ -46,7 +46,9 @@
  * @return UDS_SUCCESS or -ENOMEM
  **/
 int __must_check
-vdo_split_string(const char *string, char separator, char ***substring_array_ptr);
+vdo_split_string(const char *string,
+		 char separator,
+		 char ***substring_array_ptr);
 
 /**
  * Join the input substrings into one string, joined with the indicated
@@ -83,6 +85,7 @@ void vdo_free_string_array(char **string_array);
  *
  * @return UDS_SUCCESS or -EINVAL or -ERANGE.
  **/
-int __must_check vdo_string_to_uint(const char *input, unsigned int *value_ptr);
+int __must_check
+vdo_string_to_uint(const char *input, unsigned int *value_ptr);
 
 #endif /* VDO_STRING_UTILS_H */
