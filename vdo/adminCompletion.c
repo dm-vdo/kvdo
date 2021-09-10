@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#50 $
  */
 
 #include "adminCompletion.h"
@@ -172,7 +172,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	prepare_vdo_completion(&admin_completion->completion,
 			       admin_operation_callback,
 			       admin_operation_callback,
-			       get_vdo_thread_config(vdo)->admin_thread,
+			       vdo->thread_config->admin_thread,
 			       NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;

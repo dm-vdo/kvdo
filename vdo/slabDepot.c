@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#127 $
  */
 
 #include "slabDepot.h"
@@ -212,16 +212,14 @@ static int allocate_components(struct slab_depot *depot,
 {
 	zone_count_t zone;
 	slab_count_t slab_count, i;
-	const struct thread_config *thread_config =
-		get_vdo_thread_config(depot->vdo);
-	int result =
-		make_vdo_action_manager(depot->zone_count,
-					get_allocator_thread_id,
-					thread_config->journal_thread,
-					depot,
-					schedule_tail_block_commit,
-					depot->vdo,
-					&depot->action_manager);
+	const struct thread_config *thread_config = depot->vdo->thread_config;
+	int result = make_vdo_action_manager(depot->zone_count,
+					     get_allocator_thread_id,
+					     thread_config->journal_thread,
+					     depot,
+					     schedule_tail_block_commit,
+					     depot->vdo,
+					     &depot->action_manager);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -294,7 +292,6 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	unsigned int slab_size_shift;
 	struct slab_depot *depot;
 	int result;
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
@@ -307,7 +304,7 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	slab_size_shift = log_base_two(slab_size);
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
-				       thread_config->physical_zone_count,
+				       vdo->thread_config->physical_zone_count,
 				       struct block_allocator *,
 				       __func__,
 				       &depot);
@@ -317,7 +314,7 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 
 	depot->vdo = vdo;
 	depot->old_zone_count = state.zone_count;
-	depot->zone_count = thread_config->physical_zone_count;
+	depot->zone_count = vdo->thread_config->physical_zone_count;
 	depot->slab_config = state.slab_config;
 	depot->first_block = state.first_block;
 	depot->last_block = state.last_block;

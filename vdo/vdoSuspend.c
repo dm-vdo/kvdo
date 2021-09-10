@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#56 $
  */
 
 #include "vdoSuspend.h"
@@ -71,7 +71,7 @@ static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =
-		get_vdo_thread_config(admin_completion->vdo);
+		admin_completion->vdo->thread_config;
 	switch (admin_completion->phase) {
 	case SUSPEND_PHASE_PACKER:
 		return thread_config->packer_thread;

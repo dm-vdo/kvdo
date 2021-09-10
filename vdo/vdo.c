@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#188 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#189 $
  */
 
 /*
@@ -950,12 +950,6 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 				       fetch_vdo_statistics_callback,
 				       vdo->thread_config->admin_thread,
 				       stats);
-}
-
-/**********************************************************************/
-const struct thread_config *get_vdo_thread_config(const struct vdo *vdo)
-{
-	return vdo->thread_config;
 }
 
 /**********************************************************************/

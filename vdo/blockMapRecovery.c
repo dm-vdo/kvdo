@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#59 $
  */
 
 #include "blockMapRecovery.h"
@@ -185,7 +185,6 @@ make_vdo_recovery_completion(struct vdo *vdo,
 			     struct vdo_completion *parent,
 			     struct block_map_recovery_completion **recovery_ptr)
 {
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	page_count_t page_count =
 		min(vdo->device_config->cache_size >> 1,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
@@ -209,9 +208,9 @@ make_vdo_recovery_completion(struct vdo *vdo,
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-	recovery->admin_thread = thread_config->admin_thread;
+	recovery->admin_thread = vdo->thread_config->admin_thread;
 	recovery->logical_thread_id =
-		vdo_get_logical_zone_thread(thread_config, 0);
+		vdo_get_logical_zone_thread(vdo->thread_config, 0);
 
 	// Organize the journal entries into a binary heap so we can iterate
 	// over them in sorted order incrementally, avoiding an expensive sort

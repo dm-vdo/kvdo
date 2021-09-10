@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#95 $
  */
 
 #ifndef DATA_VIO_H
@@ -520,7 +520,7 @@ static inline struct vdo *get_vdo_from_data_vio(struct data_vio *data_vio)
 static inline const struct thread_config *
 get_thread_config_from_data_vio(struct data_vio *data_vio)
 {
-	return get_vdo_thread_config(get_vdo_from_data_vio(data_vio));
+	return get_vdo_from_data_vio(data_vio)->thread_config;
 }
 
 /**

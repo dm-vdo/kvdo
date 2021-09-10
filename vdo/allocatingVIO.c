@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#46 $
  */
 
 #include "allocatingVIO.h"
@@ -167,7 +167,6 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 	zone_count_t zone_number;
 	int result;
 	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	allocating_vio->allocation_attempts++;
 	result = allocate_and_lock_block(allocating_vio);
@@ -183,7 +182,7 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 	}
 
 	if (allocating_vio->allocation_attempts >=
-	    thread_config->physical_zone_count) {
+	    vdo->thread_config->physical_zone_count) {
 		if (allocating_vio->wait_for_clean_slab) {
 			// There were no free blocks in any zone, and no zone
 			// had slabs to scrub.
@@ -197,7 +196,7 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 
 	// Try the next zone
 	zone_number = get_vdo_physical_zone_number(allocating_vio->zone) + 1;
-	if (zone_number == thread_config->physical_zone_count) {
+	if (zone_number == vdo->thread_config->physical_zone_count) {
 		zone_number = 0;
 	}
 	allocating_vio->zone = vdo->physical_zones[zone_number];

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#113 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#114 $
  */
 
 #include "vdoLoad.h"
@@ -81,7 +81,7 @@ static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =
-		get_vdo_thread_config(admin_completion->vdo);
+		admin_completion->vdo->thread_config;
 	switch (admin_completion->phase) {
 	case LOAD_PHASE_DRAIN_JOURNAL:
 		return thread_config->journal_thread;
@@ -383,7 +383,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 static int __must_check decode_vdo(struct vdo *vdo)
 {
 	block_count_t maximum_age, journal_length;
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
+	const struct thread_config *thread_config = vdo->thread_config;
 	zone_count_t zone;
 	int result = decode_from_super_block(vdo);
 

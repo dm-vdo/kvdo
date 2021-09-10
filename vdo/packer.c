@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#102 $
  */
 
 #include "packer.h"
@@ -226,8 +226,6 @@ int make_vdo_packer(struct vdo *vdo,
 		    block_count_t output_bin_count,
 		    struct packer **packer_ptr)
 {
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
-
 	struct packer *packer;
 	block_count_t i;
 
@@ -238,7 +236,7 @@ int make_vdo_packer(struct vdo *vdo,
 		return result;
 	}
 
-	packer->thread_id = thread_config->packer_thread;
+	packer->thread_id = vdo->thread_config->packer_thread;
 	packer->bin_data_size = (VDO_BLOCK_SIZE
 				 - sizeof(struct compressed_block_header));
 	packer->size = input_bin_count;
@@ -249,7 +247,7 @@ int make_vdo_packer(struct vdo *vdo,
 	set_vdo_admin_state_code(&packer->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	result = make_vdo_allocation_selector(thread_config->physical_zone_count,
+	result = make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
 					      packer->thread_id, &packer->selector);
 	if (result != VDO_SUCCESS) {
 		free_vdo_packer(packer);

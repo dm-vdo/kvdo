@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#121 $
  */
 
 #include "vdoRecovery.h"
@@ -356,7 +356,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 			     enum vdo_zone_type zone_type)
 {
 	const struct thread_config *thread_config =
-		get_vdo_thread_config(recovery->vdo);
+		recovery->vdo->thread_config;
 	thread_id_t thread_id;
 
 	switch (zone_type) {
@@ -400,17 +400,16 @@ static void free_missing_decref(struct waiter *waiter,
  **/
 static void free_vdo_recovery_completion(struct recovery_completion *recovery)
 {
-	const struct thread_config *thread_config;
-	zone_count_t z;
+	zone_count_t zone, zone_count;
 
 	if (recovery == NULL) {
 		return;
 	}
 
 	free_int_map(UDS_FORGET(recovery->slot_entry_map));
-	thread_config = get_vdo_thread_config(recovery->vdo);
-	for (z = 0; z < thread_config->physical_zone_count; z++) {
-		notify_all_waiters(&recovery->missing_decrefs[z],
+	zone_count = recovery->vdo->thread_config->physical_zone_count;
+	for (zone = 0; zone < zone_count; zone++) {
+		notify_all_waiters(&recovery->missing_decrefs[zone],
 				   free_missing_decref, NULL);
 	}
 
@@ -427,15 +426,15 @@ static void free_vdo_recovery_completion(struct recovery_completion *recovery)
  *
  * @return VDO_SUCCESS or a status code
  **/
-__must_check
-static int make_vdo_recovery_completion(struct vdo *vdo,
-				 struct recovery_completion **recovery_ptr)
+static int __must_check
+make_vdo_recovery_completion(struct vdo *vdo,
+			     struct recovery_completion **recovery_ptr)
 {
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	struct recovery_completion *recovery;
-	zone_count_t z;
+	zone_count_t zone;
+	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
 	int result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
-					   thread_config->physical_zone_count,
+					   zone_count,
 					   struct list_head,
 					   __func__,
 					   &recovery);
@@ -444,8 +443,8 @@ static int make_vdo_recovery_completion(struct vdo *vdo,
 	}
 
 	recovery->vdo = vdo;
-	for (z = 0; z < thread_config->physical_zone_count; z++) {
-		initialize_wait_queue(&recovery->missing_decrefs[z]);
+	for (zone = 0; zone < zone_count; zone++) {
+		initialize_wait_queue(&recovery->missing_decrefs[zone]);
 	}
 
 	initialize_vdo_completion(&recovery->completion, vdo,

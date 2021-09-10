@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#76 $
  */
 
 #include "logicalZone.h"
@@ -134,14 +134,14 @@ static int initialize_zone(struct logical_zones *zones,
 				  VDO_GENERATION_FLUSHED_COMPLETION);
 	zone->zones = zones;
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),
+	zone->thread_id = vdo_get_logical_zone_thread(vdo->thread_config,
 						      zone_number);
 	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
 	set_vdo_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	return make_vdo_allocation_selector(get_vdo_thread_config(vdo)->physical_zone_count,
+	return make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
 					    zone->thread_id, &zone->selector);
 }
 
@@ -151,23 +151,21 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	struct logical_zones *zones;
 	int result;
 	zone_count_t zone;
+	zone_count_t zone_count = vdo->thread_config->logical_zone_count;
 
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
-
-	if (thread_config->logical_zone_count == 0) {
+	if (zone_count == 0) {
 		return VDO_SUCCESS;
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct logical_zones,
-				       thread_config->logical_zone_count,
+	result = UDS_ALLOCATE_EXTENDED(struct logical_zones, zone_count,
 				       struct logical_zone, __func__, &zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	zones->vdo = vdo;
-	zones->zone_count = thread_config->logical_zone_count;
-	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
+	zones->zone_count = zone_count;
+	for (zone = 0; zone < zone_count; zone++) {
 		result = initialize_zone(zones, zone);
 		if (result != VDO_SUCCESS) {
 			free_vdo_logical_zones(zones);
@@ -177,7 +175,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 
 	result = make_vdo_action_manager(zones->zone_count,
 					 get_thread_id_for_zone,
-					 thread_config->admin_thread,
+					 vdo->thread_config->admin_thread,
 					 zones,
 					 NULL,
 					 vdo,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#59 $
  */
 
 #ifndef VDO_H
@@ -314,16 +314,6 @@ bool get_vdo_compressing(struct vdo *vdo);
  * @param [out] stats  The vdo statistics are returned here
  **/
 void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
-
-/**
- * Get the thread config of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The thread config
- **/
-const struct thread_config * __must_check
-get_vdo_thread_config(const struct vdo *vdo);
 
 /**
  * Get the id of the callback thread on which a completion is currently
