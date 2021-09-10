@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#88 $
  */
 
 /*
@@ -51,7 +51,7 @@
  *       if (is_duplicate) {
  *         verifyAdvice() (read verify)
  *         if (is_duplicate and canAddReference) {
- *           share_vdo_block()
+ *           launch_deduplicate_data_vio()
  *           addJournalEntryForDedupe()
  *           increment_for_dedupe()
  *           read_old_block_mapping_for_dedupe()
@@ -628,10 +628,6 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 		return;
 	}
 
-	ASSERT_LOG_ONLY(data_vio->is_duplicate,
-			"Impossible attempt to update reference counts for a block which was not a duplicate (logical block %llu)",
-			(unsigned long long) data_vio->logical.lbn);
-
 	set_data_vio_logical_callback(data_vio,
 				      read_old_block_mapping_for_dedupe);
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_DEDUPE;
@@ -640,7 +636,7 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 
 /**
  * Add a recovery journal entry for the increment resulting from deduplication.
- * This callback is registered in share_vdo_block().
+ * This callback is registered in launch_deduplicate_data_vio().
  *
  * @param completion  The data_vio which has been deduplicated
  **/
@@ -659,35 +655,15 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
 }
 
-/**
- * Share a duplicate block in the block map. This callback is registered in
- * launch_deduplicate_data_vio().
- *
- * @param completion The completion of the write in progress
- **/
-static void share_vdo_block(struct vdo_completion *completion)
+/**********************************************************************/
+void launch_deduplicate_data_vio(struct data_vio *data_vio)
 {
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_duplicate_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
-		return;
-	}
-
-	if (!data_vio->is_duplicate) {
-		launch_compress_data_vio(data_vio);
-		return;
-	}
+	ASSERT_LOG_ONLY(data_vio->is_duplicate,
+			"data_vio must have a duplicate location");
 
 	data_vio->new_mapped = data_vio->duplicate;
 	launch_data_vio_journal_callback(data_vio,
 					 add_recovery_journal_entry_for_dedupe);
-}
-
-/**********************************************************************/
-void launch_deduplicate_data_vio(struct data_vio *data_vio)
-{
-	launch_data_vio_duplicate_zone_callback(data_vio, share_vdo_block);
 }
 
 /**
