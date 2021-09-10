@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#60 $
  */
 
 #ifndef VDO_H
@@ -322,16 +322,6 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
  * @return the current thread ID
  **/
 thread_id_t vdo_get_callback_thread_id(void);
-
-/**
- * Get the location of the first block of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The location of the first block managed by the vdo
- **/
-physical_block_number_t __must_check
-get_vdo_first_block_offset(const struct vdo *vdo);
 
 /**
  * Check whether the vdo was new when it was loaded.

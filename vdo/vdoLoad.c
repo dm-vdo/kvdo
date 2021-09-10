@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#115 $
  */
 
 #include "vdoLoad.h"
@@ -547,7 +547,9 @@ static void pre_load_callback(struct vdo_completion *completion)
 	prepare_vdo_admin_sub_task(vdo,
 				   load_vdo_components,
 				   finish_operation_callback);
-	load_vdo_super_block(vdo, completion, get_vdo_first_block_offset(vdo),
+	load_vdo_super_block(vdo,
+			     completion,
+			     vdo_get_data_region_start(vdo->geometry),
 			     &vdo->super_block);
 }
 
