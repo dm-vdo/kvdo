@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#9 $
  */
 
 #ifndef VDO_STRING_UTILS_H
 #define VDO_STRING_UTILS_H
 
-#include <stdarg.h>
-#include <linux/types.h>
+#include <linux/kernel.h>
 
 /**
  * Split the input string into substrings, separated at occurrences of
