@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#61 $
  */
 
 #ifndef VDO_H
@@ -324,15 +324,6 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 thread_id_t vdo_get_callback_thread_id(void);
 
 /**
- * Check whether the vdo was new when it was loaded.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo was new
- **/
-bool __must_check vdo_was_new(const struct vdo *vdo);
-
-/**
  * Check whether a data_location containing potential dedupe advice is
  * well-formed and addresses a data block in one of the configured physical
  * zones of the vdo. If it is, return the location and zone as a zoned_pbn;
@@ -396,33 +387,6 @@ int enable_vdo_read_only_entry(struct vdo *vdo);
  * @return <code>true</code> if the vdo is in read-only mode
  **/
 bool __must_check in_vdo_read_only_mode(const struct vdo *vdo);
-
-/**
- * Check whether the vdo requires a read-only mode rebuild.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo requires a read-only rebuild
- **/
-bool __must_check requires_vdo_read_only_rebuild(const struct vdo *vdo);
-
-/**
- * Check whether a vdo requires rebuilding.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo must be rebuilt
- **/
-bool __must_check requires_vdo_rebuild(const struct vdo *vdo);
-
-/**
- * Check whether a vdo should enter recovery mode.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo requires recovery
- **/
-bool __must_check requires_vdo_recovery(const struct vdo *vdo);
 
 /**
  * Check whether a vdo was replaying the recovery journal into the block map

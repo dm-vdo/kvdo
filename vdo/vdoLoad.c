@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#116 $
  */
 
 #include "vdoLoad.h"
@@ -106,6 +106,66 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 }
 
 /**
+ * Check whether the vdo was new when it was loaded.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return <code>true</code> if the vdo was new
+ **/
+static bool was_new(const struct vdo *vdo)
+{
+	return (vdo->load_state == VDO_NEW);
+}
+
+/**
+ * Check whether the vdo requires a read-only mode rebuild.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return <code>true</code> if the vdo requires a read-only rebuild
+ **/
+static bool __must_check requires_read_only_rebuild(const struct vdo *vdo)
+{
+	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
+		(vdo->load_state == VDO_REBUILD_FOR_UPGRADE));
+}
+
+/**
+ * Check whether a vdo should enter recovery mode.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return <code>true</code> if the vdo requires recovery
+ **/
+static bool __must_check requires_recovery(const struct vdo *vdo)
+{
+	return ((vdo->load_state == VDO_DIRTY) ||
+		(vdo->load_state == VDO_REPLAYING) ||
+		(vdo->load_state == VDO_RECOVERING));
+}
+
+/**
+ * Check whether a vdo requires rebuilding.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return <code>true</code> if the vdo must be rebuilt
+ **/
+static bool __must_check requires_rebuild(const struct vdo *vdo)
+{
+	switch (get_vdo_state(vdo)) {
+	case VDO_DIRTY:
+	case VDO_FORCE_REBUILD:
+	case VDO_REPLAYING:
+	case VDO_REBUILD_FOR_UPGRADE:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+/**
  * Determine how the slab depot was loaded.
  *
  * @param vdo  The vdo
@@ -114,11 +174,11 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
  **/
 static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
-	if (requires_vdo_read_only_rebuild(vdo)) {
+	if (requires_read_only_rebuild(vdo)) {
 		return VDO_SLAB_DEPOT_REBUILD_LOAD;
 	}
 
-	if (requires_vdo_recovery(vdo)) {
+	if (requires_recovery(vdo)) {
 		return VDO_SLAB_DEPOT_RECOVERY_LOAD;
 	}
 
@@ -170,18 +230,18 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		reset_vdo_admin_sub_task(completion);
-		if (requires_vdo_read_only_rebuild(vdo)) {
+		if (requires_read_only_rebuild(vdo)) {
 			launch_vdo_rebuild(vdo, completion);
 			return;
 		}
 
-		if (requires_vdo_rebuild(vdo)) {
+		if (requires_rebuild(vdo)) {
 			vdo_launch_recovery(vdo, completion);
 			return;
 		}
 
 		load_vdo_slab_depot(vdo->depot,
-				    (vdo_was_new(vdo)
+				    (was_new(vdo)
 				     ? VDO_ADMIN_STATE_FORMATTING
 				     : VDO_ADMIN_STATE_LOADING),
 				    completion,
@@ -202,7 +262,7 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
-		if (requires_vdo_recovery(vdo)) {
+		if (requires_recovery(vdo)) {
 			enter_vdo_recovery_mode(vdo);
 		}
 
@@ -223,7 +283,7 @@ static void load_callback(struct vdo_completion *completion)
 			 * newly-formatted volume.
 			 */
 			start_vdo_dedupe_index(vdo->dedupe_index,
-					       vdo_was_new(vdo));
+					       was_new(vdo));
 		}
 
 		vdo->allocations_allowed = false;
@@ -269,7 +329,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
-	if (requires_vdo_read_only_rebuild(vdo)
+	if (requires_read_only_rebuild(vdo)
 	    && (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#190 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#191 $
  */
 
 /*
@@ -623,42 +623,6 @@ int enable_vdo_read_only_entry(struct vdo *vdo)
 bool in_vdo_read_only_mode(const struct vdo *vdo)
 {
 	return (get_vdo_state(vdo) == VDO_READ_ONLY_MODE);
-}
-
-/**********************************************************************/
-bool vdo_was_new(const struct vdo *vdo)
-{
-	return (vdo->load_state == VDO_NEW);
-}
-
-/**********************************************************************/
-bool requires_vdo_read_only_rebuild(const struct vdo *vdo)
-{
-	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
-		(vdo->load_state == VDO_REBUILD_FOR_UPGRADE));
-}
-
-/**********************************************************************/
-bool requires_vdo_rebuild(const struct vdo *vdo)
-{
-	switch (get_vdo_state(vdo)) {
-	case VDO_DIRTY:
-	case VDO_FORCE_REBUILD:
-	case VDO_REPLAYING:
-	case VDO_REBUILD_FOR_UPGRADE:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
-/**********************************************************************/
-bool requires_vdo_recovery(const struct vdo *vdo)
-{
-	return ((vdo->load_state == VDO_DIRTY) ||
-		(vdo->load_state == VDO_REPLAYING) ||
-		(vdo->load_state == VDO_RECOVERING));
 }
 
 /**********************************************************************/
