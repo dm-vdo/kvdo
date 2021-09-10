@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#160 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#161 $
  */
 
 #include <linux/module.h>
@@ -475,7 +475,7 @@ static int vdo_initialize(struct dm_target *ti,
 	}
 
 	set_device_config_vdo(config, vdo);
-	set_vdo_active_config(vdo, config);
+	vdo->device_config = config;
 	ti->private = config;
 	configure_target_capabilities(ti);
 	return VDO_SUCCESS;

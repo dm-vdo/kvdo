@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#63 $
  */
 
 #ifndef VDO_H
@@ -179,18 +179,6 @@ struct vdo {
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 };
-
-/**
- * Set a vdo's active config.
- *
- * @param vdo     The vdo in question
- * @param config  The config to set
- **/
-static inline void
-set_vdo_active_config(struct vdo *vdo, struct device_config *config)
-{
-	vdo->device_config = config;
-}
 
 /**
  * Indicate whether the vdo is configured to use a separate work queue for
