@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#62 $
  */
 
 #ifndef VDO_H
@@ -387,17 +387,6 @@ int enable_vdo_read_only_entry(struct vdo *vdo);
  * @return <code>true</code> if the vdo is in read-only mode
  **/
 bool __must_check in_vdo_read_only_mode(const struct vdo *vdo);
-
-/**
- * Check whether a vdo was replaying the recovery journal into the block map
- * when it crashed.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo crashed while reconstructing the
- *         block map
- **/
-bool __must_check is_vdo_replaying(const struct vdo *vdo);
 
 /**
  * Check whether the vdo is in recovery mode.

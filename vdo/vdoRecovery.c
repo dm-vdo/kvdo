@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#121 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#122 $
  */
 
 #include "vdoRecovery.h"
@@ -204,6 +204,20 @@ as_vdo_recovery_completion(struct vdo_completion *completion)
 static uint64_t slot_as_number(struct block_map_slot slot)
 {
 	return (((uint64_t) slot.pbn << 10) + slot.slot);
+}
+
+/**
+ * Check whether a vdo was replaying the recovery journal into the block map
+ * when it crashed.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return <code>true</code> if the vdo crashed while reconstructing the
+ *         block map
+ **/
+static bool __must_check is_replaying(const struct vdo *vdo)
+{
+	return (get_vdo_state(vdo) == VDO_REPLAYING);
 }
 
 /**
@@ -900,8 +914,7 @@ void vdo_replay_into_slab_journals(struct block_allocator *allocator,
 	assert_on_vdo_physical_zone_thread(recovery->vdo,
 					   allocator->zone_number,
 					   __func__);
-	if ((recovery->journal_data == NULL) ||
-	    is_vdo_replaying(recovery->vdo)) {
+	if ((recovery->journal_data == NULL) || is_replaying(recovery->vdo)) {
 		// there's nothing to replay
 		notify_vdo_slab_journals_are_recovered(allocator, VDO_SUCCESS);
 		return;
@@ -1454,7 +1467,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		     (unsigned long long) recovery->highest_tail,
 		     (unsigned long long) recovery->tail);
 
-	if (is_vdo_replaying(vdo)) {
+	if (is_replaying(vdo)) {
 		// We need to know how many entries the block map rebuild
 		// completion will need to hold.
 		result = count_increment_entries(recovery);
