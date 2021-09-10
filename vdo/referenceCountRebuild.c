@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#77 $
  */
 
 #include "referenceCountRebuild.h"
@@ -127,7 +127,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 {
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	page_count_t page_count =
-		min(get_vdo_configured_cache_size(vdo) >> 1,
+		min(vdo->device_config->cache_size >> 1,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
 
 	struct rebuild_completion *rebuild;

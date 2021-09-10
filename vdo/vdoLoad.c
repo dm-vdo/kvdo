@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#113 $
  */
 
 #include "vdoLoad.h"
@@ -392,7 +392,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	maximum_age = get_vdo_configured_block_map_maximum_age(vdo);
+	maximum_age = vdo->device_config->block_map_maximum_age;
 	journal_length =
 		get_vdo_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
@@ -443,7 +443,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 				      vdo->read_only_notifier,
 				      vdo->recovery_journal,
 				      vdo->states.vdo.nonce,
-				      get_vdo_configured_cache_size(vdo),
+				      vdo->device_config->cache_size,
 				      maximum_age,
 				      &vdo->block_map);
 	if (result != VDO_SUCCESS) {

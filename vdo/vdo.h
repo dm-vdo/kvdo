@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#57 $
  */
 
 #ifndef VDO_H
@@ -332,25 +332,6 @@ get_vdo_thread_config(const struct vdo *vdo);
  * @return the current thread ID
  **/
 thread_id_t vdo_get_callback_thread_id(void);
-
-/**
- * Get the configured maximum age of a dirty block map page.
- *
- * @param vdo  The vdo
- *
- * @return The block map era length
- **/
-block_count_t __must_check
-get_vdo_configured_block_map_maximum_age(const struct vdo *vdo);
-
-/**
- * Get the configured page cache size of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The number of pages for the page cache
- **/
-page_count_t __must_check get_vdo_configured_cache_size(const struct vdo *vdo);
 
 /**
  * Get the location of the first block of the vdo.

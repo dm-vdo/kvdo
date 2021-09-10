@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#187 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#188 $
  */
 
 /*
@@ -956,18 +956,6 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 const struct thread_config *get_vdo_thread_config(const struct vdo *vdo)
 {
 	return vdo->thread_config;
-}
-
-/**********************************************************************/
-block_count_t get_vdo_configured_block_map_maximum_age(const struct vdo *vdo)
-{
-	return vdo->device_config->block_map_maximum_age;
-}
-
-/**********************************************************************/
-page_count_t get_vdo_configured_cache_size(const struct vdo *vdo)
-{
-	return vdo->device_config->cache_size;
 }
 
 /**********************************************************************/
