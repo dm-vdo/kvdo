@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#168 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#169 $
  */
 
 #include "dataKVIO.h"
@@ -167,7 +167,6 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 	    (data_vio->user_bio != NULL)) {
 		launch_data_vio_on_bio_ack_queue(data_vio,
 						 vdo_acknowledge_and_batch,
-						 NULL,
 						 BIO_ACK_Q_ACK_PRIORITY);
 	} else {
 		add_to_batch_processor(vdo->data_vio_releaser,
@@ -235,7 +234,7 @@ read_data_vio_read_block_callback(struct vdo_completion *completion)
 		return;
 	}
 
-	launch_data_vio_on_cpu_queue(data_vio, copy_read_block_data, NULL,
+	launch_data_vio_on_cpu_queue(data_vio, copy_read_block_data,
 				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
@@ -300,7 +299,6 @@ static void complete_read(struct data_vio *data_vio)
 	    vdo_is_state_compressed(read_block->mapping_state)) {
 		launch_data_vio_on_cpu_queue(data_vio,
 					     uncompress_read_block,
-					     NULL,
 					     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 		return;
 	}
@@ -444,7 +442,6 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	if (vdo_uses_bio_ack_queue(vdo)) {
 		launch_data_vio_on_bio_ack_queue(data_vio,
 						 vdo_acknowledge_and_enqueue,
-						 NULL,
 						 BIO_ACK_Q_ACK_PRIORITY);
 	} else {
 		vdo_acknowledge_and_enqueue(work_item_from_data_vio(data_vio));
@@ -627,8 +624,7 @@ void compress_data_vio(struct data_vio *data_vio)
 	}
 
 	launch_data_vio_on_cpu_queue(data_vio, vdo_compress_work,
-				      NULL,
-				      CPU_Q_COMPRESS_BLOCK_PRIORITY);
+				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
 /**
@@ -771,7 +767,7 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 	prepare_data_vio(data_vio, data_vio->logical.lbn + 1, operation,
 			 !data_vio->is_partial, vdo_continue_discard_vio);
 	enqueue_vio(as_vio(completion), launch_data_vio_work,
-		    completion->callback, VDO_REQ_Q_MAP_BIO_PRIORITY);
+		    VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
 /**
@@ -851,7 +847,6 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 
 	vio = data_vio_as_vio(data_vio);
 	enqueue_vio(vio, launch_data_vio_work,
-		    vio_as_completion(vio)->callback,
 		    VDO_REQ_Q_MAP_BIO_PRIORITY);
 
 	return VDO_SUCCESS;
@@ -877,7 +872,6 @@ void hash_data_vio(struct data_vio *data_vio)
 {
 	launch_data_vio_on_cpu_queue(data_vio,
 				     vdo_hash_data_work,
-				     NULL,
 				     CPU_Q_HASH_BLOCK_PRIORITY);
 }
 

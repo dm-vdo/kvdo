@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#70 $
  */
 
 #ifndef DATA_KVIO_H
@@ -60,18 +60,16 @@ work_item_from_data_vio(struct data_vio *data_vio)
  *
  * @param data_vio        The data_vio to set up
  * @param work            The function pointer to execute
- * @param stats_function  A function pointer to record for stats, or NULL
  * @param priority        The priority for this work
  **/
 static inline void
 launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 			     vdo_work_function work,
-			     void *stats_function,
 			     enum vdo_work_item_priority priority)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	launch_vio(vio, work, stats_function, priority, vio->vdo->cpu_queue);
+	launch_vio(vio, work, priority, vio->vdo->cpu_queue);
 }
 
 /**
@@ -79,20 +77,17 @@ launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
  *
  * @param data_vio        The data_vio to set up
  * @param work            The function pointer to execute
- * @param stats_function  A function pointer to record for stats, or NULL
  * @param priority        The priority for this work
  **/
 static inline void
 launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 				 vdo_work_function work,
-				 void *stats_function,
 				 enum vdo_work_item_priority priority)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 
 	launch_vio(vio,
 		   work,
-		   stats_function,
 		   priority,
 		   vio->vdo->bio_ack_queue);
 }

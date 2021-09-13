@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#73 $
  */
 
 #include "workQueue.h"
@@ -134,9 +134,8 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 				    struct vdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
-			item, item->work, item->stats_function, queue,
-			item->my_queue);
+			"item %px (fn %px) to enqueue (%px) is not already queued (%px)",
+			item, item->work, queue, item->my_queue);
 	if (ASSERT(item->priority < queue->num_priority_lists,
 		   "priority is in range for queue") != VDO_SUCCESS) {
 		item->priority = 0;
@@ -454,14 +453,11 @@ static int work_queue_runner(void *ptr)
 /**********************************************************************/
 void setup_work_item(struct vdo_work_item *item,
 		     vdo_work_function work,
-		     void *stats_function,
 		     enum vdo_work_item_priority priority)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"setup_work_item not called on enqueued work item");
 	item->work = work;
-	item->stats_function =
-		((stats_function == NULL) ? (void *) work : stats_function);
 	item->stat_table_index = 0;
 	item->priority = priority;
 	item->my_queue = NULL;
@@ -850,7 +846,7 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			  TASK_COMM_LEN,
 			  item->my_queue == NULL ? "-" : item->my_queue->name);
 	if (current_length < length) {
-		vdo_get_function_name(item->stats_function,
+		vdo_get_function_name((void *) item->work,
 				      buffer + current_length,
 				      length - current_length);
 	}

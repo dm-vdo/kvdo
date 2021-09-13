@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#53 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -54,12 +54,10 @@ void enqueue_vdo_work(struct vdo *vdo,
  *
  * @param vio             The vio with the work item to be run
  * @param work            The function pointer to execute
- * @param stats_function  A function pointer to record for stats, or NULL
  * @param priority        The priority of the work
  **/
 void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
-		 void *stats_function,
 		 enum vdo_work_item_priority priority);
 
 #endif // KERNEL_VDO_H

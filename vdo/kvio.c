@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#94 $
  */
 
 #include "kvio.h"
@@ -51,7 +51,6 @@ void enqueue_vio_callback(struct vio *vio)
 {
 	enqueue_vio(vio,
 		    vdo_handle_vio_callback,
-		    vio_as_completion(vio)->callback,
 		    VDO_REQ_Q_VIO_CALLBACK_PRIORITY);
 }
 

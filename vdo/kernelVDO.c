@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#122 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#123 $
  */
 
 /*
@@ -68,7 +68,6 @@ void enqueue_vdo_work(struct vdo *vdo,
 /**********************************************************************/
 void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
-		 void *stats_function,
 		 enum vdo_work_item_priority priority)
 {
 	thread_id_t thread_id = vio_as_completion(vio)->callback_thread_id;
@@ -76,7 +75,6 @@ void enqueue_vio(struct vio *vio,
 	BUG_ON(thread_id >= vio->vdo->initialized_thread_count);
 	launch_vio(vio,
 		   work,
-		   stats_function,
 		   priority,
 		   vio->vdo->threads[thread_id].request_queue);
 }
@@ -104,7 +102,6 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 	}
 
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
-			completion->callback,
 			VDO_REQ_Q_COMPLETION_PRIORITY);
 	enqueue_vdo_work(vdo, &completion->work_item, thread_id);
 }

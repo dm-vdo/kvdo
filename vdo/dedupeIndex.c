@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#115 $
  */
 
 #include "dedupeIndex.h"
@@ -501,7 +501,6 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 
 		setup_work_item(work_item_from_vio(vio),
 				start_index_operation,
-				NULL,
 				UDS_Q_PRIORITY);
 
 		spin_lock(&index->state_lock);
@@ -645,7 +644,6 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 		index->deduping = false;
 		setup_work_item(&index->work_item,
 				change_dedupe_state,
-				NULL,
 				UDS_Q_PRIORITY);
 		enqueue_work_queue(index->uds_queue, &index->work_item);
 		return;
