@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#53 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -223,18 +223,6 @@ get_vdo_slab_depot_allocated_blocks(const struct slab_depot *depot);
  **/
 block_count_t __must_check
 get_vdo_slab_depot_data_blocks(const struct slab_depot *depot);
-
-/**
- * Get the total number of free blocks remaining in all the slabs in the
- * depot, which is the total number of blocks that have a zero reference
- * count. This may be called from any thread.
- *
- * @param depot  The slab depot
- *
- * @return The total number of blocks with a zero reference count
- **/
-block_count_t __must_check
-get_vdo_slab_depot_free_blocks(const struct slab_depot *depot);
 
 /**
  * Get all the vdo_statistics fields that are properties of the slab depot.
