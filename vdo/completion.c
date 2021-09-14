@@ -16,16 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#41 $
  */
 
 #include "completion.h"
 
+#include <linux/kernel.h>
 
 #include "logger.h"
 #include "permassert.h"
 
+#include "kernelTypes.h"
 #include "statusCodes.h"
+#include "vio.h"
 #include "vdo.h"
 
 static const char *VDO_COMPLETION_TYPE_NAMES[] = {
@@ -201,3 +204,49 @@ int assert_vdo_completion_type(enum vdo_completion_type actual,
 		      get_completion_type_name(actual),
 		      get_completion_type_name(expected));
 }
+
+/**********************************************************************/
+static void vdo_enqueued_work(struct vdo_work_item *work_item)
+{
+	run_vdo_completion_callback(container_of(work_item,
+				    struct vdo_completion,
+				    work_item));
+}
+
+/**********************************************************************/
+void enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
+					  enum vdo_work_item_priority priority)
+{
+	struct vdo *vdo = completion->vdo;
+	thread_id_t thread_id = completion->callback_thread_id;
+
+	if (ASSERT(thread_id < vdo->initialized_thread_count,
+		   "thread_id %u (completion type %d) is less than thread count %u",
+		   thread_id,
+		   completion->type,
+		   vdo->initialized_thread_count) != UDS_SUCCESS) {
+		BUG();
+	}
+
+	setup_work_item(&completion->work_item,
+			vdo_enqueued_work,
+			priority);
+	enqueue_work_queue(vdo->threads[thread_id].request_queue,
+			   &completion->work_item);
+}
+
+// Preparing work items
+
+/**********************************************************************/
+void setup_work_item(struct vdo_work_item *item,
+		     vdo_work_function work,
+		     enum vdo_work_item_priority priority)
+{
+	ASSERT_LOG_ONLY(item->my_queue == NULL,
+			"setup_work_item not called on enqueued work item");
+	item->work = work;
+	item->stat_table_index = 0;
+	item->priority = priority;
+	item->my_queue = NULL;
+}
+

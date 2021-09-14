@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#74 $
  */
 
 #include "workQueue.h"
@@ -446,21 +446,6 @@ static int work_queue_runner(void *ptr)
 
 	kobject_put(&queue->common.kobj);
 	return 0;
-}
-
-// Preparing work items
-
-/**********************************************************************/
-void setup_work_item(struct vdo_work_item *item,
-		     vdo_work_function work,
-		     enum vdo_work_item_priority priority)
-{
-	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"setup_work_item not called on enqueued work item");
-	item->work = work;
-	item->stat_table_index = 0;
-	item->priority = priority;
-	item->my_queue = NULL;
 }
 
 // Creation & teardown

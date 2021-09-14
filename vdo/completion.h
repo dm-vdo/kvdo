@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#44 $
  */
 
 #ifndef COMPLETION_H
@@ -362,10 +362,25 @@ prepare_vdo_completion_to_finish_parent(struct vdo_completion *completion,
 
 /**
  * A function to enqueue a vdo_completion to run on the thread specified by its
- * callback_thread_id field.
+ * callback_thread_id field at the specified priority.
+ *
+ * @param completion  The completion to be enqueued
+ * @param priority    The priority at which the work should be done
+ **/
+void
+enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
+				     enum vdo_work_item_priority priority);
+
+/**
+ * A function to enqueue a vdo_completion to run on the thread specified by its
+ * callback_thread_id field at default priority.
  *
  * @param completion  The completion to be enqueued
  **/
-void enqueue_vdo_completion(struct vdo_completion *completion);
+static inline void enqueue_vdo_completion(struct vdo_completion *completion)
+{
+	enqueue_vdo_completion_with_priority(completion,
+					     VDO_REQ_Q_COMPLETION_PRIORITY);
+}
 
 #endif // COMPLETION_H
