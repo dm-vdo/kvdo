@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/kernelTypes.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/kernelTypes.h#3 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -201,6 +201,7 @@ struct slab_scrubber;
 struct slab_summary;
 struct slab_summary_zone;
 struct thread_config;
+struct thread_count_config;
 struct vdo;
 struct vdo_completion;
 struct vdo_extent;

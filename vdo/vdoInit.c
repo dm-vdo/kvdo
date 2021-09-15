@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#28 $
  */
 
 #include "vdoInit.h"
@@ -106,11 +106,8 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 	int i;
 	struct device_config *config = vdo->device_config;
 
-	int result
-		= make_vdo_thread_config(config->thread_counts.logical_zones,
-					 config->thread_counts.physical_zones,
-					 config->thread_counts.hash_zones,
-					 &vdo->thread_config);
+	int result = make_vdo_thread_config(config->thread_counts,
+					    &vdo->thread_config);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot create thread configuration";
 		return result;

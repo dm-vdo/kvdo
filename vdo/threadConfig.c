@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#24 $
  */
 
 #include "threadConfig.h"
@@ -26,7 +26,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "constants.h"
+#include "deviceConfig.h"
 #include "kernelTypes.h"
 #include "statusCodes.h"
 #include "types.h"
@@ -94,34 +94,8 @@ assign_thread_ids(thread_id_t thread_ids[],
 	}
 }
 
-/**
- * Make a thread configuration that uses only one thread.
- *
- * @param [out] config_ptr      A pointer to hold the new thread configuration
- *
- * @return VDO_SUCCESS or an error
- **/
-static int
-vdo_make_one_thread_config(struct thread_config **config_ptr)
-{
-	struct thread_config *config;
-	int result = allocate_thread_config(1, 1, 1, 1, &config);
-
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	config->logical_threads[0] = 0;
-	config->physical_threads[0] = 0;
-	config->hash_zone_threads[0] = 0;
-	*config_ptr = config;
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
-int make_vdo_thread_config(zone_count_t logical_zone_count,
-			   zone_count_t physical_zone_count,
-			   zone_count_t hash_zone_count,
+int make_vdo_thread_config(struct thread_count_config counts,
 			   struct thread_config **config_ptr)
 {
 	struct thread_config *config;
@@ -129,41 +103,44 @@ int make_vdo_thread_config(zone_count_t logical_zone_count,
 	int result;
 	thread_id_t id = 0;
 
-	if ((logical_zone_count == 0) && (physical_zone_count == 0) &&
-	    (hash_zone_count == 0)) {
-		return vdo_make_one_thread_config(config_ptr);
-	}
+	total = (counts.logical_zones
+		 + counts.physical_zones
+		 + counts.hash_zones);
+	if (total == 0) {
+		result = allocate_thread_config(1, 1, 1, 1, &config);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
 
-	if (physical_zone_count > MAX_VDO_PHYSICAL_ZONES) {
-		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
-					      "Physical zone count %u exceeds maximum (%u)",
-					      physical_zone_count,
-					      MAX_VDO_PHYSICAL_ZONES);
-	}
+		config->logical_threads[0] = 0;
+		config->physical_threads[0] = 0;
+		config->hash_zone_threads[0] = 0;
+	} else {
+		// Add in the packer and admin/recovery journal threads (1
+		// each).
+		total += 2;
+		result = allocate_thread_config(counts.logical_zones,
+						counts.physical_zones,
+						counts.hash_zones,
+						total,
+						&config);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
 
-	if (logical_zone_count > MAX_VDO_LOGICAL_ZONES) {
-		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
-					      "Logical zone count %u exceeds maximum (%u)",
-					      logical_zone_count,
-					      MAX_VDO_LOGICAL_ZONES);
+		config->admin_thread = id;
+		config->journal_thread = id++;
+		config->packer_thread = id++;
+		assign_thread_ids(config->logical_threads,
+				  counts.logical_zones,
+				  &id);
+		assign_thread_ids(config->physical_threads,
+				  counts.physical_zones,
+				  &id);
+		assign_thread_ids(config->hash_zone_threads,
+				  counts.hash_zones,
+				  &id);
 	}
-
-	total = logical_zone_count + physical_zone_count + hash_zone_count + 2;
-	result = allocate_thread_config(logical_zone_count,
-					physical_zone_count,
-					hash_zone_count,
-					total,
-					&config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	config->admin_thread = id;
-	config->journal_thread = id++;
-	config->packer_thread = id++;
-	assign_thread_ids(config->logical_threads, logical_zone_count, &id);
-	assign_thread_ids(config->physical_threads, physical_zone_count, &id);
-	assign_thread_ids(config->hash_zone_threads, hash_zone_count, &id);
 
 	ASSERT_LOG_ONLY(id == total, "correct number of thread IDs assigned");
 

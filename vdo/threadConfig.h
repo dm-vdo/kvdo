@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#15 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -41,23 +41,19 @@ struct thread_config {
 };
 
 /**
- * Make a thread configuration. If both the logical zone count and the
- * physical zone count are set to 0, a one thread configuration will be
- * made.
+ * Make a thread configuration. If the logical, physical, and hash zone counts
+ * are all 0, a single thread will be shared by all three plus the packer and
+ * recovery journal. Otherwise, there must be at least one of each type, and
+ * each will have its own thread, as will the packer and recovery journal.
  *
- * @param [in]  logical_zone_count    The number of logical zones
- * @param [in]  physical_zone_count   The number of physical zones
- * @param [in]  hash_zone_count       The number of hash zones
- * @param [out] config_ptr            A pointer to hold the new thread
- *                                    configuration
+ * @param [in]  counts      The counts of each type of thread
+ * @param [out] config_ptr  A pointer to hold the new thread configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_vdo_thread_config(zone_count_t logical_zone_count,
-					zone_count_t physical_zone_count,
-					zone_count_t hash_zone_count,
-					struct thread_config **config_ptr);
-
+int __must_check
+make_vdo_thread_config(struct thread_count_config counts,
+		       struct thread_config **config_ptr);
 
 /**
  * Destroy a thread configuration.
