@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#7 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -31,10 +31,7 @@
 struct index_layout;
 
 /**
- * Construct an index layout.  This is a platform specific function that uses
- * the name string, a flag that indicates old vs. new indices, and a
- * UDS configuration (for new indices) to make an IO factory and invoke
- * make_uds_index_layout_from_factory.
+ * Construct an index layout.
  *
  * @param name        String naming the index.  Each platform will use its own
  *                    conventions to interpret the string, but in general it is
@@ -51,30 +48,6 @@ int __must_check make_uds_index_layout(const char *name,
 				       bool new_layout,
 				       const struct configuration *config,
 				       struct index_layout **layout_ptr);
-
-/**
- * Construct an index layout using an IO factory.  This method is
- * common to all platforms.
- *
- * @param factory     The IO factory for the block storage containing the
- *                    index.
- * @param offset      The offset of the start of the index within the block
- *                    storage address space.
- * @param named_size  The size in bytes of the space within the block storage
- *                    address space, as specified in the name string.
- * @param new_layout  Whether this is a new layout.
- * @param config      The configuration required for a new layout.
- * @param layout_ptr  Where to store the new index layout
- *
- * @return UDS_SUCCESS or an error code.
- **/
-int __must_check
-make_uds_index_layout_from_factory(struct io_factory *factory,
-				   off_t offset,
-				   uint64_t named_size,
-				   bool new_layout,
-				   const struct configuration *config,
-				   struct index_layout **layout_ptr);
 
 /**
  * Get another reference to an index layout, incrementing its use count.

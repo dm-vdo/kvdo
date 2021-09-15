@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#8 $
  */
 
 #include "indexLayout.h"
@@ -24,6 +24,7 @@
 #include "buffer.h"
 #include "compiler.h"
 #include "config.h"
+#include "indexLayoutParser.h"
 #include "layoutRegion.h"
 #include "logger.h"
 #include "masterIndexOps.h"
@@ -124,6 +125,7 @@ struct super_block_data {
 
 struct index_layout {
 	struct io_factory *factory;
+	size_t factory_size;
 	off_t offset;
 	struct super_block_data super;
 	struct layout_region header;
@@ -2550,42 +2552,92 @@ int open_uds_index_buffered_writer(struct index_layout *layout,
 				  writer_ptr);
 }
 
-/**********************************************************************/
-int make_uds_index_layout_from_factory(struct io_factory *factory,
-				       off_t offset,
-				       uint64_t named_size,
-				       bool new_layout,
-				       const struct configuration *config,
-				       struct index_layout **layout_ptr)
+/**
+ * Make an IO factory from a name string.
+ *
+ * @param layout      The layout in which to store the parsed values
+ * @param name        String naming the index.  Each platform will use its own
+ *                    conventions to interpret the string, but in general it is
+ *                    a space-separated sequence of param=value settings.  For
+ *                    backward compatibility a string without an equals is
+ *                    treated as a platform-specific default parameter value.
+ * @param new_layout  Whether this is a new layout
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int create_layout_factory(struct index_layout *layout,
+				 const char *name,
+				 bool new_layout)
 {
-	struct index_layout *layout = NULL;
-	struct save_layout_sizes sizes;
-	size_t size;
+	char *path = NULL;
+	uint64_t offset = 0;
+	uint64_t size = 0;
+	size_t writable_size = 0;
+	char *params = NULL;
+	struct io_factory *factory = NULL;
 	int result;
 
-	// Get the device size and round it down to a multiple of
-	// UDS_BLOCK_SIZE.
-	size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
-	if (size < named_size + offset) {
-		uds_log_error("index storage (%zu) is smaller than the requested size %llu",
-			      size,
-			      (unsigned long long) (named_size + offset));
-		return -ENOSPC;
-	}
-	if ((named_size > 0) && (named_size < size)) {
-		size = named_size;
-	}
+	struct layout_parameter parameter_table[] = {
+		{ "dev", LP_STRING | LP_DEFAULT, { .str = &path }, false },
+		{ "offset", LP_UINT64, { .num = &offset }, false },
+		{ "size", LP_UINT64, { .num = &size }, false },
+		LP_NULL_PARAMETER,
+	};
 
-	result = compute_sizes(config, &sizes);
+	result = uds_duplicate_string(name,
+				      "make_uds_index_layout parameters",
+				      &params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	if (size < sizes.total_size) {
-		uds_log_error("index storage (%zu) is smaller than the required size %llu",
-			      size,
-			      (unsigned long long) sizes.total_size);
+	// note path will be set to memory owned by params
+	result = parse_layout_string(params, parameter_table);
+	if (result != UDS_SUCCESS) {
+		UDS_FREE(params);
+		return result;
+	}
+
+	if (path == NULL) {
+		uds_log_error("no index specified");
+		result = -EINVAL;
+	} else {
+		result = make_uds_io_factory(path, &factory);
+	}
+
+	UDS_FREE(params);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+        
+	writable_size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
+	if (writable_size < size + offset) {
+		put_uds_io_factory(factory);
+		uds_log_error("index storage (%zu) is smaller than the requested size %llu",
+			      writable_size,
+			      (unsigned long long) (size + offset));
 		return -ENOSPC;
+	}
+
+	layout->factory = factory;
+	layout->factory_size = (size > 0) ? size : writable_size;
+	layout->offset = offset;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int make_uds_index_layout(const char *name,
+			  bool new_layout,
+			  const struct configuration *config,
+			  struct index_layout **layout_ptr)
+{
+	struct index_layout *layout = NULL;
+	struct save_layout_sizes sizes;
+	int result;
+
+	result = compute_sizes(config, &sizes);
+	if (result != UDS_SUCCESS) {
+		return result;
 	}
 
 	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
@@ -2593,9 +2645,20 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 		return result;
 	}
 	layout->ref_count = 1;
-	get_uds_io_factory(factory);
-	layout->factory = factory;
-	layout->offset = offset;
+
+	result = create_layout_factory(layout, name, new_layout);
+	if (result != UDS_SUCCESS) {
+		put_uds_index_layout(layout);
+		return result;
+	}
+
+	if (layout->factory_size < sizes.total_size) {
+		uds_log_error("index storage (%zu) is smaller than the required size %llu",
+			      layout->factory_size,
+			      (unsigned long long) sizes.total_size);
+		put_uds_index_layout(layout);
+		return -ENOSPC;
+	}
 
 	if (new_layout) {
 		// Populate the layout from the UDS configuration
