@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/stringUtils.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/stringUtils.h#3 $
  */
 
 #ifndef STRING_UTILS_H
 #define STRING_UTILS_H
 
-#include <stdarg.h>
 #include <linux/kernel.h>
 #include <linux/string.h>
 

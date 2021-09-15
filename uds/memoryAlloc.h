@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/memoryAlloc.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/memoryAlloc.h#2 $
  */
 
 #ifndef MEMORY_ALLOC_H
 #define MEMORY_ALLOC_H 1
-
-#include <stdarg.h>
 
 #include "compiler.h"
 #include "cpu.h"
