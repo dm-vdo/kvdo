@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#5 $
  */
 
 
@@ -389,7 +389,6 @@ int allocate_index(struct index_layout *layout,
 
 	result = make_volume(config, index->layout,
 			     user_params,
-			     VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
 			     index->zone_count, &index->volume);
 	if (result != UDS_SUCCESS) {
 		free_index(index);

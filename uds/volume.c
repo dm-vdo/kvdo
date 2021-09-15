@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.c#5 $
  */
 
 #include "volume.h"
@@ -1385,17 +1385,15 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 /**
  * Allocate a volume.
  *
- * @param config               The configuration to use
- * @param layout               The index layout
- * @param read_queue_max_size  The maximum size of the read queue
- * @param zone_count           The number of zones to use
- * @param new_volume           A pointer to hold the new volume
+ * @param config      The configuration to use
+ * @param layout      The index layout
+ * @param zone_count  The number of zones to use
+ * @param new_volume  A pointer to hold the new volume
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int __must_check allocate_volume(const struct configuration *config,
 					struct index_layout *layout,
-					unsigned int read_queue_max_size,
 					unsigned int zone_count,
 					struct volume **new_volume)
 {
@@ -1468,7 +1466,6 @@ static int __must_check allocate_volume(const struct configuration *config,
 	}
 	result = make_page_cache(volume->geometry,
 				 config->cache_chapters,
-				 read_queue_max_size,
 				 zone_count,
 				 &volume->page_cache);
 	if (result != UDS_SUCCESS) {
@@ -1490,7 +1487,6 @@ static int __must_check allocate_volume(const struct configuration *config,
 int make_volume(const struct configuration *config,
 		struct index_layout *layout,
 		const struct uds_parameters *user_params,
-		unsigned int read_queue_max_size,
 		unsigned int zone_count,
 		struct volume **new_volume)
 {
@@ -1499,13 +1495,7 @@ int make_volume(const struct configuration *config,
 	struct volume *volume = NULL;
 	int result;
 
-	if (read_queue_max_size <= volume_read_threads) {
-		uds_log_error("Number of read threads must be smaller than read queue");
-		return UDS_INVALID_ARGUMENT;
-	}
-
-	result = allocate_volume(config, layout, read_queue_max_size,
-				     zone_count, &volume);
+	result = allocate_volume(config, layout, zone_count, &volume);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#4 $
  */
 
 #include "pageCache.h"
@@ -276,7 +276,6 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 static int __must_check initialize_page_cache(struct page_cache *cache,
 					      const struct geometry *geometry,
 					      unsigned int chapters_in_cache,
-					      unsigned int read_queue_max_size,
 					      unsigned int zone_count)
 {
 	int result;
@@ -285,11 +284,10 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	cache->num_index_entries = geometry->pages_per_volume + 1;
 	cache->num_cache_entries =
 		chapters_in_cache * geometry->record_pages_per_chapter;
-	cache->read_queue_max_size = read_queue_max_size;
 	cache->zone_count = zone_count;
 	atomic64_set(&cache->clock, 1);
 
-	result = UDS_ALLOCATE(read_queue_max_size,
+	result = UDS_ALLOCATE(VOLUME_CACHE_MAX_QUEUED_READS,
 			      struct queued_read,
 			      "volume read queue",
 			      &cache->read_queue);
@@ -350,7 +348,6 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 /**********************************************************************/
 int make_page_cache(const struct geometry  *geometry,
 		    unsigned int chapters_in_cache,
-		    unsigned int read_queue_max_size,
 		    unsigned int zone_count,
 		    struct page_cache **cache_ptr)
 {
@@ -361,10 +358,7 @@ int make_page_cache(const struct geometry  *geometry,
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cache size must be at least one chapter");
 	}
-	if (read_queue_max_size <= 0) {
-		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						"read queue max size must be greater than 0");
-	}
+
 	if (zone_count < 1) {
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"cache must have at least one zone");
@@ -378,7 +372,6 @@ int make_page_cache(const struct geometry  *geometry,
 	result = initialize_page_cache(cache,
 				       geometry,
 				       chapters_in_cache,
-				       read_queue_max_size,
 				       zone_count);
 	if (result != UDS_SUCCESS) {
 		free_page_cache(cache);
@@ -537,7 +530,7 @@ int enqueue_read(struct page_cache *cache,
 	// We hold the readThreadsMutex.
 	uint16_t first = cache->read_queue_first;
 	uint16_t last = cache->read_queue_last;
-	uint16_t next = (last + 1) % cache->read_queue_max_size;
+	uint16_t next = next_read_queue_position(last);
 	uint16_t read_queue_pos;
 
 	if ((cache->index[physical_page] & VOLUME_CACHE_QUEUED_FLAG) == 0) {
@@ -565,7 +558,7 @@ int enqueue_read(struct page_cache *cache,
 			cache->index[physical_page] & ~VOLUME_CACHE_QUEUED_FLAG;
 	}
 
-	result = ASSERT((read_queue_pos < cache->read_queue_max_size),
+	result = ASSERT((read_queue_pos < VOLUME_CACHE_MAX_QUEUED_READS),
 			    "queue is not overfull");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -624,8 +617,7 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	*first_request = cache->read_queue[last_read].request_list.first;
 	*physical_page = page_no;
 	*invalid = is_invalid;
-	cache->read_queue_last_read =
-		(last_read + 1) % cache->read_queue_max_size;
+	cache->read_queue_last_read = next_read_queue_position(last_read);
 
 	return true;
 }
@@ -641,8 +633,8 @@ void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 	// Move the read_queue_first pointer along when we can
 	while ((cache->read_queue_first != last_read) &&
 	       (!cache->read_queue[cache->read_queue_first].reserved)) {
-		cache->read_queue_first = (cache->read_queue_first + 1) %
-					  cache->read_queue_max_size;
+		cache->read_queue_first =
+			next_read_queue_position(cache->read_queue_first);
 	}
 }
 

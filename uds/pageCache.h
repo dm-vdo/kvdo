@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/pageCache.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/pageCache.h#3 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -54,7 +54,7 @@ struct cached_page {
 enum {
 	VOLUME_CACHE_MAX_ENTRIES = (UINT16_MAX >> 1),
 	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
-	VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS = 4096
+	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
 };
 
 struct queued_read {
@@ -146,8 +146,6 @@ struct page_cache {
 	uint16_t read_queue_first;
 	uint16_t read_queue_last_read;
 	uint16_t read_queue_last;
-	// The size of the read queue
-	unsigned int read_queue_max_size;
 	// Page access counter
 	atomic64_t clock;
 };
@@ -155,17 +153,15 @@ struct page_cache {
 /**
  * Allocate a cache for a volume.
  *
- * @param geometry            The geometry governing the volume
- * @param chapters_in_cache   The size (in chapters) of the page cache
- * @param read_queue_max_size The maximum size of the read queue
- * @param zone_count          The number of zones in the index
- * @param cache_ptr           A pointer to hold the new page cache
+ * @param geometry           The geometry governing the volume
+ * @param chapters_in_cache  The size (in chapters) of the page cache
+ * @param zone_count         The number of zones in the index
+ * @param cache_ptr          A pointer to hold the new page cache
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check make_page_cache(const struct geometry *geometry,
 				 unsigned int chapters_in_cache,
-				 unsigned int read_queue_max_size,
 				 unsigned int zone_count,
 				 struct page_cache **cache_ptr);
 
@@ -293,6 +289,18 @@ void release_read_queue_entry(struct page_cache *cache,
 			      unsigned int queue_pos);
 
 /**
+ * Return the next read queue entry position after the given position.
+ *
+ * @param position  The read queue entry position to increment
+ *
+ * @return the position of the next read queue entry
+ **/
+static INLINE uint16_t next_read_queue_position(uint16_t position)
+{
+	return (position + 1) % VOLUME_CACHE_MAX_QUEUED_READS;
+}
+
+/**
  * Check for the page cache read queue being full.
  *
  * @param cache  the page cache for which to check the read queue.
@@ -302,7 +310,7 @@ void release_read_queue_entry(struct page_cache *cache,
 static INLINE bool read_queue_is_full(struct page_cache *cache)
 {
 	return (cache->read_queue_first ==
-		(cache->read_queue_last + 1) % cache->read_queue_max_size);
+		next_read_queue_position(cache->read_queue_last));
 }
 
 /**
