@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#19 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -54,8 +54,10 @@ struct vdo_work_queue {
 	bool round_robin_mode;
 	/** A handle to a sysfs tree for reporting stats and other info */
 	struct kobject kobj;
-	/** The VDO owning this work queue */
-	struct vdo *owner;
+	/** The vdo "thread" owning this work queue */
+	struct vdo_thread *owner;
+	/** Life cycle functions, etc */
+	const struct vdo_work_queue_type *type;
 };
 
 struct simple_work_queue {
@@ -73,8 +75,6 @@ struct simple_work_queue {
 	struct funnel_queue *priority_lists[VDO_WORK_QUEUE_PRIORITY_COUNT];
 	/** The kernel thread */
 	struct task_struct *thread;
-	/** Life cycle functions, etc */
-	const struct vdo_work_queue_type *type;
 	/** Opaque private data pointer, defined by higher level code */
 	void *private;
 	/** In a subordinate work queue, a link back to the round-robin parent

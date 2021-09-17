@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#75 $
  */
 
 #include "workQueue.h"
@@ -189,8 +189,8 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
  **/
 static void run_start_hook(struct simple_work_queue *queue)
 {
-	if (queue->type->start != NULL) {
-		queue->type->start(queue->private);
+	if (queue->common.type->start != NULL) {
+		queue->common.type->start(queue->private);
 	}
 }
 
@@ -201,8 +201,8 @@ static void run_start_hook(struct simple_work_queue *queue)
  **/
 static void run_finish_hook(struct simple_work_queue *queue)
 {
-	if (queue->type->finish != NULL) {
-		queue->type->finish(queue->private);
+	if (queue->common.type->finish != NULL) {
+		queue->common.type->finish(queue->private);
 	}
 }
 
@@ -481,7 +481,7 @@ static bool queue_started(struct simple_work_queue *queue)
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
 				  struct kobject *parent_kobject,
-				  struct vdo *owner,
+				  struct vdo_thread *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
@@ -504,8 +504,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 
-	queue->type = type;
 	queue->private = private;
+	queue->common.type = type;
 	queue->common.owner = owner;
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
@@ -578,8 +578,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    struct vdo *owner,
-		    void *private,
+		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
@@ -592,8 +591,9 @@ int make_work_queue(const char *thread_name_prefix,
 
 	if (thread_count == 1) {
 		struct simple_work_queue *simple_queue;
-		void *context = (thread_privates != NULL) ? thread_privates[0] :
-							    private;
+		void *context = ((thread_privates != NULL)
+				 ? thread_privates[0]
+				 : NULL);
 		result = make_simple_work_queue(thread_name_prefix,
 						name,
 						parent_kobject,
@@ -647,8 +647,9 @@ int make_work_queue(const char *thread_name_prefix,
 	*queue_ptr = &queue->common;
 
 	for (i = 0; i < thread_count; i++) {
-		void *context = (thread_privates != NULL) ? thread_privates[i] :
-							    private;
+		void *context = ((thread_privates != NULL)
+				 ? thread_privates[i]
+				 : NULL);
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
@@ -898,7 +899,7 @@ struct vdo_work_queue *get_current_work_queue(void)
 }
 
 /**********************************************************************/
-struct vdo *get_work_queue_owner(struct vdo_work_queue *queue)
+struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue)
 {
 	return queue->owner;
 }
@@ -909,4 +910,10 @@ void *get_work_queue_private_data(void)
 	struct simple_work_queue *queue = get_current_thread_work_queue();
 
 	return (queue != NULL) ? queue->private : NULL;
+}
+
+/**********************************************************************/
+bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
+			    const struct vdo_work_queue_type *type) {
+	return (queue->type == type);
 }

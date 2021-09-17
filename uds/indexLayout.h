@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#8 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -33,20 +33,14 @@ struct index_layout;
 /**
  * Construct an index layout.
  *
- * @param name        String naming the index.  Each platform will use its own
- *                    conventions to interpret the string, but in general it is
- *                    a space-separated sequence of param=value settings.  For
- *                    backward compatibility a string without an equals is
- *                    treated as a platform-specific default parameter value.
- * @param new_layout  Whether this is a new layout.
  * @param config      The configuration required for a new layout.
+ * @param new_layout  Whether this is a new layout.
  * @param layout_ptr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check make_uds_index_layout(const char *name,
+int __must_check make_uds_index_layout(const struct configuration *config,
 				       bool new_layout,
-				       const struct configuration *config,
 				       struct index_layout **layout_ptr);
 
 /**

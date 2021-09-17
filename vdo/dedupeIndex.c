@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#116 $
  */
 
 #include "dedupeIndex.h"
@@ -68,7 +68,6 @@ struct periodic_event_reporter {
 
 struct dedupe_index {
 	struct kobject dedupe_directory;
-	struct registered_thread allocating_thread;
 	char *index_name;
 	struct uds_configuration *configuration;
 	struct uds_index_session *index_session;
@@ -759,7 +758,9 @@ void free_vdo_dedupe_index(struct dedupe_index *index)
 		return;
 	}
 
-	free_work_queue(UDS_FORGET(index->uds_queue));
+	// The queue will get freed along with all the others, but give up
+	// our reference to it.
+	UDS_FORGET(index->uds_queue);
 	stop_periodic_event_reporter(&index->timeout_reporter);
 	spin_lock_bh(&index->pending_lock);
 	if (index->started_timer) {
@@ -910,9 +911,10 @@ static void start_uds_queue(void *ptr)
 	 * (like the base threads do), but it would be an unnecessary
 	 * embellishment.
 	 */
-	struct dedupe_index *index = ptr;
+	struct vdo_thread *thread
+		= get_work_queue_owner(get_current_work_queue());
 
-	uds_register_allocating_thread(&index->allocating_thread, NULL);
+	uds_register_allocating_thread(&thread->allocating_thread, NULL);
 }
 
 /**********************************************************************/
@@ -977,15 +979,12 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	result = make_work_queue(thread_name_prefix,
-				 "dedupeQ",
-				 &vdo->work_queue_directory,
-				 vdo,
-				 index,
+	result = make_vdo_thread(vdo,
+				 thread_name_prefix,
+				 vdo->thread_config->dedupe_thread,
 				 &uds_queue_type,
 				 1,
-				 NULL,
-				 &index->uds_queue);
+				 NULL);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("UDS index queue initialization failed (%d)",
 			  result);
@@ -996,12 +995,16 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
+	index->uds_queue
+		= vdo->threads[vdo->thread_config->dedupe_thread].queue;
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
 	result = kobject_add(&index->dedupe_directory,
 			     &vdo->vdo_directory,
 			     "dedupe");
 	if (result != VDO_SUCCESS) {
-		free_work_queue(UDS_FORGET(index->uds_queue));
+		// The queue will actually be freed with the VDO, so just give
+		// up our reference to it.
+		UDS_FORGET(index->uds_queue);
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);
 		UDS_FREE(index->index_name);

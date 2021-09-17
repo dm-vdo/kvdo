@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#3 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#4 $
  */
 
 #include "sysfs.h"
@@ -30,9 +30,9 @@
 #include "stringUtils.h"
 #include "uds.h"
 
-#if defined(__KERNEL__) && defined(MODULE)
+#if defined(MODULE)
 #define UDS_SYSFS_NAME THIS_MODULE->name
-#else // compiled into the kernel
+#else
 #define UDS_SYSFS_NAME "uds"
 #endif
 

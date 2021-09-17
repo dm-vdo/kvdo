@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#8 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#9 $
  */
 
 #include "indexLayout.h"
@@ -2556,17 +2556,13 @@ int open_uds_index_buffered_writer(struct index_layout *layout,
  * Make an IO factory from a name string.
  *
  * @param layout      The layout in which to store the parsed values
- * @param name        String naming the index.  Each platform will use its own
- *                    conventions to interpret the string, but in general it is
- *                    a space-separated sequence of param=value settings.  For
- *                    backward compatibility a string without an equals is
- *                    treated as a platform-specific default parameter value.
+ * @param config      The index configuration for the new layout
  * @param new_layout  Whether this is a new layout
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int create_layout_factory(struct index_layout *layout,
-				 const char *name,
+				 const struct configuration *config,
 				 bool new_layout)
 {
 	char *path = NULL;
@@ -2584,7 +2580,7 @@ static int create_layout_factory(struct index_layout *layout,
 		LP_NULL_PARAMETER,
 	};
 
-	result = uds_duplicate_string(name,
+	result = uds_duplicate_string(config->name,
 				      "make_uds_index_layout parameters",
 				      &params);
 	if (result != UDS_SUCCESS) {
@@ -2626,9 +2622,8 @@ static int create_layout_factory(struct index_layout *layout,
 }
 
 /**********************************************************************/
-int make_uds_index_layout(const char *name,
+int make_uds_index_layout(const struct configuration *config,
 			  bool new_layout,
-			  const struct configuration *config,
 			  struct index_layout **layout_ptr)
 {
 	struct index_layout *layout = NULL;
@@ -2646,7 +2641,7 @@ int make_uds_index_layout(const char *name,
 	}
 	layout->ref_count = 1;
 
-	result = create_layout_factory(layout, name, new_layout);
+	result = create_layout_factory(layout, config, new_layout);
 	if (result != UDS_SUCCESS) {
 		put_uds_index_layout(layout);
 		return result;

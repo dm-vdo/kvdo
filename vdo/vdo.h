@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#64 $
  */
 
 #ifndef VDO_H
@@ -51,13 +51,12 @@
 struct vdo_thread {
 	struct vdo *vdo;
 	thread_id_t thread_id;
-	struct vdo_work_queue *request_queue;
+	struct vdo_work_queue *queue;
 	struct registered_thread allocating_thread;
 };
 
 struct vdo {
 	struct vdo_thread *threads;
-	thread_id_t initialized_thread_count;
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
@@ -67,13 +66,6 @@ struct vdo {
 	 * device.
 	 **/
 	struct io_submitter *io_submitter;
-	/**
-	 * Work queue (possibly with multiple threads) for miscellaneous
-	 * CPU-intensive, non-blocking work.
-	 **/
-	struct vdo_work_queue *cpu_queue;
-	/** Optional work queue for calling bio_endio. */
-	struct vdo_work_queue *bio_ack_queue;
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
 	/** The pool of data_vios for handling incoming bios */
@@ -196,6 +188,32 @@ static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 {
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
+
+/**
+ * Construct a single vdo work_queue and its associated thread (or threads for
+ * round-robin queues). Each "thread" constructed by this method is represented
+ * by a unique thread id in the thread config, and completions can be enqueued
+ * to the queue and run on the threads comprising this entity.
+ *
+ * @param vdo                 The vdo which owns the thread
+ * @param thread_name_prefix  The per-device prefix for the thread name
+ * @param thread_id           The id of the thread to create (as determined by
+ *                            the thread_config)
+ * @param type                The description of the work queue for this thread
+ * @param queue_count         The number of actual threads/queues contained in
+ *                            the "thread"
+ * @param contexts            An array of queue_count contexts one for each
+ *                            individual queue, may be NULL &
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+make_vdo_thread(struct vdo *vdo,
+		const char *thread_name_prefix,
+		thread_id_t thread_id,
+		const struct vdo_work_queue_type *type,
+		unsigned int queue_count,
+		void *contexts[]);
 
 /**
  * Allocate and initialize a vdo.

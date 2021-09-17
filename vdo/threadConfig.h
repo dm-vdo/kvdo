@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#16 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -32,12 +32,18 @@ struct thread_config {
 	zone_count_t physical_zone_count;
 	zone_count_t hash_zone_count;
 	thread_count_t base_thread_count;
+	thread_count_t bio_thread_count;
+	thread_count_t thread_count;
 	thread_id_t admin_thread;
 	thread_id_t journal_thread;
 	thread_id_t packer_thread;
+	thread_id_t dedupe_thread;
+	thread_id_t bio_ack_thread;
+	thread_id_t cpu_thread;
 	thread_id_t *logical_threads;
 	thread_id_t *physical_threads;
 	thread_id_t *hash_zone_threads;
+	thread_id_t *bio_threads;
 };
 
 /**

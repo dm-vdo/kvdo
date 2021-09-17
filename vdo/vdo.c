@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#192 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#193 $
  */
 
 /*
@@ -84,11 +84,11 @@ static const struct vdo_work_queue_type cpu_q_type = {
 /**********************************************************************/
 static void start_vdo_request_queue(void *ptr)
 {
-	struct vdo_thread *thread = ptr;
-	struct vdo *vdo = thread->vdo;
+	struct vdo_thread *thread
+		= get_work_queue_owner(get_current_work_queue());
 
 	uds_register_allocating_thread(&thread->allocating_thread,
-				       &vdo->allocations_allowed);
+				       &thread->vdo->allocations_allowed);
 }
 
 /**********************************************************************/
@@ -104,74 +104,122 @@ static const struct vdo_work_queue_type request_queue_type = {
 	.max_priority = VDO_REQ_Q_MAX_PRIORITY,
 };
 
+/**********************************************************************/
+int make_vdo_thread(struct vdo *vdo,
+		    const char *thread_name_prefix,
+		    thread_id_t thread_id,
+		    const struct vdo_work_queue_type *type,
+		    unsigned int queue_count,
+		    void *contexts[])
+{
+	struct vdo_thread *thread = &vdo->threads[thread_id];
+	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
+
+	if (thread->queue != NULL) {
+		return ASSERT(vdo_work_queue_type_is(thread->queue, type),
+			      "already constructed vdo thread %u is of the correct type",
+			      thread_id);
+	}
+
+	thread->vdo = vdo;
+	thread->thread_id = thread_id;
+	vdo_get_thread_name(vdo->thread_config,
+			    thread_id,
+			    queue_name,
+			    sizeof(queue_name));
+	return make_work_queue(thread_name_prefix,
+			       queue_name,
+			       &vdo->work_queue_directory,
+			       thread,
+			       type,
+			       queue_count,
+			       contexts,
+			       &thread->queue);
+}
+
 /**
- * Make base threads.
+ * Make a set of request threads.
  *
- * @param [in]  vdo                 The vdo to be initialized
- * @param [in]  thread_name_prefix  The per-device prefix to use in thread
- *                                  names
- * @param [out] reason              The reason for failure
+ *
+ * @param vdo                 The vdo to be initialized
+ * @param thread_name_prefix  The per-device prefix to use in thread
+ * @param count               The number of threads to make
+ * @param ids                 The ids of the threads to make
  *
  * @return VDO_SUCCESS or an error code
  **/
 static int __must_check
-make_vdo_threads(struct vdo *vdo,
-		 const char *thread_name_prefix,
-		 char **reason)
+make_vdo_request_thread_group(struct vdo *vdo,
+			      const char *thread_name_prefix,
+			      thread_count_t count,
+			      thread_id_t ids[])
 {
-	unsigned int base_threads = vdo->thread_config->base_thread_count;
-	int result = UDS_ALLOCATE(base_threads,
-				  struct vdo_thread,
-				  "request processing work queue",
-				  &vdo->threads);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot allocation thread structures";
-		return result;
-	}
+	thread_count_t thread;
+	int result;
 
-	for (vdo->initialized_thread_count = 0;
-	     vdo->initialized_thread_count < base_threads;
-	     vdo->initialized_thread_count++) {
-		int result;
-		struct vdo_thread *thread =
-			&vdo->threads[vdo->initialized_thread_count];
-		char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
-
-		thread->vdo = vdo;
-		thread->thread_id = vdo->initialized_thread_count;
-
-		// Copy only LEN - 1 bytes and ensure NULL termination.
-		vdo_get_thread_name(vdo->thread_config,
-				    vdo->initialized_thread_count,
-				    queue_name,
-				    sizeof(queue_name));
-		result = make_work_queue(thread_name_prefix,
-					 queue_name,
-					 &vdo->work_queue_directory,
-					 vdo,
-					 thread,
+	for (thread = 0; thread < count; thread++) {
+		result = make_vdo_thread(vdo,
+					 thread_name_prefix,
+					 ids[thread],
 					 &request_queue_type,
 					 1,
-					 NULL,
-					 &thread->request_queue);
+					 NULL);
 		if (result != VDO_SUCCESS) {
-			*reason = "Cannot initialize request queue";
-			while (vdo->initialized_thread_count > 0) {
-				unsigned int thread_to_destroy =
-					vdo->initialized_thread_count - 1;
-				thread = &vdo->threads[thread_to_destroy];
-				finish_work_queue(thread->request_queue);
-				free_work_queue(UDS_FORGET(thread->request_queue));
-				vdo->initialized_thread_count--;
-			}
-
-			UDS_FREE(vdo->threads);
-			vdo->threads = NULL;
 			return result;
 		}
 	}
 
 	return VDO_SUCCESS;
+}
+
+
+/**
+ * Make base threads.
+ *
+ * @param [in]  vdo                 The vdo to be initialized
+ * @param [in]  thread_name_prefix  The per-device prefix to use in thread
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int __must_check
+make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
+{
+	int result;
+	const struct thread_config *thread_config = vdo->thread_config;
+	thread_id_t singletons[] = {
+		thread_config->admin_thread,
+		thread_config->journal_thread,
+		thread_config->packer_thread,
+	};
+
+	result = make_vdo_request_thread_group(vdo,
+					       thread_name_prefix,
+					       3,
+					       singletons);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = make_vdo_request_thread_group(vdo,
+					       thread_name_prefix,
+					       thread_config->logical_zone_count,
+					       thread_config->logical_threads);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = make_vdo_request_thread_group(vdo,
+					       thread_name_prefix,
+					       thread_config->physical_zone_count,
+					       thread_config->physical_threads);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	return make_vdo_request_thread_group(vdo,
+					     thread_name_prefix,
+					     thread_config->hash_zone_count,
+					     thread_config->hash_zone_threads);
 }
 
 /**********************************************************************/
@@ -207,6 +255,22 @@ int make_vdo(unsigned int instance,
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
+	BUG_ON(thread_name_prefix[0] == '\0');
+	result = UDS_ALLOCATE(vdo->thread_config->thread_count,
+			      struct vdo_thread,
+			      __func__,
+			      &vdo->threads);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot allocate thread structures";
+		return result;
+	}
+
+	// Request threads, etc
+	result = make_vdo_request_threads(vdo, thread_name_prefix);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot initialize request queues";
+		return result;
+	}
 
 	result = make_batch_processor(vdo,
 				      return_data_vio_batch_to_pool,
@@ -218,7 +282,6 @@ int make_vdo(unsigned int instance,
 	}
 
 	// Dedupe Index
-	BUG_ON(thread_name_prefix[0] == '\0');
 	result = make_vdo_dedupe_index(&vdo->dedupe_index,
 				       vdo,
 				       thread_name_prefix);
@@ -245,12 +308,6 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// Base-code thread, etc
-	result = make_vdo_threads(vdo, thread_name_prefix, reason);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
 	// Bio queue
 	result = make_vdo_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
@@ -265,15 +322,12 @@ int make_vdo(unsigned int instance,
 
 	// Bio ack queue
 	if (vdo_uses_bio_ack_queue(vdo)) {
-		result = make_work_queue(thread_name_prefix,
-					 "ackQ",
-					 &vdo->work_queue_directory,
-					 vdo,
-					 vdo,
+		result = make_vdo_thread(vdo,
+					 thread_name_prefix,
+					 vdo->thread_config->bio_ack_thread,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
-					 NULL,
-					 &vdo->bio_ack_queue);
+					 NULL);
 		if (result != VDO_SUCCESS) {
 			*reason = "bio ack queue initialization failed";
 			return result;
@@ -281,15 +335,12 @@ int make_vdo(unsigned int instance,
 	}
 
 	// CPU Queues
-	result = make_work_queue(thread_name_prefix,
-				 "cpuQ",
-				 &vdo->work_queue_directory,
-				 vdo,
-				 vdo,
+	result = make_vdo_thread(vdo,
+				 thread_name_prefix,
+				 vdo->thread_config->cpu_thread,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) vdo->compression_context,
-				 &vdo->cpu_queue);
+				 (void **) vdo->compression_context);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
 		return result;
@@ -303,16 +354,18 @@ static void finish_vdo(struct vdo *vdo)
 {
 	int i;
 
-	finish_work_queue(vdo->cpu_queue);
-	finish_work_queue(vdo->bio_ack_queue);
-	cleanup_vdo_io_submitter(vdo->io_submitter);
+	if (vdo->threads == NULL) {
+		return;
+	}
 
-	for (i = 0; i < vdo->initialized_thread_count; i++) {
-		finish_work_queue(vdo->threads[i].request_queue);
+	cleanup_vdo_io_submitter(vdo->io_submitter);
+	finish_vdo_dedupe_index(vdo->dedupe_index);
+
+	for (i = 0; i < vdo->thread_config->thread_count; i++) {
+		finish_work_queue(vdo->threads[i].queue);
 	}
 
 	free_buffer_pool(UDS_FORGET(vdo->data_vio_pool));
-	finish_vdo_dedupe_index(vdo->dedupe_index);
 	free_batch_processor(UDS_FORGET(vdo->data_vio_releaser));
 }
 
@@ -343,8 +396,6 @@ void destroy_vdo(struct vdo *vdo)
 
 	finish_vdo(vdo);
 	unregister_vdo(vdo);
-	free_work_queue(UDS_FORGET(vdo->cpu_queue));
-	free_work_queue(UDS_FORGET(vdo->bio_ack_queue));
 	free_vdo_io_submitter(UDS_FORGET(vdo->io_submitter));
 	free_vdo_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	free_vdo_flusher(UDS_FORGET(vdo->flusher));
@@ -378,13 +429,15 @@ void destroy_vdo(struct vdo *vdo)
 	UDS_FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
 	free_vdo_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
-	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
 
-	for (i = 0; i < vdo->initialized_thread_count; i++) {
-		free_work_queue(UDS_FORGET(vdo->threads[i].request_queue));
+	if (vdo->threads != NULL) {
+		for (i = 0; i < vdo->thread_config->thread_count; i++) {
+			free_work_queue(UDS_FORGET(vdo->threads[i].queue));
+		}
+		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
-	UDS_FREE(vdo->threads);
-	vdo->threads = NULL;
+
+	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0;

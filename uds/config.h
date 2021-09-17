@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#6 $
  */
 
 #ifndef CONFIG_H
@@ -37,6 +37,9 @@ enum {
  * A set of configuration parameters for the indexer.
  **/
 struct configuration {
+	/** String describing the storage device */
+	const char *name;
+
 	/* Parameters for the volume */
 
 	/* The volume layout */
@@ -64,6 +67,8 @@ struct configuration {
  * In-memory structure of data for configuring a new index.
  **/
 struct uds_configuration {
+	/** String describing the storage device */
+	const char *name;
 	/** The maximum memory allocation, in GB */
 	uds_memory_config_size_t memory_size;
 	/** Whether the index should include sparse chapters */

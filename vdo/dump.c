@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#52 $
  */
 
 #include "dump.h"
@@ -90,6 +90,8 @@ static void do_dump(struct vdo *vdo,
 {
 	uint32_t active, maximum;
 	int64_t outstanding;
+	struct vdo_work_queue *queue;
+
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
 	// XXX Add in number of outstanding requests being processed by vdo
@@ -114,11 +116,13 @@ static void do_dump(struct vdo *vdo,
 
 	if (vdo_uses_bio_ack_queue(vdo) &&
 	    ((dump_options_requested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
-		dump_work_queue(vdo->bio_ack_queue);
+		queue = vdo->threads[vdo->thread_config->bio_ack_thread].queue;
+		dump_work_queue(queue);
 	}
 
 	if ((dump_options_requested & FLAG_SHOW_CPU_QUEUES) != 0) {
-		dump_work_queue(vdo->cpu_queue);
+		queue = vdo->threads[vdo->thread_config->cpu_thread].queue;
+		dump_work_queue(queue);
 	}
 
 	dump_vdo_dedupe_index(vdo->dedupe_index,

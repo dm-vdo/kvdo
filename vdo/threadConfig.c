@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#25 $
  */
 
 #include "threadConfig.h"
@@ -36,6 +36,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 				  zone_count_t physical_zone_count,
 				  zone_count_t hash_zone_count,
 				  zone_count_t base_thread_count,
+				  zone_count_t bio_thread_count,
 				  struct thread_config **config_ptr)
 {
 	struct thread_config *config;
@@ -72,25 +73,34 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 		return result;
 	}
 
+	result = UDS_ALLOCATE(bio_thread_count,
+			      thread_id_t,
+			      "bio thread array",
+			      &config->bio_threads);
+	if (result != VDO_SUCCESS) {
+		free_vdo_thread_config(config);
+		return result;
+	}
+
 	config->logical_zone_count = logical_zone_count;
 	config->physical_zone_count = physical_zone_count;
 	config->hash_zone_count = hash_zone_count;
 	config->base_thread_count = base_thread_count;
+	config->bio_thread_count = bio_thread_count;
 
 	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-static void
-assign_thread_ids(thread_id_t thread_ids[],
-		  zone_count_t count,
-		  thread_id_t *id_ptr)
+static void assign_thread_ids(struct thread_config *config,
+			      thread_id_t thread_ids[],
+			      zone_count_t count)
 {
 	zone_count_t zone;
 
 	for (zone = 0; zone < count; zone++) {
-		thread_ids[zone] = (*id_ptr)++;
+		thread_ids[zone] = config->thread_count++;
 	}
 }
 
@@ -98,51 +108,59 @@ assign_thread_ids(thread_id_t thread_ids[],
 int make_vdo_thread_config(struct thread_count_config counts,
 			   struct thread_config **config_ptr)
 {
-	struct thread_config *config;
-	thread_count_t total;
 	int result;
-	thread_id_t id = 0;
+	struct thread_config *config;
+	thread_count_t total = (counts.logical_zones
+				+ counts.physical_zones
+				+ counts.hash_zones);
 
-	total = (counts.logical_zones
-		 + counts.physical_zones
-		 + counts.hash_zones);
 	if (total == 0) {
-		result = allocate_thread_config(1, 1, 1, 1, &config);
+		result = allocate_thread_config(1,
+						1,
+						1,
+						1,
+						counts.bio_threads,&config);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
 
-		config->logical_threads[0] = 0;
-		config->physical_threads[0] = 0;
-		config->hash_zone_threads[0] = 0;
+		config->logical_threads[0] = config->thread_count;
+		config->physical_threads[0] = config->thread_count;
+		config->hash_zone_threads[0] = config->thread_count++;
 	} else {
-		// Add in the packer and admin/recovery journal threads (1
-		// each).
+		// Add in the admin/recovery journal and packer threads, of
+		// which, there are one each.
 		total += 2;
 		result = allocate_thread_config(counts.logical_zones,
 						counts.physical_zones,
 						counts.hash_zones,
 						total,
+						counts.bio_threads,
 						&config);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
 
-		config->admin_thread = id;
-		config->journal_thread = id++;
-		config->packer_thread = id++;
-		assign_thread_ids(config->logical_threads,
-				  counts.logical_zones,
-				  &id);
-		assign_thread_ids(config->physical_threads,
-				  counts.physical_zones,
-				  &id);
-		assign_thread_ids(config->hash_zone_threads,
-				  counts.hash_zones,
-				  &id);
+		config->admin_thread = config->thread_count;
+		config->journal_thread = config->thread_count++;
+		config->packer_thread = config->thread_count++;
+		assign_thread_ids(config,
+				  config->logical_threads,
+				  counts.logical_zones);
+		assign_thread_ids(config,
+				  config->physical_threads,
+				  counts.physical_zones);
+		assign_thread_ids(config,
+				  config->hash_zone_threads,
+				  counts.hash_zones);
 	}
 
-	ASSERT_LOG_ONLY(id == total, "correct number of thread IDs assigned");
+	config->dedupe_thread = config->thread_count++;
+	config->bio_ack_thread = ((counts.bio_ack_threads > 0) ?
+				  config->thread_count++
+				  : VDO_INVALID_THREAD_ID);
+	config->cpu_thread = config->thread_count++;
+	assign_thread_ids(config, config->bio_threads, counts.bio_threads);
 
 	*config_ptr = config;
 	return VDO_SUCCESS;
@@ -158,6 +176,7 @@ void free_vdo_thread_config(struct thread_config *config)
 	UDS_FREE(UDS_FORGET(config->logical_threads));
 	UDS_FREE(UDS_FORGET(config->physical_threads));
 	UDS_FREE(UDS_FORGET(config->hash_zone_threads));
+	UDS_FREE(UDS_FORGET(config->bio_threads));
 	UDS_FREE(config);
 }
 
@@ -191,6 +210,7 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 		snprintf(buffer, buffer_length, "reqQ");
 		return;
 	}
+
 	if (thread_id == thread_config->journal_thread) {
 		snprintf(buffer, buffer_length, "journalQ");
 		return;
@@ -202,7 +222,17 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 	} else if (thread_id == thread_config->packer_thread) {
 		snprintf(buffer, buffer_length, "packerQ");
 		return;
+	} else if (thread_id == thread_config->dedupe_thread) {
+		snprintf(buffer, buffer_length, "dedupeQ");
+		return;
+	} else if (thread_id == thread_config->bio_ack_thread) {
+		snprintf(buffer, buffer_length, "ackQ");
+		return;
+	} else if (thread_id == thread_config->cpu_thread) {
+		snprintf(buffer, buffer_length, "cpuQ");
+		return;
 	}
+
 	if (get_zone_thread_name(thread_config->logical_threads,
 				 thread_config->logical_zone_count,
 				 thread_id,
@@ -211,6 +241,7 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 				 buffer_length)) {
 		return;
 	}
+
 	if (get_zone_thread_name(thread_config->physical_threads,
 				 thread_config->physical_zone_count,
 				 thread_id,
@@ -219,10 +250,20 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 				 buffer_length)) {
 		return;
 	}
+
 	if (get_zone_thread_name(thread_config->hash_zone_threads,
 				 thread_config->hash_zone_count,
 				 thread_id,
 				 "hashQ",
+				 buffer,
+				 buffer_length)) {
+		return;
+	}
+
+	if (get_zone_thread_name(thread_config->bio_threads,
+				 thread_config->bio_thread_count,
+				 thread_id,
+				 "bioQ",
 				 buffer,
 				 buffer_length)) {
 		return;

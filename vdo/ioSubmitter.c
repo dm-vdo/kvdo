@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#93 $
  */
 
 #include "ioSubmitter.h"
@@ -483,26 +483,6 @@ void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 }
 
 /**********************************************************************/
-static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
-				const char *thread_name_prefix,
-				const char *queue_name,
-				unsigned int queue_number,
-				struct vdo *vdo)
-{
-	bio_queue_data->queue_number = queue_number;
-
-	return make_work_queue(thread_name_prefix,
-			       queue_name,
-			       &vdo->work_queue_directory,
-			       vdo,
-			       bio_queue_data,
-			       &bio_queue_type,
-			       1,
-			       NULL,
-			       &bio_queue_data->queue);
-}
-
-/**********************************************************************/
 int make_vdo_io_submitter(const char *thread_name_prefix,
 			  unsigned int thread_count,
 			  unsigned int rotation_interval,
@@ -510,7 +490,6 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			  struct vdo *vdo,
 			  struct io_submitter **io_submitter_ptr)
 {
-	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
 	unsigned int i;
 	struct io_submitter *io_submitter;
 	int result = UDS_ALLOCATE_EXTENDED(struct io_submitter,
@@ -529,7 +508,6 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 	for (i = 0; i < thread_count; i++) {
 		struct bio_queue_data *bio_queue_data =
 			&io_submitter->bio_queue_data[i];
-		snprintf(queue_name, sizeof(queue_name), "bioQ%u", i);
 
 		mutex_init(&bio_queue_data->lock);
 		/*
@@ -555,11 +533,13 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			return result;
 		}
 
-		result = initialize_bio_queue(bio_queue_data,
-					      thread_name_prefix,
-					      queue_name,
-					      i,
-					      vdo);
+		bio_queue_data->queue_number = i;
+		result = make_vdo_thread(vdo,
+					 thread_name_prefix,
+					 vdo->thread_config->bio_threads[i],
+					 &bio_queue_type,
+					 1,
+					 (void **) &bio_queue_data);
 		if (result != VDO_SUCCESS) {
 			// Clean up the partially initialized bio-queue
 			// entirely and indicate that initialization failed.
@@ -571,6 +551,8 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			return result;
 		}
 
+		bio_queue_data->queue
+			= vdo->threads[vdo->thread_config->bio_threads[i]].queue;
 		io_submitter->num_bio_queues_used++;
 	}
 
@@ -604,7 +586,9 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter)
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
-		free_work_queue(UDS_FORGET(io_submitter->bio_queue_data[i].queue));
+		// destroy_vdo() will free the work queue, so just give up our
+		// reference to it.
+		UDS_FORGET(io_submitter->bio_queue_data[i].queue);
 		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}
 	UDS_FREE(io_submitter);

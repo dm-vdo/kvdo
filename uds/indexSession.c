@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#6 $
  */
 
 #include "indexSession.h"
@@ -224,7 +224,6 @@ int uds_create_index_session(struct uds_index_session **session)
 
 /**********************************************************************/
 static int initialize_index_session(struct uds_index_session *index_session,
-				    const char *name,
 				    const struct uds_parameters *user_params,
 				    enum load_type load_type)
 {
@@ -239,9 +238,8 @@ static int initialize_index_session(struct uds_index_session *index_session,
 		return result;
 	}
 
-	result = make_uds_index_layout(name,
+	result = make_uds_index_layout(index_config,
 				       load_type == LOAD_CREATE,
-				       index_config,
 				       &layout);
 	if (result != UDS_SUCCESS) {
 		free_configuration(index_config);
@@ -286,6 +284,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 		   struct uds_index_session *session)
 {
 	int result;
+        char *new_name;
 	enum load_type load_type;
 
 	if (name == NULL) {
@@ -306,7 +305,17 @@ int uds_open_index(enum uds_open_index_type open_type,
 		return uds_map_to_system_error(result);
 	}
 
+	result = uds_duplicate_string(name, "device name", &new_name);
+	if (result != UDS_SUCCESS) {
+		finish_loading_index_session(session, result);
+		return uds_map_to_system_error(result);
+	}
+
+	if (session->user_config.name != NULL) {
+		uds_free_const(session->user_config.name);
+	}
 	session->user_config = *user_config;
+	session->user_config.name = new_name;
 
 	// Map the external open_type to the internal load_type
 	load_type = open_type == UDS_CREATE ?
@@ -314,8 +323,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 		open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
 	uds_log_notice("%s: %s", get_load_type(load_type), name);
 
-	result = initialize_index_session(session, name, user_params,
-					  load_type);
+	result = initialize_index_session(session, user_params, load_type);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed %s",
 				       get_load_type(load_type));
@@ -626,6 +634,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	wait_for_no_requests_in_progress(index_session);
 	result = save_and_free_index(index_session);
+	uds_free_const(index_session->user_config.name);
 	uds_request_queue_finish(index_session->callback_queue);
 	index_session->callback_queue = NULL;
 	uds_destroy_cond(&index_session->load_context.cond);
@@ -658,11 +667,36 @@ int uds_save_index(struct uds_index_session *index_session)
 int uds_get_index_configuration(struct uds_index_session *index_session,
 				struct uds_configuration **conf)
 {
+	const char *name = index_session->user_config.name;
 	int result;
+
 	if (conf == NULL) {
 		uds_log_error("received a NULL config pointer");
 		return -EINVAL;
 	}
+
+	if (name != NULL) {
+		char *name_copy = NULL;
+		size_t name_length = strlen(name) + 1;
+		struct uds_configuration *copy;
+
+		result = UDS_ALLOCATE_EXTENDED(struct uds_configuration,
+					       name_length,
+					       char,
+					       __func__,
+					       &copy);
+		if (result != UDS_SUCCESS) {
+			return uds_map_to_system_error(result);
+		}
+
+		*copy = index_session->user_config;
+	        name_copy = (char *) copy + sizeof(struct uds_configuration);
+		memcpy(name_copy, name, name_length);
+		copy->name = name_copy;
+		*conf = copy;
+		return UDS_SUCCESS;
+	}
+
 	result = UDS_ALLOCATE(1, struct uds_configuration, __func__, conf);
 	if (result == UDS_SUCCESS) {
 		**conf = index_session->user_config;

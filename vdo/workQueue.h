@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#30 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -80,18 +80,20 @@ struct vdo_work_queue_type {
  * <p>If multiple threads are requested, work items will be distributed to them
  * in round-robin fashion.
  *
+ * Each queue is associated with a struct vdo_thread which has a single vdo
+ * thread id. Regardless of the actual number of queues and threads allocated
+ * here, code outside of the queue implementation will treat this as a single
+ * zone.
+ *
  * @param [in]  thread_name_prefix  The per-device prefix to use in thread names
  * @param [in]  name                The queue name
  * @param [in]  parent_kobject      The parent sysfs node
- * @param [in]  owner               The VDO owning the work queue
- * @param [in]  private             Private data of the queue for use by work
- *                                  items or other queue-specific functions
- * @param [in]  thread_privates     If non-NULL, an array of separate private
- *                                  data pointers, one for each service thread,
- *                                  to use instead of sharing 'private'
+ * @param [in]  owner               The vdo "thread" correpsonding to this queue
  * @param [in]  type                The work queue type defining the lifecycle
  *                                  functions, priorities, and timeout behavior
  * @param [in]  thread_count        Number of service threads to set up
+ * @param [in]  thread_privates     If non-NULL, an array of separate private
+ *                                  data pointers, one for each service thread
  * @param [out] queue_ptr           Where to store the queue handle
  *
  * @return VDO_SUCCESS or an error code
@@ -99,8 +101,7 @@ struct vdo_work_queue_type {
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    struct vdo *owner,
-		    void *private,
+		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
@@ -189,12 +190,22 @@ void *get_work_queue_private_data(void);
 struct vdo_work_queue *get_current_work_queue(void);
 
 /**
- * Returns the VDO that owns the work queue.
+ * Returns the vdo thread that owns the work queue.
  *
  * @param queue  The work queue
  *
  * @return The owner pointer supplied at work queue creation
  **/
-struct vdo *get_work_queue_owner(struct vdo_work_queue *queue);
+struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue);
+
+/**
+ * Check whether a work queue is of a specified type.
+ *
+ * @param queue  The queue to check
+ * @param type   The desired type
+ **/
+bool __must_check
+vdo_work_queue_type_is(struct vdo_work_queue *queue,
+		       const struct vdo_work_queue_type *type);
 
 #endif /* VDO_WORK_QUEUE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#42 $
  */
 
 #include "completion.h"
@@ -28,6 +28,7 @@
 
 #include "kernelTypes.h"
 #include "statusCodes.h"
+#include "threadConfig.h"
 #include "vio.h"
 #include "vdo.h"
 
@@ -220,18 +221,18 @@ void enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
 	struct vdo *vdo = completion->vdo;
 	thread_id_t thread_id = completion->callback_thread_id;
 
-	if (ASSERT(thread_id < vdo->initialized_thread_count,
+	if (ASSERT(thread_id < vdo->thread_config->thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
 		   thread_id,
 		   completion->type,
-		   vdo->initialized_thread_count) != UDS_SUCCESS) {
+		   vdo->thread_config->thread_count) != UDS_SUCCESS) {
 		BUG();
 	}
 
 	setup_work_item(&completion->work_item,
 			vdo_enqueued_work,
 			priority);
-	enqueue_work_queue(vdo->threads[thread_id].request_queue,
+	enqueue_work_queue(vdo->threads[thread_id].queue,
 			   &completion->work_item);
 }
 

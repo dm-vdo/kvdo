@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#161 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#162 $
  */
 
 #include <linux/module.h>
@@ -110,7 +110,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	// This could deadlock,
 	current_work_queue = get_current_work_queue();
 	BUG_ON((current_work_queue != NULL)
-	       && (vdo == get_work_queue_owner(current_work_queue)));
+	       && (vdo == get_work_queue_owner(current_work_queue)->vdo));
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		limiter_wait_for_one_free(&vdo->discard_limiter);
