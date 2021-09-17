@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#21 $
  */
 
 #ifndef EXTENT_H
@@ -147,14 +147,5 @@ static inline void write_vdo_metadata_extent(struct vdo_extent *extent,
 {
 	write_partial_vdo_metadata_extent(extent, start_block, extent->count);
 }
-
-/**
- * Notify an extent that one of its vios has completed. If the signaling vio
- * is the last of the extent's vios to complete, the extent will finish. This
- * function is set as the vio callback in launch_metadata_extent().
- *
- * @param completion  The completion of the vio which has just finished
- **/
-void handle_vio_completion(struct vdo_completion *completion);
 
 #endif /* EXTENT_H */

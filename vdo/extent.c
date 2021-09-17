@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#34 $
  */
 
 #include "extent.h"
@@ -92,6 +92,27 @@ void free_vdo_extent(struct vdo_extent *extent)
 }
 
 /**
+ * Notify an extent that one of its vios has completed. If the signaling vio
+ * is the last of the extent's vios to complete, the extent will finish. This
+ * function is set as the vio callback in launch_metadata_extent().
+ *
+ * @param completion  The completion of the vio which has just finished
+ **/
+static void handle_vio_completion(struct vdo_completion *completion)
+{
+	struct vdo_extent *extent = vdo_completion_as_extent(completion->parent);
+
+	if (++extent->complete_count != extent->count) {
+		set_vdo_completion_result(vdo_extent_as_completion(extent),
+					  completion->result);
+		return;
+	}
+
+	finish_vdo_completion(vdo_extent_as_completion(extent),
+			      completion->result);
+}
+
+/**
  * Launch a metadata extent.
  *
  * @param extent       The extent
@@ -138,19 +159,4 @@ void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
 				       block_count_t count)
 {
 	launch_metadata_extent(extent, start_block, count, VIO_WRITE);
-}
-
-/**********************************************************************/
-void handle_vio_completion(struct vdo_completion *completion)
-{
-	struct vdo_extent *extent = vdo_completion_as_extent(completion->parent);
-
-	if (++extent->complete_count != extent->count) {
-		set_vdo_completion_result(vdo_extent_as_completion(extent),
-					  completion->result);
-		return;
-	}
-
-	finish_vdo_completion(vdo_extent_as_completion(extent),
-			      completion->result);
 }
