@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#6 $
  */
 
 
@@ -349,6 +349,7 @@ int allocate_index(struct index_layout *layout,
 		   struct uds_index **new_index)
 {
 	struct uds_index *index;
+	uint64_t nonce;
 	int result;
 	unsigned int i;
 
@@ -413,6 +414,15 @@ int allocate_index(struct index_layout *layout,
 					      "Could not create open chapter");
 	}
 
+	nonce = get_uds_volume_nonce(layout);
+	result = make_volume_index(config, zone_count, nonce,
+				   &index->volume_index);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return uds_log_error_strerror(result,
+					      "could not make volume index");
+	}
+
 	*new_index = index;
 	return UDS_SUCCESS;
 }
@@ -427,7 +437,6 @@ int make_index(struct index_layout *layout,
 	       struct uds_index **new_index)
 {
 	struct uds_index *index;
-	uint64_t nonce;
 	unsigned int zone_count = get_zone_count(user_params);
 	int result = allocate_index(layout, config, user_params, zone_count,
 				    &index);
@@ -443,15 +452,6 @@ int make_index(struct index_layout *layout,
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
-	}
-
-	nonce = get_uds_volume_nonce(layout);
-	result = make_volume_index(config, zone_count, nonce,
-				   &index->volume_index);
-	if (result != UDS_SUCCESS) {
-		free_index(index);
-		return uds_log_error_strerror(result,
-					      "could not make volume index");
 	}
 
 	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,

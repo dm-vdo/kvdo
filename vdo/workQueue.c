@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#76 $
  */
 
 #include "workQueue.h"
@@ -33,10 +33,7 @@
 
 #include "statusCodes.h"
 
-#include "workItemStats.h"
 #include "workQueueInternals.h"
-#include "workQueueStats.h"
-#include "workQueueSysfs.h"
 
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
@@ -141,9 +138,6 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 		item->priority = 0;
 	}
 
-	// Update statistics.
-	update_stats_for_enqueue(&queue->stats, item);
-
 	item->my_queue = &queue->common;
 
 	// Funnel queue handles the synchronization for the put.
@@ -226,8 +220,6 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		uint64_t time_before_schedule, schedule_time_ns, run_time_ns;
-
 		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
@@ -260,21 +252,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 			break;
 		}
 
-		time_before_schedule = ktime_get_ns();
-		run_time_ns = time_before_schedule - queue->most_recent_wakeup;
-		// These stats are read from other threads, but are only
-		// written by this thread.
-		WRITE_ONCE(queue->stats.waits, queue->stats.waits + 1);
-		WRITE_ONCE(queue->stats.run_time,
-			   queue->stats.run_time + run_time_ns);
-
 		schedule();
-
-		queue->most_recent_wakeup = ktime_get_ns();
-		schedule_time_ns = (queue->most_recent_wakeup
-				    - time_before_schedule);
-		enter_histogram_sample(queue->stats.schedule_time_histogram,
-				       schedule_time_ns / 1000);
 
 		/*
 		 * Check again before resetting first_wakeup for more accurate
@@ -286,27 +264,6 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		}
 	}
 
-	if (item != NULL) {
-		uint64_t first_wakeup = atomic64_read(&queue->first_wakeup);
-		/*
-		 * We sometimes register negative wakeup latencies without this
-		 * fencing. Whether it's forcing full serialization between the
-		 * read of first_wakeup and the "rdtsc" that might be used
-		 * depending on the clock source that helps, or some extra
-		 * nanoseconds of delay covering for high-resolution clocks not
-		 * being quite in sync between CPUs, is not yet clear.
-		 */
-		smp_rmb();
-		if (first_wakeup != 0) {
-			enter_histogram_sample(
-				queue->stats.wakeup_latency_histogram,
-				(ktime_get_ns() - first_wakeup) / 1000);
-			enter_histogram_sample(
-				queue->stats.wakeup_queue_length_histogram,
-				count_vdo_work_items_pending(
-					&queue->stats.work_item_stats));
-		}
-	}
 	finish_wait(&queue->waiting_worker_threads, &wait);
 	atomic_set(&queue->idle, 0);
 
@@ -322,10 +279,6 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 static void process_work_item(struct simple_work_queue *queue,
 			      struct vdo_work_item *item)
 {
-	uint64_t dequeue_time = update_stats_for_dequeue(&queue->stats, item);
-	// Save the index, so we can use it after the work function.
-	unsigned int index = item->stat_table_index;
-
 	if (ASSERT(item->my_queue == &queue->common,
 		   "item %px from queue %px marked as being in this queue (%px)",
 		   item, queue, item->my_queue) == UDS_SUCCESS) {
@@ -336,9 +289,6 @@ static void process_work_item(struct simple_work_queue *queue,
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
 
-	update_vdo_work_item_stats_for_work_time(&queue->stats.work_item_stats,
-						 index,
-						 dequeue_time);
 }
 
 /**
@@ -348,38 +298,8 @@ static void process_work_item(struct simple_work_queue *queue,
  **/
 static void yield_to_scheduler(struct simple_work_queue *queue)
 {
-	unsigned int queue_length;
-	uint64_t run_time_ns, reschedule_time_ns;
-	uint64_t time_before_reschedule, time_after_reschedule;
-	struct vdo_work_queue_stats *stats = &queue->stats;
-
-	/*
-	 * Record the queue length we have *before* rescheduling.
-	 * N.B.: We compute the pending count info here without any
-	 * synchronization, but it's for stats reporting only, so being
-	 * imprecise isn't too big a deal.
-	 */
-	queue_length = count_vdo_work_items_pending(&stats->work_item_stats);
-
-	time_before_reschedule = ktime_get_ns();
 	cond_resched();
-	time_after_reschedule = ktime_get_ns();
-
-	enter_histogram_sample(stats->reschedule_queue_length_histogram,
-			       queue_length);
-
-	run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
-	enter_histogram_sample(stats->run_time_before_reschedule_histogram,
-			       run_time_ns / 1000);
-	WRITE_ONCE(stats->run_time, stats->run_time + run_time_ns);
-
-	reschedule_time_ns = time_after_reschedule - time_before_reschedule;
-	enter_histogram_sample(stats->reschedule_time_histogram,
-			       reschedule_time_ns / 1000);
-	WRITE_ONCE(stats->reschedule_time,
-		   stats->reschedule_time + reschedule_time_ns);
-
-	queue->most_recent_wakeup = time_after_reschedule;
+	queue->most_recent_wakeup = ktime_get_ns();
 }
 
 /**
@@ -433,9 +353,7 @@ static int work_queue_runner(void *ptr)
 	struct simple_work_queue *queue = ptr;
 	unsigned long flags;
 
-	kobject_get(&queue->common.kobj);
-
-	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
+	queue->most_recent_wakeup = ktime_get_ns();
 
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
@@ -444,7 +362,6 @@ static int work_queue_runner(void *ptr)
 	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
 
-	kobject_put(&queue->common.kobj);
 	return 0;
 }
 
@@ -480,7 +397,7 @@ static bool queue_started(struct simple_work_queue *queue)
  **/
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
-				  struct kobject *parent_kobject,
+				  struct kobject *parent_kobject __maybe_unused,
 				  struct vdo_thread *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
@@ -518,16 +435,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	init_waitqueue_head(&queue->start_waiters);
 	spin_lock_init(&queue->lock);
 
-	kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
-	result = kobject_add(&queue->common.kobj,
-			     parent_kobject,
-			     queue->common.name);
-	if (result != 0) {
-		uds_log_error("Cannot add sysfs node: %d", result);
-		free_simple_work_queue(queue);
-		return result;
-	}
-
 	queue->num_priority_lists = type->max_priority + 1;
 	for (i = 0; i < queue->num_priority_lists; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
@@ -535,15 +442,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			free_simple_work_queue(queue);
 			return result;
 		}
-	}
-
-	result = initialize_work_queue_stats(&queue->stats,
-					     &queue->common.kobj);
-	if (result != 0) {
-		uds_log_error("Cannot initialize statistics tracking: %d",
-			      result);
-		free_simple_work_queue(queue);
-		return result;
 	}
 
 	queue->started = false;
@@ -577,7 +475,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 /**********************************************************************/
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
-		    struct kobject *parent_kobject,
+		    struct kobject *parent_kobject __maybe_unused,
 		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -633,17 +531,6 @@ int make_work_queue(const char *thread_name_prefix,
 		return -ENOMEM;
 	}
 
-	kobject_init(&queue->common.kobj, &round_robin_work_queue_kobj_type);
-	result = kobject_add(&queue->common.kobj,
-			     parent_kobject,
-			     queue->common.name);
-	if (result != 0) {
-		uds_log_error("Cannot add sysfs node: %d", result);
-		finish_work_queue(&queue->common);
-		kobject_put(&queue->common.kobj);
-		return result;
-	}
-
 	*queue_ptr = &queue->common;
 
 	for (i = 0; i < thread_count; i++) {
@@ -653,7 +540,7 @@ int make_work_queue(const char *thread_name_prefix,
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
-						&queue->common.kobj,
+						NULL,
 						owner,
 						context,
 						type,
@@ -699,7 +586,6 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 {
 	struct simple_work_queue **queue_table = queue->service_queues;
 	unsigned int count = queue->num_service_queues;
-
 	unsigned int i;
 
 	for (i = 0; i < count; i++) {
@@ -715,15 +601,16 @@ void finish_work_queue(struct vdo_work_queue *queue)
 	}
 
 	if (queue->round_robin_mode) {
-		finish_round_robin_work_queue(as_round_robin_work_queue(queue));
+		struct round_robin_work_queue *rrqueue
+			= as_round_robin_work_queue(queue);
+		finish_round_robin_work_queue(rrqueue);
 	} else {
 		finish_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 
 /**
- * Tear down a simple work queue, and decrement the kobject reference
- * count on it.
+ * Tear down a simple work queue.
  *
  * @param queue  The work queue
  **/
@@ -734,13 +621,12 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
 		free_funnel_queue(queue->priority_lists[i]);
 	}
-	cleanup_work_queue_stats(&queue->stats);
-	kobject_put(&queue->common.kobj);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
 }
 
 /**
- * Tear down a round-robin work queue and its service queues, and
- * decrement the kobject reference count on it.
+ * Tear down a round-robin work queue and its service queues.
  *
  * @param queue  The work queue
  **/
@@ -756,7 +642,8 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 		free_simple_work_queue(queue_table[i]);
 	}
 	UDS_FREE(queue_table);
-	kobject_put(&queue->common.kobj);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
 }
 
 /**********************************************************************/
@@ -788,16 +675,11 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	uds_log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
+	uds_log_info("workQ %px (%s) %s (%c)",
 		     &queue->common,
 		     queue->common.name,
-		     count_vdo_work_items_pending(&queue->stats.work_item_stats),
-		     READ_ONCE(queue->stats.waits),
 		     thread_status,
 		     task_state_report);
-
-	log_vdo_work_item_stats(&queue->stats.work_item_stats);
-	log_work_queue_stats(queue);
 
 	// ->lock spin lock status?
 	// ->waiting_worker_threads wait queue status? anyone waiting?
@@ -820,6 +702,49 @@ void dump_work_queue(struct vdo_work_queue *queue)
 	}
 }
 
+/**
+ * Convert the pointer into a string representation, using a function
+ * name if available.
+ *
+ * @param pointer        The pointer to be converted
+ * @param buffer         The output buffer
+ * @param buffer_length  The size of the output buffer
+ **/
+static void get_function_name(void *pointer,
+			      char *buffer,
+			      size_t buffer_length)
+{
+        if (pointer == NULL) {
+                /*
+                 * Format "%ps" logs a null pointer as "(null)" with a bunch of
+                 * leading spaces. We sometimes use this when logging lots of
+                 * data; don't be so verbose.
+                 */
+                strncpy(buffer, "-", buffer_length);
+        } else {
+                /*
+                 * Use a non-const array instead of a string literal below to
+                 * defeat gcc's format checking, which doesn't understand that
+                 * "%ps" actually does support a precision spec in Linux kernel
+                 * code.
+                 */
+                static char truncated_function_name_format_string[] = "%.*ps";
+                char *space;
+
+                snprintf(buffer,
+                         buffer_length,
+                         truncated_function_name_format_string,
+                         buffer_length - 1,
+                         pointer);
+
+                space = strchr(buffer, ' ');
+
+                if (space != NULL) {
+                        *space = '\0';
+                }
+        }
+}
+
 /**********************************************************************/
 void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      char *buffer,
@@ -832,9 +757,9 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			  TASK_COMM_LEN,
 			  item->my_queue == NULL ? "-" : item->my_queue->name);
 	if (current_length < length) {
-		vdo_get_function_name((void *) item->work,
-				      buffer + current_length,
-				      length - current_length);
+		get_function_name((void *) item->work,
+				  buffer + current_length,
+				  length - current_length);
 	}
 }
 

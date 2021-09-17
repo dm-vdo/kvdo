@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#20 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -27,9 +27,6 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
-
-#include "workItemStats.h"
-#include "workQueueStats.h"
 
 struct vdo_work_item_list {
 	struct vdo_work_item *tail;
@@ -52,8 +49,6 @@ struct vdo_work_queue {
 	 * work queue.
 	 **/
 	bool round_robin_mode;
-	/** A handle to a sysfs tree for reporting stats and other info */
-	struct kobject kobj;
 	/** The vdo "thread" owning this work queue */
 	struct vdo_thread *owner;
 	/** Life cycle functions, etc */
@@ -124,7 +119,7 @@ struct simple_work_queue {
 	 * needed.
 	 *
 	 * A timestamp is used rather than, say, 1, so that the worker thread
-	 * can record stats on how long it takes to actually get the worker
+	 * could record stats on how long it takes to actually get the worker
 	 * thread running.
 	 *
 	 * There is some redundancy between this and "idle" above.
@@ -132,8 +127,6 @@ struct simple_work_queue {
 	atomic64_t first_wakeup;
 	/** Padding for cache line separation */
 	char pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
-	/** Scheduling and work-function statistics */
-	struct vdo_work_queue_stats stats;
 	/** Last time (ns) the scheduler actually woke us up */
 	uint64_t most_recent_wakeup;
 };
