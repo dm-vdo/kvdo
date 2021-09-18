@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#126 $
  */
 
 /*
@@ -47,16 +47,6 @@
 #include "kvio.h"
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
-
-/**********************************************************************/
-void dump_vdo_work_queue(struct vdo *vdo)
-{
-	int i;
-
-	for (i = 0; i < vdo->thread_config->thread_count; i++) {
-		dump_work_queue(vdo->threads[i].queue);
-	}
-}
 
 /**********************************************************************/
 void enqueue_vdo_work(struct vdo *vdo,

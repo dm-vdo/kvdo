@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#19 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -63,14 +63,6 @@ void cleanup_vdo_io_submitter(struct io_submitter *io_submitter);
  * @param [in]  io_submitter  The I/O submitter data to destroy
  **/
 void free_vdo_io_submitter(struct io_submitter *io_submitter);
-
-/**
- * Dump info to the kernel log about the work queue used by the
- * physical layer. For debugging only.
- *
- * @param [in]  io_submitter  The I/O submitter data
- **/
-void vdo_dump_bio_work_queue(struct io_submitter *io_submitter);
 
 /**
  * Enqueue a work item to run in the work queue(s) used for bio

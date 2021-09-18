@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#117 $
  */
 
 #include "dedupeIndex.h"
@@ -719,7 +719,7 @@ void resume_vdo_dedupe_index(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue)
+void dump_vdo_dedupe_index(struct dedupe_index *index)
 {
 	const char *state, *target;
 
@@ -733,9 +733,6 @@ void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue)
 	uds_log_info("UDS index: state: %s", state);
 	if (target != NULL) {
 		uds_log_info("UDS index: changing to state: %s", target);
-	}
-	if (show_queue) {
-		dump_work_queue(index->uds_queue);
 	}
 }
 

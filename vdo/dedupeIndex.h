@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#35 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -45,9 +45,8 @@ make_vdo_dedupe_index(struct dedupe_index **index_ptr,
  * Do the dedupe section of dmsetup message vdo0 0 dump ...
  *
  * @param index       The dedupe index
- * @param show_queue  true to dump a dedupe work queue
  **/
-void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue);
+void dump_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Free the dedupe index

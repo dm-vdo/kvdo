@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#53 $
  */
 
 #include "dump.h"
@@ -38,11 +38,7 @@
 
 enum dump_options {
 	// Work queues
-	SHOW_BIO_ACK_QUEUE,
-	SHOW_BIO_QUEUE,
-	SHOW_CPU_QUEUES,
-	SHOW_INDEX_QUEUE,
-	SHOW_REQUEST_QUEUE,
+	SHOW_QUEUES,
 	// Memory pools
 	SHOW_VIO_POOL,
 	// Others
@@ -54,11 +50,7 @@ enum dump_options {
 
 enum dump_option_flags {
 	// Work queues
-	FLAG_SHOW_BIO_ACK_QUEUE = (1 << SHOW_BIO_ACK_QUEUE),
-	FLAG_SHOW_BIO_QUEUE = (1 << SHOW_BIO_QUEUE),
-	FLAG_SHOW_CPU_QUEUES = (1 << SHOW_CPU_QUEUES),
-	FLAG_SHOW_INDEX_QUEUE = (1 << SHOW_INDEX_QUEUE),
-	FLAG_SHOW_REQUEST_QUEUE = (1 << SHOW_REQUEST_QUEUE),
+	FLAG_SHOW_QUEUES = (1 << SHOW_QUEUES),
 	// Memory pools
 	FLAG_SHOW_VIO_POOL = (1 << SHOW_VIO_POOL),
 	// Others
@@ -69,11 +61,7 @@ enum dump_option_flags {
 
 enum {
 	FLAGS_ALL_POOLS = (FLAG_SHOW_VIO_POOL),
-	FLAGS_ALL_QUEUES = (FLAG_SHOW_REQUEST_QUEUE | FLAG_SHOW_INDEX_QUEUE |
-			    FLAG_SHOW_BIO_ACK_QUEUE | FLAG_SHOW_BIO_QUEUE |
-			    FLAG_SHOW_CPU_QUEUES),
-	FLAGS_ALL_THREADS = (FLAGS_ALL_QUEUES),
-	DEFAULT_DUMP_FLAGS = (FLAGS_ALL_THREADS | FLAG_SHOW_VDO_STATUS)
+	DEFAULT_DUMP_FLAGS = (FLAG_SHOW_QUEUES | FLAG_SHOW_VDO_STATUS)
 };
 
 /**********************************************************************/
@@ -90,8 +78,6 @@ static void do_dump(struct vdo *vdo,
 {
 	uint32_t active, maximum;
 	int64_t outstanding;
-	struct vdo_work_queue *queue;
-
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
 	// XXX Add in number of outstanding requests being processed by vdo
@@ -106,28 +92,16 @@ static void do_dump(struct vdo *vdo,
 		     maximum,
 		     outstanding,
 		     get_vdo_device_name(vdo->device_config->owning_target));
-	if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
-		dump_vdo_work_queue(vdo);
+	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0)
+	    && (vdo->threads != NULL)) {
+		thread_id_t id;
+
+		for (id = 0; id < vdo->thread_config->thread_count; id++) {
+			dump_work_queue(vdo->threads[id].queue);
+		}
 	}
 
-	if ((dump_options_requested & FLAG_SHOW_BIO_QUEUE) != 0) {
-		vdo_dump_bio_work_queue(vdo->io_submitter);
-	}
-
-	if (vdo_uses_bio_ack_queue(vdo) &&
-	    ((dump_options_requested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
-		queue = vdo->threads[vdo->thread_config->bio_ack_thread].queue;
-		dump_work_queue(queue);
-	}
-
-	if ((dump_options_requested & FLAG_SHOW_CPU_QUEUES) != 0) {
-		queue = vdo->threads[vdo->thread_config->cpu_thread].queue;
-		dump_work_queue(queue);
-	}
-
-	dump_vdo_dedupe_index(vdo->dedupe_index,
-			      (dump_options_requested & FLAG_SHOW_INDEX_QUEUE) !=
-				  0);
+	dump_vdo_dedupe_index(vdo->dedupe_index);
 	dump_buffer_pool(vdo->data_vio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
@@ -151,29 +125,13 @@ static int parse_dump_options(unsigned int argc,
 		const char *name;
 		unsigned int flags;
 	} option_names[] = {
-		{ "bioack", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
-		{ "kvdobioackq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
-		{ "bioackq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
-		{ "bio", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_QUEUE },
-		{ "kvdobioq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_QUEUE },
-		{ "bioq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_QUEUE },
-		{ "cpu", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
-		{ "kvdocpuq", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
-		{ "cpuq", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
 		// Should "index" mean sending queue + receiving thread +
 		// outstanding?
-		{ "dedupe", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
-		{ "dedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
-		{ "kvdodedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
-		{ "request", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
-		{ "kvdoreqq", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
-		{ "reqq", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
 		{ "viopool", FLAG_SKIP_DEFAULT | FLAG_SHOW_VIO_POOL },
 		{ "vdo", FLAG_SKIP_DEFAULT | FLAG_SHOW_VDO_STATUS },
-
 		{ "pools", FLAG_SKIP_DEFAULT | FLAGS_ALL_POOLS },
-		{ "queues", FLAG_SKIP_DEFAULT | FLAGS_ALL_QUEUES },
-		{ "threads", FLAG_SKIP_DEFAULT | FLAGS_ALL_THREADS },
+		{ "queues", FLAG_SKIP_DEFAULT | FLAG_SHOW_QUEUES },
+		{ "threads", FLAG_SKIP_DEFAULT | FLAG_SHOW_QUEUES },
 		{ "default", FLAG_SKIP_DEFAULT | DEFAULT_DUMP_FLAGS },
 		{ "all", ~0 },
 	};

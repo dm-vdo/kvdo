@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#54 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,13 +28,6 @@
 
 #include "kernelTypes.h"
 #include "workQueue.h"
-
-/**
- * Dump to the kernel log any work-queue info associated with the base code.
- *
- * @param vdo  The vdo object to be examined
- **/
-void dump_vdo_work_queue(struct vdo *vdo);
 
 
 /**
