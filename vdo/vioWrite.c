@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#89 $
  */
 
 /*
@@ -598,6 +598,22 @@ static void pack_compressed_data(struct vdo_completion *completion)
 	vdo_attempt_packing(data_vio);
 }
 
+/**
+ * Do the actual work of compressing the data on a CPU queue. This callback
+ * is registered in launch_compress_data_vio().
+ *
+ * @param completion  The completion of the write in progress
+ **/
+static void compress_data_vio_callback(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+
+	assert_data_vio_on_cpu_thread(data_vio);
+	compress_data_vio(data_vio);
+	launch_data_vio_packer_callback(data_vio,
+					pack_compressed_data);
+}
+
 /**********************************************************************/
 void launch_compress_data_vio(struct data_vio *data_vio)
 {
@@ -609,8 +625,9 @@ void launch_compress_data_vio(struct data_vio *data_vio)
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_COMPRESS_DATA_VIO;
-	set_data_vio_packer_callback(data_vio, pack_compressed_data);
-	compress_data_vio(data_vio);
+	launch_data_vio_cpu_callback(data_vio,
+				     compress_data_vio_callback,
+				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
 /**

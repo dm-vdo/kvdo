@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#169 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#170 $
  */
 
 #include "dataKVIO.h"
@@ -578,53 +578,6 @@ void vdo_copy_data(struct data_vio *source, struct data_vio *destination)
 		vdo_bio_copy_data_out(destination->user_bio,
 				  source->data_block);
 	}
-}
-
-/**********************************************************************/
-static void vdo_compress_work(struct vdo_work_item *item)
-{
-	struct data_vio *data_vio = work_item_as_data_vio(item);
-	char *context = get_work_queue_private_data();
-	int size;
-
-	size = LZ4_compress_default(data_vio->data_block,
-				    data_vio->scratch_block,
-				    VDO_BLOCK_SIZE,
-				    VDO_BLOCK_SIZE,
-				    context);
-	if (size > 0) {
-		// The scratch block will be used to contain the compressed
-		// data.
-		data_vio->compression.data = data_vio->scratch_block;
-		data_vio->compression.size = size;
-	} else {
-		// Use block size plus one as an indicator for uncompressible
-		// data.
-		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
-	}
-
-	enqueue_data_vio_callback(data_vio);
-}
-
-/**********************************************************************/
-void compress_data_vio(struct data_vio *data_vio)
-{
-	/*
-	 * If the orignal bio was a discard, but we got this far because the
-	 * discard was a partial one (r/m/w), and it is part of a larger
-	 * discard, we cannot compress this vio. We need to make sure the vio
-	 * completes ASAP.
-	 */
-	if ((data_vio->user_bio != NULL) &&
-	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
-	    (data_vio->remaining_discard > 0)) {
-		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
-		enqueue_data_vio_callback(data_vio);
-		return;
-	}
-
-	launch_data_vio_on_cpu_queue(data_vio, vdo_compress_work,
-				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
 /**

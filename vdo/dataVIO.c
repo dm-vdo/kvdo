@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#67 $
  */
 
 #include "dataVIO.h"
+
+#include <linux/lz4.h>
 
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -401,6 +403,29 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 	// XXX: this is only an issue in the 1 thread config.
 	data_vio_as_completion(next_lock_holder)->requeue = true;
 	launch_locked_request(next_lock_holder);
+}
+
+/**********************************************************************/
+void compress_data_vio(struct data_vio *data_vio)
+{
+	char *context = get_work_queue_private_data();
+	int size;
+
+	size = LZ4_compress_default(data_vio->data_block,
+				    data_vio->scratch_block,
+				    VDO_BLOCK_SIZE,
+				    VDO_BLOCK_SIZE,
+				    context);
+	if (size > 0) {
+		// The scratch block will be used to contain the compressed
+		// data.
+		data_vio->compression.data = data_vio->scratch_block;
+		data_vio->compression.size = size;
+	} else {
+		// Use block size plus one as an indicator for uncompressible
+		// data.
+		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
+	}
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#46 $
  */
 
 #ifndef COMPLETION_H
@@ -153,8 +153,28 @@ void reset_vdo_completion(struct vdo_completion *completion);
  * the one specified in the completion's callback_thread_id field), the
  * completion will be run immediately. Otherwise, the completion will be
  * enqueued on the correct callback thread.
+ *
+ * @param completion  The completion whose callback is to be invoked
+ * @param priority    The priority at which to enqueue the completion
  **/
-void invoke_vdo_completion_callback(struct vdo_completion *completion);
+void
+invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
+					     enum vdo_work_item_priority priority);
+
+/**
+ * Invoke the callback of a completion. If called on the correct thread (i.e.
+ * the one specified in the completion's callback_thread_id field), the
+ * completion will be run immediately. Otherwise, the completion will be
+ * enqueued on the correct callback thread.
+ *
+ * @param completion  The completion whose callback is to be invoked
+ **/
+static inline void
+invoke_vdo_completion_callback(struct vdo_completion *completion)
+{
+	invoke_vdo_completion_callback_with_priority(completion,
+						     VDO_REQ_Q_COMPLETION_PRIORITY);
+}
 
 /**
  * Continue processing a completion by setting the current result and calling

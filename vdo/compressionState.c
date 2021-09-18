@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#28 $
  */
 
 #include "compressionState.h"
@@ -141,9 +141,27 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 	}
 
 	if (data_vio->hash_lock == NULL) {
-		// data_vios without a hash_lock (which should be extremely
-		// rare) aren't able to share the packer's PBN lock, so don't
-		// try to compress them.
+		/*
+		 * data_vios without a hash_lock (which should be extremely
+		 * rare) aren't able to share the packer's PBN lock, so don't
+		 * try to compress them.
+                 */
+		set_vio_compression_done(data_vio);
+		return false;
+	}
+
+	/*
+	 * If the orignal bio was a discard, but we got this far because the
+	 * discard was a partial one (r/m/w), and it is part of a larger
+	 * discard, we cannot compress this vio. We need to make sure the vio
+	 * completes ASAP.
+         *
+         * XXX: given the hash lock bailout, is this even possible?
+	 */
+	if ((data_vio->user_bio != NULL) &&
+	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
+	    (data_vio->remaining_discard > 0)) {
+		set_vio_compression_done(data_vio);
 		return false;
 	}
 

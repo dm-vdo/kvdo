@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#43 $
  */
 
 #include "completion.h"
@@ -120,10 +120,12 @@ requires_enqueue(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void invoke_vdo_completion_callback(struct vdo_completion *completion)
+void
+invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
+					     enum vdo_work_item_priority priority)
 {
 	if (requires_enqueue(completion)) {
-		enqueue_vdo_completion(completion);
+		enqueue_vdo_completion_with_priority(completion, priority);
 		return;
 	}
 

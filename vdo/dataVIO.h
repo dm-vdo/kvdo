@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#96 $
  */
 
 #ifndef DATA_VIO_H
@@ -970,6 +970,59 @@ launch_data_vio_packer_callback(struct data_vio *data_vio,
 {
 	set_data_vio_packer_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+}
+
+/**
+ * Check that a data_vio is running on the packer thread
+ *
+ * @param data_vio The data_vio in question
+ **/
+static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
+{
+	thread_id_t cpu_thread =
+		get_thread_config_from_data_vio(data_vio)->cpu_thread;
+	thread_id_t thread_id = vdo_get_callback_thread_id();
+
+	ASSERT_LOG_ONLY((cpu_thread == thread_id),
+			"data_vio for logical block %llu on thread %u, should be on cpu thread %u",
+			(unsigned long long) data_vio->logical.lbn,
+			thread_id,
+			cpu_thread);
+}
+
+/**
+ * Set a callback as a CPU queue operation.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+set_data_vio_cpu_callback(struct data_vio *data_vio,
+			  vdo_action *callback)
+{
+	thread_id_t cpu_thread =
+		get_thread_config_from_data_vio(data_vio)->cpu_thread;
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    cpu_thread);
+}
+
+/**
+ * Set a callback to run on the CPU queues and invoke it immediately.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ * @param priority  The priority with which to run the callback
+ **/
+static inline void
+launch_data_vio_cpu_callback(struct data_vio *data_vio,
+			     vdo_action *callback,
+			     enum vdo_work_item_priority priority)
+{
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
+	set_data_vio_cpu_callback(data_vio, callback);
+	invoke_vdo_completion_callback_with_priority(completion, priority);
 }
 
 /**
