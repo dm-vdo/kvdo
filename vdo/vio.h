@@ -16,15 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#57 $
  */
 
 #ifndef VIO_H
 #define VIO_H
 
-#include <linux/kernel.h>
+#include <linux/kernel.h
+>
 #include "bio.h"
 #include "completion.h"
+#include "kernelTypes.h"
 #include "types.h"
 #include "vdo.h"
 

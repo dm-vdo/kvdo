@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#95 $
  */
 
 #include "ioSubmitter.h"
@@ -60,7 +60,6 @@ struct bio_queue_data {
 struct io_submitter {
 	unsigned int num_bio_queues_used;
 	unsigned int bio_queue_rotation_interval;
-	unsigned int bio_queue_rotor;
 	struct bio_queue_data bio_queue_data[];
 };
 
@@ -348,16 +347,6 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 }
 
 /**********************************************************************/
-static inline unsigned int advance_bio_rotor(struct io_submitter *bio_data)
-{
-	unsigned int index = bio_data->bio_queue_rotor++ %
-			     (bio_data->num_bio_queues_used *
-			      bio_data->bio_queue_rotation_interval);
-	index /= bio_data->bio_queue_rotation_interval;
-	return index;
-}
-
-/**********************************************************************/
 static int merge_to_prev_tail(struct int_map *bio_map,
 			      struct vio *vio,
 			      struct vio *prev_vio)
@@ -592,14 +581,4 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter)
 		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}
 	UDS_FREE(io_submitter);
-}
-
-/**********************************************************************/
-void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,
-			       struct vdo_work_item *work_item)
-{
-	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
-
-	enqueue_work_queue(io_submitter->bio_queue_data[bio_queue_index].queue,
-			   work_item);
 }

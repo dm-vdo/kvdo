@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#194 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#195 $
  */
 
 /*
@@ -38,6 +38,7 @@
 #include "hashZone.h"
 #include "header.h"
 #include "instanceNumber.h"
+#include "ioSubmitter.h"
 #include "logicalZone.h"
 #include "numUtils.h"
 #include "packer.h"
@@ -64,16 +65,9 @@
 #include "batchProcessor.h"
 #include "bufferPool.h"
 #include "dedupeIndex.h"
-#include "ioSubmitter.h"
 #include "kernelVDO.h"
 #include "vdoCommon.h"
 #include "workQueue.h"
-
-static const struct vdo_work_queue_type bio_ack_q_type = {
-	.start = NULL,
-	.finish = NULL,
-	.max_priority = BIO_ACK_Q_MAX_PRIORITY,
-};
 
 /**********************************************************************/
 static void start_vdo_request_queue(void *ptr)
@@ -96,6 +90,12 @@ static const struct vdo_work_queue_type request_queue_type = {
 	.start = start_vdo_request_queue,
 	.finish = finish_vdo_request_queue,
 	.max_priority = VDO_REQ_Q_MAX_PRIORITY,
+};
+
+static const struct vdo_work_queue_type bio_ack_q_type = {
+	.start = NULL,
+	.finish = NULL,
+	.max_priority = BIO_ACK_Q_MAX_PRIORITY,
 };
 
 /**********************************************************************/

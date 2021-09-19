@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#65 $
  */
 
 #ifndef VDO_H
@@ -61,11 +61,6 @@ struct vdo {
 	vdo_action *action;
 	struct vdo_completion *completion;
 
-	/**
-	 * Bio submission manager used for sending bios to the storage
-	 * device.
-	 **/
-	struct io_submitter *io_submitter;
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
 	/** The pool of data_vios for handling incoming bios */
@@ -123,6 +118,12 @@ struct vdo {
 
 	/* The hash lock zones of this vdo */
 	struct hash_zone **hash_zones;
+
+	/**
+	 * Bio submission manager used for sending bios to the storage
+	 * device.
+	 **/
+	struct io_submitter *io_submitter;
 
 	/* The completion for administrative operations */
 	struct admin_completion admin_completion;

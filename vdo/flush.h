@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#17 $
  */
 
 #ifndef FLUSH_H
 #define FLUSH_H
 
 #include "bio.h"
+#include "completion.h"
 #include "kernelTypes.h"
 #include "types.h"
 #include "waitQueue.h"
@@ -32,14 +33,10 @@
  * A marker for tracking which journal entries are affected by a flush request.
  **/
 struct vdo_flush {
-	/** The work item for enqueueing this flush request. */
-	struct vdo_work_item work_item;
-	/** The vdo to flush */
-	struct vdo *vdo;
+	/** The completion for enqueueing this flush request. */
+	struct vdo_completion completion;
 	/** The flush bios covered by this request */
 	struct bio_list bios;
-	/** Time when the earlier bio arrived */
-	uint64_t arrival_jiffies;
 	/** The wait queue entry for this flush */
 	struct waiter waiter;
 	/** Which flush this struct represents */
@@ -72,13 +69,6 @@ void free_vdo_flusher(struct flusher *flusher);
 thread_id_t __must_check get_vdo_flusher_thread_id(struct flusher *flusher);
 
 /**
- * Handle empty flush requests.
- *
- * @param item  A flush request (as a work_item)
- **/
-void flush_vdo(struct vdo_work_item *item);
-
-/**
  * Attempt to complete any flushes which might have finished.
  *
  * @param flusher  The flusher
@@ -91,13 +81,6 @@ void complete_vdo_flushes(struct flusher *flusher);
  * @param flusher  The flusher
  **/
 void dump_vdo_flusher(const struct flusher *flusher);
-
-/**
- * Complete and free a vdo flush request.
- *
- * @param flush  The flush request
- **/
-void vdo_complete_flush(struct vdo_flush *flush);
 
 /**
  * Function called to start processing a flush request. It is called when we

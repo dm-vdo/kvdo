@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#65 $
  */
 
 #include "flush.h"
@@ -63,8 +63,10 @@ struct flusher {
 	struct bio_list waiting_flush_bios;
 	/** The lock to protect the previous two fields */
 	spinlock_t lock;
-	/** When the longest waiting flush bio arrived */
-	uint64_t flush_arrival_jiffies;
+	/** The rotor for selecting the bio queue for submitting flush bios */
+	zone_count_t bio_queue_rotor;
+	/** The number of flushes submitted to the current bio queue */
+	int flush_count;
 };
 
 /**
@@ -79,6 +81,20 @@ static struct flusher *as_flusher(struct vdo_completion *completion)
 	assert_vdo_completion_type(completion->type,
 				   VDO_FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
+}
+
+/**
+ * Convert a generic vdo_completion to a vdo_flush.
+ *
+ * @param completion The completion to convert
+ *
+ * @return The completion as a vdo_flush
+ **/
+static inline struct vdo_flush *
+completion_as_vdo_flush(struct vdo_completion *completion)
+{
+	assert_vdo_completion_type(completion->type, VDO_FLUSH_COMPLETION);
+	return container_of(completion, struct vdo_flush, completion);
 }
 
 /**
@@ -109,9 +125,8 @@ int make_vdo_flusher(struct vdo *vdo)
 
 	spin_lock_init(&vdo->flusher->lock);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
-	result = UDS_ALLOCATE(1, struct vdo_flush, __func__,
-			      &vdo->flusher->spare_flush);
-	return result;
+	return UDS_ALLOCATE(1, struct vdo_flush, __func__,
+			    &vdo->flusher->spare_flush);
 }
 
 /**********************************************************************/
@@ -133,6 +148,7 @@ thread_id_t get_vdo_flusher_thread_id(struct flusher *flusher)
 
 /**********************************************************************/
 static void notify_flush(struct flusher *flusher);
+static void vdo_complete_flush(struct vdo_flush *flush);
 
 /**
  * Finish the notification process by checking if any flushes have completed
@@ -146,7 +162,6 @@ static void finish_notification(struct vdo_completion *completion)
 {
 	struct waiter *waiter;
 	int result;
-
 	struct flusher *flusher = as_flusher(completion);
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
@@ -225,6 +240,7 @@ static void notify_flush(struct flusher *flusher)
 	thread_id_t thread_id;
 	struct vdo_flush *flush =
 		waiter_as_flush(get_first_waiter(&flusher->notifiers));
+
 	flusher->notify_generation = flush->flush_generation;
 	flusher->logical_zone_to_notify =
 		get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
@@ -237,13 +253,16 @@ static void notify_flush(struct flusher *flusher)
 				       thread_id);
 }
 
-/**********************************************************************/
-void flush_vdo(struct vdo_work_item *item)
+/**
+ * Start processing a flush request. This callback is registered in
+ * launch_flush().
+ *
+ * @param completion  A flush request (as a vdo_completion)
+ **/
+static void flush_vdo(struct vdo_completion *completion)
 {
-	struct vdo_flush *flush = container_of(item,
-					       struct vdo_flush,
-					       work_item);
-	struct flusher *flusher = flush->vdo->flusher;
+	struct vdo_flush *flush = completion_as_vdo_flush(completion);
+	struct flusher *flusher = completion->vdo->flusher;
 	bool may_notify;
 	int result;
 
@@ -255,7 +274,7 @@ void flush_vdo(struct vdo_work_item *item)
 
 	result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(flush->vdo->read_only_notifier,
+		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
 					 result);
 		vdo_complete_flush(flush);
 		return;
@@ -323,7 +342,9 @@ void dump_vdo_flusher(const struct flusher *flusher)
  **/
 static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 {
-	flush->vdo = vdo;
+	initialize_vdo_completion(&flush->completion,
+				  vdo,
+				  VDO_FLUSH_COMPLETION);
 	bio_list_init(&flush->bios);
 	bio_list_merge(&flush->bios, &vdo->flusher->waiting_flush_bios);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
@@ -331,14 +352,17 @@ static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 }
 
 /**********************************************************************/
-static void enqueue_flush(struct vdo_flush *flush)
+static void launch_flush(struct vdo_flush *flush)
 {
-	setup_work_item(&flush->work_item,
-			flush_vdo,
-			VDO_REQ_Q_FLUSH_PRIORITY);
-	enqueue_vdo_work(flush->vdo,
-			 &flush->work_item,
-			 flush->vdo->flusher->thread_id);
+	struct vdo_completion *completion = &flush->completion;
+
+	prepare_vdo_completion(completion,
+			       flush_vdo,
+			       flush_vdo,
+			       completion->vdo->thread_config->packer_thread,
+			       NULL);
+	enqueue_vdo_completion_with_priority(completion,
+					     VDO_REQ_Q_FLUSH_PRIORITY);
 }
 
 /**********************************************************************/
@@ -346,7 +370,8 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 {
 	// Try to allocate a vdo_flush to represent the flush request. If the
 	// allocation fails, we'll deal with it later.
-	struct vdo_flush *flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+	struct vdo_flush *flush
+		= UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
 
 	spin_lock(&flusher->lock);
@@ -381,7 +406,7 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 	spin_unlock(&flusher->lock);
 
 	// Finish launching the flushes.
-	enqueue_flush(flush);
+	launch_flush(flush);
 }
 
 /**
@@ -395,8 +420,8 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
  **/
 static void release_flush(struct vdo_flush *flush)
 {
-	struct flusher *flusher = flush->vdo->flusher;
 	bool relaunch_flush = false;
+	struct flusher *flusher = flush->completion.vdo->flusher;
 
 	spin_lock(&flusher->lock);
 	if (bio_list_empty(&flusher->waiting_flush_bios)) {
@@ -417,7 +442,7 @@ static void release_flush(struct vdo_flush *flush)
 
 	if (relaunch_flush) {
 		// Finish launching the flushes.
-		enqueue_flush(flush);
+		launch_flush(flush);
 		return;
 	}
 
@@ -427,16 +452,15 @@ static void release_flush(struct vdo_flush *flush)
 }
 
 /**
- * Function called to complete and free a flush request
+ * Function called to complete and free a flush request, registered in
+ * vdo_complete_flush().
  *
- * @param item    The flush-request work item
+ * @param completion  The flush request
  **/
-static void vdo_complete_flush_work(struct vdo_work_item *item)
+static void vdo_complete_flush_callback(struct vdo_completion *completion)
 {
-	struct vdo_flush *flush = container_of(item,
-					       struct vdo_flush,
-					       work_item);
-	struct vdo *vdo = flush->vdo;
+	struct vdo_flush *flush = completion_as_vdo_flush(completion);
+	struct vdo *vdo = completion->vdo;
 	struct bio *bio;
 
 	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
@@ -445,7 +469,7 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 		vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 
 		// Update the device, and send it on down...
-		bio_set_dev(bio, get_vdo_backing_device(flush->vdo));
+		bio_set_dev(bio, get_vdo_backing_device(vdo));
 		atomic64_inc(&vdo->stats.flush_out);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 		generic_make_request(bio);
@@ -461,11 +485,45 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 	release_flush(flush);
 }
 
-/**********************************************************************/
-void vdo_complete_flush(struct vdo_flush *flush)
+/**
+ * Select the bio queue on which to finish a flush request.
+ *
+ * @param flusher  The flusher finishing the request
+ **/
+static thread_id_t select_bio_queue(struct flusher *flusher)
 {
-	setup_work_item(&flush->work_item,
-			vdo_complete_flush_work,
-			BIO_Q_FLUSH_PRIORITY);
-	vdo_enqueue_bio_work_item(flush->vdo->io_submitter, &flush->work_item);
+	struct vdo *vdo = flusher->vdo;
+	int interval;
+
+	if (flusher->vdo->thread_config->bio_thread_count == 1) {
+		return vdo->thread_config->bio_threads[0];
+	}
+
+	interval = vdo->device_config->thread_counts.bio_rotation_interval;
+	if (flusher->flush_count == interval) {
+		flusher->flush_count = 1;
+		flusher->bio_queue_rotor = ((flusher->bio_queue_rotor + 1)
+					    % interval);
+	} else {
+		flusher->flush_count++;
+	}
+
+	return vdo->thread_config->bio_threads[flusher->bio_queue_rotor];
+}
+
+/**
+ * Complete and free a vdo flush request.
+ *
+ * @param flush  The flush request
+ **/
+static void vdo_complete_flush(struct vdo_flush *flush)
+{
+	struct vdo_completion *completion = &flush->completion;
+
+	prepare_vdo_completion(completion,
+			       vdo_complete_flush_callback,
+			       vdo_complete_flush_callback,
+			       select_bio_queue(completion->vdo->flusher),
+			       NULL);
+	enqueue_vdo_completion_with_priority(completion, BIO_Q_FLUSH_PRIORITY);
 }

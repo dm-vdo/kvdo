@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#7 $
  */
 
 
@@ -423,6 +423,13 @@ int allocate_index(struct index_layout *layout,
 					      "could not make volume index");
 	}
 
+	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,
+					   NULL, index->volume_index);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+
 	*new_index = index;
 	return UDS_SUCCESS;
 }
@@ -449,13 +456,6 @@ int make_index(struct index_layout *layout,
 	index->callback = callback;
 
 	result = initialize_index_queues(index, config->geometry);
-	if (result != UDS_SUCCESS) {
-		free_index(index);
-		return result;
-	}
-
-	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,
-					   NULL, index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
