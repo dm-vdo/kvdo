@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#9 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#10 $
  */
 
 #include "indexLayout.h"
@@ -133,7 +133,6 @@ struct index_layout {
 	struct sub_index_layout index;
 	struct layout_region seal;
 	uint64_t total_blocks;
-	int ref_count;
 };
 
 /**
@@ -181,6 +180,9 @@ static int __must_check
 reconstitute_single_file_layout(struct index_layout *layout,
 				struct region_table *table,
 				uint64_t first_block);
+static int __must_check
+verify_uds_index_config(struct index_layout *layout,
+			struct configuration *config);
 static int __must_check
 write_index_save_layout(struct index_layout *layout,
 			struct index_save_layout *isl);
@@ -1185,7 +1187,8 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 }
 
 /**********************************************************************/
-static int load_index_layout(struct index_layout *layout)
+static int load_index_layout(struct index_layout *layout,
+			     struct configuration *config)
 {
 	struct buffered_reader *reader;
 	int result = open_uds_buffered_reader(layout->factory, layout->offset,
@@ -1212,7 +1215,8 @@ static int load_index_layout(struct index_layout *layout)
 		layout->index.saves = NULL;
 		return result;
 	}
-	return UDS_SUCCESS;
+
+	return verify_uds_index_config(layout, config);
 }
 
 /**********************************************************************/
@@ -1837,11 +1841,11 @@ save_single_file_layout(struct index_layout *layout, off_t offset)
 }
 
 /**********************************************************************/
-void put_uds_index_layout(struct index_layout *layout)
+void free_uds_index_layout(struct index_layout *layout)
 {
 	struct sub_index_layout *sil;
 
-	if ((layout == NULL) || (--layout->ref_count > 0)) {
+	if (layout == NULL) {
 		return;
 	}
 
@@ -1864,22 +1868,25 @@ void put_uds_index_layout(struct index_layout *layout)
 	UDS_FREE(layout);
 }
 
-/**********************************************************************/
-void get_uds_index_layout(struct index_layout *layout,
-			  struct index_layout **layout_ptr)
-{
-	++layout->ref_count;
-	*layout_ptr = layout;
-}
-
-/**********************************************************************/
-int write_uds_index_config(struct index_layout *layout,
-			   struct configuration *config,
-			   off_t offset)
+/**
+ * Write the index configuration.
+ *
+ * @param layout  the generic index layout
+ * @param config  the index configuration to write
+ * @param offset  A block offset to apply when writing the configuration
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int __must_check
+write_uds_index_config(struct index_layout *layout,
+		       struct configuration *config,
+		       off_t offset)
 {
 	struct buffered_writer *writer = NULL;
-	int result = open_layout_writer(layout, &layout->config,
-					offset, &writer);
+	int result = open_layout_writer(layout,
+					&layout->config,
+					offset,
+					&writer);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "failed to open config region");
@@ -1901,14 +1908,24 @@ int write_uds_index_config(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int verify_uds_index_config(struct index_layout *layout,
-			    struct configuration *config)
+/**
+ * Read the index configuration, and verify that it matches the given
+ * configuration.
+ *
+ * @param layout  the generic index layout
+ * @param config  the index configuration
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int __must_check
+verify_uds_index_config(struct index_layout *layout,
+			struct configuration *config)
 {
 	struct buffered_reader *reader = NULL;
 	uint64_t offset = layout->super.volume_offset -
 		layout->super.start_offset;
-	int result = open_layout_reader(layout, &layout->config,
+	int result = open_layout_reader(layout,
+					&layout->config,
 					offset,
 					&reader);
 	if (result != UDS_SUCCESS) {
@@ -2432,7 +2449,7 @@ int discard_uds_index_saves(struct index_layout *layout)
 
 /**********************************************************************/
 static int create_index_layout(struct index_layout *layout,
-			       const struct configuration *config)
+			       struct configuration *config)
 {
 	struct save_layout_sizes sizes;
 	int result;
@@ -2453,6 +2470,11 @@ static int create_index_layout(struct index_layout *layout,
 	}
 
 	result = save_single_file_layout(layout, 0);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = write_uds_index_config(layout, config, 0);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2622,7 +2644,7 @@ static int create_layout_factory(struct index_layout *layout,
 }
 
 /**********************************************************************/
-int make_uds_index_layout(const struct configuration *config,
+int make_uds_index_layout(struct configuration *config,
 			  bool new_layout,
 			  struct index_layout **layout_ptr)
 {
@@ -2639,11 +2661,10 @@ int make_uds_index_layout(const struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	layout->ref_count = 1;
 
 	result = create_layout_factory(layout, config, new_layout);
 	if (result != UDS_SUCCESS) {
-		put_uds_index_layout(layout);
+		free_uds_index_layout(layout);
 		return result;
 	}
 
@@ -2651,7 +2672,7 @@ int make_uds_index_layout(const struct configuration *config,
 		uds_log_error("index storage (%zu) is smaller than the required size %llu",
 			      layout->factory_size,
 			      (unsigned long long) sizes.total_size);
-		put_uds_index_layout(layout);
+		free_uds_index_layout(layout);
 		return -ENOSPC;
 	}
 
@@ -2660,10 +2681,10 @@ int make_uds_index_layout(const struct configuration *config,
 		result = create_index_layout(layout, config);
 	} else {
 		// Populate the layout from the saved index.
-		result = load_index_layout(layout);
+		result = load_index_layout(layout, config);
 	}
 	if (result != UDS_SUCCESS) {
-		put_uds_index_layout(layout);
+		free_uds_index_layout(layout);
 		return result;
 	}
 

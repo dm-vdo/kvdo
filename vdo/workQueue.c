@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#77 $
  */
 
 #include "workQueue.h"
@@ -33,12 +33,139 @@
 
 #include "statusCodes.h"
 
-#include "workQueueInternals.h"
-
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
-static void free_simple_work_queue(struct simple_work_queue *queue);
-static void finish_simple_work_queue(struct simple_work_queue *queue);
+/**
+ * Work queue definition.
+ *
+ * There are two types of work queues: simple, with one worker thread, and
+ * round-robin, which uses a group of the former to do the work, and assigns
+ * work to them in round-robin fashion (roughly). Externally, both are
+ * represented via the same common sub-structure, though there's actually not a
+ * great deal of overlap between the two types internally.
+ **/
+struct vdo_work_queue {
+	/** Name of just the work queue (e.g., "cpuQ12") */
+	char *name;
+	/**
+	 * Whether this is a round-robin work queue or a simple (one-thread)
+	 * work queue.
+	 **/
+	bool round_robin_mode;
+	/** The vdo "thread" owning this work queue */
+	struct vdo_thread *owner;
+	/** Life cycle functions, etc */
+	const struct vdo_work_queue_type *type;
+};
+
+struct simple_work_queue {
+	/** Common work queue bits */
+	struct vdo_work_queue common;
+	/** A copy of .thread->pid, for safety in the sysfs support */
+	pid_t thread_pid;
+	/**
+	 * Number of priorities actually used, so we don't keep re-checking
+	 * unused funnel queues.
+	 **/
+	unsigned int num_priority_lists;
+
+	/** The funnel queues */
+	struct funnel_queue *priority_lists[VDO_WORK_QUEUE_PRIORITY_COUNT];
+	/** The kernel thread */
+	struct task_struct *thread;
+	/** Opaque private data pointer, defined by higher level code */
+	void *private;
+	/** In a subordinate work queue, a link back to the round-robin parent
+	 */
+	struct vdo_work_queue *parent_queue;
+	/** Padding for cache line separation */
+	char pad[CACHE_LINE_BYTES - sizeof(struct vdo_work_queue *)];
+	/**
+	 * Lock protecting priority_map, num_priority_lists, started
+	 */
+	spinlock_t lock;
+	/** Any worker threads (zero or one) waiting for new work to do */
+	wait_queue_head_t waiting_worker_threads;
+	/**
+	 * Hack to reduce wakeup calls if the worker thread is running. See
+	 * comments in workQueue.c.
+	 *
+	 * There is a lot of redundancy with "first_wakeup", though, and the
+	 * pair should be re-examined.
+	 **/
+	atomic_t idle;
+	/** Wait list for synchronization during worker thread startup */
+	wait_queue_head_t start_waiters;
+	/** Worker thread status (boolean) */
+	bool started;
+
+	/**
+	 * Timestamp (ns) from the submitting thread that decided to wake us
+	 * up; also used as a flag to indicate whether a wakeup is needed.
+	 *
+	 * Written by submitting threads with atomic64_cmpxchg, and by the
+	 * worker thread setting to 0.
+	 *
+	 * If the value is 0, the worker is probably asleep; the submitting
+	 * thread stores a non-zero value and becomes responsible for calling
+	 * wake_up on the worker thread. If the value is non-zero, either the
+	 * worker is running or another thread has the responsibility for
+	 * issuing the wakeup.
+	 *
+	 * The "sleep" mode has periodic wakeups and the worker thread may
+	 * happen to wake up while a work item is being enqueued. If that
+	 * happens, the wakeup may be unneeded but will be attempted anyway.
+	 *
+	 * So the return value from cmpxchg(first_wakeup,0,nonzero) can always
+	 * be done, and will tell the submitting thread whether to issue the
+	 * wakeup or not; cmpxchg is atomic, so no other synchronization is
+	 * needed.
+	 *
+	 * A timestamp is used rather than, say, 1, so that the worker thread
+	 * could record stats on how long it takes to actually get the worker
+	 * thread running.
+	 *
+	 * There is some redundancy between this and "idle" above.
+	 **/
+	atomic64_t first_wakeup;
+	/** Padding for cache line separation */
+	char pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
+	/** Last time (ns) the scheduler actually woke us up */
+	uint64_t most_recent_wakeup;
+};
+
+struct round_robin_work_queue {
+	/** Common work queue bits */
+	struct vdo_work_queue common;
+	/** Simple work queues, for actually getting stuff done */
+	struct simple_work_queue **service_queues;
+	/** Number of subordinate work queues */
+	unsigned int num_service_queues;
+};
+
+static inline struct simple_work_queue *
+as_simple_work_queue(struct vdo_work_queue *queue)
+{
+	return ((queue == NULL) ?
+		 NULL :
+		 container_of(queue, struct simple_work_queue, common));
+}
+
+static inline const struct simple_work_queue *
+as_const_simple_work_queue(const struct vdo_work_queue *queue)
+{
+	return ((queue == NULL) ?
+		 NULL :
+		 container_of(queue, struct simple_work_queue, common));
+}
+
+static inline struct round_robin_work_queue *
+as_round_robin_work_queue(struct vdo_work_queue *queue)
+{
+	return ((queue == NULL) ?
+		 NULL :
+		 container_of(queue, struct round_robin_work_queue, common));
+}
 
 // Finding the simple_work_queue to actually operate on.
 
@@ -367,6 +494,59 @@ static int work_queue_runner(void *ptr)
 
 // Creation & teardown
 
+/**
+ * Tear down a simple work queue.
+ *
+ * @param queue  The work queue
+ **/
+static void free_simple_work_queue(struct simple_work_queue *queue)
+{
+	unsigned int i;
+
+	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
+		free_funnel_queue(queue->priority_lists[i]);
+	}
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
+}
+
+/**
+ * Tear down a round-robin work queue and its service queues.
+ *
+ * @param queue  The work queue
+ **/
+static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
+{
+	struct simple_work_queue **queue_table = queue->service_queues;
+	unsigned int count = queue->num_service_queues;
+	unsigned int i;
+
+	queue->service_queues = NULL;
+
+	for (i = 0; i < count; i++) {
+		free_simple_work_queue(queue_table[i]);
+	}
+	UDS_FREE(queue_table);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
+}
+
+/**********************************************************************/
+void free_work_queue(struct vdo_work_queue *queue)
+{
+	if (queue == NULL) {
+		return;
+	}
+
+	finish_work_queue(queue);
+
+	if (queue->round_robin_mode) {
+		free_round_robin_work_queue(as_round_robin_work_queue(queue));
+	} else {
+		free_simple_work_queue(as_simple_work_queue(queue));
+	}
+}
+
 /**********************************************************************/
 static bool queue_started(struct simple_work_queue *queue)
 {
@@ -606,59 +786,6 @@ void finish_work_queue(struct vdo_work_queue *queue)
 		finish_round_robin_work_queue(rrqueue);
 	} else {
 		finish_simple_work_queue(as_simple_work_queue(queue));
-	}
-}
-
-/**
- * Tear down a simple work queue.
- *
- * @param queue  The work queue
- **/
-static void free_simple_work_queue(struct simple_work_queue *queue)
-{
-	unsigned int i;
-
-	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
-		free_funnel_queue(queue->priority_lists[i]);
-	}
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
-}
-
-/**
- * Tear down a round-robin work queue and its service queues.
- *
- * @param queue  The work queue
- **/
-static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
-{
-	struct simple_work_queue **queue_table = queue->service_queues;
-	unsigned int count = queue->num_service_queues;
-	unsigned int i;
-
-	queue->service_queues = NULL;
-
-	for (i = 0; i < count; i++) {
-		free_simple_work_queue(queue_table[i]);
-	}
-	UDS_FREE(queue_table);
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
-}
-
-/**********************************************************************/
-void free_work_queue(struct vdo_work_queue *queue)
-{
-	if (queue == NULL) {
-		return;
-	}
-
-	finish_work_queue(queue);
-
-	if (queue->round_robin_mode) {
-		free_round_robin_work_queue(as_round_robin_work_queue(queue));
-	} else {
-		free_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 

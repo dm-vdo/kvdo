@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#8 $
  */
 
 #include "indexSession.h"
@@ -226,7 +226,6 @@ int uds_create_index_session(struct uds_index_session **session)
 static int initialize_index_session(struct uds_index_session *index_session,
 				    enum load_type load_type)
 {
-	struct index_layout *layout;
 	struct configuration *index_config;
 	int result;
 
@@ -237,28 +236,10 @@ static int initialize_index_session(struct uds_index_session *index_session,
 		return result;
 	}
 
-	result = make_uds_index_layout(index_config,
-				       load_type == LOAD_CREATE,
-				       &layout);
-	if (result != UDS_SUCCESS) {
-		free_configuration(index_config);
-		return result;
-	}
-
-	result = ((load_type == LOAD_CREATE) ?
-		  write_uds_index_config(layout, index_config, 0) :
-		  verify_uds_index_config(layout, index_config));
-	if (result != UDS_SUCCESS) {
-		put_uds_index_layout(layout);
-		free_configuration(index_config);
-		return result;
-	}
-
 	// Zero the stats for the new index.
 	memset(&index_session->stats, 0, sizeof(index_session->stats));
 
-	result = make_index(layout,
-			    index_config,
+	result = make_index(index_config,
 			    load_type,
 			    &index_session->load_context,
 			    enter_callback_stage,
@@ -269,7 +250,6 @@ static int initialize_index_session(struct uds_index_session *index_session,
 		log_uds_configuration(index_config);
 	}
 
-	put_uds_index_layout(layout);
 	free_configuration(index_config);
 	return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#8 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#9 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -39,26 +39,16 @@ struct index_layout;
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check make_uds_index_layout(const struct configuration *config,
+int __must_check make_uds_index_layout(struct configuration *config,
 				       bool new_layout,
 				       struct index_layout **layout_ptr);
 
 /**
- * Get another reference to an index layout, incrementing its use count.
+ * Free an index layout.
  *
- * @param layout      The index layout.
- * @param layout_ptr  Where the new layout pointer is being stored.
+ * @param layout  The layout to free
  **/
-void get_uds_index_layout(struct index_layout *layout,
-			  struct index_layout **layout_ptr);
-
-/**
- * Decrement the use count of an index layout.  If the count goes to zero, free
- * the index layout.
- *
- * @param layout  The layout to release or free
- **/
-void put_uds_index_layout(struct index_layout *layout);
+void free_uds_index_layout(struct index_layout *layout);
 
 /**********************************************************************/
 int __must_check cancel_uds_index_save(struct index_layout *layout,
@@ -147,18 +137,6 @@ int __must_check open_uds_volume_bufio(struct index_layout *layout,
 				       struct dm_bufio_client **client_ptr);
 
 /**
- * Read the index configuration, and verify that it matches the given
- * configuration.
- *
- * @param layout  the generic index layout
- * @param config  the index configuration
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check verify_uds_index_config(struct index_layout *layout,
-					 struct configuration *config);
-
-/**
  * Determine which index save slot to use for a new index save.
  *
  * Also allocates the volume index regions and the openChapter region.
@@ -172,19 +150,6 @@ int __must_check verify_uds_index_config(struct index_layout *layout,
 int __must_check setup_uds_index_save_slot(struct index_layout *layout,
 					   unsigned int num_zones,
 					   unsigned int *save_slot_ptr);
-
-/**
- * Write the index configuration.
- *
- * @param layout  the generic index layout
- * @param config  the index configuration to write
- * @param offset  A block offset to apply when writing the configuration
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check write_uds_index_config(struct index_layout *layout,
-					struct configuration *config,
-					off_t offset);
 
 /**
  * Get the index state buffer

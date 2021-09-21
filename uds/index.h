@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.h#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.h#4 $
  */
 
 #ifndef INDEX_H
@@ -77,7 +77,6 @@ struct uds_index {
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout	The index layout
  * @param config	The configuration to use
  * @param load_type	How to create the index:  it can be create only, allow
  *			loading from files, and allow rebuilding from the
@@ -88,8 +87,7 @@ struct uds_index {
  *
  * @return	   UDS_SUCCESS or an error code
  **/
-int __must_check make_index(struct index_layout *layout,
-			    const struct configuration *config,
+int __must_check make_index(struct configuration *config,
 			    enum load_type load_type,
 			    struct index_load_context *load_context,
 			    index_callback_t callback,
@@ -98,14 +96,14 @@ int __must_check make_index(struct index_layout *layout,
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout     The index layout to use
  * @param config     The configuration to use
+ * @param new        Whether this is a newly formatted index
  * @param new_index  A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check allocate_index(struct index_layout *layout,
-				const struct configuration *config,
+int __must_check allocate_index(struct configuration *config,
+				bool new,
 				struct uds_index **new_index);
 
 /**
