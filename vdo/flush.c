@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#66 $
  */
 
 #include "flush.h"
@@ -348,7 +348,6 @@ static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 	bio_list_init(&flush->bios);
 	bio_list_merge(&flush->bios, &vdo->flusher->waiting_flush_bios);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
-	flush->arrival_jiffies = vdo->flusher->flush_arrival_jiffies;
 }
 
 /**********************************************************************/
@@ -376,12 +375,7 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 
 	spin_lock(&flusher->lock);
 
-	// We have a new bio to start. Add it to the list. If it becomes the
-	// only entry on the list, record the time.
-	if (bio_list_empty(&flusher->waiting_flush_bios)) {
-		flusher->flush_arrival_jiffies = jiffies;
-	}
-
+	// We have a new bio to start. Add it to the list.
 	bio_list_add(&flusher->waiting_flush_bios, bio);
 
 	if (flush == NULL) {
