@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#23 $
  */
 
 #include "poolSysfs.h"
@@ -221,39 +221,4 @@ struct kobj_type vdo_directory_type = {
 	.release = vdo_pool_release,
 	.sysfs_ops = &vdo_pool_sysfs_ops,
 	.default_attrs = pool_attrs,
-};
-
-/**********************************************************************/
-static void work_queue_directory_release(struct kobject *kobj)
-{
-	/*
-	 * The work_queue_directory holds an implicit reference to its parent,
-	 * the VDO object (->kobj), so even if there are some external
-	 * references held to the work_queue_directory when work queue
-	 * shutdown calls kobject_put on the VDO object, the VDO object won't
-	 * actually be released and won't free the VDO storage until the
-	 * work_queue_directory object is released first.
-	 *
-	 * So, we don't need to do any additional explicit management here.
-	 *
-	 * (But we aren't allowed to use a NULL function pointer to indicate
-	 * a no-op.)
-	 */
-}
-
-/**********************************************************************/
-static struct attribute *no_attrs[] = {
-	NULL,
-};
-
-static struct sysfs_ops no_sysfs_ops = {
-	// These should never be reachable since there are no attributes.
-	.show = NULL,
-	.store = NULL,
-};
-
-struct kobj_type vdo_work_queue_directory_type = {
-	.release = work_queue_directory_release,
-	.sysfs_ops = &no_sysfs_ops,
-	.default_attrs = no_attrs,
 };

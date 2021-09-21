@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#31 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
 #define VDO_WORK_QUEUE_H
 
-#include <linux/kobject.h>
 #include <linux/sched.h> /* for TASK_COMM_LEN */
 
 #include "util/funnelQueue.h"
@@ -87,7 +86,6 @@ struct vdo_work_queue_type {
  *
  * @param [in]  thread_name_prefix  The per-device prefix to use in thread names
  * @param [in]  name                The queue name
- * @param [in]  parent_kobject      The parent sysfs node
  * @param [in]  owner               The vdo "thread" correpsonding to this queue
  * @param [in]  type                The work queue type defining the lifecycle
  *                                  functions, priorities, and timeout behavior
@@ -100,7 +98,6 @@ struct vdo_work_queue_type {
  **/
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
-		    struct kobject *parent_kobject,
 		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#195 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#196 $
  */
 
 /*
@@ -130,7 +130,6 @@ int make_vdo_thread(struct vdo *vdo,
 			    sizeof(queue_name));
 	return make_work_queue(thread_name_prefix,
 			       queue_name,
-			       &vdo->work_queue_directory,
 			       thread,
 			       type,
 			       queue_count,
@@ -461,7 +460,6 @@ void destroy_vdo(struct vdo *vdo)
 	    == VDO_ADMIN_STATE_NEW) {
 		UDS_FREE(vdo);
 	} else {
-		kobject_put(&vdo->work_queue_directory);
 		kobject_put(&vdo->vdo_directory);
 	}
 }

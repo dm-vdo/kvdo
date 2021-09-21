@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#78 $
  */
 
 #include "workQueue.h"
@@ -565,7 +565,6 @@ static bool queue_started(struct simple_work_queue *queue)
  *
  * @param [in]  thread_name_prefix  The per-device prefix to use in thread names
  * @param [in]  name                The queue name
- * @param [in]  parent_kobject      The parent sysfs node
  * @param [in]  owner               The VDO owning the work queue
  * @param [in]  private             Private data of the queue for use by work
  *                                  items or other queue-specific functions
@@ -577,7 +576,6 @@ static bool queue_started(struct simple_work_queue *queue)
  **/
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
-				  struct kobject *parent_kobject __maybe_unused,
 				  struct vdo_thread *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
@@ -655,7 +653,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 /**********************************************************************/
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
-		    struct kobject *parent_kobject __maybe_unused,
 		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -674,7 +671,6 @@ int make_work_queue(const char *thread_name_prefix,
 				 : NULL);
 		result = make_simple_work_queue(thread_name_prefix,
 						name,
-						parent_kobject,
 						owner,
 						context,
 						type,
@@ -720,7 +716,6 @@ int make_work_queue(const char *thread_name_prefix,
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
-						NULL,
 						owner,
 						context,
 						type,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.h#5 $
  */
 
 #ifndef POOL_SYSFS_H
@@ -26,8 +26,6 @@
 
 // The kobj_type used for setting up the kernel layer kobject.
 extern struct kobj_type vdo_directory_type;
-// The kobj_type used for the "work_queues" subdirectory.
-extern struct kobj_type vdo_work_queue_directory_type;
 
 // The sysfs_ops used for the "statistics" subdirectory.
 extern struct sysfs_ops vdo_pool_stats_sysfs_ops;

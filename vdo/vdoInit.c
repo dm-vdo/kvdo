@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#29 $
  */
 
 #include "vdoInit.h"
@@ -78,16 +78,6 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 	// directory in order to free the vdo rather than doing so directly.
 	set_vdo_admin_state_code(&vdo->admin_state,
 				 VDO_ADMIN_STATE_INITIALIZED);
-	kobject_init(&vdo->work_queue_directory,
-		     &vdo_work_queue_directory_type);
-	result = kobject_add(&vdo->work_queue_directory,
-			     &vdo->vdo_directory,
-			     "work_queues");
-	if (result != 0) {
-		*reason = "Cannot add sysfs node";
-		destroy_vdo(vdo);
-		return result;
-	}
 
 	return VDO_SUCCESS;
 }
