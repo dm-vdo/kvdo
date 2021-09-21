@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#26 $
  */
 
 #include "threadConfig.h"
@@ -119,7 +119,8 @@ int make_vdo_thread_config(struct thread_count_config counts,
 						1,
 						1,
 						1,
-						counts.bio_threads,&config);
+						counts.bio_threads,
+						&config);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -205,7 +206,8 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 			 char *buffer,
 			 size_t buffer_length)
 {
-	if (thread_config->base_thread_count == 1) {
+	if ((thread_config->base_thread_count == 1)
+	    && (thread_id == 0)) {
 		// Historically this was the "request queue" thread.
 		snprintf(buffer, buffer_length, "reqQ");
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#7 $
  */
 
 #include "deviceConfig.h"
@@ -27,29 +27,14 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
+#include "constants.h"
 #include "types.h"
 #include "vdo.h"
-
 #include "vdoStringUtils.h"
-
-#include "constants.h"
 
 enum {
 	// If we bump this, update the arrays below
 	TABLE_VERSION = 4,
-	// Limits used when parsing thread-count config spec strings
-	BIO_ROTATION_INTERVAL_LIMIT = 1024,
-	LOGICAL_THREAD_COUNT_LIMIT = 60,
-	PHYSICAL_THREAD_COUNT_LIMIT = 16,
-	THREAD_COUNT_LIMIT = 100,
-	// XXX The bio-submission queue configuration defaults are temporarily
-	// still being defined here until the new runtime-based thread
-	// configuration has been fully implemented for managed VDO devices.
-
-	// How many bio submission work queues to use
-	DEFAULT_NUM_BIO_SUBMIT_QUEUES = 4,
-	// How often to rotate between bio submission work queues
-	DEFAULT_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL = 64,
 };
 
 // arrays for handling different table versions
@@ -160,34 +145,34 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		if (count == 0) {
 			uds_log_error("thread config string error:  'bioRotationInterval' of at least 1 is required");
 			return -EINVAL;
-		} else if (count > BIO_ROTATION_INTERVAL_LIMIT) {
+		} else if (count > VDO_BIO_ROTATION_INTERVAL_LIMIT) {
 			uds_log_error("thread config string error: 'bioRotationInterval' cannot be higher than %d",
-				      BIO_ROTATION_INTERVAL_LIMIT);
+				      VDO_BIO_ROTATION_INTERVAL_LIMIT);
 			return -EINVAL;
 		}
 		config->bio_rotation_interval = count;
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "logical") == 0) {
-		if (count > LOGICAL_THREAD_COUNT_LIMIT) {
+		if (count > MAX_VDO_LOGICAL_ZONES) {
 			uds_log_error("thread config string error: at most %d 'logical' threads are allowed",
-				      LOGICAL_THREAD_COUNT_LIMIT);
+				      MAX_VDO_LOGICAL_ZONES);
 			return -EINVAL;
 		}
 		config->logical_zones = count;
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "physical") == 0) {
-		if (count > PHYSICAL_THREAD_COUNT_LIMIT) {
+		if (count > MAX_VDO_PHYSICAL_ZONES) {
 			uds_log_error("thread config string error: at most %d 'physical' threads are allowed",
-				      PHYSICAL_THREAD_COUNT_LIMIT);
+				      MAX_VDO_PHYSICAL_ZONES);
 			return -EINVAL;
 		}
 		config->physical_zones = count;
 		return VDO_SUCCESS;
 	} else {
 		// Handle other thread count parameters
-		if (count > THREAD_COUNT_LIMIT) {
+		if (count > MAXIMUM_VDO_THREADS) {
 			uds_log_error("thread config string error: at most %d '%s' threads are allowed",
-				      THREAD_COUNT_LIMIT,
+				      MAXIMUM_VDO_THREADS,
 				      thread_param_type);
 			return -EINVAL;
 		}
@@ -530,9 +515,9 @@ int parse_vdo_device_config(int argc,
 	// those needed for VDO in its default shipped-product state.
 	config->thread_counts = (struct thread_count_config) {
 		.bio_ack_threads = 1,
-		.bio_threads = DEFAULT_NUM_BIO_SUBMIT_QUEUES,
+		.bio_threads = DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT,
 		.bio_rotation_interval =
-			DEFAULT_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL,
+			DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL,
 		.cpu_threads = 1,
 		.logical_zones = 0,
 		.physical_zones = 0,

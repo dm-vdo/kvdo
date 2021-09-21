@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#7 $
  */
 
 #ifndef CONSTANTS_H
@@ -27,6 +27,12 @@
 #include "types.h"
 
 enum {
+	/**
+         * The maximum number of contiguous PBNs which will go to a single
+         * bio submission queue, assuming there is more than one queue.
+         **/
+	VDO_BIO_ROTATION_INTERVAL_LIMIT = 1024,
+
 	/** The number of entries on a block map page */
 	VDO_BLOCK_MAP_ENTRIES_PER_PAGE = 812,
 
@@ -39,6 +45,14 @@ enum {
 	 * logical space.
 	 **/
 	VDO_BLOCK_MAP_TREE_HEIGHT = 5,
+
+	/** The default number of bio submission queues. */
+	DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT = 4,
+
+	/**
+         * The number of contiguous PBNs to be submitted to a single bio queue.
+	 **/
+	DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL = 64,
 
 	/** The number of trees in the arboreal block map */
 	DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT = 60,
@@ -74,6 +88,11 @@ enum {
 	 * recovery or rebuild.
 	 **/
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
+
+	/**
+         * The maximum number of total threads in a VDO thread configuration.
+         **/
+	MAXIMUM_VDO_THREADS = 100,
 
 	/** The maximum number of VIOs in the system at once */
 	MAXIMUM_VDO_USER_VIOS = 2048,
