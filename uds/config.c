@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.c#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.c#6 $
  */
 
 #include "config.h"
@@ -25,12 +25,15 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "stringUtils.h"
+#include "uds-threads.h"
 
 static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";
 static const byte INDEX_CONFIG_VERSION_6_02[] = "06.02";
 static const byte INDEX_CONFIG_VERSION_8_02[] = "08.02";
 
 enum {
+	DEFAULT_VOLUME_READ_THREADS = 2,
+	MAX_VOLUME_READ_THREADS = 16,
 	INDEX_CONFIG_MAGIC_LENGTH = sizeof(INDEX_CONFIG_MAGIC) - 1,
 	INDEX_CONFIG_VERSION_LENGTH = sizeof(INDEX_CONFIG_VERSION_6_02) - 1
 };
@@ -557,6 +560,44 @@ static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
         return UDS_SUCCESS;
 }
 
+/**
+ * Compute the number of zones to use.
+ *
+ * @param requested  The requested number of zones
+ *
+ * @return the actual number of zones to use
+ **/
+static unsigned int __must_check normalize_zone_count(unsigned int requested)
+{
+	unsigned int zone_count = requested;
+	if (zone_count == 0) {
+		zone_count = uds_get_num_cores() / 2;
+	}
+	if (zone_count < 1) {
+		zone_count = 1;
+	}
+	if (zone_count > MAX_ZONES) {
+		zone_count = MAX_ZONES;
+	}
+	uds_log_info("Using %u indexing zone%s for concurrency.",
+		     zone_count,
+		     zone_count == 1 ? "" : "s");
+	return zone_count;
+}
+
+/**********************************************************************/
+static unsigned int __must_check normalize_read_threads(unsigned int requested)
+{
+	unsigned int read_threads = requested;
+	if (read_threads < 1) {
+		read_threads = DEFAULT_VOLUME_READ_THREADS;
+	}
+	if (read_threads > MAX_VOLUME_READ_THREADS) {
+		read_threads = MAX_VOLUME_READ_THREADS;
+	}
+	return read_threads;
+}
+
 /**********************************************************************/
 int make_configuration(const struct uds_configuration *conf,
 		       struct configuration **config_ptr)
@@ -592,6 +633,9 @@ int make_configuration(const struct uds_configuration *conf,
 		free_configuration(config);
 		return result;
 	}
+
+	config->zone_count = normalize_zone_count(conf->zone_count);
+	config->read_threads = normalize_read_threads(conf->read_threads);
 
 	config->cache_chapters = DEFAULT_CACHE_CHAPTERS;
 	config->volume_index_mean_delta =

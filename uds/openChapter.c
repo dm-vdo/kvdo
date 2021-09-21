@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/openChapter.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/openChapter.c#3 $
  */
 
 #include "openChapter.h"
 
 #include "compiler.h"
+#include "config.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
-#include "zone.h"
 
 static int read_open_chapters(struct read_portal *portal);
 static int write_open_chapters(struct index_component *component,

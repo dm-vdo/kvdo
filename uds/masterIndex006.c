@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndex006.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndex006.c#2 $
  */
 #include "masterIndex006.h"
 
@@ -29,7 +29,6 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "uds-threads.h"
-#include "uds.h"
 
 /*
  * The volume index is a kept as a wrapper around 2 volume index
@@ -771,7 +770,6 @@ int compute_volume_index_save_bytes006(const struct configuration *config,
 
 /**********************************************************************/
 int make_volume_index006(const struct configuration *config,
-			 unsigned int num_zones,
 			 uint64_t volume_nonce,
 			 struct volume_index **volume_index)
 {
@@ -818,14 +816,14 @@ int make_volume_index006(const struct configuration *config,
 		start_restoring_volume_index_006;
 	vi6->common.start_saving_volume_index = start_saving_volume_index_006;
 
-	vi6->num_zones = num_zones;
+	vi6->num_zones = config->zone_count;
 	vi6->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = UDS_ALLOCATE(num_zones,
+	result = UDS_ALLOCATE(config->zone_count,
 			      struct volume_index_zone,
 			      "volume index zones",
 			      &vi6->zones);
-	for (zone = 0; zone < num_zones; zone++) {
+	for (zone = 0; zone < config->zone_count; zone++) {
 		if (result == UDS_SUCCESS) {
 			result = uds_init_mutex(&vi6->zones[zone].hook_mutex);
 		}
@@ -836,7 +834,6 @@ int make_volume_index006(const struct configuration *config,
 	}
 
 	result = make_volume_index005(&split.non_hook_config,
-				      num_zones,
 				      volume_nonce,
 				      &vi6->vi_non_hook);
 	if (result != UDS_SUCCESS) {
@@ -846,8 +843,9 @@ int make_volume_index006(const struct configuration *config,
 	}
 	set_volume_index_tag(vi6->vi_non_hook, 'd');
 
-	result = make_volume_index005(&split.hook_config, num_zones,
-				      volume_nonce, &vi6->vi_hook);
+	result = make_volume_index005(&split.hook_config,
+				      volume_nonce,
+				      &vi6->vi_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index_006(&vi6->common);
 		return uds_log_error_strerror(result,

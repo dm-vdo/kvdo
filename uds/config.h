@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#7 $
  */
 
 #ifndef CONFIG_H
@@ -31,6 +31,7 @@ enum {
 	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
 	DEFAULT_CACHE_CHAPTERS = 7,
 	DEFAULT_SPARSE_SAMPLE_RATE = 32,
+	MAX_ZONES = 16,
 };
 
 /**
@@ -47,6 +48,12 @@ struct configuration {
 
 	/** Index owner's nonce */
 	uds_nonce_t nonce;
+
+	/* The number of threads used to process index requests */
+	unsigned int zone_count;
+
+	/* The number of threads used to read volume pages */
+	unsigned int read_threads;
 
 	/*
 	 * Size of the page cache and sparse chapter index cache, in
@@ -75,6 +82,10 @@ struct uds_configuration {
 	bool sparse;
 	/** A 64-bit nonce to validate the index */
 	uds_nonce_t nonce;
+	/** The number of threads used to process index requests */
+	unsigned int zone_count;
+	/** The number of threads used to read volume pages */
+	unsigned int read_threads;
 };
 
 /**

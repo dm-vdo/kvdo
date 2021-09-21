@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/pageCache.c#5 $
  */
 
 #include "pageCache.h"
@@ -26,6 +26,7 @@
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
+#include "config.h"
 #include "errors.h"
 #include "geometry.h"
 #include "hashUtils.h"
@@ -35,7 +36,6 @@
 #include "recordPage.h"
 #include "stringUtils.h"
 #include "uds-threads.h"
-#include "zone.h"
 
 /**********************************************************************/
 int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)

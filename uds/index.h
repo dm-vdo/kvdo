@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.h#3 $
  */
 
 #ifndef INDEX_H
@@ -79,8 +79,6 @@ struct uds_index {
  *
  * @param layout	The index layout
  * @param config	The configuration to use
- * @param user_params	The index session parameters.  If NULL, the default
- *			session parameters will be used.
  * @param load_type	How to create the index:  it can be create only, allow
  *			loading from files, and allow rebuilding from the
  *			volume
@@ -92,7 +90,6 @@ struct uds_index {
  **/
 int __must_check make_index(struct index_layout *layout,
 			    const struct configuration *config,
-			    const struct uds_parameters *user_params,
 			    enum load_type load_type,
 			    struct index_load_context *load_context,
 			    index_callback_t callback,
@@ -101,19 +98,14 @@ int __must_check make_index(struct index_layout *layout,
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout       The index layout to use
- * @param config       The configuration to use
- * @param user_params  The index session parameters.  If NULL, the default
- *                     session parameters will be used.
- * @param zone_count   The number of zones for this index to use
- * @param new_index    A pointer to hold a pointer to the new index
+ * @param layout     The index layout to use
+ * @param config     The configuration to use
+ * @param new_index  A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check allocate_index(struct index_layout *layout,
 				const struct configuration *config,
-				const struct uds_parameters *user_params,
-				unsigned int zone_count,
 				struct uds_index **new_index);
 
 /**

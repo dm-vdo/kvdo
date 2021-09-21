@@ -16,19 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndex005.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndex005.c#2 $
  */
 #include "masterIndex005.h"
 
 #include "buffer.h"
 #include "compiler.h"
+#include "config.h"
 #include "errors.h"
 #include "geometry.h"
 #include "hashUtils.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "uds.h"
-#include "zone.h"
 
 /*
  * The volume index is a kept as a delta index where the payload is a
@@ -1525,12 +1525,12 @@ int compute_volume_index_save_bytes005(const struct configuration *config,
 
 /**********************************************************************/
 int make_volume_index005(const struct configuration *config,
-			 unsigned int num_zones,
 			 uint64_t volume_nonce,
 			 struct volume_index **volume_index)
 {
 	struct volume_index5 *vi5;
 	struct parameters005 params = { .address_bits = 0 };
+	unsigned int num_zones = config->zone_count;
 	int result = compute_volume_index_parameters005(config, &params);
 	if (result != UDS_SUCCESS) {
 		return result;

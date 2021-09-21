@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.c#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.c#6 $
  */
 
 #include "volume.h"
@@ -38,26 +38,8 @@
 #include "uds-threads.h"
 
 enum {
-	MAX_BAD_CHAPTERS = 100,           // max number of contiguous bad
-					  // chapters
-	DEFAULT_VOLUME_READ_THREADS = 2,  // Default number of reader threads
-	MAX_VOLUME_READ_THREADS = 16,     // Maximum number of reader threads
+	MAX_BAD_CHAPTERS = 100,  // max number of contiguous bad chapters
 };
-
-/**********************************************************************/
-static unsigned int get_read_threads(const struct uds_parameters *user_params)
-{
-	unsigned int read_threads =
-		(user_params == NULL ? DEFAULT_VOLUME_READ_THREADS :
-				       user_params->read_threads);
-	if (read_threads < 1) {
-		read_threads = DEFAULT_VOLUME_READ_THREADS;
-	}
-	if (read_threads > MAX_VOLUME_READ_THREADS) {
-		read_threads = MAX_VOLUME_READ_THREADS;
-	}
-	return read_threads;
-}
 
 /**********************************************************************/
 static INLINE unsigned int map_to_page_number(struct geometry *geometry,
@@ -1387,24 +1369,22 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
  *
  * @param config      The configuration to use
  * @param layout      The index layout
- * @param zone_count  The number of zones to use
  * @param new_volume  A pointer to hold the new volume
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int __must_check allocate_volume(const struct configuration *config,
 					struct index_layout *layout,
-					unsigned int zone_count,
 					struct volume **new_volume)
 {
 	struct volume *volume;
+        struct geometry *geometry;
 	unsigned int reserved_buffers;
 	int result = UDS_ALLOCATE(1, struct volume, "volume", &volume);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	volume->nonce = get_uds_volume_nonce(layout);
-	// It is safe to call free_volume now to clean up and close the volume
 
 	result = copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
@@ -1412,40 +1392,41 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return uds_log_warning_strerror(result,
 						"failed to allocate geometry: error");
 	}
+	geometry = volume->geometry;
 
 	// Need a buffer for each entry in the page cache
 	reserved_buffers = config->cache_chapters *
-		config->geometry->record_pages_per_chapter;
+		geometry->record_pages_per_chapter;
 	// And a buffer for the chapter writer
 	reserved_buffers += 1;
 	// And a buffer for each entry in the sparse cache
-	if (is_sparse(volume->geometry)) {
+	if (is_sparse(geometry)) {
 		reserved_buffers += config->cache_chapters *
-				    config->geometry->index_pages_per_chapter;
+				    geometry->index_pages_per_chapter;
 	}
 	result = open_volume_store(&volume->volume_store,
 				   layout,
 				   reserved_buffers,
-				   config->geometry->bytes_per_page);
+				   geometry->bytes_per_page);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
-	result = initialize_volume_page(config->geometry->bytes_per_page,
+	result = initialize_volume_page(geometry->bytes_per_page,
 					&volume->scratch_page);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
 
-	result = make_radix_sorter(config->geometry->records_per_page,
+	result = make_radix_sorter(geometry->records_per_page,
 				   &volume->radix_sorter);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
 
-	result = UDS_ALLOCATE(config->geometry->records_per_page,
+	result = UDS_ALLOCATE(geometry->records_per_page,
 			      const struct uds_chunk_record *,
 			      "record pointers",
 			      &volume->record_pointers);
@@ -1454,26 +1435,25 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
-	if (is_sparse(volume->geometry)) {
-		result = make_sparse_cache(volume->geometry,
+	if (is_sparse(geometry)) {
+		result = make_sparse_cache(geometry,
 					   config->cache_chapters,
-					   zone_count,
+					   config->zone_count,
 					   &volume->sparse_cache);
 		if (result != UDS_SUCCESS) {
 			free_volume(volume);
 			return result;
 		}
 	}
-	result = make_page_cache(volume->geometry,
+	result = make_page_cache(geometry,
 				 config->cache_chapters,
-				 zone_count,
+				 config->zone_count,
 				 &volume->page_cache);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
-	result =
-		make_index_page_map(volume->geometry, &volume->index_page_map);
+	result = make_index_page_map(geometry, &volume->index_page_map);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1486,16 +1466,13 @@ static int __must_check allocate_volume(const struct configuration *config,
 /**********************************************************************/
 int make_volume(const struct configuration *config,
 		struct index_layout *layout,
-		const struct uds_parameters *user_params,
-		unsigned int zone_count,
 		struct volume **new_volume)
 {
 	unsigned int i;
-	unsigned int volume_read_threads = get_read_threads(user_params);
 	struct volume *volume = NULL;
 	int result;
 
-	result = allocate_volume(config, layout, zone_count, &volume);
+	result = allocate_volume(config, layout, &volume);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1517,7 +1494,7 @@ int make_volume(const struct configuration *config,
 
 	// Start the reader threads.  If this allocation succeeds, free_volume
 	// knows that it needs to try and stop those threads.
-	result = UDS_ALLOCATE(volume_read_threads,
+	result = UDS_ALLOCATE(config->read_threads,
 			      struct thread *,
 			      "reader threads",
 			      &volume->reader_threads);
@@ -1525,7 +1502,7 @@ int make_volume(const struct configuration *config,
 		free_volume(volume);
 		return result;
 	}
-	for (i = 0; i < volume_read_threads; i++) {
+	for (i = 0; i < config->read_threads; i++) {
 		result = uds_create_thread(read_thread_function,
 					   (void *) volume,
 					   "reader",

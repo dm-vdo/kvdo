@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.h#3 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -151,14 +151,12 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
  * Make a new volume index.
  *
  * @param config        The configuration of the volume index
- * @param num_zones     The number of zones
  * @param volume_nonce  The nonce used to store the index
  * @param volume_index  Location to hold new volume index ptr
  *
  * @return error code or UDS_SUCCESS
  **/
 int __must_check make_volume_index(const struct configuration *config,
-				   unsigned int num_zones,
 				   uint64_t volume_nonce,
 				   struct volume_index **volume_index);
 

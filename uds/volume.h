@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.h#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.h#5 $
  */
 
 #ifndef VOLUME_H
@@ -99,19 +99,14 @@ struct volume {
 /**
  * Create a volume.
  *
- * @param config       The configuration to use.
- * @param layout       The index layout
- * @param user_params  The index session parameters.  If NULL, the
- *                     default session parameters will be used.
- * @param zone_count   The number of zones to use.
- * @param new_volume   A pointer to hold a pointer to the new volume.
+ * @param config      The configuration to use.
+ * @param layout      The index layout
+ * @param new_volume  A pointer to hold a pointer to the new volume.
  *
  * @return          UDS_SUCCESS or an error code
  **/
 int __must_check make_volume(const struct configuration *config,
 			     struct index_layout *layout,
-			     const struct uds_parameters *user_params,
-			     unsigned int zone_count,
 			     struct volume **new_volume);
 
 /**

@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/deltaIndex.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/deltaIndex.c#2 $
  */
 #include "deltaIndex.h"
 
 #include "bits.h"
 #include "buffer.h"
 #include "compiler.h"
+#include "config.h"
 #include "cpu.h"
 #include "errors.h"
 #include "logger.h"
@@ -31,7 +32,6 @@
 #include "stringUtils.h"
 #include "typeDefs.h"
 #include "uds.h"
-#include "zone.h"
 
 /*
  * A delta index is a key-value store, where each entry maps an address

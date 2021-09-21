@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#8 $
  */
 
 
@@ -27,7 +27,6 @@
 #include "logger.h"
 #include "openChapter.h"
 #include "requestQueue.h"
-#include "zone.h"
 
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 static const uint64_t NO_LAST_SAVE = UINT_MAX;
@@ -344,8 +343,6 @@ static int rebuild_index(struct uds_index *index)
 /**********************************************************************/
 int allocate_index(struct index_layout *layout,
 		   const struct configuration *config,
-		   const struct uds_parameters *user_params,
-		   unsigned int zone_count,
 		   struct uds_index **new_index)
 {
 	struct uds_index *index;
@@ -354,7 +351,7 @@ int allocate_index(struct index_layout *layout,
 	unsigned int i;
 
 	result = UDS_ALLOCATE_EXTENDED(struct uds_index,
-				       zone_count,
+				       config->zone_count,
 				       struct uds_request_queue *,
 				       "index",
 				       &index);
@@ -365,7 +362,7 @@ int allocate_index(struct index_layout *layout,
 	index->loaded_type = LOAD_UNDEFINED;
 
 	get_uds_index_layout(layout, &index->layout);
-	index->zone_count = zone_count;
+	index->zone_count = config->zone_count;
 
 	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones",
 			      &index->zones);
@@ -388,9 +385,7 @@ int allocate_index(struct index_layout *layout,
 		return result;
 	}
 
-	result = make_volume(config, index->layout,
-			     user_params,
-			     index->zone_count, &index->volume);
+	result = make_volume(config, index->layout, &index->volume);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -415,8 +410,7 @@ int allocate_index(struct index_layout *layout,
 	}
 
 	nonce = get_uds_volume_nonce(layout);
-	result = make_volume_index(config, zone_count, nonce,
-				   &index->volume_index);
+	result = make_volume_index(config, nonce, &index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return uds_log_error_strerror(result,
@@ -437,16 +431,13 @@ int allocate_index(struct index_layout *layout,
 /**********************************************************************/
 int make_index(struct index_layout *layout,
 	       const struct configuration *config,
-	       const struct uds_parameters *user_params,
 	       enum load_type load_type,
 	       struct index_load_context *load_context,
 	       index_callback_t callback,
 	       struct uds_index **new_index)
 {
 	struct uds_index *index;
-	unsigned int zone_count = get_zone_count(user_params);
-	int result = allocate_index(layout, config, user_params, zone_count,
-				    &index);
+	int result = allocate_index(layout, config, &index);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "could not allocate index");

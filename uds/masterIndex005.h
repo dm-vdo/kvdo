@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndex005.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndex005.h#2 $
  */
 
 #ifndef MASTERINDEX005_H
@@ -27,15 +27,13 @@
 /**
  * Make a new volume index.
  *
- * @param config           The configuration of the volume index
- * @param num_zones        The number of zones
- * @param volume_nonce     The nonce used to authenticate the index
- * @param volume_index     Location to hold new volume index ptr
+ * @param config        The configuration of the volume index
+ * @param volume_nonce  The nonce used to authenticate the index
+ * @param volume_index  Location to hold new volume index ptr
  *
  * @return error code or UDS_SUCCESS
  **/
 int __must_check make_volume_index005(const struct configuration *config,
-				      unsigned int num_zones,
 				      uint64_t volume_nonce,
 				      struct volume_index **volume_index);
 

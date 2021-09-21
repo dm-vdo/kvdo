@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/sparseCache.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/sparseCache.c#2 $
  */
 
 /**
@@ -110,13 +110,13 @@
 #include "cachedChapterIndex.h"
 #include "chapterIndex.h"
 #include "common.h"
+#include "config.h"
 #include "index.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "searchList.h"
 #include "uds-threads.h"
-#include "zone.h"
 
 enum {
 	/** The number of consecutive search misses that will disable searching

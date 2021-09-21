@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#7 $
  */
 
 #include "indexSession.h"
@@ -224,7 +224,6 @@ int uds_create_index_session(struct uds_index_session **session)
 
 /**********************************************************************/
 static int initialize_index_session(struct uds_index_session *index_session,
-				    const struct uds_parameters *user_params,
 				    enum load_type load_type)
 {
 	struct index_layout *layout;
@@ -260,7 +259,6 @@ static int initialize_index_session(struct uds_index_session *index_session,
 
 	result = make_index(layout,
 			    index_config,
-			    user_params,
 			    load_type,
 			    &index_session->load_context,
 			    enter_callback_stage,
@@ -315,7 +313,14 @@ int uds_open_index(enum uds_open_index_type open_type,
 		uds_free_const(session->user_config.name);
 	}
 	session->user_config = *user_config;
-	session->user_config.name = new_name;
+        session->user_config.name = new_name;
+	if (user_params != NULL) {
+		session->user_config.zone_count = user_params->zone_count;
+		session->user_config.read_threads = user_params->read_threads;
+	} else {
+		session->user_config.zone_count = 0;
+		session->user_config.read_threads = 0;
+	}
 
 	// Map the external open_type to the internal load_type
 	load_type = open_type == UDS_CREATE ?
@@ -323,7 +328,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 		open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
 	uds_log_notice("%s: %s", get_load_type(load_type), name);
 
-	result = initialize_index_session(session, user_params, load_type);
+	result = initialize_index_session(session, load_type);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed %s",
 				       get_load_type(load_type));

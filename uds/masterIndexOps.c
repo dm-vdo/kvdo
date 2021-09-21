@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.c#3 $
  */
 #include "masterIndexOps.h"
 
 #include "compiler.h"
+#include "config.h"
 #include "errors.h"
 #include "geometry.h"
 #include "indexComponent.h"
@@ -30,7 +31,6 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "uds.h"
-#include "zone.h"
 
 /**********************************************************************/
 static INLINE bool uses_sparse(const struct configuration *config)
@@ -60,15 +60,14 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 
 /**********************************************************************/
 int make_volume_index(const struct configuration *config,
-		      unsigned int num_zones,
 		      uint64_t volume_nonce,
 		      struct volume_index **volume_index)
 {
 	if (uses_sparse(config)) {
-		return make_volume_index006(config, num_zones, volume_nonce,
+		return make_volume_index006(config, volume_nonce,
 					    volume_index);
 	} else {
-		return make_volume_index005(config, num_zones, volume_nonce,
+		return make_volume_index005(config, volume_nonce,
 					    volume_index);
 	}
 }
