@@ -16,18 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#8 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
 
-/*
- * We need bug.h because in 3.10, kernel.h (indirectly) defines
- * ARRAY_SIZE as a macro which (indirectly and conditionally) uses
- * BUILD_BUG_ON_ZERO, which is defined in bug.h, which is *not*
- * included. In earlier versions like 3.2 it Just Worked.
- */
-#include <linux/bug.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
 
