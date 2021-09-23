@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#10 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#11 $
  */
 
 #include "indexLayout.h"
@@ -247,7 +247,7 @@ static int __must_check compute_sizes(const struct configuration *config,
 }
 
 /**********************************************************************/
-int uds_compute_index_size(const struct uds_configuration *config,
+int uds_compute_index_size(const struct uds_parameters *parameters,
 			   uint64_t *index_size)
 {
 	struct configuration *index_config;
@@ -259,7 +259,7 @@ int uds_compute_index_size(const struct uds_configuration *config,
 		return -EINVAL;
 	}
 
-	result = make_configuration(config, &index_config);
+	result = make_configuration(parameters, &index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "cannot compute index size");
 		return uds_map_to_system_error(result);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#9 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#10 $
  */
 
 #include <linux/module.h>
@@ -65,19 +65,12 @@ EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_768MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_MAX);
 EXPORT_SYMBOL_GPL(uds_close_index);
 EXPORT_SYMBOL_GPL(uds_compute_index_size);
-EXPORT_SYMBOL_GPL(uds_configuration_get_memory);
-EXPORT_SYMBOL_GPL(uds_configuration_get_nonce);
-EXPORT_SYMBOL_GPL(uds_configuration_get_sparse);
-EXPORT_SYMBOL_GPL(uds_configuration_set_nonce);
-EXPORT_SYMBOL_GPL(uds_configuration_set_sparse);
 EXPORT_SYMBOL_GPL(uds_create_index_session);
 EXPORT_SYMBOL_GPL(uds_destroy_index_session);
 EXPORT_SYMBOL_GPL(uds_flush_index_session);
-EXPORT_SYMBOL_GPL(uds_free_configuration);
-EXPORT_SYMBOL_GPL(uds_get_index_configuration);
+EXPORT_SYMBOL_GPL(uds_get_index_parameters);
 EXPORT_SYMBOL_GPL(uds_get_index_stats);
 EXPORT_SYMBOL_GPL(uds_get_version);
-EXPORT_SYMBOL_GPL(uds_initialize_configuration);
 EXPORT_SYMBOL_GPL(uds_open_index);
 EXPORT_SYMBOL_GPL(uds_resume_index_session);
 EXPORT_SYMBOL_GPL(uds_start_chunk_operation);

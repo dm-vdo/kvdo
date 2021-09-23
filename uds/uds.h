@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#5 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#6 $
  */
 
 /**
@@ -139,20 +139,24 @@ struct uds_chunk_data {
  **/
 struct uds_index_session;
 
-/**
- * The data used to configure a new index.
- **/
-struct uds_configuration;
 typedef uint64_t uds_nonce_t;
 
 /**
- * The data used to configure a new index session.
+ * The data used to configure a new index.
  **/
 struct uds_parameters {
-	// Tne number of threads used to process index requests.
-	int zone_count;
-	// The number of threads used to read volume pages.
-	int read_threads;
+	/** String describing the storage device */
+	const char *name;
+	/** The maximum memory allocation, in GB */
+	uds_memory_config_size_t memory_size;
+	/** Whether the index should include sparse chapters */
+	bool sparse;
+	/** A 64-bit nonce to validate the index */
+	uds_nonce_t nonce;
+	/** The number of threads used to process index requests */
+	unsigned int zone_count;
+	/** The number of threads used to read volume pages */
+	unsigned int read_threads;
 };
 
 /**
@@ -349,86 +353,17 @@ struct uds_request {
 };
 
 /**
- * Initializes an index configuration.
- *
- * @param [out] conf   The new configuration
- * @param [in] mem_gb  The maximum memory allocation, in GB
- *
- * @return                    Either #UDS_SUCCESS or an error code
- **/
-int __must_check uds_initialize_configuration(struct uds_configuration **conf,
-					      uds_memory_config_size_t mem_gb);
-
-/**
- * Sets or clears an index configuration's sparse indexing settings.
- *
- * @param [in,out] conf  The configuration to change
- * @param [in] sparse    If <code>true</code>, request a sparse
- *                       index; if <code>false</code>, request
- *                       a default index.
- *
- **/
-void uds_configuration_set_sparse(struct uds_configuration *conf, bool sparse);
-
-/**
- * Tests whether an index configuration specifies sparse indexing.
- *
- * @param [in] conf           The configuration to check
- *
- * @return                    Returns <code>true</code> if the configuration
- *                            is sparse, or <code>false</code> if not
- **/
-bool __must_check uds_configuration_get_sparse(struct uds_configuration *conf);
-
-/**
- * Sets an index configuration's nonce.
- *
- * @param [in,out] conf   The configuration to change
- * @param [in]     nonce  The 64 bit nonce.
- *
- **/
-void uds_configuration_set_nonce(struct uds_configuration *conf,
-				 uds_nonce_t nonce);
-
-/**
- * Gets an index configuration's nonce.
- *
- * @param [in] conf  The configuration to check
- *
- * @return  The 64 bit nonce.
- **/
-uds_nonce_t __must_check
-uds_configuration_get_nonce(struct uds_configuration *conf);
-
-/**
- * Fetches a configuration's maximum memory allocation.
- *
- * @param [in] conf  The configuration to check
- *
- * @return The amount of memory allocated, in GB
- **/
-uds_memory_config_size_t __must_check
-uds_configuration_get_memory(struct uds_configuration *conf);
-
-/**
- * Frees memory used by a configuration.
- *
- * @param [in,out] conf  The configuration for which memory is being freed
- **/
-void uds_free_configuration(struct uds_configuration *conf);
-
-/**
  * Compute the size required to store the index on persistent storage.  This
  * size is valid for any index stored in a single file or on a single block
  * device.  This size should be used when configuring a block device on which
  * to store an index.
  *
- * @param [in]  config      A uds_configuration for an index.
+ * @param [in]  parameters  Parameters for an index.
  * @param [out] index_size  The number of bytes required to store the index.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check uds_compute_index_size(const struct uds_configuration *config,
+int __must_check uds_compute_index_size(const struct uds_parameters *parameters,
 					uint64_t *index_size);
 
 /**
@@ -453,13 +388,13 @@ int __must_check uds_create_index_session(struct uds_index_session **session);
 const char * __must_check uds_get_version(void);
 
 /**
- * The name argument to #uds_open_index is a text string that names the index.
+ * The name parameter to #uds_open_index is a text string that names the index.
  * The name should have the form "path", where path is the name of the block
  * device.  The path should not contain white space.  The names can optionally
  * contain size and/or offset options which give the number of bytes in the
  * index and the byte offset to the start of the index.  For example, the name
  * "/dev/sda8 offset=409600 size=2048000000" is an index that is stored in
- * 2040000000 bytes of /dev/sda8 starting at byte 409600.
+ * 2048000000 bytes of /dev/sda8 starting at byte 409600.
  **/
 
 /**
@@ -468,20 +403,15 @@ const char * __must_check uds_get_version(void);
  *
  * The index should be closed with #uds_close_index.
  *
- * @param open_type  The type of open, which is one of #UDS_LOAD, #UDS_CREATE,
- *                   or #UDS_NO_REBUILD.
- * @param name       The name of the index
- * @param params     The index session parameters.  If NULL, the default
- *                   session parameters will be used.
- * @param conf       The index configuration
- * @param session    The index session
+ * @param open_type   The type of open, which is one of #UDS_LOAD, #UDS_CREATE,
+ *                    or #UDS_NO_REBUILD.
+ * @param parameters  The index parameters
+ * @param session     The index session
  *
  * @return          Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_open_index(enum uds_open_index_type open_type,
-				const char *name,
-				const struct uds_parameters *params,
-				struct uds_configuration *conf,
+				const struct uds_parameters *parameters,
 				struct uds_index_session *session);
 
 /**
@@ -542,15 +472,16 @@ int __must_check uds_close_index(struct uds_index_session *session);
 int uds_destroy_index_session(struct uds_index_session *session);
 
 /**
- * Returns the configuration for the given index session.
+ * Returns the parameters for the given index session. The caller is
+ * responsible for freeing the returned structure.
  *
- * @param [in]  session  The session
- * @param [out] conf     The index configuration
+ * @param [in]  session     The session
+ * @param [out] parameters  A copy of the index parameters
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-int __must_check uds_get_index_configuration(struct uds_index_session *session,
-					     struct uds_configuration **conf);
+int __must_check uds_get_index_parameters(struct uds_index_session *session,
+					  struct uds_parameters **parameters);
 
 /**
  * Fetches index statistics for the given index session.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#119 $
  */
 
 #include "dedupeIndex.h"
@@ -69,7 +69,7 @@ struct periodic_event_reporter {
 struct dedupe_index {
 	struct kobject dedupe_directory;
 	char *index_name;
-	struct uds_configuration *configuration;
+	struct uds_parameters parameters;
 	struct uds_index_session *index_session;
 	atomic_t active;
 	// for reporting UDS timeouts
@@ -567,8 +567,8 @@ static void open_index(struct dedupe_index *index)
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
 	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
-				index->index_name, NULL,
-				index->configuration, index->index_session);
+				&index->parameters,
+				index->index_session);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result,
 				       "Error opening index %s",
@@ -851,7 +851,6 @@ static void dedupe_kobj_release(struct kobject *directory)
 	struct dedupe_index *index = container_of(directory,
 						  struct dedupe_index,
 						  dedupe_directory);
-	uds_free_configuration(index->configuration);
 	UDS_FREE(index->index_name);
 	UDS_FREE(index);
 }
@@ -935,7 +934,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	int result;
 	off_t uds_offset;
 	struct dedupe_index *index;
-	struct index_config *index_config;
 	static const struct vdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
@@ -964,20 +962,13 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	index_config = &vdo->geometry.index_config;
-	result = vdo_index_config_to_uds_configuration(index_config,
-						       &index->configuration);
-	if (result != VDO_SUCCESS) {
-		UDS_FREE(index->index_name);
-		UDS_FREE(index);
-		return result;
-	}
-	uds_configuration_set_nonce(index->configuration,
-				    (uds_nonce_t) vdo->geometry.nonce);
+	index->parameters.name = index->index_name;
+	index->parameters.memory_size = vdo->geometry.index_config.mem;
+	index->parameters.sparse = vdo->geometry.index_config.sparse;
+	index->parameters.nonce = (uds_nonce_t) vdo->geometry.nonce;
 
 	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
-		uds_free_configuration(index->configuration);
 		UDS_FREE(index->index_name);
 		UDS_FREE(index);
 		return result;
@@ -993,7 +984,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		uds_log_error("UDS index queue initialization failed (%d)",
 			  result);
 		uds_destroy_index_session(index->index_session);
-		uds_free_configuration(index->configuration);
 		UDS_FREE(index->index_name);
 		UDS_FREE(index);
 		return result;

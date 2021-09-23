@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#4 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -128,7 +128,7 @@ struct uds_index_session {
 	unsigned int state; // Covered by request_mutex.
 	struct uds_index *index;
 	struct uds_request_queue *callback_queue;
-	struct uds_configuration user_config;
+	struct uds_parameters params;
 	struct index_load_context load_context;
 	// Asynchronous request synchronization
 	struct mutex request_mutex;

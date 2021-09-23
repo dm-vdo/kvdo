@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#8 $
  */
 
 #ifndef CONFIG_H
@@ -26,6 +26,7 @@
 #include "bufferedWriter.h"
 #include "geometry.h"
 #include "nonce.h"
+#include "uds.h"
 
 enum {
 	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
@@ -71,25 +72,7 @@ struct configuration {
 };
 
 /**
- * In-memory structure of data for configuring a new index.
- **/
-struct uds_configuration {
-	/** String describing the storage device */
-	const char *name;
-	/** The maximum memory allocation, in GB */
-	uds_memory_config_size_t memory_size;
-	/** Whether the index should include sparse chapters */
-	bool sparse;
-	/** A 64-bit nonce to validate the index */
-	uds_nonce_t nonce;
-	/** The number of threads used to process index requests */
-	unsigned int zone_count;
-	/** The number of threads used to read volume pages */
-	unsigned int read_threads;
-};
-
-/**
- * Data that are used for configuring a 8.02 index.
+ * On-disk structure of data for a 8.02 index.
  **/
 struct uds_configuration_8_02 {
 	/** Smaller (16), Small (64) or large (256) indices */
@@ -117,7 +100,7 @@ struct uds_configuration_8_02 {
 };
 
 /**
- * Data that are used for configuring a 6.02 index.
+ * On-disk structure of data for a 6.02 index.
  **/
 struct uds_configuration_6_02 {
 	/** Smaller (16), Small (64) or large (256) indices */
@@ -143,12 +126,12 @@ struct uds_configuration_6_02 {
 /**
  * Construct a new index configuration.
  *
- * @param conf        uds_configuration to use
+ * @param params      The user parameters
  * @param config_ptr  The new index configuration
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check make_configuration(const struct uds_configuration *conf,
+int __must_check make_configuration(const struct uds_parameters *params,
 				    struct configuration **config_ptr);
 
 /**
