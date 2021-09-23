@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndex005.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volumeIndex006.h#1 $
  */
 
-#ifndef MASTERINDEX005_H
-#define MASTERINDEX005_H 1
+#ifndef VOLUMEINDEX006_H
+#define VOLUMEINDEX006_H 1
 
-#include "masterIndexOps.h"
+#include "volumeIndexOps.h"
 
 /**
  * Make a new volume index.
@@ -33,7 +33,7 @@
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check make_volume_index005(const struct configuration *config,
+int __must_check make_volume_index006(const struct configuration *config,
 				      uint64_t volume_nonce,
 				      struct volume_index **volume_index);
 
@@ -47,7 +47,7 @@ int __must_check make_volume_index005(const struct configuration *config,
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check
-compute_volume_index_save_bytes005(const struct configuration *config,
+compute_volume_index_save_bytes006(const struct configuration *config,
 				   size_t *num_bytes);
 
-#endif /* MASTERINDEX005_H */
+#endif /* VOLUMEINDEX006_H */

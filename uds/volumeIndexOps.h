@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.h#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volumeIndexOps.h#1 $
  */
 
-#ifndef MASTERINDEXOPS_H
-#define MASTERINDEXOPS_H 1
+#ifndef VOLUMEINDEXOPS_H
+#define VOLUMEINDEXOPS_H 1
 
 #include "compiler.h"
 #include "config.h"
@@ -557,4 +557,4 @@ start_saving_volume_index(const struct volume_index *volume_index,
 						       buffered_writer);
 }
 
-#endif /* MASTERINDEXOPS_H */
+#endif /* VOLUMEINDEXOPS_H */
