@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#67 $
  */
 
 #ifndef VDO_H
@@ -144,8 +144,8 @@ struct vdo {
 	struct vdo_statistics stats_buffer;
 	/* Protects the stats_buffer */
 	struct mutex stats_mutex;
-	/* true if sysfs statistics directory is set up */
-	bool stats_added;
+	/* true if sysfs directory is set up */
+	bool sysfs_added;
 	/* Used when shutting down the sysfs statistics */
 	struct completion stats_shutdown;
 

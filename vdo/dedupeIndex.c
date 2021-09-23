@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#118 $
  */
 
 #include "dedupeIndex.h"
@@ -833,6 +833,13 @@ int message_vdo_dedupe_index(struct dedupe_index *index, const char *name)
 }
 
 /**********************************************************************/
+int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
+			       struct kobject *parent)
+{
+	return kobject_add(&index->dedupe_directory, parent, "dedupe");
+}
+
+/**********************************************************************/
 void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
@@ -995,20 +1002,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	index->uds_queue
 		= vdo->threads[vdo->thread_config->dedupe_thread].queue;
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
-	result = kobject_add(&index->dedupe_directory,
-			     &vdo->vdo_directory,
-			     "dedupe");
-	if (result != VDO_SUCCESS) {
-		// The queue will actually be freed with the VDO, so just give
-		// up our reference to it.
-		UDS_FORGET(index->uds_queue);
-		uds_destroy_index_session(index->index_session);
-		uds_free_configuration(index->configuration);
-		UDS_FREE(index->index_name);
-		UDS_FREE(index);
-		return result;
-	}
-
 	INIT_LIST_HEAD(&index->pending_head);
 	spin_lock_init(&index->pending_lock);
 	spin_lock_init(&index->state_lock);

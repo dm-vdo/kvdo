@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#36 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -147,6 +147,17 @@ static inline void update_vdo_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_vdo_index_operation(data_vio, UDS_UPDATE);
 }
+
+/**
+ * Add the sysfs nodes for the dedupe index.
+ *
+ * @param index        The dedupe index
+ * @param parent  The kobject to attach the sysfs nodes to
+ *
+ * @return 0 or an error code
+ **/
+int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
+			       struct kobject *parent);
 
 /**
  * Start the dedupe index.

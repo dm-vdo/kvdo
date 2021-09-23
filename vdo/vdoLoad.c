@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#117 $
  */
 
 #include "vdoLoad.h"
@@ -35,6 +35,7 @@
 #include "kernelTypes.h"
 #include "logicalZone.h"
 #include "physicalZone.h"
+#include "poolSysfs.h"
 #include "readOnlyRebuild.h"
 #include "recoveryJournal.h"
 #include "releaseVersions.h"
@@ -73,6 +74,7 @@ static const char *LOAD_PHASE_NAMES[] = {
 	"LOAD_PHASE_DRAIN_JOURNAL",
 	"LOAD_PHASE_WAIT_FOR_READ_ONLY",
 };
+
 
 /**
  * Implements vdo_thread_id_getter_for_phase.
@@ -186,6 +188,37 @@ static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 }
 
 /**
+ * Initialize the vdo sysfs directory.
+ *
+ * @param vdo     The vdo being initialized
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int initialize_vdo_kobjects(struct vdo *vdo)
+{
+	int result;
+	struct dm_target *target = vdo->device_config->owning_target;
+	struct mapped_device *md = dm_table_get_md(target->table);
+
+	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
+	vdo->sysfs_added = true;
+	result = kobject_add(&vdo->vdo_directory,
+			     &disk_to_dev(dm_disk(md))->kobj,
+			     "vdo");
+	if (result != 0) {
+		return VDO_CANT_ADD_SYSFS_NODE;
+	}
+
+	result = add_vdo_dedupe_index_sysfs(vdo->dedupe_index,
+					    &vdo->vdo_directory);
+	if (result != 0) {
+		return VDO_CANT_ADD_SYSFS_NODE;
+	}
+
+	return add_vdo_sysfs_stats_dir(vdo);
+}
+
+/**
  * Callback to do the destructive parts of loading a VDO.
  *
  * @param completion  The sub-task completion
@@ -272,7 +305,7 @@ static void load_callback(struct vdo_completion *completion)
 
 	case LOAD_PHASE_STATS:
 		finish_vdo_completion(reset_vdo_admin_sub_task(completion),
-				      add_vdo_sysfs_stats_dir(vdo));
+				      initialize_vdo_kobjects(vdo));
 		return;
 
 	case LOAD_PHASE_INDEX:

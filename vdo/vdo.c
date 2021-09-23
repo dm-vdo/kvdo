@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#196 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#197 $
  */
 
 /*
@@ -387,8 +387,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	// Stop services that need to gather VDO statistics from the worker
 	// threads.
-	if (vdo->stats_added) {
-		vdo->stats_added = false;
+	if (vdo->sysfs_added) {
 		init_completion(&vdo->stats_shutdown);
 		kobject_put(&vdo->stats_directory);
 		wait_for_completion(&vdo->stats_shutdown);
@@ -456,8 +455,7 @@ void destroy_vdo(struct vdo *vdo)
 	 * reference count; when the count goes to zero the VDO object will be
 	 * freed as a side effect.
 	 */
-	if (get_vdo_admin_state_code(&vdo->admin_state)
-	    == VDO_ADMIN_STATE_NEW) {
+	if (!vdo->sysfs_added) {
 		UDS_FREE(vdo);
 	} else {
 		kobject_put(&vdo->vdo_directory);
@@ -494,7 +492,6 @@ int add_vdo_sysfs_stats_dir(struct vdo *vdo)
 		return VDO_CANT_ADD_SYSFS_NODE;
 	}
 
-	vdo->stats_added = true;
 	return VDO_SUCCESS;
 }
 
