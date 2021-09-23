@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#198 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#199 $
  */
 
 /*
@@ -65,9 +65,10 @@
 #include "batchProcessor.h"
 #include "bufferPool.h"
 #include "dedupeIndex.h"
-#include "kernelVDO.h"
 #include "vdoCommon.h"
 #include "workQueue.h"
+
+enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 
 /**********************************************************************/
 static void start_vdo_request_queue(void *ptr)
@@ -958,6 +959,30 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 				       fetch_vdo_statistics_callback,
 				       vdo->thread_config->admin_thread,
 				       stats);
+}
+
+/**********************************************************************/
+thread_id_t vdo_get_callback_thread_id(void)
+{
+	struct vdo_work_queue *queue = get_current_work_queue();
+	struct vdo_thread *thread;
+	thread_id_t thread_id;
+
+	if (queue == NULL) {
+		return VDO_INVALID_THREAD_ID;
+	}
+
+	thread = get_work_queue_owner(queue);
+	thread_id = thread->thread_id;
+
+	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
+		struct vdo *vdo = thread->vdo;
+
+		BUG_ON(thread_id >= vdo->thread_config->thread_count);
+		BUG_ON(thread != &vdo->threads[thread_id]);
+	}
+
+	return thread_id;
 }
 
 /**********************************************************************/

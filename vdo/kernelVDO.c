@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#127 $
  */
 
 /*
@@ -46,8 +46,6 @@
 
 #include "kvio.h"
 
-enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
-
 /**********************************************************************/
 void enqueue_vdo_work(struct vdo *vdo,
 		      struct vdo_work_item *item,
@@ -68,28 +66,4 @@ void enqueue_vio(struct vio *vio,
 		   work,
 		   priority,
 		   vio->vdo->threads[thread_id].queue);
-}
-
-/**********************************************************************/
-thread_id_t vdo_get_callback_thread_id(void)
-{
-	struct vdo_work_queue *queue = get_current_work_queue();
-	struct vdo_thread *thread;
-	thread_id_t thread_id;
-
-	if (queue == NULL) {
-		return VDO_INVALID_THREAD_ID;
-	}
-
-	thread = get_work_queue_owner(queue);
-	thread_id = thread->thread_id;
-
-	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
-		struct vdo *vdo = thread->vdo;
-
-		BUG_ON(thread_id >= vdo->thread_config->thread_count);
-		BUG_ON(thread != &vdo->threads[thread_id]);
-	}
-
-	return thread_id;
 }
