@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#162 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#163 $
  */
 
 #include <linux/module.h>
@@ -228,6 +228,13 @@ static void vdo_status(struct dm_target *ti,
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
+	// XXX We ought to print more detailed output here, but this is what
+	// thin does.
+	case STATUSTYPE_IMA:
+		*result = '\0';
+		break;
+#endif // 5.15+
 	}
 }
 
