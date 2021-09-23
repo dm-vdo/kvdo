@@ -17,11 +17,12 @@
  * 02110-1301, USA. 
  */
 
+#include <linux/mutex.h>
+
 #include "dedupeIndex.h"
 #include "logger.h"
 #include "poolSysfs.h"
 #include "statistics.h"
-#include "threadDevice.h"
 #include "vdo.h"
 
 struct pool_stats_attribute {
