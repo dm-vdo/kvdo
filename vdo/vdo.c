@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#197 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#198 $
  */
 
 /*
@@ -1115,3 +1115,14 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 		.zone = zone,
 	};
 }
+
+/**********************************************************************/
+zone_count_t
+get_vdo_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
+{
+	return ((pbn
+		 / vdo->device_config->thread_counts.bio_rotation_interval)
+		% vdo->thread_config->bio_thread_count);
+}
+
+

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#103 $
  */
 
 #include "packer.h"
@@ -503,7 +503,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 		.zone = bin->writer->zone,
 		.state = vdo_get_state_for_slot(data_vio->compression.slot),
 	};
-	data_vio_as_vio(data_vio)->physical = data_vio->new_mapped.pbn;
+	set_vio_physical(data_vio_as_vio(data_vio), data_vio->new_mapped.pbn);
 
 	share_compressed_vdo_write_lock(data_vio, bin->writer->allocation_lock);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#47 $
  */
 
 #include "allocatingVIO.h"
@@ -101,7 +101,7 @@ static int allocate_and_lock_block(struct allocating_vio *allocating_vio)
 	}
 
 	// We got a block!
-	vio->physical = allocating_vio->allocation;
+	set_vio_physical(vio, allocating_vio->allocation);
 	allocating_vio->allocation_callback(allocating_vio);
 	return VDO_SUCCESS;
 }
@@ -266,7 +266,8 @@ void vio_reset_allocation(struct allocating_vio *allocating_vio)
 	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
 			"must not reset allocation while holding a PBN lock");
 
-	allocating_vio_as_vio(allocating_vio)->physical = VDO_ZERO_BLOCK;
+	set_vio_physical(allocating_vio_as_vio(allocating_vio),
+			 VDO_ZERO_BLOCK);
 	allocating_vio->zone = NULL;
 	allocating_vio->allocation = VDO_ZERO_BLOCK;
 	allocating_vio->allocation_attempts = 0;

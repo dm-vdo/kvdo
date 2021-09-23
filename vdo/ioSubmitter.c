@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#96 $
  */
 
 #include "ioSubmitter.h"
@@ -86,91 +86,6 @@ static const struct vdo_work_queue_type bio_queue_type = {
 };
 
 /**
- * Check that we're running normally (i.e., not in an
- * interrupt-servicing context) in an io_submitter bio thread.
- **/
-static void assert_running_in_bio_queue(void)
-{
-	ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
-	ASSERT_LOG_ONLY(strnstr(current->comm, "bioQ", TASK_COMM_LEN) != NULL,
-			"running in bio submission work queue thread");
-}
-
-/**
- * Returns the bio_queue_data pointer associated with the current thread.
- * Results are undefined if called from any other thread.
- *
- * @return the bio_queue_data pointer
- **/
-static inline struct bio_queue_data *get_current_bio_queue_data(void)
-{
-	struct bio_queue_data *bio_queue_data =
-		(struct bio_queue_data *) get_work_queue_private_data();
-	// Does it look like a bio queue thread?
-	BUG_ON(bio_queue_data == NULL);
-	BUG_ON(bio_queue_data->queue != get_current_work_queue());
-	return bio_queue_data;
-}
-
-/**********************************************************************/
-static inline struct io_submitter *
-bio_queue_to_submitter(struct bio_queue_data *bio_queue)
-{
-	struct bio_queue_data *first_bio_queue = bio_queue -
-		bio_queue->queue_number;
-	struct io_submitter *submitter = container_of(first_bio_queue,
-						      struct io_submitter,
-						      bio_queue_data[0]);
-	return submitter;
-}
-
-/**
- * Return the bio thread number handling the specified physical block
- * number.
-*
- * @param io_submitter  The I/O submitter data
- * @param pbn           The physical block number
- *
- * @return read cache zone number
- **/
-static unsigned int bio_queue_number_for_pbn(struct io_submitter *io_submitter,
-					     physical_block_number_t pbn)
-{
-	unsigned int bio_queue_index =
-		((pbn % (io_submitter->num_bio_queues_used *
-			 io_submitter->bio_queue_rotation_interval)) /
-		 io_submitter->bio_queue_rotation_interval);
-
-	return bio_queue_index;
-}
-
-/**
- * Check that we're running normally (i.e., not in an
- * interrupt-servicing context) in an io_submitter bio thread. Also
- * require that the thread we're running on is the correct one for the
- * supplied physical block number.
- *
- * @param pbn  The PBN that should have been used in thread selection
- **/
-static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
-{
-	struct bio_queue_data *this_queue;
-	struct io_submitter *submitter;
-	unsigned int computed_queue_number;
-
-	assert_running_in_bio_queue();
-
-	this_queue = get_current_bio_queue_data();
-	submitter = bio_queue_to_submitter(this_queue);
-	computed_queue_number = bio_queue_number_for_pbn(submitter, pbn);
-	ASSERT_LOG_ONLY(this_queue->queue_number == computed_queue_number,
-			"running in correct bio queue (%u vs %u) for PBN %llu",
-			this_queue->queue_number,
-			computed_queue_number,
-			pbn);
-}
-
-/**
  * Determines which bio counter to use
  *
  * @param vio  the vio associated with the bio
@@ -194,6 +109,17 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 }
 
 /**
+ * Assert that a vio is in the correct bio zone and not in interrupt context.
+ *
+ * @param vio  The vio to check
+ **/
+static void assert_in_bio_zone(struct vio *vio)
+{
+	ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
+	assert_vio_in_bio_zone(vio);
+}
+
+/**
  * Update stats and tracing info, then submit the supplied bio to the
  * OS for processing.
  *
@@ -203,7 +129,7 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	assert_running_in_bio_queue_for_pbn(vio->physical);
+	assert_in_bio_zone(vio);
 	atomic64_inc(&vio->vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 
@@ -234,48 +160,48 @@ static sector_t get_bio_sector(struct bio *bio)
 static void process_bio_map(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
+	struct bio_queue_data *bio_queue_data;
+	struct bio *bio = NULL;
 
-	assert_running_in_bio_queue();
-	// XXX Should we call finish_bio_queue for the biomap case on old
-	// kernels?
-	if (is_data_vio(vio)) {
-		// We need to make sure to do two things here:
-		// 1. Use each bio's vio when submitting. Any other vio is
-		// not safe
-		// 2. Detach the bio list from the vio before submitting,
-		// because it could get reused/free'd up before all bios
-		// are submitted.
-		struct bio_queue_data *bio_queue_data =
-			get_work_queue_private_data();
-		struct bio *bio = NULL;
-
-		mutex_lock(&bio_queue_data->lock);
-		if (!bio_list_empty(&vio->bios_merged)) {
-			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(vio->bios_merged.head));
-			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(vio->bios_merged.tail));
-		}
-
-		bio = vio->bios_merged.head;
-		bio_list_init(&vio->bios_merged);
-		mutex_unlock(&bio_queue_data->lock);
-		// Somewhere in the list we'll be submitting the current
-		// vio, so drop our handle on it now.
-		vio = NULL;
-
-		while (bio != NULL) {
-			struct vio *vio_bio = bio->bi_private;
-			struct bio *next = bio->bi_next;
-
-			bio->bi_next = NULL;
-			send_bio_to_device(vio_bio,
-					   bio);
-			bio = next;
-		}
-	} else {
+	if (!is_data_vio(vio)) {
 		send_bio_to_device(vio,
 				   vio->bio);
+		return;
+	}
+
+	assert_in_bio_zone(vio);
+	bio_queue_data = get_work_queue_private_data();
+
+	// We need to make sure to do two things here:
+	// 1. Use each bio's vio when submitting. Any other vio is
+	// not safe
+	// 2. Detach the bio list from the vio before submitting,
+	// because it could get reused/free'd up before all bios
+	// are submitted.
+	mutex_lock(&bio_queue_data->lock);
+	if (!bio_list_empty(&vio->bios_merged)) {
+		int_map_remove(bio_queue_data->map,
+			       get_bio_sector(vio->bios_merged.head));
+		int_map_remove(bio_queue_data->map,
+			       get_bio_sector(vio->bios_merged.tail));
+	}
+
+	bio = vio->bios_merged.head;
+	bio_list_init(&vio->bios_merged);
+	mutex_unlock(&bio_queue_data->lock);
+
+	// Somewhere in the list we'll be submitting the current
+	// vio, so drop our handle on it now.
+	vio = NULL;
+
+	while (bio != NULL) {
+		struct vio *vio_bio = bio->bi_private;
+		struct bio *next = bio->bi_next;
+
+		bio->bi_next = NULL;
+		send_bio_to_device(vio_bio,
+				   bio);
+		bio = next;
 	}
 }
 
@@ -433,21 +359,11 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 }
 
 /**********************************************************************/
-static struct bio_queue_data *
-bio_queue_data_for_pbn(struct io_submitter *io_submitter,
-		       physical_block_number_t pbn)
-{
-	unsigned int bio_queue_index =
-		bio_queue_number_for_pbn(io_submitter, pbn);
-	return &io_submitter->bio_queue_data[bio_queue_index];
-}
-
-/**********************************************************************/
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
 	struct bio_queue_data *bio_queue_data =
-		bio_queue_data_for_pbn(vio->vdo->io_submitter, vio->physical);
+		&vio->vdo->io_submitter->bio_queue_data[vio->bio_zone];
 	bool merged = false;
 
 	setup_vio_work(vio, process_bio_map, priority);

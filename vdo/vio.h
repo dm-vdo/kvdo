@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#59 $
  */
 
 #ifndef VIO_H
@@ -27,6 +27,7 @@
 #include "bio.h"
 #include "completion.h"
 #include "kernelTypes.h"
+#include "threadConfig.h"
 #include "types.h"
 #include "vdo.h"
 
@@ -45,9 +46,13 @@ struct vio {
 	/* The vdo handling this vio */
 	struct vdo *vdo;
 
-	/* The address on the underlying device of the block to be read/written
-	 */
+	/**
+	 * The address on the underlying device of the block to be read/written
+	 **/
 	physical_block_number_t physical;
+
+	/** The bio zone in which I/O should be processed */
+	zone_count_t bio_zone;
 
 	/* The type of request this vio is servicing */
 	enum vio_operation operation;
@@ -123,6 +128,51 @@ static inline struct vdo_completion *vio_as_completion(struct vio *vio)
 static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
 {
 	return &vio_as_completion(vio)->work_item;
+}
+
+/**
+ * Set the physical field of a vio. Also computes the bio zone for doing I/O
+ * to that address.
+ *
+ * @param vio  The vio
+ * @param pbn  The pbn to set as the vio's physical address
+ **/
+static inline void
+set_vio_physical(struct vio *vio, physical_block_number_t pbn)
+{
+	vio->physical = pbn;
+	vio->bio_zone = get_vdo_bio_zone(vio->vdo, pbn);
+}
+
+/**
+ * Get the thread id of the bio zone in which a vio should submit its I/O.
+ *
+ * @param vio  The vio
+ *
+ * @return The id of the bio zone thread the vio should use
+ **/
+static inline thread_id_t __must_check
+get_vio_bio_zone_thread_id(struct vio *vio)
+{
+	return vio->vdo->thread_config->bio_threads[vio->bio_zone];
+}
+
+/**
+ * Check that a vio is running on the correct thread for its bio zone.
+ *
+ * @param vio  The vio to check
+ **/
+static inline void
+assert_vio_in_bio_zone(struct vio *vio)
+{
+	thread_id_t expected = get_vio_bio_zone_thread_id(vio);
+	thread_id_t thread_id = vdo_get_callback_thread_id();
+
+	ASSERT_LOG_ONLY((expected == thread_id),
+			"vio I/O for physical block %llu on thread %u, should be on bio zone thread %u",
+			(unsigned long long) vio->physical,
+			thread_id,
+			expected);
 }
 
 /**

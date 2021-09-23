@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#53 $
  */
 
 #include "vio.h"
@@ -234,8 +234,8 @@ void launch_metadata_vio(struct vio *vio,
 	ASSERT_LOG_ONLY(!code->quiescent,
 			"I/O not allowed in state %s",
 			code->name);
+	set_vio_physical(vio, physical);
 	vio->operation = operation;
-	vio->physical = physical;
 	vio->callback = callback;
 	vio->error_handler = error_handler;
 

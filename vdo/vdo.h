@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#68 $
  */
 
 #ifndef VDO_H
@@ -470,6 +470,17 @@ select_vdo_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 int __must_check get_vdo_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);
+
+/**
+ * Get the bio queue zone for submitting I/O to a given physical block number.
+ *
+ * @param vdo  The vdo to query
+ * @param pbn  The physical block number of the I/O to be sent
+ *
+ * @return The bio queue zone number for submitting I/O to the specified pbn
+ **/
+zone_count_t __must_check
+get_vdo_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
 
 /**
  * Dump status information about a vdo to the log for debugging.
