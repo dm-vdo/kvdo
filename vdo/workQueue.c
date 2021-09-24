@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#79 $
  */
 
 #include "workQueue.h"
@@ -905,6 +905,17 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
  **/
 static struct simple_work_queue *get_current_thread_work_queue(void)
 {
+	/*
+	 * In interrupt context, if a vdo thread is what got interrupted, the
+         * calls below will find the queue for the thread which was
+         * interrupted. However, the interrupted thread may have been
+         * processing a work item, in which case starting to process another
+         * would violate our concurrency assumptions.
+	 */
+	if (in_interrupt()) {
+		return NULL;
+	}
+
 	/*
 	 * The kthreadd process has the PF_KTHREAD flag set but a null
 	 * "struct kthread" pointer, which breaks the (initial)
