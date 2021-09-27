@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#6 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#7 $
  */
 
 /**
@@ -31,8 +31,9 @@
 #ifndef UDS_H
 #define UDS_H
 
+#include <linux/types.h>
+
 #include "compiler.h"
-#include "uds-platform.h"
 #include "util/funnelQueue.h"
 
 /**
@@ -99,27 +100,26 @@ enum {
 
 /**
  *  Type representing memory configuration which is either a positive
- *  integer number of gigabytes or one of the three special constants
+ *  integer number of gigabytes or one of the six special constants
  *  for configurations which are smaller than 1 gigabyte.
  **/
-typedef unsigned int uds_memory_config_size_t;
+typedef int uds_memory_config_size_t;
 
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB;
-/**
- *  The maximum configurable amount of memory.
- **/
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX;
-
-/**
- * Memory size constants for volumes that have one less chapter
- */
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_256MB;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_512MB;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_768MB;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED;
-extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_MAX;
+enum {
+	/*  The maximum configurable amount of memory. */
+	UDS_MEMORY_CONFIG_MAX = 1024,
+	/*  Flag indicating volume has one less chapter than usual */
+	UDS_MEMORY_CONFIG_REDUCED = 0x1000,
+	/*  Flag indicating volume has one less chapter than usual */
+	UDS_MEMORY_CONFIG_REDUCED_MAX = 1024 + UDS_MEMORY_CONFIG_REDUCED,
+	/*  Special values indicating sizes less than 1 GB */
+	UDS_MEMORY_CONFIG_256MB = -256,
+	UDS_MEMORY_CONFIG_512MB = -512,
+	UDS_MEMORY_CONFIG_768MB = -768,
+	UDS_MEMORY_CONFIG_REDUCED_256MB = -1280,
+	UDS_MEMORY_CONFIG_REDUCED_512MB = -1536,
+	UDS_MEMORY_CONFIG_REDUCED_768MB = -1792,
+};
 
 /** The name (hash) of a chunk. */
 struct uds_chunk_name {

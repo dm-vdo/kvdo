@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#10 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#11 $
  */
 
 #include <linux/module.h>
@@ -54,15 +54,6 @@ static void __exit dedupe_exit(void)
 module_init(dedupe_init);
 module_exit(dedupe_exit);
 
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_768MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_MAX);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_256MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_512MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_768MB);
-EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_MAX);
 EXPORT_SYMBOL_GPL(uds_close_index);
 EXPORT_SYMBOL_GPL(uds_compute_index_size);
 EXPORT_SYMBOL_GPL(uds_create_index_session);

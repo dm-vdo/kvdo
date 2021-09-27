@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#9 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#10 $
  */
 
 #include "indexSession.h"
@@ -701,4 +701,14 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 	}
 
 	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+const char *uds_get_version(void)
+{
+#ifdef UDS_VERSION
+	return UDS_VERSION;
+#else
+	return "internal version";
+#endif
 }
