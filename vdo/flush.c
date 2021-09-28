@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#67 $
  */
 
 #include "flush.h"
@@ -487,9 +487,11 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 static thread_id_t select_bio_queue(struct flusher *flusher)
 {
 	struct vdo *vdo = flusher->vdo;
+	zone_count_t bio_threads
+		= flusher->vdo->thread_config->bio_thread_count;
 	int interval;
 
-	if (flusher->vdo->thread_config->bio_thread_count == 1) {
+	if (bio_threads == 1) {
 		return vdo->thread_config->bio_threads[0];
 	}
 
@@ -497,7 +499,7 @@ static thread_id_t select_bio_queue(struct flusher *flusher)
 	if (flusher->flush_count == interval) {
 		flusher->flush_count = 1;
 		flusher->bio_queue_rotor = ((flusher->bio_queue_rotor + 1)
-					    % interval);
+					    % bio_threads);
 	} else {
 		flusher->flush_count++;
 	}
