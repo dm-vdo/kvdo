@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#8 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#9 $
  */
 
 #ifndef CONFIG_H
@@ -41,6 +41,12 @@ enum {
 struct configuration {
 	/** String describing the storage device */
 	const char *name;
+
+	/** The maximum allowable size of the index */
+	size_t size;
+
+	/** The offset where the index should start */
+	off_t offset;
 
 	/* Parameters for the volume */
 

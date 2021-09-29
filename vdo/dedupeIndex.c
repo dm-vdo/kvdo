@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#120 $
  */
 
 #include "dedupeIndex.h"
@@ -68,7 +68,6 @@ struct periodic_event_reporter {
 
 struct dedupe_index {
 	struct kobject dedupe_directory;
-	char *index_name;
 	struct uds_parameters parameters;
 	struct uds_index_session *index_session;
 	atomic_t active;
@@ -542,9 +541,7 @@ static void close_index(struct dedupe_index *index)
 	result = uds_close_index(index->index_session);
 
 	if (result != UDS_SUCCESS) {
-		uds_log_error_strerror(result,
-				       "Error closing index %s",
-				       index->index_name);
+		uds_log_error_strerror(result, "Error closing index");
 	}
 	spin_lock(&index->state_lock);
 	index->index_state = IS_CLOSED;
@@ -570,9 +567,7 @@ static void open_index(struct dedupe_index *index)
 				&index->parameters,
 				index->index_session);
 	if (result != UDS_SUCCESS) {
-		uds_log_error_strerror(result,
-				       "Error opening index %s",
-				       index->index_name);
+		uds_log_error_strerror(result, "Error opening index");
 	}
 	spin_lock(&index->state_lock);
 	if (!create_flag) {
@@ -851,7 +846,6 @@ static void dedupe_kobj_release(struct kobject *directory)
 	struct dedupe_index *index = container_of(directory,
 						  struct dedupe_index,
 						  dedupe_directory);
-	UDS_FREE(index->index_name);
 	UDS_FREE(index);
 }
 
@@ -950,26 +944,16 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 
 	uds_offset = ((vdo_get_index_region_start(vdo->geometry) -
 		       vdo->geometry.bio_offset) * VDO_BLOCK_SIZE);
-	result = uds_alloc_sprintf("index name", &index->index_name,
-			       "dev=%s offset=%ld size=%llu",
-			       vdo->device_config->parent_device_name,
-			       uds_offset,
-			       (vdo_get_index_region_size(vdo->geometry) *
-				VDO_BLOCK_SIZE));
-	if (result != UDS_SUCCESS) {
-		uds_log_error("Creating index name failed (%d)", result);
-		UDS_FREE(index);
-		return result;
-	}
-
-	index->parameters.name = index->index_name;
+	index->parameters.name = vdo->device_config->parent_device_name;
+	index->parameters.offset = uds_offset;
+	index->parameters.size =
+		vdo_get_index_region_size(vdo->geometry) * VDO_BLOCK_SIZE;
 	index->parameters.memory_size = vdo->geometry.index_config.mem;
 	index->parameters.sparse = vdo->geometry.index_config.sparse;
 	index->parameters.nonce = (uds_nonce_t) vdo->geometry.nonce;
 
 	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(index->index_name);
 		UDS_FREE(index);
 		return result;
 	}
@@ -984,7 +968,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		uds_log_error("UDS index queue initialization failed (%d)",
 			  result);
 		uds_destroy_index_session(index->index_session);
-		UDS_FREE(index->index_name);
 		UDS_FREE(index);
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#8 $
  */
 
 /**
@@ -147,6 +147,10 @@ typedef uint64_t uds_nonce_t;
 struct uds_parameters {
 	/** String describing the storage device */
 	const char *name;
+	/** The maximum allowable size of the index on storage */
+	size_t size;
+	/** The offset where the index should start */
+	off_t offset;
 	/** The maximum memory allocation, in GB */
 	uds_memory_config_size_t memory_size;
 	/** Whether the index should include sparse chapters */
@@ -386,16 +390,6 @@ int __must_check uds_create_index_session(struct uds_index_session **session);
  * @return The library version
  **/
 const char * __must_check uds_get_version(void);
-
-/**
- * The name parameter to #uds_open_index is a text string that names the index.
- * The name should have the form "path", where path is the name of the block
- * device.  The path should not contain white space.  The names can optionally
- * contain size and/or offset options which give the number of bytes in the
- * index and the byte offset to the start of the index.  For example, the name
- * "/dev/sda8 offset=409600 size=2048000000" is an index that is stored in
- * 2048000000 bytes of /dev/sda8 starting at byte 409600.
- **/
 
 /**
  * Opens an index with an existing session.  This operation will fail if the

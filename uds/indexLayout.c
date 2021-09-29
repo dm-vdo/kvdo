@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#12 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#13 $
  */
 
 #include "indexLayout.h"
@@ -24,7 +24,6 @@
 #include "buffer.h"
 #include "compiler.h"
 #include "config.h"
-#include "indexLayoutParser.h"
 #include "layoutRegion.h"
 #include "logger.h"
 #include "volumeIndexOps.h"
@@ -2587,59 +2586,28 @@ static int create_layout_factory(struct index_layout *layout,
 				 const struct configuration *config,
 				 bool new_layout)
 {
-	char *path = NULL;
-	uint64_t offset = 0;
-	uint64_t size = 0;
-	size_t writable_size = 0;
-	char *params = NULL;
+	size_t writable_size;
 	struct io_factory *factory = NULL;
 	int result;
 
-	struct layout_parameter parameter_table[] = {
-		{ "dev", LP_STRING | LP_DEFAULT, { .str = &path }, false },
-		{ "offset", LP_UINT64, { .num = &offset }, false },
-		{ "size", LP_UINT64, { .num = &size }, false },
-		LP_NULL_PARAMETER,
-	};
-
-	result = uds_duplicate_string(config->name,
-				      "make_uds_index_layout parameters",
-				      &params);
+	result = make_uds_io_factory(config->name, &factory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// note path will be set to memory owned by params
-	result = parse_layout_string(params, parameter_table);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(params);
-		return result;
-	}
-
-	if (path == NULL) {
-		uds_log_error("no index specified");
-		result = -EINVAL;
-	} else {
-		result = make_uds_io_factory(path, &factory);
-	}
-
-	UDS_FREE(params);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-        
 	writable_size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
-	if (writable_size < size + offset) {
+	if (writable_size < config->size + config->offset) {
 		put_uds_io_factory(factory);
-		uds_log_error("index storage (%zu) is smaller than the requested size %llu",
+		uds_log_error("index storage (%zu) is smaller than the requested size %zu",
 			      writable_size,
-			      (unsigned long long) (size + offset));
+			      config->size + config->offset);
 		return -ENOSPC;
 	}
 
 	layout->factory = factory;
-	layout->factory_size = (size > 0) ? size : writable_size;
-	layout->offset = offset;
+	layout->factory_size =
+		(config->size > 0) ? config->size : writable_size;
+	layout->offset = config->offset;
 	return UDS_SUCCESS;
 }
 

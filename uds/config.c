@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.c#7 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.c#8 $
  */
 
 #include "config.h"
@@ -644,6 +644,8 @@ int make_configuration(const struct uds_parameters *params,
 		(params->sparse ? DEFAULT_SPARSE_SAMPLE_RATE : 0);
 	config->nonce = params->nonce;
 	config->name = params->name;
+	config->offset = params->offset;
+	config->size = params->size;
 
 	*config_ptr = config;
 	return UDS_SUCCESS;
