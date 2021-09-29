@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/buffer.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/buffer.c#2 $
  */
 
 #include "buffer.h"
 
-#include "bufferPrivate.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"

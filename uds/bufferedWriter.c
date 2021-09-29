@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.c#2 $
  */
 
 #include "bufferedWriter.h"
@@ -46,8 +46,6 @@ struct buffered_writer {
 	byte *bw_pointer;
 	// Error code
 	int bw_error;
-	// Have writes been done?
-	bool bw_used;
 };
 
 /**********************************************************************/
@@ -114,7 +112,6 @@ int make_buffered_writer(struct io_factory *factory,
 		.bw_pointer = NULL,
 		.bw_block_number = 0,
 		.bw_error = UDS_SUCCESS,
-		.bw_used = false,
 	};
 
 	get_uds_io_factory(factory);
@@ -182,7 +179,6 @@ int write_to_buffered_writer(struct buffered_writer *bw,
 		}
 	}
 
-	bw->bw_used = true;
 	return result;
 }
 
@@ -212,7 +208,6 @@ int write_zeros_to_buffered_writer(struct buffered_writer *bw, size_t len)
 		}
 	}
 
-	bw->bw_used = true;
 	return result;
 }
 
@@ -224,16 +219,4 @@ int flush_buffered_writer(struct buffered_writer *bw)
 	}
 
 	return flush_previous_buffer(bw);
-}
-
-/**********************************************************************/
-bool was_buffered_writer_used(const struct buffered_writer *bw)
-{
-	return bw->bw_used;
-}
-
-/**********************************************************************/
-void note_buffered_writer_used(struct buffered_writer *bw)
-{
-	bw->bw_used = true;
 }

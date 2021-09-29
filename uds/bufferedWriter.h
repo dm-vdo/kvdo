@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.h#2 $
  */
 
 #ifndef BUFFERED_WRITER_H
@@ -102,22 +102,5 @@ int __must_check flush_buffered_writer(struct buffered_writer *buffer);
  **/
 size_t __must_check
 space_remaining_in_write_buffer(struct buffered_writer *buffer);
-
-/**
- * Return whether the buffer was ever written to.
- *
- * @param buffer        The buffered writer object.
- *
- * @return              True if at least one call to write_to_buffered_writer
- *                      was made.
- **/
-bool __must_check was_buffered_writer_used(const struct buffered_writer *buffer);
-
-/**
- * Note the buffer has been used.
- *
- * @param buffer        The buffered writer object.
- **/
-void note_buffered_writer_used(struct buffered_writer *buffer);
 
 #endif // BUFFERED_WRITER_H

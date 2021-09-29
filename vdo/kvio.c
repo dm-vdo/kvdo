@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#95 $
  */
 
 #include "kvio.h"
@@ -69,7 +69,6 @@ void write_compressed_block_vio(struct vio *vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
-	struct bio *bio = vio->bio;
 	int result = ASSERT(is_compressed_write_vio(vio),
 			    "Compressed write vio has correct type");
 	if (result != VDO_SUCCESS) {
@@ -78,18 +77,16 @@ void write_compressed_block_vio(struct vio *vio)
 	}
 
 	// Write the compressed block, using the compressed vio's own bio.
-	result = vdo_reset_bio_with_buffer(bio,
-					   vio->data,
-					   vio,
-					   vdo_complete_async_bio,
-					   REQ_OP_WRITE,
-					   vio->physical);
+	result = prepare_vio_for_io(vio,
+				    vio->data,
+				    vdo_complete_async_bio,
+				    REQ_OP_WRITE);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
 	}
 
-	vdo_submit_bio(bio, BIO_Q_COMPRESSED_DATA_PRIORITY);
+	vdo_submit_bio(vio->bio, BIO_Q_COMPRESSED_DATA_PRIORITY);
 }
 
 /**********************************************************************/
@@ -97,7 +94,6 @@ void submit_metadata_vio(struct vio *vio)
 {
 	int result;
 	char *data = vio->data;
-	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
 
 	if (is_read_vio(vio)) {
@@ -140,14 +136,15 @@ void submit_metadata_vio(struct vio *vio)
 		data = NULL;
 	}
 
-	result = vdo_reset_bio_with_buffer(bio, data, vio,
-					   vdo_complete_async_bio, bi_opf,
-					   vio->physical);
+	result = prepare_vio_for_io(vio,
+				    data,
+				    vdo_complete_async_bio,
+				    bi_opf);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
 	}
 
 	// Perform the metadata IO, using the metadata vio's own bio.
-	vdo_submit_bio(bio, get_metadata_priority(vio));
+	vdo_submit_bio(vio->bio, get_metadata_priority(vio));
 }

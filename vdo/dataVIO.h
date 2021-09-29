@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#97 $
  */
 
 #ifndef DATA_VIO_H
@@ -1190,5 +1190,32 @@ bool compare_data_vios(struct data_vio *first, struct data_vio *second);
  * @param data_vio  The data_vio to free
  **/
 void free_data_vio(struct data_vio *data_vio);
+
+/**
+ * Prepare a data_vio's vio and bio to submit I/O.
+ *
+ * @param data_vio  The vio preparing to issue I/O
+ * @param data      The buffer to write from or read into
+ * @param callback  The callback the bio should call when the I/O finishes
+ * @param bi_opf    The operation and flags for the bio
+ * @param pbn       The pbn to which the I/O will be addressed
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static inline int __must_check
+prepare_data_vio_for_io(struct data_vio *data_vio,
+			char *data,
+			bio_end_io_t callback,
+			unsigned int bi_opf,
+			physical_block_number_t pbn)
+{
+	struct vio *vio = data_vio_as_vio(data_vio);
+
+	set_vio_physical(vio, pbn);
+	return prepare_vio_for_io(vio,
+				  data,
+				  callback,
+				  bi_opf);
+}
 
 #endif // DATA_VIO_H

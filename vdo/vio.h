@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#60 $
  */
 
 #ifndef VIO_H
@@ -468,6 +468,31 @@ get_metadata_priority(struct vio *vio)
 {
 	return ((vio->priority == VIO_PRIORITY_HIGH)
 		? BIO_Q_HIGH_PRIORITY : BIO_Q_METADATA_PRIORITY);
+}
+
+/**
+ * Reset a vio's bio to prepare for issuing I/O. The pbn to which the I/O will
+ * be directed is taken from the 'physical' field of the vio.
+ *
+ * @param vio       The vio preparing to issue I/O
+ * @param data      The buffer the bio should wrap
+ * @param callback  The callback the bio should call when IO finishes
+ * @param bi_opf    The operation and flags for the bio
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static inline int __must_check
+prepare_vio_for_io(struct vio *vio,
+		   char *data,
+		   bio_end_io_t callback,
+		   unsigned int bi_opf)
+{
+	return vdo_reset_bio_with_buffer(vio->bio,
+					 data,
+					 vio,
+					 callback,
+					 bi_opf,
+					 vio->physical);
 }
 
 #endif // VIO_H

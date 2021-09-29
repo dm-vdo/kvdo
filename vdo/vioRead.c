@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#31 $
  */
 
 #include "vioRead.h"
@@ -79,7 +79,6 @@ static void read_block(struct vdo_completion *completion)
 		return;
 	}
 
-	set_vio_physical(vio, data_vio->mapped.pbn);
 	data_vio->last_async_operation = VIO_ASYNC_OP_READ_DATA_VIO;
 	read_data_vio(data_vio);
 }

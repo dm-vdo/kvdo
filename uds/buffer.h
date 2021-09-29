@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/buffer.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/buffer.h#2 $
  */
 
 #ifndef BUFFER_H
@@ -24,7 +24,13 @@
 
 #include "common.h"
 
-struct buffer;
+struct buffer {
+	size_t start;
+	size_t end;
+	size_t length;
+	byte *data;
+	bool wrapped;
+};
 
 /**
  * Create a buffer which wraps an existing byte array.

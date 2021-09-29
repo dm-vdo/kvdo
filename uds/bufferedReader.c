@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/bufferedReader.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/bufferedReader.c#2 $
  */
 
 #include "bufferedReader.h"
@@ -138,6 +138,23 @@ static size_t bytes_remaining_in_read_buffer(struct buffered_reader *br)
 }
 
 /**********************************************************************/
+static int reset_reader(struct buffered_reader *br)
+{
+	sector_t block_number;
+
+	if (bytes_remaining_in_read_buffer(br) > 0) {
+		return UDS_SUCCESS;
+	}
+
+	block_number = br->br_block_number;
+	if (br->br_pointer != NULL) {
+		++block_number;
+	}
+
+	return position_reader(br, block_number, 0);
+}
+
+/**********************************************************************/
 int read_from_buffered_reader(struct buffered_reader *br,
 			      void *data,
 			      size_t length)
@@ -146,15 +163,9 @@ int read_from_buffered_reader(struct buffered_reader *br,
 	int result = UDS_SUCCESS;
 	size_t avail, chunk;
 	while (length > 0) {
-		if (bytes_remaining_in_read_buffer(br) == 0) {
-			sector_t block_number = br->br_block_number;
-			if (br->br_pointer != NULL) {
-				++block_number;
-			}
-			result = position_reader(br, block_number, 0);
-			if (result != UDS_SUCCESS) {
-				break;
-			}
+		result = reset_reader(br);
+		if (result != UDS_SUCCESS) {
+			break;
 		}
 
 		avail = bytes_remaining_in_read_buffer(br);
@@ -177,37 +188,32 @@ int verify_buffered_data(struct buffered_reader *br,
 			 const void *value,
 			 size_t length)
 {
-	int result;
+	int result = UDS_SUCCESS;
 	size_t avail,chunk;
 	const byte *vp = value;
 	sector_t starting_block_number = br->br_block_number;
 	int starting_offset = br->br_pointer - br->br_start;
 	while (length > 0) {
-		if (bytes_remaining_in_read_buffer(br) == 0) {
-			sector_t block_number = br->br_block_number;
-			if (br->br_pointer != NULL) {
-				++block_number;
-			}
-			result = position_reader(br, block_number, 0);
-			if (result != UDS_SUCCESS) {
-				position_reader(br,
-						starting_block_number,
-						starting_offset);
-				return UDS_CORRUPT_FILE;
-			}
+		result = reset_reader(br);
+		if (result != UDS_SUCCESS) {
+			result = UDS_CORRUPT_FILE;
+			break;
 		}
 
 		avail = bytes_remaining_in_read_buffer(br);
 		chunk = min(length, avail);
 		if (memcmp(vp, br->br_pointer, chunk) != 0) {
-			position_reader(
-				br, starting_block_number, starting_offset);
-			return UDS_CORRUPT_FILE;
+			result = UDS_CORRUPT_FILE;
+			break;
 		}
 		length -= chunk;
 		vp += chunk;
 		br->br_pointer += chunk;
 	}
 
-	return UDS_SUCCESS;
+	if (result != UDS_SUCCESS) {
+		position_reader(br, starting_block_number, starting_offset);
+	}
+
+	return result;
 }

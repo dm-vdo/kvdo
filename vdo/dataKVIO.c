@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#170 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#171 $
  */
 
 #include "dataKVIO.h"
@@ -336,9 +336,11 @@ void vdo_read_block(struct data_vio *data_vio,
 	read_block->mapping_state = mapping_state;
 
 	// Read the data using the read block buffer.
-	result = vdo_reset_bio_with_buffer(vio->bio, read_block->buffer,
-					   vio, read_bio_callback, REQ_OP_READ,
-					   location);
+	result = prepare_data_vio_for_io(data_vio,
+					 read_block->buffer,
+					 read_bio_callback,
+					 REQ_OP_READ,
+					 location);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -368,8 +370,7 @@ void read_data_vio(struct data_vio *data_vio)
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct bio *bio = vio->bio;
 	int result = VDO_SUCCESS;
-	int opf = (data_vio->user_bio->bi_opf &
-		   PASSTHROUGH_FLAGS);
+	int opf;
 
 	ASSERT_LOG_ONLY(!is_write_vio(vio),
 			"operation set correctly for data read");
@@ -385,26 +386,31 @@ void read_data_vio(struct data_vio *data_vio)
 
 	// Read into the data block (for a RMW or partial IO) or directly into
 	// the user buffer (for a 4k read).
+	opf = (data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS) | REQ_OP_READ;
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio)) ||
 	    (data_vio->is_partial)) {
-		result = vdo_reset_bio_with_buffer(bio, data_vio->data_block,
-						   vio,
-						   vdo_complete_async_bio,
-						   REQ_OP_READ | opf,
-						   data_vio->mapped.pbn);
+		result = prepare_data_vio_for_io(data_vio,
+						 data_vio->data_block,
+						 vdo_complete_async_bio,
+						 opf,
+						 data_vio->mapped.pbn);
+		if (result != VDO_SUCCESS) {
+			continue_vio(vio, result);
+			return;
+		}
 	} else {
-		// A full 4k read.
-		vdo_reset_bio_with_user_bio(bio,
-					    data_vio->user_bio,
-					    vio,
-					    acknowledge_user_bio,
-					    REQ_OP_READ | opf,
-					    data_vio->mapped.pbn);
-	}
-
-	if (result != VDO_SUCCESS) {
-		continue_vio(vio, result);
-		return;
+		// A full 4k read. Use the incoming bio to avoid having to
+		// copy the data
+		set_vio_physical(vio, data_vio->mapped.pbn);
+		bio_reset(bio);
+		// Use __bio_clone_fast() to copy over the original bio iovec
+		// information and opflags.
+		__bio_clone_fast(bio, data_vio->user_bio);
+		vdo_set_bio_properties(bio,
+				       vio,
+				       acknowledge_user_bio,
+				       opf,
+				       data_vio->mapped.pbn);
 	}
 
 	vdo_submit_bio(bio, BIO_Q_DATA_PRIORITY);
@@ -452,7 +458,6 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 void write_data_vio(struct data_vio *data_vio)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	unsigned int opf = 0;
 	int result;
 
 	ASSERT_LOG_ONLY(is_write_vio(vio),
@@ -460,10 +465,11 @@ void write_data_vio(struct data_vio *data_vio)
 
 
 	// Write the data from the data block buffer.
-	result = vdo_reset_bio_with_buffer(vio->bio, data_vio->data_block,
-				       vio, vdo_complete_async_bio,
-				       REQ_OP_WRITE | opf,
-				       data_vio->new_mapped.pbn);
+	result = prepare_data_vio_for_io(data_vio,
+					 data_vio->data_block,
+					 vdo_complete_async_bio,
+					 REQ_OP_WRITE,
+					 data_vio->new_mapped.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
