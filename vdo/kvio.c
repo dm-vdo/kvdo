@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#96 $
  */
 
 #include "kvio.h"
@@ -26,6 +26,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "allocatingVIO.h"
 #include "numUtils.h"
 #include "vdo.h"
 #include "waitQueue.h"
@@ -77,6 +78,7 @@ void write_compressed_block_vio(struct vio *vio)
 	}
 
 	// Write the compressed block, using the compressed vio's own bio.
+	set_vio_physical(vio, vio_as_allocating_vio(vio)->allocation);
 	result = prepare_vio_for_io(vio,
 				    vio->data,
 				    vdo_complete_async_bio,
