@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#10 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#11 $
  */
 
 #include "indexSession.h"
@@ -311,6 +311,26 @@ int uds_open_index(enum uds_open_index_type open_type,
 }
 
 /**********************************************************************/
+static void
+wait_for_no_requests_in_progress(struct uds_index_session *index_session)
+{
+	uds_lock_mutex(&index_session->request_mutex);
+	while (index_session->request_count > 0) {
+		uds_wait_cond(&index_session->request_cond,
+			      &index_session->request_mutex);
+	}
+	uds_unlock_mutex(&index_session->request_mutex);
+}
+
+/**********************************************************************/
+static int __must_check uds_save_index(struct uds_index_session *index_session)
+{
+	wait_for_no_requests_in_progress(index_session);
+	// save_index waits for open chapter writes to complete
+	return save_index(index_session->index);
+}
+
+/**********************************************************************/
 int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
 	int result;
@@ -475,18 +495,6 @@ int uds_resume_index_session(struct uds_index_session *session)
 }
 
 /**********************************************************************/
-static void
-wait_for_no_requests_in_progress(struct uds_index_session *index_session)
-{
-	uds_lock_mutex(&index_session->request_mutex);
-	while (index_session->request_count > 0) {
-		uds_wait_cond(&index_session->request_cond,
-			      &index_session->request_mutex);
-	}
-	uds_unlock_mutex(&index_session->request_mutex);
-}
-
-/**********************************************************************/
 static int save_and_free_index(struct uds_index_session *index_session)
 {
 	int result = UDS_SUCCESS;
@@ -630,14 +638,6 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 	// Wait until any open chapter writes are complete
 	wait_for_idle_index(index_session->index);
 	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int uds_save_index(struct uds_index_session *index_session)
-{
-	wait_for_no_requests_in_progress(index_session);
-	// save_index waits for open chapter writes to complete
-	return save_index(index_session->index);
 }
 
 /**********************************************************************/

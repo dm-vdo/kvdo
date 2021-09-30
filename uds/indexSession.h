@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#5 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -163,17 +163,5 @@ int __must_check get_index_session(struct uds_index_session *index_session);
  * @param index_session  The session to release
  **/
 void release_index_session(struct uds_index_session *index_session);
-
-/**
- * Save an index while the session is quiescent.
- *
- * During the call to #uds_save_index, there should be no other call to
- * #uds_save_index and there should be no calls to #uds_start_chunk_operation.
- *
- * @param index_session  The session to save
- *
- * @return Either #UDS_SUCCESS or an error code
- **/
-int __must_check uds_save_index(struct uds_index_session *index_session);
 
 #endif /* INDEX_SESSION_H */
