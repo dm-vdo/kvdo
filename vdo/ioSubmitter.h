@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#21 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -63,6 +63,24 @@ void cleanup_vdo_io_submitter(struct io_submitter *io_submitter);
  * @param [in]  io_submitter  The I/O submitter data to destroy
  **/
 void free_vdo_io_submitter(struct io_submitter *io_submitter);
+
+/**
+ * Submit a data_vio's bio to the storage below along with any bios that have
+ * been merged with it. This call may block and so should only be called from a
+ * bio thread.
+ *
+ * @param completion  The data_vio with bio(s) to submit
+ **/
+void process_data_vio_io(struct vdo_completion *completion);
+
+/**
+ * Submit I/O for a data_vio. If possible, this I/O will be merged other
+ * pending I/Os. Otherwise, the data_vio will be sent to the appropriate bio
+ * zone directly.
+ *
+ * @param data_vio  the data_vio for which to issue I/O
+ **/
+void submit_data_vio_io(struct data_vio *data_vio);
 
 /**
  * Submit bio but don't block.

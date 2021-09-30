@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#98 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
 
 #include <linux/atomic.h>
+#include <linux/bio.h>
 #include <linux/list.h>
 
 #include "permassert.h"
@@ -1026,6 +1027,42 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
 }
 
 /**
+ * Set a callback as a bio zone operation. This function assumes that the
+ * physical field of the data_vio's vio has already been set to the pbn to
+ * which I/O will be performed.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+set_data_vio_bio_zone_callback(struct data_vio *data_vio,
+			       vdo_action *callback)
+{
+	struct vio *vio = data_vio_as_vio(data_vio);
+
+	set_vdo_completion_callback(vio_as_completion(vio),
+				    callback,
+				    get_vio_bio_zone_thread_id(vio));
+}
+
+/**
+ * Set a callback as a bio zone operation and invoke it immediately.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+launch_data_vio_bio_zone_callback(struct data_vio *data_vio,
+				  vdo_action *callback)
+{
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
+	set_data_vio_bio_zone_callback(data_vio, callback);
+	invoke_vdo_completion_callback_with_priority(completion,
+						     BIO_Q_DATA_PRIORITY);
+}
+
+/**
  * Check whether the advice received from UDS is a valid data location,
  * and if it is, accept it as the location of a potential duplicate of the
  * data_vio.
@@ -1166,13 +1203,6 @@ void compress_data_vio(struct data_vio *data_vio);
  * @param data_vio  The data_vio to read
  **/
 void read_data_vio(struct data_vio *data_vio);
-
-/**
- * A function to write a single data_vio to the layer
- *
- * @param data_vio  The data_vio to write
- **/
-void write_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to compare the contents of a data_vio to another data_vio.

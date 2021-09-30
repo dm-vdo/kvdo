@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#90 $
  */
 
 /*
@@ -111,10 +111,12 @@
 #include "permassert.h"
 
 #include "allocatingVIO.h"
+#include "bio.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "dataVIO.h"
 #include "hashLock.h"
+#include "ioSubmitter.h"
 #include "kernelTypes.h"
 #include "recoveryJournal.h"
 #include "referenceOperation.h"
@@ -939,15 +941,44 @@ static void finish_block_write(struct vdo_completion *completion)
 }
 
 /**
+ * This is the bio_end_io functon regiestered in write_block() to be called when
+ * a data_vio's write to the underlying storage has completed.
+ *
+ * @param bio  The bio which has just completed
+ **/
+static void write_bio_finished(struct bio *bio)
+{
+	struct data_vio *data_vio
+		= vio_as_data_vio((struct vio *) bio->bi_private);
+
+	vdo_count_completed_bios(bio);
+	set_vdo_completion_result(data_vio_as_completion(data_vio),
+				  vdo_get_bio_result(bio));
+	launch_data_vio_journal_callback(data_vio,
+					 finish_block_write);
+}
+
+/**
  * Write data to the underlying storage.
  *
  * @param data_vio  The data_vio to write
  **/
 static void write_block(struct data_vio *data_vio)
 {
+	int result;
+
+	// Write the data from the data block buffer.
+	result = prepare_data_vio_for_io(data_vio,
+					 data_vio->data_block,
+					 write_bio_finished,
+					 REQ_OP_WRITE,
+					 data_vio_as_allocating_vio(data_vio)->allocation);
+	if (abort_on_error(result, data_vio, READ_ONLY)) {
+		return;
+	}
+
 	data_vio->last_async_operation = VIO_ASYNC_OP_WRITE_DATA_VIO;
-	set_data_vio_journal_callback(data_vio, finish_block_write);
-	write_data_vio(data_vio);
+	submit_data_vio_io(data_vio);
 }
 
 /**

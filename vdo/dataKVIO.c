@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#171 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#172 $
  */
 
 #include "dataKVIO.h"
@@ -452,30 +452,6 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	} else {
 		vdo_acknowledge_and_enqueue(work_item_from_data_vio(data_vio));
 	}
-}
-
-/**********************************************************************/
-void write_data_vio(struct data_vio *data_vio)
-{
-	struct vio *vio = data_vio_as_vio(data_vio);
-	int result;
-
-	ASSERT_LOG_ONLY(is_write_vio(vio),
-			"write_data_vio must be passed a write data_vio");
-
-
-	// Write the data from the data block buffer.
-	result = prepare_data_vio_for_io(data_vio,
-					 data_vio->data_block,
-					 vdo_complete_async_bio,
-					 REQ_OP_WRITE,
-					 data_vio->new_mapped.pbn);
-	if (result != VDO_SUCCESS) {
-		continue_vio(vio, result);
-		return;
-	}
-
-	vdo_submit_bio(vio->bio, BIO_Q_DATA_PRIORITY);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#97 $
  */
 
 #include "ioSubmitter.h"
@@ -133,6 +133,14 @@ static void send_bio_to_device(struct vio *vio,
 	atomic64_inc(&vio->vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 
+	/*
+	 * vdo_get_callback_thread_id() can't be called from interrupt context,
+	 * in which, bio_end_io functions are often called. By setting the
+	 * requeue flag, vio launches from them will skip calling them to check
+	 * if they need to requeue.
+         */
+	vio_as_completion(vio)->requeue = true;
+
 	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	generic_make_request(bio);
@@ -160,48 +168,48 @@ static sector_t get_bio_sector(struct bio *bio)
 static void process_bio_map(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
-	struct bio_queue_data *bio_queue_data;
-	struct bio *bio = NULL;
 
-	if (!is_data_vio(vio)) {
-		send_bio_to_device(vio,
-				   vio->bio);
-		return;
-	}
+	send_bio_to_device(vio, vio->bio);
+}
+
+/**
+ * Extract the list of bios to submit from a vio. The list will always contain
+ * at least one entry (the bio for the vio on which it is called), but other
+ * bios may have been merged with it as well.
+ *
+ * @param vio  The vio submitting I/O
+ *
+ * @return bio  The head of the bio list to submit
+ **/
+static struct bio *get_bio_list(struct vio *vio)
+{
+	struct bio_queue_data *bio_queue_data = get_work_queue_private_data();
+	struct bio *bio;
 
 	assert_in_bio_zone(vio);
-	bio_queue_data = get_work_queue_private_data();
 
-	// We need to make sure to do two things here:
-	// 1. Use each bio's vio when submitting. Any other vio is
-	// not safe
-	// 2. Detach the bio list from the vio before submitting,
-	// because it could get reused/free'd up before all bios
-	// are submitted.
 	mutex_lock(&bio_queue_data->lock);
-	if (!bio_list_empty(&vio->bios_merged)) {
-		int_map_remove(bio_queue_data->map,
-			       get_bio_sector(vio->bios_merged.head));
-		int_map_remove(bio_queue_data->map,
-			       get_bio_sector(vio->bios_merged.tail));
-	}
-
+	int_map_remove(bio_queue_data->map,
+		       get_bio_sector(vio->bios_merged.head));
+	int_map_remove(bio_queue_data->map,
+		       get_bio_sector(vio->bios_merged.tail));
 	bio = vio->bios_merged.head;
 	bio_list_init(&vio->bios_merged);
 	mutex_unlock(&bio_queue_data->lock);
 
-	// Somewhere in the list we'll be submitting the current
-	// vio, so drop our handle on it now.
-	vio = NULL;
+	return bio;
+}
 
-	while (bio != NULL) {
-		struct vio *vio_bio = bio->bi_private;
-		struct bio *next = bio->bi_next;
+/**********************************************************************/
+void process_data_vio_io(struct vdo_completion *completion)
+{
+	struct bio *bio, *next;
 
+	for (bio = get_bio_list(as_vio(completion)); bio != NULL; bio = next) {
+		next = bio->bi_next;
 		bio->bi_next = NULL;
-		send_bio_to_device(vio_bio,
+		send_bio_to_device((struct vio *) bio->bi_private,
 				   bio);
-		bio = next;
 	}
 }
 
@@ -311,14 +319,26 @@ static int merge_to_next_head(struct int_map *bio_map,
 	return result;
 }
 
-/**********************************************************************/
-static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
-			      struct vio *vio,
-			      struct bio *bio)
+/**
+ * Attempt to merge a vio's bio with other pending I/Os. Currently this is only
+ * used for data_vios, but is broken out for future use with metadata vios.
+ *
+ * @param vio  The vio to merge
+ *
+ * @return whether or not the vio was merged
+ **/
+static bool try_bio_map_merge(struct vio *vio)
 {
 	int result;
-	bool merged = false;
+	bool merged = true;
+	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
+	struct bio_queue_data *bio_queue_data
+		= &vio->vdo->io_submitter->bio_queue_data[vio->bio_zone];
+
+	bio->bi_next = NULL;
+	bio_list_init(&vio->bios_merged);
+	bio_list_add(&vio->bios_merged, bio);
 
 	mutex_lock(&bio_queue_data->lock);
 	prev_vio = get_mergeable_locked(bio_queue_data->map, vio,
@@ -331,60 +351,50 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 
 	if ((prev_vio == NULL) && (next_vio == NULL)) {
 		// no merge. just add to bio_queue
+		merged = false;
 		result = int_map_put(bio_queue_data->map, get_bio_sector(bio),
 				     vio, true, NULL);
-		// We don't care about failure of int_map_put in this case.
-		ASSERT_LOG_ONLY(result == UDS_SUCCESS,
-				"bio map insertion succeeds");
-		mutex_unlock(&bio_queue_data->lock);
+	} else if (next_vio == NULL) {
+		// Only prev. merge to prev's tail
+		result = merge_to_prev_tail(bio_queue_data->map,
+					    vio,
+					    prev_vio);
 	} else {
-		if (next_vio == NULL) {
-			// Only prev. merge to prev's tail
-			result = merge_to_prev_tail(bio_queue_data->map,
-						    vio, prev_vio);
-		} else {
-			// Only next. merge to next's head
-			result = merge_to_next_head(bio_queue_data->map,
-						    vio, next_vio);
-		}
-
-		// We don't care about failure of int_map_put in this case.
-		ASSERT_LOG_ONLY(result == UDS_SUCCESS,
-				"bio map insertion succeeds");
-		mutex_unlock(&bio_queue_data->lock);
-		merged = true;
+		// Only next. merge to next's head
+		result = merge_to_next_head(bio_queue_data->map,
+					    vio,
+					    next_vio);
 	}
 
+	mutex_unlock(&bio_queue_data->lock);
+
+	// We don't care about failure of int_map_put in this case.
+	ASSERT_LOG_ONLY(result == UDS_SUCCESS, "bio map insertion succeeds");
 	return merged;
+}
+
+/**********************************************************************/
+void submit_data_vio_io(struct data_vio *data_vio)
+{
+	if (try_bio_map_merge(data_vio_as_vio(data_vio))) {
+		return;
+	}
+
+	launch_data_vio_bio_zone_callback(data_vio,
+					  process_data_vio_io);
+
 }
 
 /**********************************************************************/
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
-	struct bio_queue_data *bio_queue_data =
-		&vio->vdo->io_submitter->bio_queue_data[vio->bio_zone];
-	bool merged = false;
+	struct io_submitter *submitter = vio->vdo->io_submitter;
 
-	setup_vio_work(vio, process_bio_map, priority);
 
 	bio->bi_next = NULL;
-	bio_list_init(&vio->bios_merged);
-	bio_list_add(&vio->bios_merged, bio);
-
-	/*
-	 * Try to use the bio map to submit this bio earlier if we're already
-	 * sending IO for an adjacent block. If we can't use an existing
-	 * pending bio, enqueue an operation to run in a bio submission thread
-	 * appropriate to the indicated physical block number.
-	 */
-
-	if (is_data_vio(vio)) {
-		merged = try_bio_map_merge(bio_queue_data, vio, bio);
-	}
-	if (!merged) {
-		enqueue_vio_work(bio_queue_data->queue, vio);
-	}
+	setup_vio_work(vio, process_bio_map, priority);
+	enqueue_vio_work(submitter->bio_queue_data[vio->bio_zone].queue, vio);
 }
 
 /**********************************************************************/

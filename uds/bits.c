@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/bits.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/bits.c#2 $
  */
 
 #include "bits.h"
@@ -29,6 +29,9 @@
  * aligned uint64_t.
  **/
 enum { MAX_BIG_FIELD_BITS = (sizeof(uint64_t) - 1) * CHAR_BIT + 1 };
+
+/** This is the number of bits in a uint32_t. */
+enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
 
 /**
  * Get a big bit field from a bit stream
@@ -90,6 +93,107 @@ void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 	}
 }
 
+/**
+ * Move several bits from a higher to a lower address, moving the lower
+ * addressed bits first.
+ *
+ * @param s_memory     The base source memory byte address
+ * @param source       Bit offset into memory for the source start
+ * @param d_memory     The base destination memory byte address
+ * @param destination  Bit offset into memory for the destination start
+ * @param size         The number of bits in the field
+ **/
+static void move_bits_down(const byte *s_memory,
+			   uint64_t source,
+			   byte *d_memory,
+			   uint64_t destination,
+			   int size)
+{
+	const byte *src;
+	byte *dest;
+	int offset;
+	int count;
+	uint64_t field;
+
+	// Start by moving one field that ends on a destination int boundary.
+	count = (MAX_BIG_FIELD_BITS -
+		 ((destination + MAX_BIG_FIELD_BITS) % UINT32_BIT));
+	field = get_big_field(s_memory, source, count);
+	set_big_field(field, d_memory, destination, count);
+	source += count;
+	destination += count;
+	size -= count;
+
+	// Now do the main loop to copy 32 bit chunks that are int-aligned at
+	// the destination.
+	offset = source % UINT32_BIT;
+	src = s_memory + (source - offset) / CHAR_BIT;
+	dest = d_memory + destination / CHAR_BIT;
+	while (size > MAX_BIG_FIELD_BITS) {
+		put_unaligned_le32(get_unaligned_le64(src) >> offset, dest);
+		src += sizeof(uint32_t);
+		dest += sizeof(uint32_t);
+		source += UINT32_BIT;
+		destination += UINT32_BIT;
+		size -= UINT32_BIT;
+	}
+
+	// Finish up by moving any remaining bits.
+	if (size > 0) {
+		field = get_big_field(s_memory, source, size);
+		set_big_field(field, d_memory, destination, size);
+	}
+}
+
+/**
+ * Move several bits from a lower to a higher address, moving the higher
+ * addressed bits first.
+ *
+ * @param s_memory     The base source memory byte address
+ * @param source       Bit offset into memory for the source start
+ * @param d_memory     The base destination memory byte address
+ * @param destination  Bit offset into memory for the destination start
+ * @param size         The number of bits in the field
+ **/
+static void move_bits_up(const byte *s_memory,
+			 uint64_t source,
+			 byte *d_memory,
+			 uint64_t destination,
+			 int size)
+{
+	const byte *src;
+	byte *dest;
+	int offset;
+	int count;
+	uint64_t field;
+
+	// Start by moving one field that begins on a destination int boundary.
+	count = (destination + size) % UINT32_BIT;
+	if (count > 0) {
+		size -= count;
+		field = get_big_field(s_memory, source + size, count);
+		set_big_field(field, d_memory, destination + size, count);
+	}
+
+	// Now do the main loop to copy 32 bit chunks that are int-aligned at
+	// the destination.
+	offset = (source + size) % UINT32_BIT;
+	src = s_memory + (source + size - offset) / CHAR_BIT;
+	dest = d_memory + (destination + size) / CHAR_BIT;
+	while (size > MAX_BIG_FIELD_BITS) {
+		src -= sizeof(uint32_t);
+		dest -= sizeof(uint32_t);
+		size -= UINT32_BIT;
+		put_unaligned_le32(get_unaligned_le64(src) >> offset, dest);
+	}
+
+	// Finish up by moving any remaining bits.
+	if (size > 0) {
+		field = get_big_field(s_memory, source, size);
+		set_big_field(field, d_memory, destination, size);
+	}
+}
+
 /**********************************************************************/
 void move_bits(const byte *s_memory,
 	       uint64_t source,
@@ -97,78 +201,22 @@ void move_bits(const byte *s_memory,
 	       uint64_t destination,
 	       int size)
 {
-	enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
-	if (size > MAX_BIG_FIELD_BITS) {
-		if (source > destination) {
-			const byte *src;
-			byte *dest;
-			int offset;
-			// This is a large move from a higher to a lower
-			// address.  We move the lower addressed bits first.
-			// Start by moving one field that ends on a destination
-			// int boundary
-			int count =
-				MAX_BIG_FIELD_BITS -
-				(destination + MAX_BIG_FIELD_BITS) % UINT32_BIT;
-			uint64_t field =
-				get_big_field(s_memory, source, count);
-			set_big_field(field, d_memory, destination, count);
-			source += count;
-			destination += count;
-			size -= count;
-			// Now do the main loop to copy 32 bit chunks that are
-			// int-aligned at the destination.
-			offset = source % UINT32_BIT;
-			src = s_memory + (source - offset) / CHAR_BIT;
-			dest = d_memory + destination / CHAR_BIT;
-			while (size > MAX_BIG_FIELD_BITS) {
-				put_unaligned_le32(get_unaligned_le64(src) >>
-							   offset,
-						   dest);
-				src += sizeof(uint32_t);
-				dest += sizeof(uint32_t);
-				source += UINT32_BIT;
-				destination += UINT32_BIT;
-				size -= UINT32_BIT;
-			}
-		} else {
-			const byte *src;
-			byte *dest;
-			// This is a large move from a lower to a higher
-			// address.  We move the higher addressed bits first.
-			// Start by moving one field that begins on a
-			// destination int boundary
-			int offset, count = (destination + size) % UINT32_BIT;
-			if (count > 0) {
-				uint64_t field;
-				size -= count;
-				field = get_big_field(s_memory, source + size,
-						      count);
-				set_big_field(field,
-					      d_memory,
-					      destination + size,
-					      count);
-			}
-			// Now do the main loop to copy 32 bit chunks that are
-			// int-aligned at the destination.
-			offset = (source + size) % UINT32_BIT;
-			src = s_memory + (source + size - offset) / CHAR_BIT;
-			dest = d_memory + (destination + size) / CHAR_BIT;
-			while (size > MAX_BIG_FIELD_BITS) {
-				src -= sizeof(uint32_t);
-				dest -= sizeof(uint32_t);
-				size -= UINT32_BIT;
-				put_unaligned_le32(get_unaligned_le64(src) >>
-							   offset,
-						   dest);
-			}
+	uint64_t field;
+
+	// A small move doesn't require special handling.
+	if (size <= MAX_BIG_FIELD_BITS) {
+		if (size > 0) {
+			field = get_big_field(s_memory, source, size);
+			set_big_field(field, d_memory, destination, size);
 		}
+
+		return;
 	}
-	// Finish up by doing the last chunk, which can have any arbitrary
-	// alignment
-	if (size > 0) {
-		uint64_t field = get_big_field(s_memory, source, size);
-		set_big_field(field, d_memory, destination, size);
+
+	if (source > destination) {
+		move_bits_down(s_memory, source, d_memory, destination, size);
+	} else {
+		move_bits_up(s_memory, source, d_memory, destination, size);
 	}
 }
 
