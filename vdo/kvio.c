@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#97 $
  */
 
 #include "kvio.h"
@@ -34,36 +34,6 @@
 #include "bio.h"
 #include "dataKVIO.h"
 #include "ioSubmitter.h"
-
-/**
- * A function to tell vdo that we have completed the requested async
- * operation for a vio.
- *
- * @param item  The work item of the vio to complete
- **/
-static void vdo_handle_vio_callback(struct vdo_work_item *item)
-{
-	run_vdo_completion_callback(container_of(item, struct vdo_completion,
-				    work_item));
-}
-
-/**********************************************************************/
-void enqueue_vio_callback(struct vio *vio)
-{
-	enqueue_vio(vio,
-		    vdo_handle_vio_callback,
-		    VDO_REQ_Q_VIO_CALLBACK_PRIORITY);
-}
-
-/**********************************************************************/
-void continue_vio(struct vio *vio, int error)
-{
-	if (unlikely(error != VDO_SUCCESS)) {
-		set_vdo_completion_result(vio_as_completion(vio), error);
-	}
-
-	enqueue_vio_callback(vio);
-}
 
 /**********************************************************************/
 void write_compressed_block_vio(struct vio *vio)

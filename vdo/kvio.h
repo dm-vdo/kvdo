@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#44 $
  */
 
 #ifndef KVIO_H
@@ -70,20 +70,5 @@ static inline void launch_vio(struct vio *vio,
 	setup_vio_work(vio, work, priority);
 	enqueue_vio_work(queue, vio);
 }
-
-/**
- * Move a vio back to the base threads.
- *
- * @param vio  The vio to enqueue
- **/
-void enqueue_vio_callback(struct vio *vio);
-
-/**
- * Handles vio-related I/O post-processing.
- *
- * @param vio    The vio to finalize
- * @param error  Possible error
- **/
-void continue_vio(struct vio *vio, int error);
 
 #endif /* KVIO_H */

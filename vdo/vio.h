@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#61 $
  */
 
 #ifndef VIO_H
@@ -493,6 +493,24 @@ prepare_vio_for_io(struct vio *vio,
 					 callback,
 					 bi_opf,
 					 vio->physical);
+}
+
+
+/**
+ * Enqueue a vio to run its next callback.
+ *
+ * @param vio     The vio to continue
+ * @param result  The result of the current operation
+ **/
+static inline void continue_vio(struct vio *vio, int result)
+{
+	struct vdo_completion *completion = vio_as_completion(vio);
+
+	if (unlikely(result != VDO_SUCCESS)) {
+		set_vdo_completion_result(vio_as_completion(vio), result);
+	}
+
+	enqueue_vdo_completion(completion);
 }
 
 #endif // VIO_H
