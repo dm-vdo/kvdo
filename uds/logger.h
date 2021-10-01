@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/logger.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/logger.h#2 $
  */
 
 #ifndef LOGGER_H
@@ -35,9 +35,9 @@
 #define UDS_LOG_INFO 6 /* informational */
 #define UDS_LOG_DEBUG 7 /* debug-level messages */
 
-#if defined(__KERNEL__) && defined(MODULE)
+#if defined(MODULE)
 #define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
-#else // either userspace or compiled into the kernel
+#else // compiled into the kernel
 #define UDS_LOGGING_MODULE_NAME "vdo"
 #endif
 
