@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#75 $
  */
 
 /**
@@ -631,12 +631,6 @@ static void start_unlocking(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, VDO_HASH_LOCK_UNLOCKING);
 
-	/*
-	 * XXX If we arrange to continue on the duplicate zone thread when
-	 * verification fails, and don't explicitly change lock states (or use
-	 * an agent-local state, or an atomic), we can avoid a thread
-	 * transition here.
-	 */
 	launch_data_vio_duplicate_zone_callback(agent, unlock_duplicate_pbn);
 }
 
@@ -980,14 +974,6 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	ASSERT_LOG_ONLY(!lock->verified,
 			"hash lock only verifies advice once");
 
-	/*
-	 * XXX VDOSTORY-190 Optimization: This is one of those places where the
-	 * zone and continuation we want to use depends on the outcome of the
-	 * comparison. If we could choose which path in the layer thread before
-	 * continuing, we could save a thread transition in one of the two
-	 * cases (assuming we're willing to delay visibility of the hash
-	 * lock state change).
-	 */
 	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
 	set_data_vio_hash_zone_callback(agent, finish_verifying);
 	verify_data_vio_duplication(agent);
