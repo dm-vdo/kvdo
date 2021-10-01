@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#121 $
  */
 
 #include "dedupeIndex.h"
@@ -263,8 +263,8 @@ static void finish_index_operation(struct uds_request *uds_request)
 
 	if (atomic_cmpxchg(&dedupe_context->request_state,
 			   UR_BUSY, UR_IDLE) == UR_BUSY) {
-		struct vio *vio = data_vio_as_vio(data_vio);
-		struct dedupe_index *index = vio->vdo->dedupe_index;
+		struct dedupe_index *index =
+			get_vdo_from_data_vio(data_vio)->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
 		if (dedupe_context->is_pending) {
@@ -323,7 +323,7 @@ static void start_index_operation(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
 	struct data_vio *data_vio = vio_as_data_vio(vio);
-	struct dedupe_index *index = vio->vdo->dedupe_index;
+	struct dedupe_index *index = get_vdo_from_vio(vio)->dedupe_index;
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
 	struct uds_request *uds_request = &dedupe_context->uds_request;
 	int status;
@@ -478,7 +478,8 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
-	struct dedupe_index *index = vio->vdo->dedupe_index;
+	struct vdo *vdo = get_vdo_from_vio(vio);
+	struct dedupe_index *index = vdo->dedupe_index;
 
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_jiffies = jiffies;
@@ -520,7 +521,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 	} else {
 		// A previous user of the vio had a dedupe timeout
 		// and its request is still outstanding.
-		atomic64_inc(&vio->vdo->stats.dedupe_context_busy);
+		atomic64_inc(&vdo->stats.dedupe_context_busy);
 	}
 
 	if (vio != NULL) {

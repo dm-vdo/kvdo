@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#91 $
  */
 
 /*
@@ -233,7 +233,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
-		    !vdo_is_or_will_be_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier) &&
+		    !vdo_is_or_will_be_read_only(get_vdo_from_data_vio(data_vio)->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
@@ -296,7 +296,7 @@ static bool abort_on_error(int result,
 
 	if ((result == VDO_READ_ONLY) || (action == READ_ONLY)) {
 		struct read_only_notifier *notifier =
-			data_vio_as_vio(data_vio)->vdo->read_only_notifier;
+			get_vdo_from_data_vio(data_vio)->read_only_notifier;
 		if (!vdo_is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
 				uds_log_error_strerror(result,
@@ -1072,7 +1072,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 {
 	int result;
 
-	if (vdo_is_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier)) {
+	if (vdo_is_read_only(get_vdo_from_data_vio(data_vio)->read_only_notifier)) {
 		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}

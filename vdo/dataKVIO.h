@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#74 $
  */
 
 #ifndef DATA_KVIO_H
@@ -69,10 +69,9 @@ launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 			     vdo_work_function work,
 			     enum vdo_work_item_priority priority)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct vdo *vdo = vio->vdo;
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 
-	launch_vio(vio,
+	launch_vio(data_vio_as_vio(data_vio),
 		   work,
 		   priority,
 		   vdo->threads[vdo->thread_config->cpu_thread].queue);
@@ -90,10 +89,9 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 				 vdo_work_function work,
 				 enum vdo_work_item_priority priority)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct vdo *vdo = vio->vdo;
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 
-	launch_vio(vio,
+	launch_vio(data_vio_as_vio(data_vio),
 		   work,
 		   priority,
 		   vdo->threads[vdo->thread_config->bio_ack_thread].queue);

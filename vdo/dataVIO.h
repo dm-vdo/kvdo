@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#99 $
  */
 
 #ifndef DATA_VIO_H
@@ -508,7 +508,7 @@ get_data_vio_new_advice(const struct data_vio *data_vio)
  **/
 static inline struct vdo *get_vdo_from_data_vio(struct data_vio *data_vio)
 {
-	return data_vio_as_vio(data_vio)->vdo;
+	return data_vio_as_completion(data_vio)->vdo;
 }
 
 /**

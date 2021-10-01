@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#54 $
  */
 
 #include "vio.h"
@@ -104,7 +104,6 @@ void initialize_vio(struct vio *vio,
 	struct vdo_completion *completion = vio_as_completion(vio);
 
 	vio->bio = bio;
-	vio->vdo = vdo;
 	vio->type = vio_type;
 	vio->priority = priority;
 	vio->data = data;
@@ -175,16 +174,15 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 
 	va_list args;
 	int priority;
+	struct vdo_completion *completion = vio_as_completion(vio);
 
-	int result = vio_as_completion(vio)->result;
-
-	switch (result) {
+	switch (completion->result) {
 	case VDO_READ_ONLY:
-		atomic64_inc(&vio->vdo->stats.read_only_error_count);
+		atomic64_inc(&completion->vdo->stats.read_only_error_count);
 		return;
 
 	case VDO_NO_SPACE:
-		atomic64_inc(&vio->vdo->stats.no_space_error_count);
+		atomic64_inc(&completion->vdo->stats.no_space_error_count);
 		priority = UDS_LOG_DEBUG;
 		break;
 
@@ -197,8 +195,11 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	}
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, result, UDS_LOGGING_MODULE_NAME,
-			  format, args);
+	uds_vlog_strerror(priority,
+			  completion->result,
+			  UDS_LOGGING_MODULE_NAME,
+			  format,
+			  args);
 	va_end(args);
 }
 
@@ -229,7 +230,8 @@ void launch_metadata_vio(struct vio *vio,
 			 enum vio_operation operation)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
-	const struct admin_state_code *code = get_vdo_admin_state(vio->vdo);
+	const struct admin_state_code *code
+		= get_vdo_admin_state(completion->vdo);
 
 	ASSERT_LOG_ONLY(!code->quiescent,
 			"I/O not allowed in state %s",

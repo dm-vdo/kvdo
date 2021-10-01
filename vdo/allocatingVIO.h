@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#38 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -166,7 +166,7 @@ waiter_as_allocating_vio(struct waiter *waiter)
 static inline struct vdo *
 get_vdo_from_allocating_vio(struct allocating_vio *allocating_vio)
 {
-	return allocating_vio_as_vio(allocating_vio)->vdo;
+	return get_vdo_from_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**

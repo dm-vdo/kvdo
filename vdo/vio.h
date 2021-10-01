@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#63 $
  */
 
 #ifndef VIO_H
@@ -42,9 +42,6 @@ struct vio {
 	/* The functions to call when this vio's operation is complete */
 	vdo_action *callback;
 	vdo_action *error_handler;
-
-	/* The vdo handling this vio */
-	struct vdo *vdo;
 
 	/**
 	 * The address on the underlying device of the block to be read/written
@@ -131,6 +128,18 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
 }
 
 /**
+ * Get the vdo from a vio.
+ *
+ * @param vio  The vio from which to get the vdo
+ *
+ * @return The vdo to which the vio belongs
+ **/
+static inline struct vdo *get_vdo_from_vio(struct vio *vio)
+{
+	return vio_as_completion(vio)->vdo;
+}
+
+/**
  * Set the physical field of a vio. Also computes the bio zone for doing I/O
  * to that address.
  *
@@ -141,7 +150,7 @@ static inline void
 set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 {
 	vio->physical = pbn;
-	vio->bio_zone = get_vdo_bio_zone(vio->vdo, pbn);
+	vio->bio_zone = get_vdo_bio_zone(get_vdo_from_vio(vio), pbn);
 }
 
 /**
@@ -154,7 +163,7 @@ set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 static inline thread_id_t __must_check
 get_vio_bio_zone_thread_id(struct vio *vio)
 {
-	return vio->vdo->thread_config->bio_threads[vio->bio_zone];
+	return get_vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
 }
 
 /**

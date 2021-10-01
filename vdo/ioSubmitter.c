@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#98 $
  */
 
 #include "ioSubmitter.h"
@@ -93,7 +93,7 @@ static const struct vdo_work_queue_type bio_queue_type = {
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &vio->vdo->stats;
+	struct atomic_statistics *stats = &get_vdo_from_vio(vio)->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out, bio);
@@ -129,8 +129,9 @@ static void assert_in_bio_zone(struct vio *vio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
+	struct vdo *vdo = get_vdo_from_vio(vio);
 	assert_in_bio_zone(vio);
-	atomic64_inc(&vio->vdo->stats.bios_submitted);
+	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 
 	/*
@@ -141,7 +142,7 @@ static void send_bio_to_device(struct vio *vio,
          */
 	vio_as_completion(vio)->requeue = true;
 
-	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));
+	bio_set_dev(bio, get_vdo_backing_device(vdo));
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	generic_make_request(bio);
 #else
@@ -333,8 +334,9 @@ static bool try_bio_map_merge(struct vio *vio)
 	bool merged = true;
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
+	struct vdo *vdo = get_vdo_from_vio(vio);
 	struct bio_queue_data *bio_queue_data
-		= &vio->vdo->io_submitter->bio_queue_data[vio->bio_zone];
+		= &vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);
@@ -389,7 +391,7 @@ void submit_data_vio_io(struct data_vio *data_vio)
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
-	struct io_submitter *submitter = vio->vdo->io_submitter;
+	struct io_submitter *submitter = get_vdo_from_vio(vio)->io_submitter;
 
 
 	bio->bi_next = NULL;

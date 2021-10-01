@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#172 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#173 $
  */
 
 #include "dataKVIO.h"
@@ -87,9 +87,9 @@ static const unsigned int VDO_SECTORS_PER_BLOCK_MASK =
 /**********************************************************************/
 static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
-	int error = vdo_map_to_system_error(vio_as_completion(vio)->result);
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct bio *bio = data_vio->user_bio;
+	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
 
 
 	if (bio == NULL) {
@@ -97,10 +97,9 @@ static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 	}
 	data_vio->user_bio = NULL;
 
-	vdo_count_bios(&vio->vdo->stats.bios_acknowledged, bio);
+	vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 	if (data_vio->is_partial) {
-		vdo_count_bios(&vio->vdo->stats.bios_acknowledged_partial,
-			       bio);
+		vdo_count_bios(&vdo->stats.bios_acknowledged_partial, bio);
 	}
 
 

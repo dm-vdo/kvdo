@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#105 $
  */
 
 #include "packer.h"
@@ -407,8 +407,7 @@ static void write_pending_batches(struct packer *packer);
 static bool __must_check
 switch_to_packer_thread(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	thread_id_t thread_id = vio->vdo->packer->thread_id;
+	thread_id_t thread_id = completion->vdo->packer->thread_id;
 
 	if (completion->callback_thread_id == thread_id) {
 		return true;
@@ -458,14 +457,14 @@ static void finish_output_bin(struct packer *packer, struct output_bin *bin)
  **/
 static void complete_output_bin(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	struct packer *packer = vio->vdo->packer;
+	struct packer *packer = completion->vdo->packer;
 
 	if (!switch_to_packer_thread(completion)) {
 		return;
 	}
 
 	if (completion->result != VDO_SUCCESS) {
+		struct vio *vio = as_vio(completion);
 		update_vio_error_stats(vio,
 				       "Completing compressed write vio for physical block %llu with error",
 				       (unsigned long long) vio->physical);
