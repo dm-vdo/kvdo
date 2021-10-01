@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#100 $
  */
 
 #ifndef DATA_VIO_H
@@ -408,6 +408,19 @@ static inline struct vdo_completion *
 data_vio_as_completion(struct data_vio *data_vio)
 {
 	return allocating_vio_as_completion(data_vio_as_allocating_vio(data_vio));
+}
+
+/**
+ * Get the work_item from a data_vio.
+ *
+ * @param data_vio  The data_vio
+ *
+ * @return the data_vio's work item
+ **/
+static inline struct vdo_work_item *
+work_item_from_data_vio(struct data_vio *data_vio)
+{
+	return work_item_from_vio(data_vio_as_vio(data_vio));
 }
 
 /**
@@ -1213,13 +1226,6 @@ void read_data_vio(struct data_vio *data_vio);
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
 bool compare_data_vios(struct data_vio *first, struct data_vio *second);
-
-/**
- * Destroy a data_vio.
- *
- * @param data_vio  The data_vio to free
- **/
-void free_data_vio(struct data_vio *data_vio);
 
 /**
  * Prepare a data_vio's vio and bio to submit I/O.

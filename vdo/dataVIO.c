@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#68 $
  */
 
 #include "dataVIO.h"
@@ -28,7 +28,9 @@
 
 #include "bio.h"
 #include "blockMap.h"
+#include "bufferPool.h"
 #include "compressionState.h"
+#include "dump.h"
 #include "intMap.h"
 #include "logicalZone.h"
 #include "packer.h"
@@ -70,6 +72,103 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 	"verify_duplication",
 	"write_data_vio",
 };
+
+/**
+ * Implements buffer_free_function.
+ **/
+static void free_data_vio(void *data)
+{
+	struct data_vio *data_vio = data;
+
+	if (data_vio == NULL) {
+		return;
+	}
+
+	vdo_free_bio(UDS_FORGET(data_vio_as_vio(data_vio)->bio));
+	UDS_FREE(UDS_FORGET(data_vio->read_block.buffer));
+	UDS_FREE(UDS_FORGET(data_vio->data_block));
+	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
+	UDS_FREE(UDS_FORGET(data_vio));
+}
+
+/**
+ * Allocate the components of a data_vio.
+ *
+ * @param data_vio  The data_vio being constructed
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int __must_check allocate_data_vio_components(struct data_vio *data_vio)
+{
+	struct vio *vio;
+	int result;
+
+	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
+	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio data",
+				     &data_vio->data_block);
+	if (result != VDO_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "data_vio data allocation failure");
+	}
+
+	vio = data_vio_as_vio(data_vio);
+	result = vdo_create_bio(&vio->bio);
+	if (result != VDO_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "data_vio data bio allocation failure");
+	}
+
+	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio read buffer",
+				     &data_vio->read_block.buffer);
+	if (result != VDO_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "data_vio read allocation failure");
+	}
+
+	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch",
+				     &data_vio->scratch_block);
+	if (result != VDO_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "data_vio scratch allocation failure");
+	}
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * Implements buffer_allocate_function.
+ **/
+static int __must_check make_data_vio(void **data_ptr)
+{
+	struct data_vio *data_vio = NULL;
+	int result = UDS_ALLOCATE(1, struct data_vio, __func__, &data_vio);
+
+	if (result != VDO_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "data_vio allocation failure");
+	}
+
+	result = allocate_data_vio_components(data_vio);
+	if (result != VDO_SUCCESS) {
+		free_data_vio(data_vio);
+		return result;
+	}
+
+	*data_ptr = data_vio;
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int make_data_vio_buffer_pool(uint32_t pool_size,
+			      struct buffer_pool **buffer_pool_ptr)
+{
+	return make_buffer_pool("data_vio pool",
+				pool_size,
+				make_data_vio,
+				free_data_vio,
+				dump_data_vio,
+				buffer_pool_ptr);
+}
 
 /**
  * Initialize the LBN lock of a data_vio. In addition to recording the LBN on
@@ -428,16 +527,3 @@ void compress_data_vio(struct data_vio *data_vio)
 	}
 }
 
-/**********************************************************************/
-void free_data_vio(struct data_vio *data_vio)
-{
-	if (data_vio == NULL) {
-		return;
-	}
-
-	vdo_free_bio(UDS_FORGET(data_vio_as_vio(data_vio)->bio));
-	UDS_FREE(UDS_FORGET(data_vio->read_block.buffer));
-	UDS_FREE(UDS_FORGET(data_vio->data_block));
-	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
-	UDS_FREE(UDS_FORGET(data_vio));
-}

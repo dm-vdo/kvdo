@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#9 $
  */
 
 #ifndef DUMP_H
@@ -46,5 +46,14 @@ int vdo_dump(struct vdo *vdo,
  * @param why  Reason for doing the dump
  **/
 void vdo_dump_all(struct vdo *vdo, const char *why);
+
+/**
+ * Dump out a data_vio.
+ *
+ * <p>Implements buffer_dump_function.
+ *
+ * @param data  The data_vio to dump
+ **/
+void dump_data_vio(void *data);
 
 #endif // DUMP_H

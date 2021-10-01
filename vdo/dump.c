@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#54 $
  */
 
 #include "dump.h"
@@ -186,4 +186,147 @@ int vdo_dump(struct vdo *vdo,
 void vdo_dump_all(struct vdo *vdo, const char *why)
 {
 	do_dump(vdo, ~0, why);
+}
+
+/**
+ * Dump out the waiters on each data_vio in the data_vio buffer pool.
+ *
+ * @param queue    The queue to check (logical or physical)
+ * @param wait_on  The label to print for queue (logical or physical)
+ **/
+static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
+{
+	struct waiter *waiter, *first = get_first_waiter(queue);
+	struct data_vio *data_vio;
+
+	if (first == NULL) {
+		return;
+	}
+
+	data_vio = waiter_as_data_vio(first);
+
+	uds_log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		     wait_on, data_vio, get_data_vio_allocation(data_vio),
+		     data_vio->logical.lbn, data_vio->duplicate.pbn,
+		     get_data_vio_operation_name(data_vio));
+
+
+	for (waiter = first->next_waiter; waiter != first;
+	     waiter = waiter->next_waiter) {
+		data_vio = waiter_as_data_vio(waiter);
+		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+			     data_vio, get_data_vio_allocation(data_vio),
+			     data_vio->logical.lbn, data_vio->duplicate.pbn,
+			     get_data_vio_operation_name(data_vio));
+	}
+}
+
+/**
+ * Encode various attributes of a data_vio as a string of one-character flags
+ * for dump logging. This encoding is for logging brevity:
+ *
+ * R => vio completion result not VDO_SUCCESS
+ * W => vio is on a wait queue
+ * D => vio is a duplicate
+ *
+ * <p>The common case of no flags set will result in an empty, null-terminated
+ * buffer. If any flags are encoded, the first character in the string will be
+ * a space character.
+ *
+ * @param data_vio  The vio to encode
+ * @param buffer    The buffer to receive a null-terminated string of encoded
+ *                  flag character
+ **/
+static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
+{
+	char *p_flag = buffer;
+	*p_flag++ = ' ';
+	if (data_vio_as_completion(data_vio)->result != VDO_SUCCESS) {
+		*p_flag++ = 'R';
+	}
+	if (data_vio_as_allocating_vio(data_vio)->waiter.next_waiter != NULL) {
+		*p_flag++ = 'W';
+	}
+	if (data_vio->is_duplicate) {
+		*p_flag++ = 'D';
+	}
+	if (p_flag == &buffer[1]) {
+		// No flags, so remove the blank space.
+		p_flag = buffer;
+	}
+	*p_flag = '\0';
+}
+
+/**********************************************************************/
+void dump_data_vio(void *data)
+{
+	struct data_vio *data_vio = (struct data_vio *) data;
+
+	/*
+	 * This just needs to be big enough to hold a queue (thread) name
+	 * and a function name (plus a separator character and NUL). The
+	 * latter is limited only by taste.
+	 *
+	 * In making this static, we're assuming only one "dump" will run at
+	 * a time. If more than one does run, the log output will be garbled
+	 * anyway.
+	 */
+	static char vio_work_item_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
+	// Another static buffer...
+	// log10(256) = 2.408+, round up:
+	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
+	static char vio_block_number_dump_buffer[sizeof("P L D")
+						 + 3 * DIGITS_PER_UINT64_T];
+	static char vio_flush_generation_buffer[sizeof(" FG")
+						+ DIGITS_PER_UINT64_T] = "";
+	static char flags_dump_buffer[8];
+
+	/*
+	 * We're likely to be logging a couple thousand of these lines, and
+	 * in some circumstances syslogd may have trouble keeping up, so
+	 * keep it BRIEF rather than user-friendly.
+	 */
+	dump_work_item_to_buffer(work_item_from_data_vio(data_vio),
+				 vio_work_item_dump_buffer,
+				 sizeof(vio_work_item_dump_buffer));
+	if (data_vio->is_duplicate) {
+		snprintf(vio_block_number_dump_buffer,
+			 sizeof(vio_block_number_dump_buffer),
+			 "P%llu L%llu D%llu",
+			 get_data_vio_allocation(data_vio),
+			 data_vio->logical.lbn,
+			 data_vio->duplicate.pbn);
+	} else if (data_vio_has_allocation(data_vio)) {
+		snprintf(vio_block_number_dump_buffer,
+			 sizeof(vio_block_number_dump_buffer),
+			 "P%llu L%llu",
+			 get_data_vio_allocation(data_vio),
+			 data_vio->logical.lbn);
+	} else {
+		snprintf(vio_block_number_dump_buffer,
+			 sizeof(vio_block_number_dump_buffer), "L%llu",
+			 data_vio->logical.lbn);
+	}
+
+	if (data_vio->flush_generation != 0) {
+		snprintf(vio_flush_generation_buffer,
+			 sizeof(vio_flush_generation_buffer), " FG%llu",
+			 data_vio->flush_generation);
+	}
+
+	// Encode vio attributes as a string of one-character flags, usually
+	// empty.
+	encode_vio_dump_flags(data_vio, flags_dump_buffer);
+
+	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
+		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
+		     get_data_vio_operation_name(data_vio),
+		     vio_work_item_dump_buffer,
+		     flags_dump_buffer);
+	// might want info on: wantUDSAnswer / operation / status
+	// might want info on: bio / bios_merged
+
+	dump_vio_waiters(&data_vio->logical.waiters, "lbn");
+
+	// might want to dump more info from vio here
 }
