@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#20 $
  */
 
 #include "bufferPool.h"
@@ -28,7 +28,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "statusCodes.h"
+#include "status-codes.h"
 
 /*
  * For list nodes on the free-object list, the data field describes

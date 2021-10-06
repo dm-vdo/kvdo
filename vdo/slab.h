@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#44 $
  */
 
 #ifndef VDO_SLAB_H
@@ -26,10 +26,10 @@
 
 #include "permassert.h"
 
-#include "adminState.h"
-#include "fixedLayout.h"
-#include "journalPoint.h"
-#include "referenceOperation.h"
+#include "admin-state.h"
+#include "fixed-layout.h"
+#include "journal-point.h"
+#include "reference-operation.h"
 #include "types.h"
 
 enum slab_rebuild_status {

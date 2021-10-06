@@ -16,29 +16,29 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resume.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resume.c#2 $
  */
 
-#include "vdoResume.h"
+#include "vdo-resume.h"
 
 #include <linux/kernel.h>
 
 #include "logger.h"
 
-#include "adminCompletion.h"
-#include "blockMap.h"
+#include "admin-completion.h"
+#include "block-map.h"
 #include "completion.h"
 #include "dedupeIndex.h"
-#include "kernelTypes.h"
-#include "logicalZone.h"
-#include "recoveryJournal.h"
-#include "slabDepot.h"
-#include "slabSummary.h"
-#include "threadConfig.h"
+#include "kernel-types.h"
+#include "logical-zone.h"
+#include "recovery-journal.h"
+#include "slab-depot.h"
+#include "slab-summary.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoResize.h"
-#include "vdoResizeLogical.h"
+#include "vdo-resize.h"
+#include "vdo-resize-logical.h"
 
 enum {
 	RESUME_PHASE_START = 0,

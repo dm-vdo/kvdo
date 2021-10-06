@@ -16,33 +16,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-recovery.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-recovery.c#2 $
  */
 
-#include "vdoRecovery.h"
+#include "vdo-recovery.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockAllocator.h"
-#include "blockMap.h"
-#include "blockMapPage.h"
-#include "blockMapRecovery.h"
+#include "block-allocator.h"
+#include "block-map.h"
+#include "block-map-page.h"
+#include "block-map-recovery.h"
 #include "completion.h"
-#include "intMap.h"
-#include "journalPoint.h"
-#include "numUtils.h"
-#include "packedRecoveryJournalBlock.h"
-#include "recoveryJournal.h"
-#include "recoveryUtils.h"
+#include "int-map.h"
+#include "journal-point.h"
+#include "num-utils.h"
+#include "packed-recovery-journal-block.h"
+#include "recovery-journal.h"
+#include "recovery-utils.h"
 #include "slab.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
-#include "threadConfig.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "waitQueue.h"
+#include "wait-queue.h"
 
 /**
  * The absolute position of an entry in the recovery journal, including

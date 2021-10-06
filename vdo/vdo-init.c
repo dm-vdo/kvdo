@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-init.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-init.c#2 $
  */
 
-#include "vdoInit.h"
+#include "vdo-init.h"
 
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
@@ -30,15 +30,15 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "adminCompletion.h"
-#include "deviceRegistry.h"
-#include "instanceNumber.h"
+#include "admin-completion.h"
+#include "device-registry.h"
+#include "instance-number.h"
 #include "limiter.h"
-#include "poolSysfs.h"
-#include "threadConfig.h"
+#include "pool-sysfs.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "volumeGeometry.h"
+#include "volume-geometry.h"
 
 /**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *target)

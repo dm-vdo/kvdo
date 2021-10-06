@@ -16,36 +16,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/ref-counts.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/ref-counts.c#2 $
  */
 
-#include "refCounts.h"
+#include "ref-counts.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
 #include "permassert.h"
 
-#include "adminState.h"
-#include "blockAllocator.h"
+#include "admin-state.h"
+#include "block-allocator.h"
 #include "completion.h"
 #include "extent.h"
 #include "header.h"
-#include "journalPoint.h"
-#include "numUtils.h"
-#include "packedReferenceBlock.h"
-#include "pbnLock.h"
-#include "readOnlyNotifier.h"
-#include "referenceOperation.h"
+#include "journal-point.h"
+#include "num-utils.h"
+#include "packed-reference-block.h"
+#include "pbn-lock.h"
+#include "read-only-notifier.h"
+#include "reference-operation.h"
 #include "slab.h"
-#include "slabDepotFormat.h"
-#include "slabJournal.h"
-#include "slabSummary.h"
-#include "statusCodes.h"
+#include "slab-depot-format.h"
+#include "slab-journal.h"
+#include "slab-summary.h"
+#include "status-codes.h"
 #include "stringUtils.h"
 #include "vdo.h"
-#include "vioPool.h"
-#include "waitQueue.h"
+#include "vio-pool.h"
+#include "wait-queue.h"
 
 static const uint64_t BYTES_PER_WORD = sizeof(uint64_t);
 static const bool NORMAL_OPERATION = true;

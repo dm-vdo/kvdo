@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/super-block-codec.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/super-block-codec.c#2 $
  */
 
-#include "superBlockCodec.h"
+#include "super-block-codec.h"
 
 #include "buffer.h"
 #include "logger.h"
@@ -29,7 +29,7 @@
 #include "checksum.h"
 #include "constants.h"
 #include "header.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 
 enum {
 	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + VDO_CHECKSUM_SIZE,

@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/wait-queue.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/wait-queue.c#2 $
  */
 
-#include "waitQueue.h"
+#include "wait-queue.h"
 
 #include "permassert.h"
 
-#include "statusCodes.h"
+#include "status-codes.h"
 
 /**********************************************************************/
 int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)

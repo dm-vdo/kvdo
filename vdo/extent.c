@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#35 $
  */
 
 #include "extent.h"
@@ -29,8 +29,8 @@
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
-#include "vioRead.h"
-#include "vioWrite.h"
+#include "vio-read.h"
+#include "vio-write.h"
 
 /**********************************************************************/
 int create_vdo_extent(struct vdo *vdo,

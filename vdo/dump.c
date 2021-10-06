@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#55 $
  */
 
 #include "dump.h"
@@ -30,11 +30,11 @@
 #include "constants.h"
 #include "dedupeIndex.h"
 #include "ioSubmitter.h"
-#include "kernelTypes.h"
+#include "kernel-types.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoInit.h"
+#include "vdo-init.h"
 
 enum dump_options {
 	// Work queues

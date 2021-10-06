@@ -16,18 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resize-logical.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resize-logical.c#2 $
  */
 
-#include "vdoResizeLogical.h"
+#include "vdo-resize-logical.h"
 
 #include "logger.h"
 
-#include "adminCompletion.h"
-#include "blockMap.h"
+#include "admin-completion.h"
+#include "block-map.h"
 #include "completion.h"
-#include "kernelTypes.h"
-#include "threadConfig.h"
+#include "kernel-types.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 

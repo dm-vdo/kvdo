@@ -16,29 +16,29 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map.c#2 $
  */
 
-#include "blockMap.h"
+#include "block-map.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "actionManager.h"
-#include "adminState.h"
-#include "blockMapFormat.h"
-#include "blockMapPage.h"
-#include "blockMapTree.h"
+#include "action-manager.h"
+#include "admin-state.h"
+#include "block-map-format.h"
+#include "block-map-page.h"
+#include "block-map-tree.h"
 #include "constants.h"
-#include "dataVIO.h"
+#include "data-vio.h"
 #include "forest.h"
-#include "numUtils.h"
-#include "recoveryJournal.h"
-#include "statusCodes.h"
+#include "num-utils.h"
+#include "recovery-journal.h"
+#include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoPageCache.h"
+#include "vdo-page-cache.h"
 
 /**
  * State associated which each block map page while it is in the VDO page

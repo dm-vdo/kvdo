@@ -16,20 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-summary.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-summary.c#2 $
  */
 
-#include "slabSummary.h"
+#include "slab-summary.h"
 
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "adminState.h"
+#include "admin-state.h"
 #include "constants.h"
 #include "extent.h"
-#include "readOnlyNotifier.h"
-#include "slabSummaryFormat.h"
-#include "threadConfig.h"
+#include "read-only-notifier.h"
+#include "slab-summary-format.h"
+#include "thread-config.h"
 #include "types.h"
 
 // FULLNESS HINT COMPUTATION

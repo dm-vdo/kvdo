@@ -16,28 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/read-only-rebuild.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/read-only-rebuild.c#2 $
  */
 
-#include "readOnlyRebuild.h"
+#include "read-only-rebuild.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "blockMap.h"
-#include "blockMapRecovery.h"
+#include "block-map.h"
+#include "block-map-recovery.h"
 #include "completion.h"
-#include "numUtils.h"
-#include "packedRecoveryJournalBlock.h"
-#include "recoveryJournal.h"
-#include "recoveryUtils.h"
-#include "referenceCountRebuild.h"
-#include "slabDepot.h"
-#include "threadConfig.h"
+#include "num-utils.h"
+#include "packed-recovery-journal-block.h"
+#include "recovery-journal.h"
+#include "recovery-utils.h"
+#include "reference-count-rebuild.h"
+#include "slab-depot.h"
+#include "thread-config.h"
 #include "vdo.h"
-#include "vdoComponent.h"
-#include "vdoComponentStates.h"
-#include "vdoPageCache.h"
+#include "vdo-component.h"
+#include "vdo-component-states.h"
+#include "vdo-page-cache.h"
 
 struct read_only_rebuild_completion {
 	/** The completion header */

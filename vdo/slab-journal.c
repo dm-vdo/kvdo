@@ -16,23 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-journal.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-journal.c#2 $
  */
 
-#include "slabJournal.h"
+#include "slab-journal.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "stringUtils.h"
 
-#include "adminState.h"
-#include "blockAllocator.h"
-#include "dataVIO.h"
-#include "recoveryJournal.h"
-#include "refCounts.h"
-#include "slabDepot.h"
-#include "slabSummary.h"
+#include "admin-state.h"
+#include "block-allocator.h"
+#include "data-vio.h"
+#include "recovery-journal.h"
+#include "ref-counts.h"
+#include "slab-depot.h"
+#include "slab-summary.h"
 #include "vdo.h"
 
 /**********************************************************************/

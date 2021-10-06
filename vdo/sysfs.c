@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#29 $
  */
 
 #include "sysfs.h"
@@ -25,7 +25,7 @@
 
 #include "dedupeIndex.h"
 #include "logger.h"
-#include "vdoInit.h"
+#include "vdo-init.h"
 
 /**********************************************************************/
 static int vdo_log_level_show(char *buf,

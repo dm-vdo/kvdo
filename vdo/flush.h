@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#18 $
  */
 
 #ifndef FLUSH_H
@@ -24,9 +24,9 @@
 
 #include "bio.h"
 #include "completion.h"
-#include "kernelTypes.h"
+#include "kernel-types.h"
 #include "types.h"
-#include "waitQueue.h"
+#include "wait-queue.h"
 #include "workQueue.h"
 
 /**

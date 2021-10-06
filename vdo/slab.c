@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#76 $
  */
 
 #include "slab.h"
@@ -25,18 +25,18 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "adminState.h"
-#include "blockAllocator.h"
+#include "admin-state.h"
+#include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
-#include "numUtils.h"
-#include "pbnLock.h"
-#include "recoveryJournal.h"
-#include "refCounts.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
-#include "slabJournalFormat.h"
-#include "slabSummary.h"
+#include "num-utils.h"
+#include "pbn-lock.h"
+#include "recovery-journal.h"
+#include "ref-counts.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
+#include "slab-journal-format.h"
+#include "slab-summary.h"
 
 /**********************************************************************/
 int make_vdo_slab(physical_block_number_t slab_origin,

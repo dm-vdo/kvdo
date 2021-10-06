@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-component.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-component.c#2 $
  */
 
-#include "vdoComponent.h"
+#include "vdo-component.h"
 
 #include "buffer.h"
 #include "logger.h"
@@ -27,9 +27,9 @@
 
 #include "constants.h"
 #include "header.h"
-#include "numUtils.h"
-#include "slabDepotFormat.h"
-#include "statusCodes.h"
+#include "num-utils.h"
+#include "slab-depot-format.h"
+#include "status-codes.h"
 #include "types.h"
 
 /**

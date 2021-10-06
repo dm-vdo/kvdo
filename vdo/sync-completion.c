@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/sync-completion.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/sync-completion.c#2 $
  */
 
-#include "syncCompletion.h"
+#include "sync-completion.h"
 
 #include <linux/delay.h>
 

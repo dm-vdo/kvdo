@@ -19,9 +19,11 @@
 
 #include <linux/mutex.h>
 
-#include "dedupeIndex.h"
 #include "logger.h"
-#include "poolSysfs.h"
+
+#include "dedupeIndex.h"
+
+#include "pool-sysfs.h"
 #include "statistics.h"
 #include "vdo.h"
 

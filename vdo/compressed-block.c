@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressed-block.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressed-block.c#2 $
  */
 
-#include "compressedBlock.h"
+#include "compressed-block.h"
 
 #include "permassert.h"
 #include "stringUtils.h"
 
-#include "statusCodes.h"
+#include "status-codes.h"
 
 static const struct version_number COMPRESSED_BLOCK_1_0 = {
 	.major_version = 1,

@@ -16,28 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal.c#2 $
  */
 
-#include "recoveryJournal.h"
+#include "recovery-journal.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMap.h"
+#include "block-map.h"
 #include "constants.h"
-#include "dataVIO.h"
+#include "data-vio.h"
 #include "extent.h"
 #include "header.h"
-#include "numUtils.h"
-#include "packedRecoveryJournalBlock.h"
-#include "recoveryJournalBlock.h"
-#include "recoveryJournalFormat.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
+#include "num-utils.h"
+#include "packed-recovery-journal-block.h"
+#include "recovery-journal-block.h"
+#include "recovery-journal-format.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
 #include "vdo.h"
-#include "waitQueue.h"
+#include "wait-queue.h"
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
 

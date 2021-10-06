@@ -16,23 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-scrubber.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-scrubber.c#2 $
  */
 
-#include "slabScrubber.h"
+#include "slab-scrubber.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "adminState.h"
-#include "blockAllocator.h"
+#include "admin-state.h"
+#include "block-allocator.h"
 #include "constants.h"
-#include "readOnlyNotifier.h"
-#include "recoveryJournal.h"
-#include "refCounts.h"
+#include "read-only-notifier.h"
+#include "recovery-journal.h"
+#include "ref-counts.h"
 #include "slab.h"
-#include "slabJournal.h"
+#include "slab-journal.h"
 #include "vdo.h"
 
 /**

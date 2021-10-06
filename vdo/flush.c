@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#68 $
  */
 
 #include "flush.h"
@@ -28,14 +28,14 @@
 #include "ioSubmitter.h"
 #include "kernelVDO.h"
 
-#include "blockAllocator.h"
+#include "block-allocator.h"
 #include "completion.h"
-#include "kernelTypes.h"
-#include "logicalZone.h"
-#include "numUtils.h"
-#include "readOnlyNotifier.h"
-#include "slabDepot.h"
-#include "threadConfig.h"
+#include "kernel-types.h"
+#include "logical-zone.h"
+#include "num-utils.h"
+#include "read-only-notifier.h"
+#include "slab-depot.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 

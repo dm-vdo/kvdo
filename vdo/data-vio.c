@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#2 $
  */
 
-#include "dataVIO.h"
+#include "data-vio.h"
 
 #include <linux/lz4.h>
 
@@ -27,19 +27,19 @@
 #include "permassert.h"
 
 #include "bio.h"
-#include "blockMap.h"
+#include "block-map.h"
 #include "bufferPool.h"
-#include "compressionState.h"
+#include "compression-state.h"
 #include "dump.h"
-#include "intMap.h"
-#include "logicalZone.h"
+#include "int-map.h"
+#include "logical-zone.h"
 #include "packer.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 #include "vdo.h"
-#include "vdoComponent.h"
-#include "vdoComponentStates.h"
-#include "vioRead.h"
-#include "vioWrite.h"
+#include "vdo-component.h"
+#include "vdo-component-states.h"
+#include "vio-read.h"
+#include "vio-write.h"
 
 static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",

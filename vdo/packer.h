@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#22 $
  */
 
 #ifndef PACKER_H
@@ -26,11 +26,11 @@
 
 #include "compiler.h"
 
-#include "adminState.h"
-#include "blockMappingState.h"
+#include "admin-state.h"
+#include "block-mapping-state.h"
 #include "statistics.h"
 #include "types.h"
-#include "waitQueue.h"
+#include "wait-queue.h"
 
 enum {
 	DEFAULT_PACKER_INPUT_BINS = 16,

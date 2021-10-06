@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbn-lock-pool.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbn-lock-pool.c#2 $
  */
 
-#include "pbnLockPool.h"
+#include "pbn-lock-pool.h"
 
 #include <linux/list.h>
 
@@ -27,8 +27,8 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "pbnLock.h"
-#include "statusCodes.h"
+#include "pbn-lock.h"
+#include "status-codes.h"
 
 /**
  * Unused (idle) PBN locks are kept in a list. Just like in a malloc

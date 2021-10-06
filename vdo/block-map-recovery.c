@@ -16,25 +16,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-recovery.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-recovery.c#2 $
  */
 
-#include "blockMapRecovery.h"
+#include "block-map-recovery.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMap.h"
-#include "blockMapPage.h"
+#include "block-map.h"
+#include "block-map-page.h"
 #include "heap.h"
-#include "numUtils.h"
-#include "refCounts.h"
-#include "slabDepot.h"
-#include "threadConfig.h"
+#include "num-utils.h"
+#include "ref-counts.h"
+#include "slab-depot.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoPageCache.h"
+#include "vdo-page-cache.h"
 
 /**
  * A completion to manage recovering the block map from the recovery journal.

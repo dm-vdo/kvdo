@@ -16,25 +16,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physical-zone.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physical-zone.c#2 $
  */
 
-#include "physicalZone.h"
+#include "physical-zone.h"
 
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockAllocator.h"
-#include "blockMap.h"
+#include "block-allocator.h"
+#include "block-map.h"
 #include "completion.h"
 #include "constants.h"
-#include "dataVIO.h"
+#include "data-vio.h"
 #include "flush.h"
-#include "hashLock.h"
-#include "intMap.h"
-#include "pbnLock.h"
-#include "pbnLockPool.h"
-#include "slabDepot.h"
+#include "hash-lock.h"
+#include "int-map.h"
+#include "pbn-lock.h"
+#include "pbn-lock-pool.h"
+#include "slab-depot.h"
 #include "vdo.h"
 
 enum {

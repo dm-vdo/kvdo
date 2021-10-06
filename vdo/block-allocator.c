@@ -16,34 +16,34 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-allocator.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-allocator.c#2 $
  */
 
-#include "blockAllocator.h"
+#include "block-allocator.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "adminState.h"
-#include "actionManager.h"
+#include "admin-state.h"
+#include "action-manager.h"
 #include "completion.h"
 #include "heap.h"
-#include "numUtils.h"
-#include "priorityTable.h"
-#include "readOnlyNotifier.h"
-#include "refCounts.h"
+#include "num-utils.h"
+#include "priority-table.h"
+#include "read-only-notifier.h"
+#include "ref-counts.h"
 #include "slab.h"
-#include "slabDepot.h"
-#include "slabIterator.h"
-#include "slabJournalEraser.h"
-#include "slabJournal.h"
-#include "slabScrubber.h"
-#include "slabSummary.h"
+#include "slab-depot.h"
+#include "slab-iterator.h"
+#include "slab-journal-eraser.h"
+#include "slab-journal.h"
+#include "slab-scrubber.h"
+#include "slab-summary.h"
 #include "vdo.h"
-#include "vdoRecovery.h"
+#include "vdo-recovery.h"
 #include "vio.h"
-#include "vioPool.h"
+#include "vio-pool.h"
 
 /**
  * Assert that a block allocator function was called from the correct thread.

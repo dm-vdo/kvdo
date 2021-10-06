@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#30 $
  */
 
 #ifndef BIO_H
@@ -25,7 +25,7 @@
 #include <linux/bio.h>
 #include <linux/blkdev.h>
 
-#include "kernelTypes.h"
+#include "kernel-types.h"
 
 /**
  * Copy the bio data to a char array.

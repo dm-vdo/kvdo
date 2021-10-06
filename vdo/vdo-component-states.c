@@ -16,24 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-component-states.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-component-states.c#2 $
  */
 
-#include "vdoComponentStates.h"
+#include "vdo-component-states.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMapFormat.h"
+#include "block-map-format.h"
 #include "constants.h"
-#include "fixedLayout.h"
-#include "numUtils.h"
-#include "recoveryJournalFormat.h"
-#include "slabDepotFormat.h"
-#include "statusCodes.h"
+#include "fixed-layout.h"
+#include "num-utils.h"
+#include "recovery-journal-format.h"
+#include "slab-depot-format.h"
+#include "status-codes.h"
 #include "types.h"
-#include "vdoComponent.h"
+#include "vdo-component.h"
 
 const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.major_version = 67,

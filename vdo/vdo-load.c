@@ -16,38 +16,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-load.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-load.c#2 $
  */
 
-#include "vdoLoad.h"
+#include "vdo-load.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "adminCompletion.h"
-#include "blockMap.h"
+#include "admin-completion.h"
+#include "block-map.h"
 #include "completion.h"
 #include "constants.h"
 #include "dedupeIndex.h"
-#include "deviceConfig.h"
-#include "hashZone.h"
+#include "device-config.h"
+#include "hash-zone.h"
 #include "header.h"
-#include "kernelTypes.h"
-#include "logicalZone.h"
-#include "physicalZone.h"
-#include "poolSysfs.h"
-#include "readOnlyRebuild.h"
-#include "recoveryJournal.h"
-#include "releaseVersions.h"
-#include "slabDepot.h"
-#include "slabSummary.h"
-#include "superBlockCodec.h"
-#include "threadConfig.h"
+#include "kernel-types.h"
+#include "logical-zone.h"
+#include "physical-zone.h"
+#include "pool-sysfs.h"
+#include "read-only-rebuild.h"
+#include "recovery-journal.h"
+#include "release-versions.h"
+#include "slab-depot.h"
+#include "slab-summary.h"
+#include "super-block-codec.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoInit.h"
-#include "vdoRecovery.h"
-#include "vdoSuspend.h"
+#include "vdo-init.h"
+#include "vdo-recovery.h"
+#include "vdo-suspend.h"
 
 enum {
 	LOAD_PHASE_START = 0,

@@ -16,31 +16,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-tree.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-tree.c#2 $
  */
 
-#include "blockMapTree.h"
+#include "block-map-tree.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMap.h"
-#include "blockMapPage.h"
+#include "block-map.h"
+#include "block-map-page.h"
 #include "constants.h"
-#include "dataVIO.h"
-#include "dirtyLists.h"
+#include "data-vio.h"
+#include "dirty-lists.h"
 #include "forest.h"
-#include "kernelTypes.h"
-#include "numUtils.h"
-#include "recoveryJournal.h"
-#include "referenceOperation.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
+#include "kernel-types.h"
+#include "num-utils.h"
+#include "recovery-journal.h"
+#include "reference-operation.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoPageCache.h"
-#include "vioPool.h"
+#include "vdo-page-cache.h"
+#include "vio-pool.h"
 
 enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,

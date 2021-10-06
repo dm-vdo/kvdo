@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointer-map.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointer-map.c#2 $
  */
 
 /**
@@ -70,7 +70,7 @@
  * develop an approach to incrementally resize the table.
  **/
 
-#include "pointerMap.h"
+#include "pointer-map.h"
 
 #include "errors.h"
 #include "logger.h"

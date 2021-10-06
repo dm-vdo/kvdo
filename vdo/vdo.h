@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#69 $
  */
 
 #ifndef VDO_H
@@ -29,23 +29,23 @@
 
 #include "threadRegistry.h"
 
-#include "adminCompletion.h"
-#include "adminState.h"
-#include "atomicStats.h"
-#include "deviceConfig.h"
+#include "admin-completion.h"
+#include "admin-state.h"
+#include "atomic-stats.h"
+#include "device-config.h"
 #include "header.h"
 #include "limiter.h"
 #include "packer.h"
 #include "statistics.h"
-#include "superBlock.h"
-#include "readOnlyNotifier.h"
+#include "super-block.h"
+#include "read-only-notifier.h"
 #include "types.h"
 #include "uds.h"
-#include "vdoComponent.h"
-#include "vdoComponentStates.h"
-#include "vdoLayout.h"
-#include "vdoState.h"
-#include "volumeGeometry.h"
+#include "vdo-component.h"
+#include "vdo-component-states.h"
+#include "vdo-layout.h"
+#include "vdo-state.h"
+#include "volume-geometry.h"
 
 
 struct vdo_thread {

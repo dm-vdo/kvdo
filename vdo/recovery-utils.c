@@ -16,23 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-utils.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-utils.c#2 $
  */
 
-#include "recoveryUtils.h"
+#include "recovery-utils.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 
 #include "completion.h"
 #include "extent.h"
-#include "packedRecoveryJournalBlock.h"
-#include "recoveryJournalEntry.h"
-#include "recoveryJournal.h"
-#include "slabDepot.h"
+#include "packed-recovery-journal-block.h"
+#include "recovery-journal-entry.h"
+#include "recovery-journal.h"
+#include "slab-depot.h"
 #include "vdo.h"
-#include "vdoComponent.h"
-#include "vdoComponentStates.h"
+#include "vdo-component.h"
+#include "vdo-component-states.h"
 
 /**
  * Finish loading the journal by freeing the extent and notifying the parent.

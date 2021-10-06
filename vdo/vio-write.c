@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#2 $
  */
 
 /*
@@ -105,27 +105,27 @@
  * }
  */
 
-#include "vioWrite.h"
+#include "vio-write.h"
 
 #include "logger.h"
 #include "permassert.h"
 
-#include "allocatingVIO.h"
+#include "allocating-vio.h"
 #include "bio.h"
-#include "blockMap.h"
-#include "compressionState.h"
-#include "dataVIO.h"
-#include "hashLock.h"
+#include "block-map.h"
+#include "compression-state.h"
+#include "data-vio.h"
+#include "hash-lock.h"
 #include "ioSubmitter.h"
-#include "kernelTypes.h"
-#include "recoveryJournal.h"
-#include "referenceOperation.h"
+#include "kernel-types.h"
+#include "recovery-journal.h"
+#include "reference-operation.h"
 #include "slab.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
-#include "vioRead.h"
+#include "vio-read.h"
 
 /**
  * The steps taken cleaning up a VIO, in the order they are performed.

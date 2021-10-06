@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/instance-number.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/instance-number.c#2 $
  */
 
-#include "instanceNumber.h"
+#include "instance-number.h"
 
 #include <linux/bitops.h>
 #include <linux/mutex.h>
 
 #include "memoryAlloc.h"
-#include "numUtils.h"
+#include "num-utils.h"
 #include "permassert.h"
 
 /*

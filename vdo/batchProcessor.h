@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#14 $
  */
 
 #ifndef BATCHPROCESSOR_H
 #define BATCHPROCESSOR_H
 
-#include "kernelTypes.h"
+#include "kernel-types.h"
 
 /**
  * Control data for managing collections of objects to be operated on

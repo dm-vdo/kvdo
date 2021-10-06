@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#32 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -26,7 +26,7 @@
 
 #include "util/funnelQueue.h"
 
-#include "kernelTypes.h"
+#include "kernel-types.h"
 #include "types.h"
 
 enum {

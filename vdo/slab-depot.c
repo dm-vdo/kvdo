@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-depot.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab-depot.c#2 $
  */
 
-#include "slabDepot.h"
+#include "slab-depot.h"
 
 #include <linux/atomic.h>
 
@@ -27,26 +27,26 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "actionManager.h"
-#include "adminState.h"
-#include "blockAllocator.h"
+#include "action-manager.h"
+#include "admin-state.h"
+#include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
 #include "header.h"
-#include "numUtils.h"
-#include "readOnlyNotifier.h"
-#include "refCounts.h"
+#include "num-utils.h"
+#include "read-only-notifier.h"
+#include "ref-counts.h"
 #include "slab.h"
-#include "slabDepotFormat.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
-#include "slabIterator.h"
-#include "slabSummary.h"
-#include "statusCodes.h"
-#include "threadConfig.h"
+#include "slab-depot-format.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
+#include "slab-iterator.h"
+#include "slab-summary.h"
+#include "status-codes.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoState.h"
+#include "vdo-state.h"
 
 /**********************************************************************/
 static

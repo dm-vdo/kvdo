@@ -16,24 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logical-zone.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logical-zone.c#2 $
  */
 
-#include "logicalZone.h"
+#include "logical-zone.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "actionManager.h"
-#include "adminState.h"
-#include "allocationSelector.h"
-#include "blockMap.h"
+#include "action-manager.h"
+#include "admin-state.h"
+#include "allocation-selector.h"
+#include "block-map.h"
 #include "completion.h"
 #include "constants.h"
-#include "dataVIO.h"
+#include "data-vio.h"
 #include "flush.h"
-#include "intMap.h"
+#include "int-map.h"
 #include "vdo.h"
 
 struct logical_zone {

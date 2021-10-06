@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/admin-completion.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/admin-completion.c#2 $
  */
 
-#include "adminCompletion.h"
+#include "admin-completion.h"
 
 #include <linux/atomic.h>
 #include <linux/delay.h>
@@ -29,7 +29,7 @@
 #include "permassert.h"
 
 #include "completion.h"
-#include "threadConfig.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 

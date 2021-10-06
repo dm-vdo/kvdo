@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#14 $
  */
 
 #include "header.h"
 
 #include "logger.h"
 #include "permassert.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 
 /**********************************************************************/
 int validate_vdo_version(struct version_number expected_version,

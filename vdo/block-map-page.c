@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-page.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-page.c#2 $
  */
 
-#include "blockMapPage.h"
+#include "block-map-page.h"
 
 #include "permassert.h"
 
 #include "constants.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 #include "types.h"
 
 enum {

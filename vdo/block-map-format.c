@@ -16,18 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-format.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/block-map-format.c#2 $
  */
 
-#include "blockMapFormat.h"
+#include "block-map-format.h"
 
 #include "buffer.h"
 #include "permassert.h"
 
 #include "constants.h"
 #include "header.h"
-#include "numUtils.h"
-#include "statusCodes.h"
+#include "num-utils.h"
+#include "status-codes.h"
 #include "types.h"
 
 const struct header VDO_BLOCK_MAP_HEADER_2_0 = {

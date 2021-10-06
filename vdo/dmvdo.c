@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#163 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#164 $
  */
 
 #include <linux/module.h>
@@ -29,19 +29,19 @@
 #include "bio.h"
 #include "constants.h"
 #include "dedupeIndex.h"
-#include "deviceRegistry.h"
+#include "device-registry.h"
 #include "dump.h"
 #include "flush.h"
-#include "instanceNumber.h"
+#include "instance-number.h"
 #include "ioSubmitter.h"
 #include "messageStats.h"
 #include "stringUtils.h"
-#include "threadConfig.h"
+#include "thread-config.h"
 #include "vdo.h"
-#include "vdoInit.h"
-#include "vdoLoad.h"
-#include "vdoResume.h"
-#include "vdoSuspend.h"
+#include "vdo-init.h"
+#include "vdo-load.h"
+#include "vdo-resume.h"
+#include "vdo-suspend.h"
 
 /**
  * Get the vdo associated with a dm target structure.

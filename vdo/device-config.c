@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#2 $
  */
 
-#include "deviceConfig.h"
+#include "device-config.h"
 
 #include <linux/device-mapper.h>
 

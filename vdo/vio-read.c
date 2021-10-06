@@ -16,18 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-read.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-read.c#2 $
  */
 
-#include "vioRead.h"
+#include "vio-read.h"
 
 #include "logger.h"
 
-#include "blockMap.h"
-#include "dataVIO.h"
-#include "kernelTypes.h"
+#include "block-map.h"
+#include "data-vio.h"
+#include "kernel-types.h"
 #include "vdo.h"
-#include "vioWrite.h"
+#include "vio-write.h"
 
 /**
  * Do the modify-write part of a read-modify-write cycle. This callback is

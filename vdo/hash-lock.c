@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hash-lock.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hash-lock.c#2 $
  */
 
 /**
@@ -101,7 +101,7 @@
  * transitioned to after LOCKING.
  **/
 
-#include "hashLock.h"
+#include "hash-lock.h"
 
 #include <linux/list.h>
 
@@ -109,19 +109,19 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "compressionState.h"
+#include "compression-state.h"
 #include "constants.h"
-#include "dataVIO.h"
-#include "hashZone.h"
+#include "data-vio.h"
+#include "hash-zone.h"
 #include "packer.h"
-#include "pbnLock.h"
-#include "physicalZone.h"
+#include "pbn-lock.h"
+#include "physical-zone.h"
 #include "slab.h"
-#include "slabDepot.h"
+#include "slab-depot.h"
 #include "types.h"
 #include "vdo.h"
-#include "vioWrite.h"
-#include "waitQueue.h"
+#include "vio-write.h"
+#include "wait-queue.h"
 
 static const char *LOCK_STATE_NAMES[] = {
 	[VDO_HASH_LOCK_BYPASSING] = "BYPASSING",

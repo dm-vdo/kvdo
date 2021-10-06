@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-page-cache.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-page-cache.c#2 $
  */
 
-#include "vdoPageCache.h"
+#include "vdo-page-cache.h"
 
 #include <linux/ratelimit.h>
 
@@ -28,12 +28,12 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "adminState.h"
-#include "blockMap.h"
+#include "admin-state.h"
+#include "block-map.h"
 #include "constants.h"
-#include "numUtils.h"
-#include "readOnlyNotifier.h"
-#include "statusCodes.h"
+#include "num-utils.h"
+#include "read-only-notifier.h"
+#include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
 #include "vio.h"

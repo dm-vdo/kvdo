@@ -16,21 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-layout.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-layout.c#2 $
  */
 
-#include "vdoLayout.h"
+#include "vdo-layout.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "blockMap.h"
-#include "kernelTypes.h"
-#include "partitionCopy.h"
+#include "block-map.h"
+#include "kernel-types.h"
+#include "partition-copy.h"
 #include "slab.h"
-#include "slabSummary.h"
-#include "statusCodes.h"
+#include "slab-summary.h"
+#include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
 

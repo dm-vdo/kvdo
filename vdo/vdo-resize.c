@@ -16,23 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resize.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resize.c#2 $
  */
 
-#include "vdoResize.h"
+#include "vdo-resize.h"
 
 #include "logger.h"
 
-#include "adminCompletion.h"
+#include "admin-completion.h"
 #include "completion.h"
-#include "kernelTypes.h"
-#include "recoveryJournal.h"
-#include "slabDepot.h"
-#include "slabSummary.h"
-#include "threadConfig.h"
+#include "kernel-types.h"
+#include "recovery-journal.h"
+#include "slab-depot.h"
+#include "slab-summary.h"
+#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoLayout.h"
+#include "vdo-layout.h"
 
 enum {
 	GROW_PHYSICAL_PHASE_START = 0,

@@ -16,22 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal-block.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal-block.c#2 $
  */
 
-#include "recoveryJournalBlock.h"
+#include "recovery-journal-block.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "dataVIO.h"
-#include "fixedLayout.h"
-#include "packedRecoveryJournalBlock.h"
-#include "recoveryJournalEntry.h"
-#include "recoveryJournal.h"
+#include "data-vio.h"
+#include "fixed-layout.h"
+#include "packed-recovery-journal-block.h"
+#include "recovery-journal-entry.h"
+#include "recovery-journal.h"
 #include "vio.h"
-#include "waitQueue.h"
+#include "wait-queue.h"
 
 /**********************************************************************/
 int make_vdo_recovery_block(struct vdo *vdo,

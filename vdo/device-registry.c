@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/device-registry.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/device-registry.c#2 $
  */
 
-#include "deviceRegistry.h"
+#include "device-registry.h"
 
 #include <linux/list.h>
 #include <linux/types.h>
@@ -28,8 +28,8 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "kernelTypes.h"
-#include "statusCodes.h"
+#include "kernel-types.h"
+#include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
 

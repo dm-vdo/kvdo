@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#128 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#129 $
  */
 
 /*
@@ -33,15 +33,15 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "readOnlyNotifier.h"
+#include "read-only-notifier.h"
 #include "statistics.h"
-#include "threadConfig.h"
+#include "thread-config.h"
 #include "vdo.h"
-#include "vdoLoad.h"
-#include "vdoResize.h"
-#include "vdoResizeLogical.h"
-#include "vdoResume.h"
-#include "vdoSuspend.h"
+#include "vdo-load.h"
+#include "vdo-resize.h"
+#include "vdo-resize-logical.h"
+#include "vdo-resume.h"
+#include "vdo-suspend.h"
 #include "workQueue.h"
 
 #include "kvio.h"

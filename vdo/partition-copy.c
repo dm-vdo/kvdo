@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partition-copy.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partition-copy.c#2 $
  */
 
-#include "partitionCopy.h"
+#include "partition-copy.h"
 
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -27,8 +27,8 @@
 #include "completion.h"
 #include "constants.h"
 #include "extent.h"
-#include "kernelTypes.h"
-#include "numUtils.h"
+#include "kernel-types.h"
+#include "num-utils.h"
 #include "types.h"
 
 enum {

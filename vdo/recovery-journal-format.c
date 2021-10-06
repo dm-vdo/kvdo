@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal-format.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recovery-journal-format.c#2 $
  */
 
-#include "recoveryJournalFormat.h"
+#include "recovery-journal-format.h"
 
 #include "buffer.h"
 #include "permassert.h"
 
-#include "fixedLayout.h"
+#include "fixed-layout.h"
 #include "header.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 #include "types.h"
 
 const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {

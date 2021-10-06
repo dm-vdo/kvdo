@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#80 $
  */
 
 #include "workQueue.h"
@@ -31,7 +31,7 @@
 #include "permassert.h"
 #include "stringUtils.h"
 
-#include "statusCodes.h"
+#include "status-codes.h"
 
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#11 $
  */
 
 #include "vdoStringUtils.h"
@@ -26,7 +26,7 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
-#include "statusCodes.h"
+#include "status-codes.h"
 
 /**********************************************************************/
 void vdo_free_string_array(char **string_array)
