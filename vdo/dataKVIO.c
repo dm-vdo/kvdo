@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#175 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#176 $
  */
 
 #include "dataKVIO.h"
@@ -30,6 +30,7 @@
 #include "permassert.h"
 
 #include "atomic-stats.h"
+#include "comparisons.h"
 #include "compressed-block.h"
 #include "constants.h"
 #include "data-vio.h"
@@ -452,68 +453,6 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	}
 }
 
-/**
- * Determines whether the data block buffer is all zeros.
- *
- * @param data_vio  The data_vio to check
- *
- * @return true is all zeroes, false otherwise
- **/
-static inline bool is_zero_block(struct data_vio *data_vio)
-{
-	unsigned int word_count = VDO_BLOCK_SIZE / sizeof(uint64_t);
-	unsigned int chunk_count = word_count / 8;
-	const char *buffer = data_vio->data_block;
-	/*
-	 * Handle expected common case of even the first word being nonzero,
-	 * without getting into the more expensive (for one iteration) loop
-	 * below.
-	 */
-	if (get_unaligned((u64 *) buffer) != 0) {
-		return false;
-	}
-
-	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
-
-	// Unroll to process 64 bytes at a time
-	while (chunk_count-- > 0) {
-		uint64_t word0 = get_unaligned((u64 *) buffer);
-		uint64_t word1 =
-			get_unaligned((u64 *) (buffer + 1 * sizeof(uint64_t)));
-		uint64_t word2 =
-			get_unaligned((u64 *) (buffer + 2 * sizeof(uint64_t)));
-		uint64_t word3 =
-			get_unaligned((u64 *) (buffer + 3 * sizeof(uint64_t)));
-		uint64_t word4 =
-			get_unaligned((u64 *) (buffer + 4 * sizeof(uint64_t)));
-		uint64_t word5 =
-			get_unaligned((u64 *) (buffer + 5 * sizeof(uint64_t)));
-		uint64_t word6 =
-			get_unaligned((u64 *) (buffer + 6 * sizeof(uint64_t)));
-		uint64_t word7 =
-			get_unaligned((u64 *) (buffer + 7 * sizeof(uint64_t)));
-		uint64_t or = (word0 | word1 | word2 | word3 | word4 | word5 |
-			       word6 | word7);
-		// Prevent compiler from using 8*(cmp;jne).
-		__asm__ __volatile__("" : : "g"(or));
-		if (or != 0) {
-			return false;
-		}
-		buffer += 8 * sizeof(uint64_t);
-	}
-	word_count %= 8;
-
-	// Unroll to process 8 bytes at a time.
-	// (Is this still worthwhile?)
-	while (word_count-- > 0) {
-		if (get_unaligned((u64 *) buffer) != 0) {
-			return false;
-		}
-		buffer += sizeof(uint64_t);
-	}
-	return true;
-}
-
 /**********************************************************************/
 void vdo_apply_partial_write(struct data_vio *data_vio)
 {
@@ -528,7 +467,7 @@ void vdo_apply_partial_write(struct data_vio *data_vio)
 
 	}
 
-	data_vio->is_zero_block = is_zero_block(data_vio);
+	data_vio->is_zero_block = is_zero_block(data_vio->data_block);
 }
 
 /**********************************************************************/
@@ -637,7 +576,8 @@ static int vdo_create_vio_from_bio(struct vdo *vdo,
 			// continue to use the data after we acknowledge the
 			// bio.
 			vdo_bio_copy_data_in(bio, data_vio->data_block);
-			data_vio->is_zero_block = is_zero_block(data_vio);
+			data_vio->is_zero_block
+				= is_zero_block(data_vio->data_block);
 		}
 	}
 

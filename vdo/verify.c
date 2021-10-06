@@ -16,60 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#36 $
  */
 
 #include "logger.h"
 #include "permassert.h"
 
+#include "comparisons.h"
 #include "dataKVIO.h"
 #include <asm/unaligned.h>
-
-/**
- * Compare blocks of memory for equality.
- *
- * This assumes the blocks are likely to be large; it's not well
- * optimized for comparing just a few bytes.  This is desirable
- * because the Linux kernel memcmp() routine on x86 is not well
- * optimized for large blocks, and the performance penalty turns out
- * to be significant if you're doing lots of 4KB comparisons.
- *
- * @param pointer_argument1  first data block
- * @param pointer_argument2  second data block
- * @param length             length of the data block
- *
- * @return true iff the two blocks are equal
- **/
-static bool __must_check
-memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
-{
-	byte *pointer1 = pointer_argument1;
-	byte *pointer2 = pointer_argument2;
-
-	while (length >= sizeof(uint64_t)) {
-		/*
-		 * get_unaligned is just for paranoia. (1) On x86_64 it is
-		 * treated the same as an aligned access. (2) In this use case,
-		 * one or both of the inputs will almost(?) always be aligned.
-		 */
-		if (get_unaligned((u64 *) pointer1) !=
-		    get_unaligned((u64 *) pointer2)) {
-			return false;
-		}
-		pointer1 += sizeof(uint64_t);
-		pointer2 += sizeof(uint64_t);
-		length -= sizeof(uint64_t);
-	}
-	while (length > 0) {
-		if (*pointer1 != *pointer2) {
-			return false;
-		}
-		pointer1++;
-		pointer2++;
-		length--;
-	}
-	return true;
-}
 
 /**
  * Verify the deduplication advice from the UDS index, and invoke a
