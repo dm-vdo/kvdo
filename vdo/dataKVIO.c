@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#176 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#177 $
  */
 
 #include "dataKVIO.h"
@@ -500,38 +500,14 @@ void vdo_copy_data(struct data_vio *source, struct data_vio *destination)
 }
 
 /**
- * Creates a new data_vio structure. A data_vio represents a single logical
- * block of data. It is what most VDO operations work with. This function also
- * creates a wrapping data_vio structure that is used when we want to
- * physically read or write the data associated with the struct data_vio.
- *
- * @param [in]  vdo              The vdo
- * @param [in]  bio              The bio from the request the new data_vio
- *                               will service
- * @param [in]  arrival_jiffies  The arrival time of the bio
- * @param [out] data_vio_ptr  A pointer to hold the new data_vio
- *
- * @return VDO_SUCCESS or an error
+ * Reset a data_vio which has just been acquired from the pool.
  **/
-static int vdo_create_vio_from_bio(struct vdo *vdo,
-				   struct bio *bio,
-				   uint64_t arrival_jiffies,
-				   struct data_vio **data_vio_ptr)
+static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 {
-	struct data_vio *data_vio = NULL;
-	struct vio *vio;
-	struct bio *vio_bio;
-	int result = alloc_buffer_from_pool(vdo->data_vio_pool,
-					    (void **) &data_vio);
-	if (result != VDO_SUCCESS) {
-		return uds_log_error_strerror(result,
-					      "data vio allocation failure");
-	}
-
-	vio = data_vio_as_vio(data_vio);
+	struct vio *vio = data_vio_as_vio(data_vio);
 	// XXX We save the bio out of the vio so that we don't forget it.
 	// Maybe we should just not zero that field somehow.
-	vio_bio = vio->bio;
+	struct bio *bio = vio->bio;
 
 	// Zero out the fields which don't need to be preserved (i.e. which
 	// are not pointers to separately allocated objects).
@@ -539,60 +515,13 @@ static int vdo_create_vio_from_bio(struct vdo *vdo,
 	memset(&data_vio->dedupe_context.pending_list, 0,
 	       sizeof(struct list_head));
 
-
-	data_vio->user_bio = bio;
 	initialize_vio(vio,
-		       vio_bio,
+		       bio,
 		       VIO_TYPE_DATA,
 		       VIO_PRIORITY_DATA,
 		       NULL,
 		       vdo,
 		       NULL);
-	data_vio->offset = to_bytes(bio->bi_iter.bi_sector
-				    & VDO_SECTORS_PER_BLOCK_MASK);
-	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
-				(data_vio->offset != 0));
-
-	if (data_vio->is_partial) {
-		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
-	} else {
-		/*
-		 * Note that we unconditionally fill in the data_block array
-		 * for non-read operations. There are places like vdo_copy_vio
-		 * that may look at vio->data_block for a zero block (and maybe
-		 * for discards?). We could skip filling in data_block for such
-		 * cases, but only once we're sure all such places are fixed to
-		 * check the is_zero_block flag first.
-		 */
-		if (bio_op(bio) == REQ_OP_DISCARD) {
-			/*
-			 * This is a discard/trim operation. This is treated
-			 * much like the zero block, but we keep differen
-			 * stats and distinguish it in the block map.
-			 */
-			memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
-		} else if (bio_data_dir(bio) == WRITE) {
-			// Copy the bio data to a char array so that we can
-			// continue to use the data after we acknowledge the
-			// bio.
-			vdo_bio_copy_data_in(bio, data_vio->data_block);
-			data_vio->is_zero_block
-				= is_zero_block(data_vio->data_block);
-		}
-	}
-
-	if (data_vio->is_partial || (bio_data_dir(bio) == WRITE)) {
-		data_vio->read_block.data = data_vio->data_block;
-	}
-
-	*data_vio_ptr = data_vio;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-static void launch_data_vio_work(struct vdo_work_item *item)
-{
-	run_vdo_completion_callback(vio_as_completion(work_item_as_vio(item)));
 }
 
 /**
@@ -616,10 +545,7 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 		      VDO_BLOCK_SIZE - data_vio->offset);
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_vio->remaining_discard == 0)) {
-		if (data_vio->has_discard_permit) {
-			limiter_release(&vdo->discard_limiter);
-			data_vio->has_discard_permit = false;
-		}
+		limiter_release(&vdo->discard_limiter);
 		vdo_complete_data_vio(completion);
 		return;
 	}
@@ -637,10 +563,13 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 		operation |= VIO_FLUSH_AFTER;
 	}
 
-	prepare_data_vio(data_vio, data_vio->logical.lbn + 1, operation,
-			 !data_vio->is_partial, vdo_continue_discard_vio);
-	enqueue_vio(as_vio(completion), launch_data_vio_work,
-		    VDO_REQ_Q_MAP_BIO_PRIORITY);
+	prepare_data_vio(data_vio,
+			 data_vio->logical.lbn + 1,
+			 operation,
+			 !data_vio->is_partial,
+			 vdo_continue_discard_vio);
+	invoke_vdo_completion_callback_with_priority(completion,
+						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
 /**
@@ -653,37 +582,26 @@ static void vdo_complete_partial_read(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	vdo_bio_copy_data_out(data_vio->user_bio,
-			  data_vio->read_block.data + data_vio->offset);
+			      data_vio->read_block.data + data_vio->offset);
 	vdo_complete_data_vio(completion);
-	return;
 }
 
 /**********************************************************************/
-int vdo_launch_data_vio_from_bio(struct vdo *vdo,
-				 struct bio *bio,
-				 uint64_t arrival_jiffies,
-				 bool has_discard_permit)
+void launch_data_vio(struct vdo *vdo,
+		     struct data_vio *data_vio,
+		     struct bio *bio)
 {
-	struct data_vio *data_vio = NULL;
-	int result;
 	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 	logical_block_number_t lbn;
-	struct vio *vio;
 
-	result = vdo_create_vio_from_bio(vdo,
-					 bio,
-					 arrival_jiffies,
-					 &data_vio);
-	if (unlikely(result != VDO_SUCCESS)) {
-		uds_log_info("%s: vio allocation failure", __func__);
-		if (has_discard_permit) {
-			limiter_release(&vdo->discard_limiter);
-		}
-		limiter_release(&vdo->request_limiter);
-		return vdo_map_to_system_error(result);
-	}
+	reset_data_vio(data_vio, vdo);
+	data_vio->user_bio = bio;
+	data_vio->offset = to_bytes(bio->bi_iter.bi_sector
+				    & VDO_SECTORS_PER_BLOCK_MASK);
+	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
+				(data_vio->offset != 0));
 
 	/*
 	 * Discards behave very differently than other requests when coming in
@@ -691,15 +609,18 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 	 * and with various sector offsets within a block.
 	 */
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		data_vio->has_discard_permit = has_discard_permit;
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
 		callback = vdo_continue_discard_vio;
 		if (data_vio->is_partial) {
+			vdo_count_bios(&vdo->stats.bios_in_partial, bio);
+			data_vio->read_block.data = data_vio->data_block;
 			operation = VIO_READ_MODIFY_WRITE;
 		} else {
 			is_trim = true;
 		}
 	} else if (data_vio->is_partial) {
+		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
+		data_vio->read_block.data = data_vio->data_block;
 		if (bio_data_dir(bio) == READ) {
 			callback = vdo_complete_partial_read;
 			operation = VIO_READ;
@@ -708,6 +629,13 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 		}
 	} else if (bio_data_dir(bio) == READ) {
 		operation = VIO_READ;
+	} else {
+		// Copy the bio data to a char array so that we can
+		// continue to use the data after we acknowledge the
+		// bio.
+		vdo_bio_copy_data_in(bio, data_vio->data_block);
+		data_vio->is_zero_block = is_zero_block(data_vio->data_block);
+		data_vio->read_block.data = data_vio->data_block;
 	}
 
 	if (data_vio->user_bio->bi_opf & REQ_FUA) {
@@ -717,12 +645,8 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
 	       / VDO_SECTORS_PER_BLOCK);
 	prepare_data_vio(data_vio, lbn, operation, is_trim, callback);
-
-	vio = data_vio_as_vio(data_vio);
-	enqueue_vio(vio, launch_data_vio_work,
-		    VDO_REQ_Q_MAP_BIO_PRIORITY);
-
-	return VDO_SUCCESS;
+	invoke_vdo_completion_callback_with_priority(data_vio_as_completion(data_vio),
+						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
 /**

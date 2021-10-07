@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#2 $
  */
 
 #ifndef DATA_VIO_H
@@ -305,7 +305,6 @@ struct data_vio {
 	bool is_partial;
 
 	/* discard support */
-	bool has_discard_permit;
 	uint32_t remaining_discard;
 
 	// Fields beyond this point will not be reset when a pooled data_vio

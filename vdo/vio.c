@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#56 $
  */
 
 #include "vio.h"
@@ -77,7 +77,6 @@ int create_metadata_vio(struct vdo *vdo,
 		       data);
 	*vio_ptr  = vio;
 	return VDO_SUCCESS;
-
 }
 
 /**********************************************************************/

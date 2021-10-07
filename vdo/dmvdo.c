@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#164 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#165 $
  */
 
 #include <linux/module.h>
@@ -86,9 +86,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
 	int result;
 	struct vdo *vdo = get_vdo_for_target(ti);
-	uint64_t arrival_jiffies = jiffies;
+	struct data_vio *data_vio;
 	struct vdo_work_queue *current_work_queue;
-	bool has_discard_permit = false;
 	const struct admin_state_code *code
 		= get_vdo_admin_state_code(&vdo->admin_state);
 
@@ -114,22 +113,23 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		limiter_wait_for_one_free(&vdo->discard_limiter);
-		has_discard_permit = true;
 	}
 	limiter_wait_for_one_free(&vdo->request_limiter);
 
-	result = vdo_launch_data_vio_from_bio(vdo,
-					      bio,
-					      arrival_jiffies,
-					      has_discard_permit);
-	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
-	// now.
-	if (result != VDO_SUCCESS) {
-		return result;
+
+	result = alloc_buffer_from_pool(vdo->data_vio_pool,
+					(void **) &data_vio);
+	if (unlikely(result != VDO_SUCCESS)) {
+		uds_log_info("%s: vio allocation failure", __func__);
+		if (bio_op(bio) == REQ_OP_DISCARD) {
+			limiter_release(&vdo->discard_limiter);
+		}
+		limiter_release(&vdo->request_limiter);
+		return vdo_map_to_system_error(result);
 	}
 
+	launch_data_vio(vdo, data_vio, bio);
 	return DM_MAPIO_SUBMITTED;
-
 }
 
 /**********************************************************************/
