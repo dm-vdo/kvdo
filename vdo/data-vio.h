@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#3 $
  */
 
 #ifndef DATA_VIO_H
@@ -305,7 +305,7 @@ struct data_vio {
 	bool is_partial;
 
 	/* discard support */
-	uint32_t remaining_discard;
+	block_size_t remaining_discard;
 
 	// Fields beyond this point will not be reset when a pooled data_vio
 	// is reused.
@@ -1075,6 +1075,32 @@ launch_data_vio_bio_zone_callback(struct data_vio *data_vio,
 }
 
 /**
+ * If the vdo uses a bio_ack queue, set a callback to run on it and invoke it
+ * immediately, otherwise, just run the callback on the current thread.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
+				 vdo_action *callback)
+{
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
+	if (!vdo_uses_bio_ack_queue(vdo)) {
+		callback(completion);
+		return;
+	}
+
+	set_vdo_completion_callback(completion,
+				    callback,
+				    vdo->thread_config->bio_ack_thread);
+	invoke_vdo_completion_callback_with_priority(completion,
+						     BIO_ACK_Q_ACK_PRIORITY);
+}
+
+/**
  * Check whether the advice received from UDS is a valid data location,
  * and if it is, accept it as the location of a potential duplicate of the
  * data_vio.
@@ -1166,22 +1192,6 @@ void verify_data_vio_duplication(struct data_vio *data_vio);
 void vdo_update_dedupe_index(struct data_vio *data_vio);
 
 /**
- * A function to zero the contents of a non-write data_vio -- a read, or a RMW
- * before becoming a write.
- *
- * @param data_vio  The data_vio to zero
- **/
-void zero_data_vio(struct data_vio *data_vio);
-
-/**
- * A function to copy the data of a write data_vio into a read data_vio.
- *
- * @param source       The data_vio to copy from
- * @param destination  The data_vio to copy to
- **/
-void vdo_copy_data(struct data_vio *source, struct data_vio *destination);
-
-/**
  * A function to apply a partial write to a data_vio which has completed the
  * read portion of a read-modify-write operation.
  *
@@ -1190,9 +1200,8 @@ void vdo_copy_data(struct data_vio *source, struct data_vio *destination);
 void vdo_apply_partial_write(struct data_vio *data_vio);
 
 /**
- * A function to inform the layer that a data_vio's related I/O request can be
- * safely acknowledged as complete, even though the data_vio itself may have
- * further processing to do.
+ * Acknowledge the user_bio from a data_vio. Note that the data_vio may still
+ * have processing to do.
  *
  * @param data_vio  The data_vio to acknowledge
  **/

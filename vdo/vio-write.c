@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#3 $
  */
 
 /*
@@ -747,17 +747,16 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 }
 
 /**
- * Prepare for the dedupe path after attempting to get an allocation. This
- * callback is both registered in and called directly from
- * continue_write_after_allocation().
+ * Prepare for the dedupe path after attempting to get an allocation.
  *
- * @param completion  The completion of the write in progress
+ * @param data_vio  The data_vio to deduplicate
  **/
-static void prepare_for_dedupe(struct vdo_completion *completion)
+static void prepare_for_dedupe(struct data_vio *data_vio)
 {
-	struct data_vio *data_vio = as_data_vio(completion);
 	// We don't care what thread we are on
-	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
+	if (abort_on_error(data_vio_as_completion(data_vio)->result,
+			   data_vio,
+			   READ_ONLY)) {
 		return;
 	}
 
@@ -770,7 +769,8 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 	// XXX this is the wrong thread to run this callback, but we don't yet
 	// have a mechanism for running it on the CPU thread immediately after
 	// hashing.
-	set_data_vio_allocated_zone_callback(data_vio, resolve_hash_zone);
+	set_data_vio_allocated_zone_callback(data_vio,
+					     resolve_hash_zone);
 	hash_data_vio(data_vio);
 }
 
@@ -868,19 +868,6 @@ static void read_old_block_mapping_for_write(struct vdo_completion *completion)
 	set_data_vio_journal_callback(data_vio, journal_unmapping_for_write);
 	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE;
 	vdo_get_mapped_block(data_vio);
-}
-
-/**
- * Acknowledge a write to the requestor.
- *
- * @param data_vio  The data_vio being acknowledged
- **/
-static void acknowledge_write(struct data_vio *data_vio)
-{
-	ASSERT_LOG_ONLY(data_vio->has_flush_generation_lock,
-			"write VIO to be acknowledged has a flush generation lock");
-	data_vio->last_async_operation = VIO_ASYNC_OP_ACKNOWLEDGE_WRITE;
-	acknowledge_data_vio(data_vio);
 }
 
 /**
@@ -982,6 +969,27 @@ static void write_block(struct data_vio *data_vio)
 }
 
 /**
+ * Acknowledge a write to the requestor. This callback is registered in
+ * continue_write_after_allocation().
+ *
+ * @param completion  The data_vio being acknowledged
+ **/
+static void acknowledge_write_callback(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+	struct vdo *vdo = completion->vdo;
+
+	ASSERT_LOG_ONLY((!vdo_uses_bio_ack_queue(vdo)
+			 || (vdo_get_callback_thread_id() ==
+			     vdo->thread_config->bio_ack_thread)),
+			"acknowledge_write_callback() called on bio ack queue");
+	ASSERT_LOG_ONLY(data_vio->has_flush_generation_lock,
+			"write VIO to be acknowledged has a flush generation lock");
+	acknowledge_data_vio(data_vio);
+	prepare_for_dedupe(data_vio);
+}
+
+/**
  * Continue the write path for a data_vio now that block allocation is complete
  * (the data_vio may or may not have actually received an allocation). This
  * callback is registered in continue_write_with_block_map_slot().
@@ -1001,7 +1009,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 	}
 
 	if (!data_vio_has_allocation(data_vio)) {
-		prepare_for_dedupe(data_vio_as_completion(data_vio));
+		prepare_for_dedupe(data_vio);
 		return;
 	}
 
@@ -1012,16 +1020,14 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 		.state = VDO_MAPPING_STATE_UNCOMPRESSED,
 	};
 
-	// XXX prepare_for_dedupe can run from any thread, so this is a place
-	// where running the callback on the kernel thread would save a thread
-	// switch.
-	set_data_vio_allocated_zone_callback(data_vio, prepare_for_dedupe);
 	if (vio_requires_flush_after(allocating_vio_as_vio(allocating_vio))) {
-		invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+		prepare_for_dedupe(data_vio);
 		return;
 	}
 
-	acknowledge_write(data_vio);
+	data_vio->last_async_operation = VIO_ASYNC_OP_ACKNOWLEDGE_WRITE;
+	launch_data_vio_on_bio_ack_queue(data_vio,
+					 acknowledge_write_callback);
 }
 
 /**
@@ -1055,8 +1061,11 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 	}
 
 	if (data_vio->is_zero_block || is_trim_data_vio(data_vio)) {
-		// We don't need to write any data, so skip allocation and just
-		// update the block map and reference counts (via the journal).
+		/*
+		 * We don't need to write any data, so skip allocation and just
+		 * update the block map and reference counts (via the journal).
+		 * XXX: should we acknowledge here?
+		 */
 		data_vio->new_mapped.pbn = VDO_ZERO_BLOCK;
 		launch_data_vio_journal_callback(data_vio, finish_block_write);
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#3 $
  */
 
 #include "data-vio.h"
@@ -397,7 +397,15 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	 */
 	if (is_read_data_vio(data_vio) &&
 	    READ_ONCE(lock_holder->allocation_succeeded)) {
-		vdo_copy_data(lock_holder, data_vio);
+		if (data_vio->is_partial) {
+			memcpy(data_vio->data_block,
+			       lock_holder->data_block,
+			       VDO_BLOCK_SIZE);
+		} else {
+			vdo_bio_copy_data_out(data_vio->user_bio,
+					      lock_holder->data_block);
+		}
+
 		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
@@ -505,6 +513,31 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
+void acknowledge_data_vio(struct data_vio *data_vio)
+{
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct bio *bio = data_vio->user_bio;
+	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
+
+	if (bio == NULL) {
+		return;
+	}
+
+	ASSERT_LOG_ONLY((data_vio->remaining_discard <=
+			 (VDO_BLOCK_SIZE - data_vio->offset)),
+			"data_vio to acknowledge is not an incomplete discard");
+
+	data_vio->user_bio = NULL;
+	vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
+	if (data_vio->is_partial) {
+		vdo_count_bios(&vdo->stats.bios_acknowledged_partial, bio);
+	}
+
+
+	vdo_complete_bio(bio, error);
+}
+
+/**********************************************************************/
 void compress_data_vio(struct data_vio *data_vio)
 {
 	char *context = get_work_queue_private_data();
@@ -526,4 +559,3 @@ void compress_data_vio(struct data_vio *data_vio)
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 	}
 }
-

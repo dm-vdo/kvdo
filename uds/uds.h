@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#8 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#9 $
  */
 
 /**
@@ -383,13 +383,6 @@ int __must_check uds_compute_index_size(const struct uds_parameters *parameters,
  * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_create_index_session(struct uds_index_session **session);
-
-/**
- * Fetches the UDS library version.
- *
- * @return The library version
- **/
-const char * __must_check uds_get_version(void);
 
 /**
  * Opens an index with an existing session.  This operation will fail if the

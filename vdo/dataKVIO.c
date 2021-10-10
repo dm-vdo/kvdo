@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#177 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#178 $
  */
 
 #include "dataKVIO.h"
@@ -44,7 +44,6 @@
 #include "dump.h"
 #include "kvio.h"
 #include "ioSubmitter.h"
-#include "vdoCommon.h"
 
 /**
  * For certain flags set on user bios, if the user bio has not yet been
@@ -85,32 +84,10 @@ static const unsigned int VDO_SECTORS_PER_BLOCK_MASK =
 	VDO_SECTORS_PER_BLOCK - 1;
 
 /**********************************************************************/
-static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
-{
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	struct bio *bio = data_vio->user_bio;
-	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
-
-
-	if (bio == NULL) {
-		return;
-	}
-	data_vio->user_bio = NULL;
-
-	vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
-	if (data_vio->is_partial) {
-		vdo_count_bios(&vdo->stats.bios_acknowledged_partial, bio);
-	}
-
-
-	vdo_complete_bio(bio, error);
-}
-
-/**********************************************************************/
 static noinline void clean_data_vio(struct data_vio *data_vio,
 				    struct free_buffer_pointers *fbp)
 {
-	vdo_acknowledge_data_vio(data_vio);
+	acknowledge_data_vio(data_vio);
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
@@ -146,31 +123,12 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 }
 
 /**********************************************************************/
-static void
-vdo_acknowledge_and_batch(struct vdo_work_item *item)
-{
-	struct data_vio *data_vio = work_item_as_data_vio(item);
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-
-	vdo_acknowledge_data_vio(data_vio);
-	add_to_batch_processor(vdo->data_vio_releaser, item);
-}
-
-/**********************************************************************/
 static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 
-	if (vdo_uses_bio_ack_queue(vdo) && VDO_USE_BIO_ACK_QUEUE_FOR_READ &&
-	    (data_vio->user_bio != NULL)) {
-		launch_data_vio_on_bio_ack_queue(data_vio,
-						 vdo_acknowledge_and_batch,
-						 BIO_ACK_Q_ACK_PRIORITY);
-	} else {
-		add_to_batch_processor(vdo->data_vio_releaser,
-				       &completion->work_item);
-	}
+	add_to_batch_processor(vdo->data_vio_releaser, &completion->work_item);
 }
 
 /**
@@ -212,6 +170,7 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 	// For a 4k read, copy the data to the user bio and acknowledge.
 	vdo_bio_copy_data_out(data_vio->user_bio, data_vio->read_block.data);
 	acknowledge_data_vio(data_vio);
+	enqueue_data_vio_callback(data_vio);
 }
 
 /**
@@ -357,7 +316,6 @@ static void acknowledge_user_bio(struct bio *bio)
 	vdo_count_completed_bios(bio);
 	if (error == 0) {
 		acknowledge_data_vio(vio_as_data_vio(vio));
-		return;
 	}
 
 	continue_vio(vio, error);
@@ -416,44 +374,6 @@ void read_data_vio(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-static void
-vdo_acknowledge_and_enqueue(struct vdo_work_item *item)
-{
-	struct data_vio *data_vio = work_item_as_data_vio(item);
-
-	vdo_acknowledge_data_vio(data_vio);
-	// Even if we're not using bio-ack threads, we may be in the wrong
-	// base-code thread.
-	enqueue_data_vio_callback(data_vio);
-}
-
-/**********************************************************************/
-void acknowledge_data_vio(struct data_vio *data_vio)
-{
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-
-	// If the remaining discard work is not completely processed by this
-	// data_vio, don't acknowledge it yet.
-	if ((data_vio->user_bio != NULL) &&
-	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
-	    (data_vio->remaining_discard >
-	     (VDO_BLOCK_SIZE - data_vio->offset))) {
-		invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
-		return;
-	}
-
-	// We've finished with the vio; acknowledge completion of the bio to
-	// the kernel.
-	if (vdo_uses_bio_ack_queue(vdo)) {
-		launch_data_vio_on_bio_ack_queue(data_vio,
-						 vdo_acknowledge_and_enqueue,
-						 BIO_ACK_Q_ACK_PRIORITY);
-	} else {
-		vdo_acknowledge_and_enqueue(work_item_from_data_vio(data_vio));
-	}
-}
-
-/**********************************************************************/
 void vdo_apply_partial_write(struct data_vio *data_vio)
 {
 	struct bio *bio = data_vio->user_bio;
@@ -468,35 +388,6 @@ void vdo_apply_partial_write(struct data_vio *data_vio)
 	}
 
 	data_vio->is_zero_block = is_zero_block(data_vio->data_block);
-}
-
-/**********************************************************************/
-void zero_data_vio(struct data_vio *data_vio)
-{
-	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
-			"only attempt to zero non-writes");
-	if (data_vio->is_partial) {
-		memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
-	} else {
-		zero_fill_bio(data_vio->user_bio);
-	}
-}
-
-/**********************************************************************/
-void vdo_copy_data(struct data_vio *source, struct data_vio *destination)
-{
-	ASSERT_LOG_ONLY(is_read_vio(data_vio_as_vio(destination)),
-			"only copy to a pure read");
-	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(source)),
-			"only copy from a write");
-
-	if (destination->is_partial) {
-		memcpy(destination->data_block, source->data_block,
-		       VDO_BLOCK_SIZE);
-	} else {
-		vdo_bio_copy_data_out(destination->user_bio,
-				  source->data_block);
-	}
 }
 
 /**

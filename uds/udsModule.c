@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#14 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#15 $
  */
 
 #include <linux/module.h>
@@ -61,7 +61,6 @@ EXPORT_SYMBOL_GPL(uds_destroy_index_session);
 EXPORT_SYMBOL_GPL(uds_flush_index_session);
 EXPORT_SYMBOL_GPL(uds_get_index_parameters);
 EXPORT_SYMBOL_GPL(uds_get_index_stats);
-EXPORT_SYMBOL_GPL(uds_get_version);
 EXPORT_SYMBOL_GPL(uds_open_index);
 EXPORT_SYMBOL_GPL(uds_resume_index_session);
 EXPORT_SYMBOL_GPL(uds_start_chunk_operation);

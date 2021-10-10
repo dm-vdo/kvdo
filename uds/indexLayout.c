@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#13 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#14 $
  */
 
 #include "indexLayout.h"
@@ -174,17 +174,6 @@ enum {
 
 static const byte SINGLE_FILE_MAGIC_1[32] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
 enum { SINGLE_FILE_MAGIC_1_LENGTH = sizeof(SINGLE_FILE_MAGIC_1) };
-
-static int __must_check
-reconstitute_single_file_layout(struct index_layout *layout,
-				struct region_table *table,
-				uint64_t first_block);
-static int __must_check
-verify_uds_index_config(struct index_layout *layout,
-			struct configuration *config);
-static int __must_check
-write_index_save_layout(struct index_layout *layout,
-			struct index_save_layout *isl);
 
 /**********************************************************************/
 static INLINE bool is_converted_super_block(struct super_block_data *super)
@@ -667,6 +656,207 @@ allocate_single_file_parts(struct index_layout *layout)
 }
 
 /**********************************************************************/
+static void define_sub_index_nonce(struct index_layout *layout,
+				   unsigned int index_id)
+{
+	struct sub_index_nonce_data {
+		uint64_t offset;
+		uint16_t index_id;
+	};
+
+	struct sub_index_layout *sil = &layout->index;
+	uint64_t primary_nonce = layout->super.nonce;
+	byte buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
+	size_t offset = 0;
+	encode_uint64_le(buffer, &offset, sil->sub_index.start_block);
+	encode_uint16_le(buffer, &offset, index_id);
+	sil->nonce = generate_secondary_nonce(primary_nonce,
+					      buffer,
+					      sizeof(buffer));
+	if (sil->nonce == 0) {
+		sil->nonce = generate_secondary_nonce(~primary_nonce + 1,
+						      buffer,
+						      sizeof(buffer));
+	}
+}
+
+/**********************************************************************/
+struct region_iterator {
+	struct layout_region *next_region;
+	struct layout_region *last_region;
+	uint64_t next_block;
+	int result;
+};
+
+/**********************************************************************/
+__printf(2, 3)
+static void iter_error(struct region_iterator *iter, const char *fmt, ...)
+{
+	int r;
+	va_list args;
+	va_start(args, fmt);
+	r = uds_vlog_strerror(UDS_LOG_ERR, UDS_UNEXPECTED_RESULT, NULL, fmt, args);
+	va_end(args);
+	if (iter->result == UDS_SUCCESS) {
+		iter->result = r;
+	}
+}
+
+/**
+ * Set the next layout region in the layout according to a region table
+ * iterator, unless the iterator already contains an error
+ *
+ * @param expect        whether to record an error or return false
+ * @param lr            the layout region field to set
+ * @param iter          the region iterator, which also holds the cumulative
+ *                        result
+ * @param num_blocks     if non-zero, the expected number of blocks
+ * @param kind          the expected kind of the region
+ * @param instance      the expected instance number of the region
+ *
+ * @return true if we meet expectations, false if we do not
+ **/
+static bool expect_layout(bool expect,
+			  struct layout_region *lr,
+			  struct region_iterator *iter,
+			  uint64_t num_blocks,
+			  enum region_kind kind,
+			  unsigned int instance)
+{
+	if (iter->result != UDS_SUCCESS) {
+		return false;
+	}
+
+	if (iter->next_region == iter->last_region) {
+		if (expect) {
+			iter_error(iter,
+				   "ran out of layout regions in region table");
+		}
+		return false;
+	}
+
+	if (iter->next_region->start_block != iter->next_block) {
+		iter_error(iter, "layout region not at expected offset");
+		return false;
+	}
+
+	if (iter->next_region->kind != kind) {
+		if (expect) {
+			iter_error(iter, "layout region has incorrect kind");
+		}
+		return false;
+	}
+
+	if (iter->next_region->instance != instance) {
+		iter_error(iter, "layout region has incorrect instance");
+		return false;
+	}
+
+	if (num_blocks > 0 && iter->next_region->num_blocks != num_blocks) {
+		iter_error(iter, "layout region size is incorrect");
+		return false;
+	}
+
+	if (lr != NULL) {
+		*lr = *iter->next_region;
+	}
+
+	iter->next_block += iter->next_region->num_blocks;
+	iter->next_region++;
+	return true;
+}
+
+/**********************************************************************/
+static void expect_sub_index(struct index_layout *layout,
+			     struct region_iterator *iter,
+			     unsigned int instance)
+{
+	unsigned int i;
+	struct sub_index_layout *sil = &layout->index;
+	uint64_t start_block = iter->next_block;
+	uint64_t end_block;
+	if (iter->result != UDS_SUCCESS) {
+		return;
+	}
+
+	expect_layout(true, &sil->sub_index, iter, 0, RL_KIND_INDEX, instance);
+
+	end_block = iter->next_block;
+	iter->next_block = start_block;
+
+	expect_layout(true, &sil->volume, iter, 0, RL_KIND_VOLUME,
+		      RL_SOLE_INSTANCE);
+
+	iter->next_block += layout->super.volume_offset;
+	end_block += layout->super.volume_offset;
+
+	for (i = 0; i < layout->super.max_saves; ++i) {
+		struct index_save_layout *isl = &sil->saves[i];
+		expect_layout(true, &isl->index_save, iter, 0, RL_KIND_SAVE, i);
+	}
+
+	if (iter->next_block != end_block) {
+		iter_error(iter, "sub index region does not span all saves");
+	}
+
+	define_sub_index_nonce(layout, instance);
+}
+
+/**********************************************************************/
+
+/**
+ * Initialize a single file layout from the region table and super block data
+ * stored in stable storage.
+ *
+ * @param layout       the layout to initialize
+ * @param table        the region table read from the superblock
+ * @param first_block  the first block number in the region
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int __must_check
+reconstitute_single_file_layout(struct index_layout *layout,
+				struct region_table *table,
+				uint64_t first_block)
+{
+	struct region_iterator iter = {
+		.next_region = table->regions,
+		.last_region = table->regions + table->header.num_regions,
+		.next_block = first_block,
+		.result = UDS_SUCCESS
+	};
+
+	layout->total_blocks = table->header.region_blocks;
+
+	expect_layout(true,
+		      &layout->header,
+		      &iter,
+		      1,
+		      RL_KIND_HEADER,
+		      RL_SOLE_INSTANCE);
+	expect_layout(true,
+		      &layout->config,
+		      &iter,
+		      1,
+		      RL_KIND_CONFIG,
+		      RL_SOLE_INSTANCE);
+	expect_sub_index(layout, &iter, 0);
+	expect_layout(true, &layout->seal, &iter, 1, RL_KIND_SEAL,
+		      RL_SOLE_INSTANCE);
+
+	if (iter.result != UDS_SUCCESS) {
+		return iter.result;
+	}
+
+	if ((iter.next_block - layout->super.volume_offset) !=
+	    (first_block + layout->total_blocks)) {
+		return uds_log_error_strerror(UDS_UNEXPECTED_RESULT,
+					      "layout table does not span total blocks");
+	}
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 static int __must_check
 load_super_block(struct index_layout *layout,
 		 size_t block_size,
@@ -798,93 +988,6 @@ read_index_save_data(struct buffered_reader *reader,
 
 	*buffer_ptr = buffer;
 	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-
-struct region_iterator {
-	struct layout_region *next_region;
-	struct layout_region *last_region;
-	uint64_t next_block;
-	int result;
-};
-
-/**********************************************************************/
-__printf(2, 3)
-static void iter_error(struct region_iterator *iter, const char *fmt, ...)
-{
-	int r;
-	va_list args;
-	va_start(args, fmt);
-	r = uds_vlog_strerror(UDS_LOG_ERR, UDS_UNEXPECTED_RESULT, NULL, fmt, args);
-	va_end(args);
-	if (iter->result == UDS_SUCCESS) {
-		iter->result = r;
-	}
-}
-
-/**
- * Set the next layout region in the layout according to a region table
- * iterator, unless the iterator already contains an error
- *
- * @param expect        whether to record an error or return false
- * @param lr            the layout region field to set
- * @param iter          the region iterator, which also holds the cumulative
- *                        result
- * @param num_blocks     if non-zero, the expected number of blocks
- * @param kind          the expected kind of the region
- * @param instance      the expected instance number of the region
- *
- * @return true if we meet expectations, false if we do not
- **/
-static bool expect_layout(bool expect,
-			  struct layout_region *lr,
-			  struct region_iterator *iter,
-			  uint64_t num_blocks,
-			  enum region_kind kind,
-			  unsigned int instance)
-{
-	if (iter->result != UDS_SUCCESS) {
-		return false;
-	}
-
-	if (iter->next_region == iter->last_region) {
-		if (expect) {
-			iter_error(iter,
-				   "ran out of layout regions in region table");
-		}
-		return false;
-	}
-
-	if (iter->next_region->start_block != iter->next_block) {
-		iter_error(iter, "layout region not at expected offset");
-		return false;
-	}
-
-	if (iter->next_region->kind != kind) {
-		if (expect) {
-			iter_error(iter, "layout region has incorrect kind");
-		}
-		return false;
-	}
-
-	if (iter->next_region->instance != instance) {
-		iter_error(iter, "layout region has incorrect instance");
-		return false;
-	}
-
-	if (num_blocks > 0 && iter->next_region->num_blocks != num_blocks) {
-		iter_error(iter, "layout region size is incorrect");
-		return false;
-	}
-
-	if (lr != NULL) {
-		*lr = *iter->next_region;
-	}
-
-	iter->next_block += iter->next_region->num_blocks;
-	iter->next_region++;
-	return true;
 }
 
 /**********************************************************************/
@@ -1185,6 +1288,41 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 	return UDS_SUCCESS;
 }
 
+/**
+ * Read the index configuration, and verify that it matches the given
+ * configuration.
+ *
+ * @param layout  the generic index layout
+ * @param config  the index configuration
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int __must_check
+verify_uds_index_config(struct index_layout *layout,
+			struct configuration *config)
+{
+	struct buffered_reader *reader = NULL;
+	uint64_t offset = layout->super.volume_offset -
+		layout->super.start_offset;
+	int result = open_layout_reader(layout,
+					&layout->config,
+					offset,
+					&reader);
+	if (result != UDS_SUCCESS) {
+		return uds_log_error_strerror(result,
+					      "failed to open config reader");
+	}
+
+	result = validate_config_contents(reader, config);
+	if (result != UDS_SUCCESS) {
+		free_buffered_reader(reader);
+		return uds_log_error_strerror(result,
+					      "failed to read config region");
+	}
+	free_buffered_reader(reader);
+	return UDS_SUCCESS;
+}
+
 /**********************************************************************/
 static int load_index_layout(struct index_layout *layout,
 			     struct configuration *config)
@@ -1295,31 +1433,6 @@ reset_index_save_layout(struct index_save_layout *isl,
 }
 
 /**********************************************************************/
-static void define_sub_index_nonce(struct index_layout *layout,
-				   unsigned int index_id)
-{
-	struct sub_index_nonce_data {
-		uint64_t offset;
-		uint16_t index_id;
-	};
-
-	struct sub_index_layout *sil = &layout->index;
-	uint64_t primary_nonce = layout->super.nonce;
-	byte buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
-	size_t offset = 0;
-	encode_uint64_le(buffer, &offset, sil->sub_index.start_block);
-	encode_uint16_le(buffer, &offset, index_id);
-	sil->nonce = generate_secondary_nonce(primary_nonce,
-					      buffer,
-					      sizeof(buffer));
-	if (sil->nonce == 0) {
-		sil->nonce = generate_secondary_nonce(~primary_nonce + 1,
-						      buffer,
-						      sizeof(buffer));
-	}
-}
-
-/**********************************************************************/
 static int __must_check setup_sub_index(struct index_layout *layout,
 					uint64_t *next_block_ptr,
 					struct save_layout_sizes *sls,
@@ -1408,113 +1521,6 @@ init_single_file_layout(struct index_layout *layout,
 	if (next_block * sls->block_size > layout->offset + sls->total_size) {
 		return uds_log_error_strerror(UDS_UNEXPECTED_RESULT,
 					      "layout does not fit as expected");
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static void expect_sub_index(struct index_layout *layout,
-			     struct region_iterator *iter,
-			     unsigned int instance)
-{
-	unsigned int i;
-	struct sub_index_layout *sil = &layout->index;
-	uint64_t start_block = iter->next_block;
-	uint64_t end_block;
-	if (iter->result != UDS_SUCCESS) {
-		return;
-	}
-
-	expect_layout(true, &sil->sub_index, iter, 0, RL_KIND_INDEX, instance);
-
-	end_block = iter->next_block;
-	iter->next_block = start_block;
-
-	expect_layout(true, &sil->volume, iter, 0, RL_KIND_VOLUME,
-		      RL_SOLE_INSTANCE);
-
-	iter->next_block += layout->super.volume_offset;
-	end_block += layout->super.volume_offset;
-
-	for (i = 0; i < layout->super.max_saves; ++i) {
-		struct index_save_layout *isl = &sil->saves[i];
-		expect_layout(true, &isl->index_save, iter, 0, RL_KIND_SAVE, i);
-	}
-
-	if (iter->next_block != end_block) {
-		iter_error(iter, "sub index region does not span all saves");
-	}
-
-	define_sub_index_nonce(layout, instance);
-}
-
-/**********************************************************************/
-
-/**
- * Initialize a single file layout from the region table and super block data
- * stored in stable storage.
- *
- * @param layout       the layout to initialize
- * @param table        the region table read from the superblock
- * @param first_block  the first block number in the region
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int __must_check
-reconstitute_single_file_layout(struct index_layout *layout,
-				struct region_table *table,
-				uint64_t first_block)
-{
-	struct region_iterator iter = {
-		.next_region = table->regions,
-		.last_region = table->regions + table->header.num_regions,
-		.next_block = first_block,
-		.result = UDS_SUCCESS
-	};
-
-	layout->total_blocks = table->header.region_blocks;
-
-	expect_layout(true,
-		      &layout->header,
-		      &iter,
-		      1,
-		      RL_KIND_HEADER,
-		      RL_SOLE_INSTANCE);
-	expect_layout(true,
-		      &layout->config,
-		      &iter,
-		      1,
-		      RL_KIND_CONFIG,
-		      RL_SOLE_INSTANCE);
-	expect_sub_index(layout, &iter, 0);
-	expect_layout(true, &layout->seal, &iter, 1, RL_KIND_SEAL,
-		      RL_SOLE_INSTANCE);
-
-	if (iter.result != UDS_SUCCESS) {
-		return iter.result;
-	}
-
-	if ((iter.next_block - layout->super.volume_offset) !=
-	    (first_block + layout->total_blocks)) {
-		return uds_log_error_strerror(UDS_UNEXPECTED_RESULT,
-					      "layout table does not span total blocks");
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static int __must_check save_sub_index_regions(struct index_layout *layout)
-{
-	struct sub_index_layout *sil = &layout->index;
-	unsigned int j;
-	for (j = 0; j < layout->super.max_saves; ++j) {
-		struct index_save_layout *isl = &sil->saves[j];
-		int result = write_index_save_layout(layout, isl);
-		if (result != UDS_SUCCESS) {
-			return uds_log_error_strerror(result,
-						      "unable to format index %u save 0 layout",
-						      j);
-		}
 	}
 	return UDS_SUCCESS;
 }
@@ -1729,6 +1735,209 @@ static int __must_check encode_super_block_data(struct buffer *buffer,
 
 /**********************************************************************/
 static int __must_check
+make_index_save_region_table(struct index_save_layout *isl,
+			     unsigned int *num_regions_ptr,
+			     struct region_table **table_ptr)
+{
+	unsigned int z;
+	struct region_table *table;
+	struct layout_region *lr;
+	int result;
+	unsigned int num_regions = 1 + // header
+				   1 + // index page map
+				   isl->num_zones + // volume index zones
+				   (bool) isl->open_chapter; // open chapter if
+							     // needed
+
+	if (isl->free_space.num_blocks > 0) {
+		num_regions++;
+	}
+
+	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+				       num_regions,
+				       struct layout_region,
+				       "layout region table for ISL",
+				       &table);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	lr = &table->regions[0];
+	*lr++ = isl->header;
+	*lr++ = isl->index_page_map;
+	for (z = 0; z < isl->num_zones; ++z) {
+		*lr++ = isl->volume_index_zones[z];
+	}
+	if (isl->open_chapter) {
+		*lr++ = *isl->open_chapter;
+	}
+	if (isl->free_space.num_blocks > 0) {
+		*lr++ = isl->free_space;
+	}
+
+	result = ASSERT((lr == &table->regions[num_regions]),
+			"incorrect number of ISL regions");
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	*num_regions_ptr = num_regions;
+	*table_ptr = table;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static unsigned int region_type_for_save_type(enum index_save_type save_type)
+{
+	switch (save_type) {
+	case IS_SAVE:
+		return RH_TYPE_SAVE;
+
+	default:
+		break;
+	}
+
+	return RH_TYPE_UNSAVED;
+}
+
+/**********************************************************************/
+static int __must_check
+write_index_save_header(struct index_save_layout *isl,
+			struct region_table *table,
+			unsigned int num_regions,
+			struct buffered_writer *writer)
+{
+	unsigned int i;
+	struct buffer *buffer;
+	int result;
+	size_t payload = sizeof(isl->save_data);
+	size_t table_size = sizeof(struct region_table) +
+		num_regions * sizeof(struct layout_region);
+
+	if (isl->index_state_buffer != NULL) {
+		payload += content_length(isl->index_state_buffer);
+	}
+
+	table->header = (struct region_header) {
+		.magic = REGION_MAGIC,
+		.region_blocks = isl->index_save.num_blocks,
+		.type = region_type_for_save_type(isl->save_type),
+		.version = 1,
+		.num_regions = num_regions,
+		.payload = payload,
+	};
+
+	result = make_buffer(table_size, &buffer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = encode_region_header(buffer, &table->header);
+	if (result != UDS_SUCCESS) {
+		free_buffer(UDS_FORGET(buffer));
+		return result;
+	}
+
+	for (i = 0; i < num_regions; i++) {
+		result = encode_layout_region(buffer, &table->regions[i]);
+		if (result != UDS_SUCCESS) {
+			free_buffer(UDS_FORGET(buffer));
+			return result;
+		}
+	}
+	result = ASSERT_LOG_ONLY(content_length(buffer) == table_size,
+				 "%zu bytes encoded of %zu expected",
+				 content_length(buffer),
+				 table_size);
+	if (result != UDS_SUCCESS) {
+		free_buffer(UDS_FORGET(buffer));
+		return result;
+	}
+
+	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+					  content_length(buffer));
+	free_buffer(UDS_FORGET(buffer));
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = make_buffer(sizeof(isl->save_data), &buffer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = encode_index_save_data(buffer, &isl->save_data);
+	if (result != UDS_SUCCESS) {
+		free_buffer(UDS_FORGET(buffer));
+		return result;
+	}
+
+	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+					  content_length(buffer));
+	free_buffer(UDS_FORGET(buffer));
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	if (isl->index_state_buffer != NULL) {
+		result = write_to_buffered_writer(writer,
+					          get_buffer_contents(isl->index_state_buffer),
+					          content_length(isl->index_state_buffer));
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
+
+	return flush_buffered_writer(writer);
+}
+
+/**********************************************************************/
+static int write_index_save_layout(struct index_layout *layout,
+				   struct index_save_layout *isl)
+{
+	unsigned int num_regions;
+	struct region_table *table;
+	struct buffered_writer *writer = NULL;
+	int result = make_index_save_region_table(isl, &num_regions, &table);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = open_layout_writer(layout, &isl->header,
+				    -layout->super.start_offset,
+				    &writer);
+	if (result != UDS_SUCCESS) {
+		UDS_FREE(table);
+		return result;
+	}
+
+	result = write_index_save_header(isl, table, num_regions, writer);
+	UDS_FREE(table);
+	free_buffered_writer(writer);
+
+	isl->written = true;
+	return result;
+}
+
+/**********************************************************************/
+static int __must_check save_sub_index_regions(struct index_layout *layout)
+{
+	struct sub_index_layout *sil = &layout->index;
+	unsigned int j;
+	for (j = 0; j < layout->super.max_saves; ++j) {
+		struct index_save_layout *isl = &sil->saves[j];
+		int result = write_index_save_layout(layout, isl);
+		if (result != UDS_SUCCESS) {
+			return uds_log_error_strerror(result,
+						      "unable to format index %u save 0 layout",
+						      j);
+		}
+	}
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static int __must_check
 write_single_file_header(struct index_layout *layout,
 			 struct region_table *table,
 			 unsigned int num_regions,
@@ -1839,34 +2048,6 @@ save_single_file_layout(struct index_layout *layout, off_t offset)
 	return result;
 }
 
-/**********************************************************************/
-void free_uds_index_layout(struct index_layout *layout)
-{
-	struct sub_index_layout *sil;
-
-	if (layout == NULL) {
-		return;
-	}
-
-	sil = &layout->index;
-	if (sil->saves != NULL) {
-		unsigned int j;
-		for (j = 0; j < layout->super.max_saves; ++j) {
-			struct index_save_layout *isl = &sil->saves[j];
-			UDS_FREE(isl->volume_index_zones);
-			UDS_FREE(isl->open_chapter);
-			free_buffer(UDS_FORGET(isl->index_state_buffer));
-		}
-	}
-
-	UDS_FREE(sil->saves);
-
-	if (layout->factory != NULL) {
-		put_uds_io_factory(layout->factory);
-	}
-	UDS_FREE(layout);
-}
-
 /**
  * Write the index configuration.
  *
@@ -1907,39 +2088,154 @@ write_uds_index_config(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
+/**********************************************************************/
+static int create_index_layout(struct index_layout *layout,
+			       struct configuration *config)
+{
+	struct save_layout_sizes sizes;
+	int result;
+
+	result = compute_sizes(config, &sizes);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = init_single_file_layout(layout, &sizes);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = save_sub_index_regions(layout);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = save_single_file_layout(layout, 0);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = write_uds_index_config(layout, config, 0);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	return UDS_SUCCESS;
+}
+
 /**
- * Read the index configuration, and verify that it matches the given
- * configuration.
+ * Make an IO factory from a name string.
  *
- * @param layout  the generic index layout
- * @param config  the index configuration
+ * @param layout      The layout in which to store the parsed values
+ * @param config      The index configuration for the new layout
+ * @param new_layout  Whether this is a new layout
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int __must_check
-verify_uds_index_config(struct index_layout *layout,
-			struct configuration *config)
+static int create_layout_factory(struct index_layout *layout,
+				 const struct configuration *config,
+				 bool new_layout)
 {
-	struct buffered_reader *reader = NULL;
-	uint64_t offset = layout->super.volume_offset -
-		layout->super.start_offset;
-	int result = open_layout_reader(layout,
-					&layout->config,
-					offset,
-					&reader);
+	size_t writable_size;
+	struct io_factory *factory = NULL;
+	int result;
+
+	result = make_uds_io_factory(config->name, &factory);
 	if (result != UDS_SUCCESS) {
-		return uds_log_error_strerror(result,
-					      "failed to open config reader");
+		return result;
 	}
 
-	result = validate_config_contents(reader, config);
-	if (result != UDS_SUCCESS) {
-		free_buffered_reader(reader);
-		return uds_log_error_strerror(result,
-					      "failed to read config region");
+	writable_size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
+	if (writable_size < config->size + config->offset) {
+		put_uds_io_factory(factory);
+		uds_log_error("index storage (%zu) is smaller than the requested size %zu",
+			      writable_size,
+			      config->size + config->offset);
+		return -ENOSPC;
 	}
-	free_buffered_reader(reader);
+
+	layout->factory = factory;
+	layout->factory_size =
+		(config->size > 0) ? config->size : writable_size;
+	layout->offset = config->offset;
 	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int make_uds_index_layout(struct configuration *config,
+			  bool new_layout,
+			  struct index_layout **layout_ptr)
+{
+	struct index_layout *layout = NULL;
+	struct save_layout_sizes sizes;
+	int result;
+
+	result = compute_sizes(config, &sizes);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = create_layout_factory(layout, config, new_layout);
+	if (result != UDS_SUCCESS) {
+		free_uds_index_layout(layout);
+		return result;
+	}
+
+	if (layout->factory_size < sizes.total_size) {
+		uds_log_error("index storage (%zu) is smaller than the required size %llu",
+			      layout->factory_size,
+			      (unsigned long long) sizes.total_size);
+		free_uds_index_layout(layout);
+		return -ENOSPC;
+	}
+
+	if (new_layout) {
+		// Populate the layout from the UDS configuration
+		result = create_index_layout(layout, config);
+	} else {
+		// Populate the layout from the saved index.
+		result = load_index_layout(layout, config);
+	}
+	if (result != UDS_SUCCESS) {
+		free_uds_index_layout(layout);
+		return result;
+	}
+
+	*layout_ptr = layout;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void free_uds_index_layout(struct index_layout *layout)
+{
+	struct sub_index_layout *sil;
+
+	if (layout == NULL) {
+		return;
+	}
+
+	sil = &layout->index;
+	if (sil->saves != NULL) {
+		unsigned int j;
+		for (j = 0; j < layout->super.max_saves; ++j) {
+			struct index_save_layout *isl = &sil->saves[j];
+			UDS_FREE(isl->volume_index_zones);
+			UDS_FREE(isl->open_chapter);
+			free_buffer(UDS_FORGET(isl->index_state_buffer));
+		}
+	}
+
+	UDS_FREE(sil->saves);
+
+	if (layout->factory != NULL) {
+		put_uds_io_factory(layout->factory);
+	}
+	UDS_FREE(layout);
 }
 
 /**********************************************************************/
@@ -2200,192 +2496,6 @@ int find_latest_uds_index_save_slot(struct index_layout *layout,
 }
 
 /**********************************************************************/
-static int __must_check
-make_index_save_region_table(struct index_save_layout *isl,
-			     unsigned int *num_regions_ptr,
-			     struct region_table **table_ptr)
-{
-	unsigned int z;
-	struct region_table *table;
-	struct layout_region *lr;
-	int result;
-	unsigned int num_regions = 1 + // header
-				   1 + // index page map
-				   isl->num_zones + // volume index zones
-				   (bool) isl->open_chapter; // open chapter if
-							     // needed
-
-	if (isl->free_space.num_blocks > 0) {
-		num_regions++;
-	}
-
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
-				       num_regions,
-				       struct layout_region,
-				       "layout region table for ISL",
-				       &table);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	lr = &table->regions[0];
-	*lr++ = isl->header;
-	*lr++ = isl->index_page_map;
-	for (z = 0; z < isl->num_zones; ++z) {
-		*lr++ = isl->volume_index_zones[z];
-	}
-	if (isl->open_chapter) {
-		*lr++ = *isl->open_chapter;
-	}
-	if (isl->free_space.num_blocks > 0) {
-		*lr++ = isl->free_space;
-	}
-
-	result = ASSERT((lr == &table->regions[num_regions]),
-			"incorrect number of ISL regions");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	*num_regions_ptr = num_regions;
-	*table_ptr = table;
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static unsigned int region_type_for_save_type(enum index_save_type save_type)
-{
-	switch (save_type) {
-	case IS_SAVE:
-		return RH_TYPE_SAVE;
-
-	default:
-		break;
-	}
-
-	return RH_TYPE_UNSAVED;
-}
-
-/**********************************************************************/
-static int __must_check
-write_index_save_header(struct index_save_layout *isl,
-			struct region_table *table,
-			unsigned int num_regions,
-			struct buffered_writer *writer)
-{
-	unsigned int i;
-	struct buffer *buffer;
-	int result;
-	size_t payload = sizeof(isl->save_data);
-	size_t table_size = sizeof(struct region_table) +
-		num_regions * sizeof(struct layout_region);
-
-	if (isl->index_state_buffer != NULL) {
-		payload += content_length(isl->index_state_buffer);
-	}
-
-	table->header = (struct region_header) {
-		.magic = REGION_MAGIC,
-		.region_blocks = isl->index_save.num_blocks,
-		.type = region_type_for_save_type(isl->save_type),
-		.version = 1,
-		.num_regions = num_regions,
-		.payload = payload,
-	};
-
-	result = make_buffer(table_size, &buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = encode_region_header(buffer, &table->header);
-	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	for (i = 0; i < num_regions; i++) {
-		result = encode_layout_region(buffer, &table->regions[i]);
-		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
-			return result;
-		}
-	}
-	result = ASSERT_LOG_ONLY(content_length(buffer) == table_size,
-				 "%zu bytes encoded of %zu expected",
-				 content_length(buffer),
-				 table_size);
-	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = make_buffer(sizeof(isl->save_data), &buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = encode_index_save_data(buffer, &isl->save_data);
-	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	if (isl->index_state_buffer != NULL) {
-		result = write_to_buffered_writer(writer,
-					          get_buffer_contents(isl->index_state_buffer),
-					          content_length(isl->index_state_buffer));
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
-
-	return flush_buffered_writer(writer);
-}
-
-/**********************************************************************/
-static int write_index_save_layout(struct index_layout *layout,
-				   struct index_save_layout *isl)
-{
-	unsigned int num_regions;
-	struct region_table *table;
-	struct buffered_writer *writer = NULL;
-	int result = make_index_save_region_table(isl, &num_regions, &table);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = open_layout_writer(layout, &isl->header,
-				    -layout->super.start_offset,
-				    &writer);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(table);
-		return result;
-	}
-
-	result = write_index_save_header(isl, table, num_regions, writer);
-	UDS_FREE(table);
-	free_buffered_writer(writer);
-
-	isl->written = true;
-	return result;
-}
-
-/**********************************************************************/
 int commit_uds_index_save(struct index_layout *layout, unsigned int save_slot)
 {
 	struct index_save_layout *isl;
@@ -2444,41 +2554,6 @@ int discard_uds_index_saves(struct index_layout *layout)
 	}
 
 	return result;
-}
-
-/**********************************************************************/
-static int create_index_layout(struct index_layout *layout,
-			       struct configuration *config)
-{
-	struct save_layout_sizes sizes;
-	int result;
-
-	result = compute_sizes(config, &sizes);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = init_single_file_layout(layout, &sizes);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = save_sub_index_regions(layout);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = save_single_file_layout(layout, 0);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = write_uds_index_config(layout, config, 0);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -2571,91 +2646,4 @@ int open_uds_index_buffered_writer(struct index_layout *layout,
 	}
 	return open_layout_writer(layout, lr, -layout->super.start_offset,
 				  writer_ptr);
-}
-
-/**
- * Make an IO factory from a name string.
- *
- * @param layout      The layout in which to store the parsed values
- * @param config      The index configuration for the new layout
- * @param new_layout  Whether this is a new layout
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int create_layout_factory(struct index_layout *layout,
-				 const struct configuration *config,
-				 bool new_layout)
-{
-	size_t writable_size;
-	struct io_factory *factory = NULL;
-	int result;
-
-	result = make_uds_io_factory(config->name, &factory);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	writable_size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
-	if (writable_size < config->size + config->offset) {
-		put_uds_io_factory(factory);
-		uds_log_error("index storage (%zu) is smaller than the requested size %zu",
-			      writable_size,
-			      config->size + config->offset);
-		return -ENOSPC;
-	}
-
-	layout->factory = factory;
-	layout->factory_size =
-		(config->size > 0) ? config->size : writable_size;
-	layout->offset = config->offset;
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int make_uds_index_layout(struct configuration *config,
-			  bool new_layout,
-			  struct index_layout **layout_ptr)
-{
-	struct index_layout *layout = NULL;
-	struct save_layout_sizes sizes;
-	int result;
-
-	result = compute_sizes(config, &sizes);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = create_layout_factory(layout, config, new_layout);
-	if (result != UDS_SUCCESS) {
-		free_uds_index_layout(layout);
-		return result;
-	}
-
-	if (layout->factory_size < sizes.total_size) {
-		uds_log_error("index storage (%zu) is smaller than the required size %llu",
-			      layout->factory_size,
-			      (unsigned long long) sizes.total_size);
-		free_uds_index_layout(layout);
-		return -ENOSPC;
-	}
-
-	if (new_layout) {
-		// Populate the layout from the UDS configuration
-		result = create_index_layout(layout, config);
-	} else {
-		// Populate the layout from the saved index.
-		result = load_index_layout(layout, config);
-	}
-	if (result != UDS_SUCCESS) {
-		free_uds_index_layout(layout);
-		return result;
-	}
-
-	*layout_ptr = layout;
-	return UDS_SUCCESS;
 }

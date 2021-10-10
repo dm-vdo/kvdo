@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-read.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-read.c#3 $
  */
 
 #include "vio-read.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 
@@ -74,7 +76,12 @@ static void read_block(struct vdo_completion *completion)
 				  : modify_for_partial_write);
 
 	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK) {
-		zero_data_vio(data_vio);
+		if (data_vio->is_partial) {
+			memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
+		} else {
+			zero_fill_bio(data_vio->user_bio);
+		}
+
 		invoke_vdo_completion_callback(completion);
 		return;
 	}
