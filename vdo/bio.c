@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#69 $
  */
 
 #include "bio.h"
@@ -232,7 +232,6 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 				   offset_in_page(data));
 
 	if (bytes_added != VDO_BLOCK_SIZE) {
-		vdo_free_bio(bio);
 		return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
 					      "Could only add %i bytes to bio",
 					      bytes_added);
@@ -253,7 +252,6 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes) {
-			vdo_free_bio(bio);
 			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
 						      "Could only add %i bytes to bio",
 						      bytes_added);
