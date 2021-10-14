@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/bufferedWriter.h#3 $
  */
 
 #ifndef BUFFERED_WRITER_H
@@ -92,15 +92,5 @@ int __must_check write_zeros_to_buffered_writer(struct buffered_writer *bw,
  *                      occurs it is sticky.
  **/
 int __must_check flush_buffered_writer(struct buffered_writer *buffer);
-
-/**
- * Return the size of the remaining space in the buffer (for testing)
- *
- * @param [in] buffer   The buffered writer object.
- *
- * @return              The number of available bytes in the buffer.
- **/
-size_t __must_check
-space_remaining_in_write_buffer(struct buffered_writer *buffer);
 
 #endif // BUFFERED_WRITER_H

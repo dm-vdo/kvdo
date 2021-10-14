@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/chapterIndex.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/chapterIndex.h#2 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -37,6 +37,7 @@ struct open_chapter_index {
 	struct delta_index delta_index;
 	uint64_t virtual_chapter_number;
 	uint64_t volume_nonce;
+	size_t memory_allocated;
 };
 
 
@@ -119,16 +120,6 @@ pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
  **/
 int __must_check
 get_open_chapter_index_size(struct open_chapter_index *open_chapter_index);
-
-/**
- * Get the number of bytes allocated for the open chapter index.
- *
- * @param open_chapter_index  The open chapter index
- *
- * @return the number of bytes allocated
- **/
-size_t
-get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_index);
 
 /**
  * Make a new chapter index page, initializing it with the data from the

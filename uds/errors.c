@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/errors.c#4 $
+ * $Id: //eng/uds-releases/lisa/src/uds/errors.c#5 $
  */
 
 #include "errors.h"
@@ -108,7 +108,7 @@ enum {
 	MAX_ERROR_BLOCKS = 6 // needed for testing
 };
 
-static struct error_information {
+static struct {
 	int allocated;
 	int count;
 	struct error_block blocks[MAX_ERROR_BLOCKS];
@@ -139,9 +139,7 @@ static const char *get_error_info(int errnum,
 	struct error_block *block;
 
 	if (errnum == UDS_SUCCESS) {
-		if (info_ptr != NULL) {
-			*info_ptr = &successful;
-		}
+		*info_ptr = &successful;
 		return NULL;
 	}
 
@@ -149,21 +147,14 @@ static const char *get_error_info(int errnum,
 	     block < registered_errors.blocks + registered_errors.count;
 	     ++block) {
 		if ((errnum >= block->base) && (errnum < block->last)) {
-			if (info_ptr != NULL) {
-				*info_ptr =
-					block->infos + (errnum - block->base);
-			}
+			*info_ptr = block->infos + (errnum - block->base);
 			return block->name;
 		} else if ((errnum >= block->last) && (errnum < block->max)) {
-			if (info_ptr != NULL) {
-				*info_ptr = NULL;
-			}
+			*info_ptr = NULL;
 			return block->name;
 		}
 	}
-	if (info_ptr != NULL) {
-		*info_ptr = NULL;
-	}
+
 	return NULL;
 }
 
@@ -337,6 +328,13 @@ int register_error_block(const char *block_name,
 			 size_t info_size)
 {
 	struct error_block *block;
+	struct error_block new_block = {
+		.name = block_name,
+		.base = first_error,
+		.last = first_error + (info_size / sizeof(struct error_info)),
+		.max = last_reserved_error,
+		.infos = infos,
+	};
 	int result = ASSERT(first_error < last_reserved_error,
 			    "bad error block range");
 	if (result != UDS_SUCCESS) {
@@ -361,14 +359,6 @@ int register_error_block(const char *block_name,
 		}
 	}
 
-	registered_errors.blocks[registered_errors.count++] =
-		(struct error_block){ .name = block_name,
-				      .base = first_error,
-				      .last = first_error +
-					      (info_size /
-					       sizeof(struct error_info)),
-				      .max = last_reserved_error,
-				      .infos = infos };
-
+	registered_errors.blocks[registered_errors.count++] = new_block;
 	return UDS_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/chapterIndex.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/chapterIndex.c#2 $
  */
 
 #include "chapterIndex.h"
@@ -36,11 +36,13 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 			    uint64_t volume_nonce)
 {
 	size_t memory_size;
+	struct delta_index_stats stats;
+	struct open_chapter_index *index;
 
 	int result = UDS_ALLOCATE(1,
 				  struct open_chapter_index,
 				  "open chapter index",
-				  open_chapter_index);
+				  &index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -49,19 +51,24 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 	// so give the chapter index one extra page.
 	memory_size = (geometry->index_pages_per_chapter + 1) *
 			geometry->bytes_per_page;
-	(*open_chapter_index)->geometry = geometry;
-	(*open_chapter_index)->volume_nonce = volume_nonce;
-	result = initialize_delta_index(&(*open_chapter_index)->delta_index,
+	index->geometry = geometry;
+	index->volume_nonce = volume_nonce;
+	result = initialize_delta_index(&index->delta_index,
 				        1,
 				        geometry->delta_lists_per_chapter,
 				        geometry->chapter_mean_delta,
 				        geometry->chapter_payload_bits,
 				        memory_size);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(*open_chapter_index);
-		*open_chapter_index = NULL;
+		UDS_FREE(index);
+		return result;
 	}
-	return result;
+
+	get_delta_index_stats(&index->delta_index, &stats);
+	index->memory_allocated =
+		stats.memory_allocated + sizeof(struct open_chapter_index);
+	*open_chapter_index = index;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -236,15 +243,6 @@ int get_open_chapter_index_size(struct open_chapter_index *open_chapter_index)
 	struct delta_index_stats stats;
 	get_delta_index_stats(&open_chapter_index->delta_index, &stats);
 	return stats.record_count;
-}
-
-/**********************************************************************/
-size_t
-get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_index)
-{
-	struct delta_index_stats stats;
-	get_delta_index_stats(&open_chapter_index->delta_index, &stats);
-	return stats.memory_allocated + sizeof(struct open_chapter_index);
 }
 
 /**********************************************************************/

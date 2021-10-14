@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/chapterWriter.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/chapterWriter.c#3 $
  */
 
 #include "chapterWriter.h"
@@ -126,7 +126,6 @@ static void close_chapters(void *arg)
 int make_chapter_writer(struct uds_index *index,
 			struct chapter_writer **writer_ptr)
 {
-	size_t open_chapter_index_memory_allocated;
 	struct chapter_writer *writer;
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
@@ -170,13 +169,11 @@ int make_chapter_writer(struct uds_index *index,
 		return result;
 	}
 
-	open_chapter_index_memory_allocated =
-		get_open_chapter_index_memory_allocated(
-			writer->open_chapter_index);
 	writer->memory_allocated =
 		(sizeof(struct chapter_writer) +
 		 index->zone_count * sizeof(struct open_chapter_zone *) +
-		 collated_records_size + open_chapter_index_memory_allocated);
+		 collated_records_size +
+		 writer->open_chapter_index->memory_allocated);
 
 	// We're initialized, so now it's safe to start the writer thread.
 	result = uds_create_thread(close_chapters, writer, "writer",
