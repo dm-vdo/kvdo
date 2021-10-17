@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/geometry.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/geometry.c#2 $
  */
 
 #include "geometry.h"
@@ -110,8 +110,6 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->bytes_per_volume =
 		bytes_per_page * (geometry->pages_per_volume +
 				  geometry->header_pages_per_volume);
-	geometry->bytes_per_chapter =
-		bytes_per_page * geometry->pages_per_chapter;
 
 	return UDS_SUCCESS;
 }

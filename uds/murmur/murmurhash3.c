@@ -15,7 +15,7 @@ static inline uint64_t rotl64(uint64_t x, int8_t r)
 }
 
 #define ROTL64(x, y) rotl64(x, y)
-static inline __always_inline uint64_t getblock64(const uint64_t *p, int i)
+static __always_inline uint64_t getblock64(const uint64_t *p, int i)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	return p[i];
@@ -26,8 +26,7 @@ static inline __always_inline uint64_t getblock64(const uint64_t *p, int i)
 #endif
 }
 
-static inline __always_inline void putblock64(uint64_t *p, int i,
-					       uint64_t value)
+static __always_inline void putblock64(uint64_t *p, int i, uint64_t value)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	p[i] = value;
@@ -40,7 +39,7 @@ static inline __always_inline void putblock64(uint64_t *p, int i,
 
 // Finalization mix - force all bits of a hash block to avalanche
 
-static inline __always_inline uint64_t fmix64(uint64_t k)
+static __always_inline uint64_t fmix64(uint64_t k)
 {
 	k ^= k >> 33;
 	k *= 0xff51afd7ed558ccdLLU;
@@ -154,6 +153,7 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 			k1 = ROTL64(k1, 31);
 			k1 *= c2;
 			h1 ^= k1;
+			break;
 		default:
 			break;
 		};

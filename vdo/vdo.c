@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#204 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#205 $
  */
 
 /*
@@ -90,12 +90,14 @@ static const struct vdo_work_queue_type request_queue_type = {
 	.start = start_vdo_request_queue,
 	.finish = finish_vdo_request_queue,
 	.max_priority = VDO_REQ_Q_MAX_PRIORITY,
+	.default_priority = VDO_REQ_Q_COMPLETION_PRIORITY,
 };
 
 static const struct vdo_work_queue_type bio_ack_q_type = {
 	.start = NULL,
 	.finish = NULL,
 	.max_priority = BIO_ACK_Q_MAX_PRIORITY,
+	.default_priority = BIO_ACK_Q_ACK_PRIORITY,
 };
 
 /**********************************************************************/
@@ -103,6 +105,7 @@ static const struct vdo_work_queue_type cpu_q_type = {
 	.start = NULL,
 	.finish = NULL,
 	.max_priority = CPU_Q_MAX_PRIORITY,
+	.default_priority = CPU_Q_MAX_PRIORITY,
 };
 
 /**********************************************************************/

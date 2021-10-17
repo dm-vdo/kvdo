@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#33 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -31,8 +31,6 @@
 
 enum {
 	MAX_VDO_WORK_QUEUE_NAME_LEN = TASK_COMM_LEN,
-	/** Number of priority values available */
-	VDO_WORK_QUEUE_PRIORITY_COUNT = 4,
 };
 
 struct vdo_work_item {
@@ -70,7 +68,10 @@ struct vdo_work_queue_type {
 	void (*finish)(void *);
 
 	/** The largest priority value used by this queue */
-	uint8_t max_priority;
+	enum vdo_work_item_priority max_priority;
+
+	/** The default priority for this queue */
+	enum vdo_work_item_priority default_priority;
 };
 
 /**

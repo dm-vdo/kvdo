@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/geometry.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/geometry.h#3 $
  */
 
 #ifndef GEOMETRY_H
@@ -97,8 +97,6 @@ struct geometry {
 	unsigned int header_pages_per_volume;
 	/** Total number of bytes in a volume, including header */
 	size_t bytes_per_volume;
-	/** Total number of bytes in a chapter */
-	size_t bytes_per_chapter;
 	/** Number of pages in a chapter */
 	unsigned int pages_per_chapter;
 	/** Number of index pages in a chapter index */

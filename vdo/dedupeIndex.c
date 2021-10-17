@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#121 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#122 $
  */
 
 #include "dedupeIndex.h"
@@ -933,6 +933,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
 		.max_priority = UDS_Q_MAX_PRIORITY,
+		.default_priority = UDS_Q_PRIORITY,
 	};
 	set_vdo_dedupe_index_timeout_interval(vdo_dedupe_index_timeout_interval);
 	set_vdo_dedupe_index_min_timer_interval(vdo_dedupe_index_min_timer_interval);

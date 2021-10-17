@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#81 $
  */
 
 #include "workQueue.h"
@@ -70,7 +70,7 @@ struct simple_work_queue {
 	unsigned int num_priority_lists;
 
 	/** The funnel queues */
-	struct funnel_queue *priority_lists[VDO_WORK_QUEUE_PRIORITY_COUNT];
+	struct funnel_queue *priority_lists[VDO_WORK_Q_MAX_PRIORITY + 1];
 	/** The kernel thread */
 	struct task_struct *thread;
 	/** Opaque private data pointer, defined by higher level code */
@@ -260,6 +260,10 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"item %px (fn %px) to enqueue (%px) is not already queued (%px)",
 			item, item->work, queue, item->my_queue);
+	if (item->priority == VDO_WORK_Q_DEFAULT_PRIORITY) {
+		item->priority = queue->common.type->default_priority;
+	}
+
 	if (ASSERT(item->priority < queue->num_priority_lists,
 		   "priority is in range for queue") != VDO_SUCCESS) {
 		item->priority = 0;
@@ -503,7 +507,7 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 {
 	unsigned int i;
 
-	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
+	for (i = 0; i <= VDO_WORK_Q_MAX_PRIORITY; i++) {
 		free_funnel_queue(queue->priority_lists[i]);
 	}
 	UDS_FREE(queue->common.name);
@@ -586,10 +590,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	struct task_struct *thread = NULL;
 	int result;
 
-	ASSERT_LOG_ONLY(type->max_priority < VDO_WORK_QUEUE_PRIORITY_COUNT,
+	ASSERT_LOG_ONLY((type->max_priority <= VDO_WORK_Q_MAX_PRIORITY),
 			"queue priority count %u within limit %u",
 			type->max_priority,
-			VDO_WORK_QUEUE_PRIORITY_COUNT - 1);
+			VDO_WORK_Q_MAX_PRIORITY);
 
 	result = UDS_ALLOCATE(1,
 			      struct simple_work_queue,

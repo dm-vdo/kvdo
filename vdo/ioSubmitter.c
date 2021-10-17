@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#100 $
  */
 
 #include "ioSubmitter.h"
@@ -83,6 +83,7 @@ static const struct vdo_work_queue_type bio_queue_type = {
 	.start = start_bio_queue,
 	.finish = finish_bio_queue,
 	.max_priority = BIO_Q_MAX_PRIORITY,
+	.default_priority = BIO_Q_DATA_PRIORITY,
 };
 
 /**
