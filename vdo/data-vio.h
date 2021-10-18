@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#4 $
  */
 
 #ifndef DATA_VIO_H
@@ -1150,15 +1150,6 @@ int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
  * @param data_vio The data_vio releasing its logical block lock
  **/
 void vdo_release_logical_block_lock(struct data_vio *data_vio);
-
-/**
- * A function to asynchronously hash the block data, setting the chunk name of
- * the data_vio. This is asynchronous to allow the computation to be done on
- * different threads.
- *
- * @param data_vio  The data_vio to hash
- **/
-void hash_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to determine whether a block is a duplicate. This function

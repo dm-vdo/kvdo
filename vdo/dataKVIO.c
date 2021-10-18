@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#178 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#179 $
  */
 
 #include "dataKVIO.h"
 
 #include <asm/unaligned.h>
 #include <linux/lz4.h>
-#include <linux/murmurhash3.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -538,29 +537,6 @@ void launch_data_vio(struct vdo *vdo,
 	prepare_data_vio(data_vio, lbn, operation, is_trim, callback);
 	invoke_vdo_completion_callback_with_priority(data_vio_as_completion(data_vio),
 						     VDO_REQ_Q_MAP_BIO_PRIORITY);
-}
-
-/**
- * Hash a data_vio and set its chunk name.
- *
- * @param item  The data_vio to be hashed
- **/
-static void vdo_hash_data_work(struct vdo_work_item *item)
-{
-	struct data_vio *data_vio = work_item_as_data_vio(item);
-
-	murmurhash3_128(data_vio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
-			&data_vio->chunk_name);
-
-	enqueue_data_vio_callback(data_vio);
-}
-
-/**********************************************************************/
-void hash_data_vio(struct data_vio *data_vio)
-{
-	launch_data_vio_on_cpu_queue(data_vio,
-				     vdo_hash_data_work,
-				     CPU_Q_HASH_BLOCK_PRIORITY);
 }
 
 /**********************************************************************/

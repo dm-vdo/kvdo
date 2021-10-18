@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#4 $
  */
 
 /*
@@ -106,6 +106,8 @@
  */
 
 #include "vio-write.h"
+
+#include <linux/murmurhash3.h>
 
 #include "logger.h"
 #include "permassert.h"
@@ -689,7 +691,7 @@ void launch_deduplicate_data_vio(struct data_vio *data_vio)
  * Route the data_vio to the hash_zone responsible for the chunk name to
  * acquire a hash lock on that name, or join with a existing hash lock managing
  * concurrent dedupe for that name. This is the callback registered in
- * resolve_hash_zone().
+ * hash_data_vio().
  *
  * @param completion  The data_vio to lock
  **/
@@ -721,29 +723,30 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 }
 
 /**
- * Set the hash zone (and flag the chunk name as set) while still on the
- * thread that just hashed the data to set the chunk name. This is the
- * callback registered by prepare_for_dedupe().
+ * Hash the data in a data_vio and set the hash zone (which also flags the
+ * chunk name as set). This callback is registered in prepare_for_dedupe().
  *
- * @param completion The data_vio whose chunk name was just generated, as a
- *                    completion
+ * @param completion  The data_vio to hash
  **/
-static void resolve_hash_zone(struct vdo_completion *completion)
+static void hash_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	// We don't care what thread we are on.
-	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
-		return;
-	}
 
+	assert_data_vio_on_cpu_thread(data_vio);
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero blocks should not be hashed");
+
+	murmurhash3_128(data_vio->data_block,
+			VDO_BLOCK_SIZE,
+			0x62ea60be,
+			&data_vio->chunk_name);
 
 	data_vio->hash_zone =
 		select_vdo_hash_zone(get_vdo_from_data_vio(data_vio),
 				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
-	launch_data_vio_hash_zone_callback(data_vio, lock_hash_in_zone);
+	launch_data_vio_hash_zone_callback(data_vio,
+					   lock_hash_in_zone);
 }
 
 /**
@@ -766,12 +769,9 @@ static void prepare_for_dedupe(struct data_vio *data_vio)
 	// Before we can dedupe, we need to know the chunk name, so the first
 	// step is to hash the block data.
 	data_vio->last_async_operation = VIO_ASYNC_OP_HASH_DATA_VIO;
-	// XXX this is the wrong thread to run this callback, but we don't yet
-	// have a mechanism for running it on the CPU thread immediately after
-	// hashing.
-	set_data_vio_allocated_zone_callback(data_vio,
-					     resolve_hash_zone);
-	hash_data_vio(data_vio);
+	launch_data_vio_cpu_callback(data_vio,
+				     hash_data_vio,
+				     CPU_Q_HASH_BLOCK_PRIORITY);
 }
 
 /**
