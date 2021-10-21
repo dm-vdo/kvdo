@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#69 $
  */
 
 #include "flush.h"
@@ -25,12 +25,12 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "ioSubmitter.h"
-#include "kernelVDO.h"
-
+#include "admin-state.h"
 #include "block-allocator.h"
 #include "completion.h"
+#include "ioSubmitter.h"
 #include "kernel-types.h"
+#include "kernelVDO.h"
 #include "logical-zone.h"
 #include "num-utils.h"
 #include "read-only-notifier.h"
@@ -43,6 +43,8 @@ struct flusher {
 	struct vdo_completion completion;
 	/** The vdo to which this flusher belongs */
 	struct vdo *vdo;
+	/** The administrative state of the flusher */
+	struct admin_state state;
 	/** The current flush generation of the vdo */
 	sequence_number_t flush_generation;
 	/** The first unacknowledged flush generation */
@@ -68,6 +70,20 @@ struct flusher {
 	/** The number of flushes submitted to the current bio queue */
 	int flush_count;
 };
+
+/**
+ * Check that we are on the flusher thread.
+ *
+ * @param flusher  The flusher
+ * @param caller   The function which is asserting
+ **/
+static inline void assert_on_flusher_thread(struct flusher *flusher,
+					    const char *caller)
+{
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
+			"%s() called from flusher thread",
+			caller);
+}
 
 /**
  * Convert a generic vdo_completion to a flusher.
@@ -120,6 +136,8 @@ int make_vdo_flusher(struct vdo *vdo)
 
 	vdo->flusher->vdo = vdo;
 	vdo->flusher->thread_id = vdo->thread_config->packer_thread;
+	set_vdo_admin_state_code(&vdo->flusher->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	initialize_vdo_completion(&vdo->flusher->completion, vdo,
 				  VDO_FLUSH_NOTIFICATION_COMPLETION);
 
@@ -164,8 +182,7 @@ static void finish_notification(struct vdo_completion *completion)
 	int result;
 	struct flusher *flusher = as_flusher(completion);
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
-			"finish_notification() called from flusher thread");
+	assert_on_flusher_thread(flusher, __func__);
 
 	waiter = dequeue_next_waiter(&flusher->notifiers);
 	result = enqueue_waiter(&flusher->pending_flushes, waiter);
@@ -266,8 +283,15 @@ static void flush_vdo(struct vdo_completion *completion)
 	bool may_notify;
 	int result;
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
-			"flush_vdo() called from flusher thread");
+	assert_on_flusher_thread(flusher, __func__);
+	result = ASSERT(is_vdo_state_normal(&flusher->state),
+			"flusher is in normal operation");
+	if (result != VDO_SUCCESS) {
+		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
+					 result);
+		vdo_complete_flush(flush);
+		return;
+	}
 
 	flush->flush_generation = flusher->flush_generation++;
 	may_notify = !has_waiters(&flusher->notifiers);
@@ -285,14 +309,27 @@ static void flush_vdo(struct vdo_completion *completion)
 	}
 }
 
+/**
+ * Check whether the flusher has drained.
+ *
+ * @param flusher  The flusher
+ **/
+static void check_for_drain_complete(struct flusher *flusher)
+{
+	if (is_vdo_state_draining(&flusher->state)
+	    && !has_waiters(&flusher->pending_flushes)
+	    && bio_list_empty(&flusher->waiting_flush_bios)) {
+		finish_vdo_draining(&flusher->state);
+	}
+}
+
 /**********************************************************************/
 void complete_vdo_flushes(struct flusher *flusher)
 {
 	sequence_number_t oldest_active_generation = UINT64_MAX;
 	struct logical_zone *zone;
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
-			"complete_vdo_flushes() called from flusher thread");
+	assert_on_flusher_thread(flusher, __func__);
 
 	for (zone = get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
 	     zone != NULL; zone = get_next_vdo_logical_zone(zone)) {
@@ -318,6 +355,8 @@ void complete_vdo_flushes(struct flusher *flusher)
 		vdo_complete_flush(flush);
 		flusher->first_unacknowledged_generation++;
 	}
+
+	check_for_drain_complete(flusher);
 }
 
 /**********************************************************************/
@@ -372,6 +411,12 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 	struct vdo_flush *flush
 		= UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
+	const struct admin_state_code *code =
+		get_vdo_admin_state_code(&flusher->state);
+
+	ASSERT_LOG_ONLY(!code->quiescent,
+			"Flushing not allowed in state %s",
+			code->name);
 
 	spin_lock(&flusher->lock);
 
@@ -522,4 +567,33 @@ static void vdo_complete_flush(struct vdo_flush *flush)
 			       select_bio_queue(completion->vdo->flusher),
 			       NULL);
 	enqueue_vdo_completion_with_priority(completion, BIO_Q_FLUSH_PRIORITY);
+}
+
+/**
+ * Initiate a drain.
+ *
+ * Implements vdo_admin_initiator.
+ **/
+static void initiate_drain(struct admin_state *state)
+{
+	check_for_drain_complete(container_of(state, struct flusher, state));
+}
+
+/**********************************************************************/
+void drain_vdo_flusher(struct flusher *flusher,
+		       struct vdo_completion *completion)
+{
+	assert_on_flusher_thread(flusher, __func__);
+	start_vdo_draining(&flusher->state,
+			   VDO_ADMIN_STATE_SUSPENDING,
+			   completion,
+			   initiate_drain);
+}
+
+/**********************************************************************/
+void resume_vdo_flusher(struct flusher *flusher, struct vdo_completion *parent)
+{
+	assert_on_flusher_thread(flusher, __func__);
+	finish_vdo_completion(parent,
+			      resume_vdo_if_quiescent(&flusher->state));
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-suspend.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-suspend.c#3 $
  */
 
 #include "vdo-suspend.h"
@@ -42,6 +42,7 @@ enum {
 	SUSPEND_PHASE_START = 0,
 	SUSPEND_PHASE_PACKER,
 	SUSPEND_PHASE_DATA_VIOS,
+	SUSPEND_PHASE_FLUSHES,
 	SUSPEND_PHASE_LOGICAL_ZONES,
 	SUSPEND_PHASE_BLOCK_MAP,
 	SUSPEND_PHASE_JOURNAL,
@@ -55,6 +56,7 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 	"SUSPEND_PHASE_START",
 	"SUSPEND_PHASE_PACKER",
 	"SUSPEND_PHASE_DATA_VIOS",
+	"SUSPEND_PHASE_FLUSHES",
 	"SUSPEND_PHASE_LOGICAL_ZONES",
 	"SUSPEND_PHASE_BLOCK_MAP",
 	"SUSPEND_PHASE_JOURNAL",
@@ -74,6 +76,7 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 		admin_completion->vdo->thread_config;
 	switch (admin_completion->phase) {
 	case SUSPEND_PHASE_PACKER:
+	case SUSPEND_PHASE_FLUSHES:
 		return thread_config->packer_thread;
 
 	case SUSPEND_PHASE_JOURNAL:
@@ -162,6 +165,11 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	case SUSPEND_PHASE_DATA_VIOS:
 		drain_vdo_limiter(&vdo->request_limiter,
+				  reset_vdo_admin_sub_task(completion));
+		return;
+
+	case SUSPEND_PHASE_FLUSHES:
+		drain_vdo_flusher(vdo->flusher,
 				  reset_vdo_admin_sub_task(completion));
 		return;
 

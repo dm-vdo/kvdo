@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#19 $
  */
 
 #ifndef FLUSH_H
@@ -91,5 +91,24 @@ void dump_vdo_flusher(const struct flusher *flusher);
  * @param bio  The bio containing an empty flush request
  **/
 void launch_vdo_flush(struct vdo *vdo, struct bio *bio);
+
+/**
+ * Drain the flusher by preventing any more VIOs from entering the flusher and
+ * then flushing. The flusher will be left in the suspended state.
+ *
+ * @param flusher     The flusher to drain
+ * @param completion  The completion to finish when the flusher has drained
+ **/
+void drain_vdo_flusher(struct flusher *flusher,
+		       struct vdo_completion *completion);
+
+/**
+ * Resume a flusher which has been suspended.
+ *
+ * @param flusher  The flusher to resume
+ * @param parent   The completion to finish when the flusher has resumed
+ **/
+void resume_vdo_flusher(struct flusher *flusher,
+			struct vdo_completion *parent);
 
 #endif /* FLUSH_H */
