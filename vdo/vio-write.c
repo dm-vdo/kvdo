@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio-write.c#5 $
  */
 
 /*
@@ -107,6 +107,7 @@
 
 #include "vio-write.h"
 
+#include <linux/bio.h>
 #include <linux/murmurhash3.h>
 
 #include "logger.h"
@@ -200,19 +201,56 @@ static void clean_hash_lock(struct vdo_completion *completion)
 }
 
 /**
- * Make some assertions about a data_vio which has finished cleaning up
- * and do its final callback.
+ * Make some assertions about a data_vio which has finished cleaning up.
+ * If it is part of a multi-block discard, start on the next block, otherwise,
+ * return it to the pool.
  *
  * @param data_vio  The data_vio which has finished cleaning up
  **/
 static void finish_cleanup(struct data_vio *data_vio)
 {
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+	enum vio_operation operation;
+
 	ASSERT_LOG_ONLY(data_vio_as_allocating_vio(data_vio)->allocation_lock ==
 			NULL,
 			"complete data_vio has no allocation lock");
 	ASSERT_LOG_ONLY(data_vio->hash_lock == NULL,
 			"complete data_vio has no hash lock");
-	vio_done_callback(data_vio_as_completion(data_vio));
+	if (data_vio->remaining_discard == 0) {
+		vio_done_callback(completion);
+		return;
+	}
+
+	if ((completion->result != VDO_SUCCESS) ||
+	    (data_vio->remaining_discard <= VDO_BLOCK_SIZE)) {
+		limiter_release(&completion->vdo->discard_limiter);
+		vio_done_callback(completion);
+		return;
+	}
+
+	data_vio->remaining_discard -= min_t(uint32_t,
+					     data_vio->remaining_discard,
+					     VDO_BLOCK_SIZE - data_vio->offset);
+	data_vio->is_partial = (data_vio->remaining_discard < VDO_BLOCK_SIZE);
+	data_vio->offset = 0;
+
+	if (data_vio->is_partial) {
+		operation = VIO_READ_MODIFY_WRITE;
+	} else {
+		operation = VIO_WRITE;
+	}
+
+	if (data_vio->user_bio->bi_opf & REQ_FUA) {
+		operation |= VIO_FLUSH_AFTER;
+	}
+
+	prepare_data_vio(data_vio,
+			 data_vio->logical.lbn + 1,
+			 operation,
+			 data_vio_as_vio(data_vio)->callback);
+	invoke_vdo_completion_callback_with_priority(completion,
+						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
 /**

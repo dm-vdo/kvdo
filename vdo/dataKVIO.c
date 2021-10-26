@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#179 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#180 $
  */
 
 #include "dataKVIO.h"
@@ -415,54 +415,6 @@ static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 }
 
 /**
- * Continue discard processing for requests that span multiple physical blocks.
- * If all have been processed the vio is completed.  If we have already seen
- * an error, we skip the rest of the discard and fail immediately.
- *
- * <p>Invoked in a request-queue thread after the discard of a block has
- * completed.
- *
- * @param completion  A completion representing the discard vio
- **/
-static void vdo_continue_discard_vio(struct vdo_completion *completion)
-{
-	enum vio_operation operation;
-	struct data_vio *data_vio = as_data_vio(completion);
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-
-	data_vio->remaining_discard -=
-		min_t(uint32_t, data_vio->remaining_discard,
-		      VDO_BLOCK_SIZE - data_vio->offset);
-	if ((completion->result != VDO_SUCCESS) ||
-	    (data_vio->remaining_discard == 0)) {
-		limiter_release(&vdo->discard_limiter);
-		vdo_complete_data_vio(completion);
-		return;
-	}
-
-	data_vio->is_partial = (data_vio->remaining_discard < VDO_BLOCK_SIZE);
-	data_vio->offset = 0;
-
-	if (data_vio->is_partial) {
-		operation = VIO_READ_MODIFY_WRITE;
-	} else {
-		operation = VIO_WRITE;
-	}
-
-	if (data_vio->user_bio->bi_opf & REQ_FUA) {
-		operation |= VIO_FLUSH_AFTER;
-	}
-
-	prepare_data_vio(data_vio,
-			 data_vio->logical.lbn + 1,
-			 operation,
-			 !data_vio->is_partial,
-			 vdo_continue_discard_vio);
-	invoke_vdo_completion_callback_with_priority(completion,
-						     VDO_REQ_Q_MAP_BIO_PRIORITY);
-}
-
-/**
  * Finish a partial read.
  *
  * @param completion  The partial read vio
@@ -483,7 +435,6 @@ void launch_data_vio(struct vdo *vdo,
 {
 	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
-	bool is_trim = false;
 	logical_block_number_t lbn;
 
 	reset_data_vio(data_vio, vdo);
@@ -500,13 +451,11 @@ void launch_data_vio(struct vdo *vdo,
 	 */
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
-		callback = vdo_continue_discard_vio;
+		callback = vdo_complete_data_vio;
 		if (data_vio->is_partial) {
 			vdo_count_bios(&vdo->stats.bios_in_partial, bio);
 			data_vio->read_block.data = data_vio->data_block;
 			operation = VIO_READ_MODIFY_WRITE;
-		} else {
-			is_trim = true;
 		}
 	} else if (data_vio->is_partial) {
 		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
@@ -534,7 +483,7 @@ void launch_data_vio(struct vdo *vdo,
 
 	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
 	       / VDO_SECTORS_PER_BLOCK);
-	prepare_data_vio(data_vio, lbn, operation, is_trim, callback);
+	prepare_data_vio(data_vio, lbn, operation, callback);
 	invoke_vdo_completion_callback_with_priority(data_vio_as_completion(data_vio),
 						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }

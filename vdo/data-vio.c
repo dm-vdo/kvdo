@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.c#4 $
  */
 
 #include "data-vio.h"
@@ -199,7 +199,6 @@ void attempt_logical_block_lock(struct vdo_completion *completion);
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
 		      enum vio_operation operation,
-		      bool is_trim,
 		      vdo_action *callback)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
@@ -222,8 +221,14 @@ void prepare_data_vio(struct data_vio *data_vio,
 	vio->callback = callback;
 
 	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
-	data_vio->new_mapped.state = (is_trim ? VDO_MAPPING_STATE_UNMAPPED :
-						VDO_MAPPING_STATE_UNCOMPRESSED);
+	if (data_vio->is_partial || (data_vio->remaining_discard == 0)) {
+		// This is either a write or a partial block discard
+		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+	} else {
+		// This is a full block discard
+		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNMAPPED;
+	}
+
 	reset_vdo_completion(vio_as_completion(vio));
 	set_data_vio_logical_callback(data_vio,
 				      attempt_logical_block_lock);
@@ -524,7 +529,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	}
 
 	ASSERT_LOG_ONLY((data_vio->remaining_discard <=
-			 (VDO_BLOCK_SIZE - data_vio->offset)),
+			 (uint32_t) (VDO_BLOCK_SIZE - data_vio->offset)),
 			"data_vio to acknowledge is not an incomplete discard");
 
 	data_vio->user_bio = NULL;

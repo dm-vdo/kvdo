@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio.h#5 $
  */
 
 #ifndef DATA_VIO_H
@@ -304,8 +304,13 @@ struct data_vio {
 	block_size_t offset;
 	bool is_partial;
 
-	/* discard support */
-	block_size_t remaining_discard;
+	/**
+         * The number of bytes to be discarded. For discards, this field will
+         * always be positive, whereas for non-discards it will always be 0.
+         * Hence it can be used to determine whether a data_vio is processing
+         * a discard, even after the user_bio has been acknowledged.
+         */
+	uint32_t remaining_discard;
 
 	// Fields beyond this point will not be reset when a pooled data_vio
 	// is reused.
@@ -569,14 +574,12 @@ static inline bool data_vio_has_allocation(struct data_vio *data_vio)
  * @param data_vio   The data_vio to initialize
  * @param lbn        The logical block number of the data_vio
  * @param operation  The operation this data_vio will perform
- * @param is_trim    <code>true</code> if this data_vio is for a trim request
  * @param callback   The function to call once the vio has completed its
  *                   operation
  **/
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
 		      enum vio_operation operation,
-		      bool is_trim,
 		      vdo_action *callback);
 
 /**
