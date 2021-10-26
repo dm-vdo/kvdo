@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#37 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -180,9 +180,13 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag);
 /**
  * Resume a suspended dedupe index. May be called from any thread.
  *
- * @param index  The dedupe index
+ * @param index   The dedupe index
+ * @param dedupe  Whether dedupe should be on or off.
+ * @param create  Whether to create the index or not.
  **/
-void resume_vdo_dedupe_index(struct dedupe_index *index);
+void resume_vdo_dedupe_index(struct dedupe_index *index,
+			     bool dedupe,
+			     bool create);
 
 /**
  * Finish the dedupe index.

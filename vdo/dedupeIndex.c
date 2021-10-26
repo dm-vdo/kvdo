@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#122 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#123 $
  */
 
 #include "dedupeIndex.h"
@@ -700,7 +700,9 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 }
 
 /**********************************************************************/
-void resume_vdo_dedupe_index(struct dedupe_index *index)
+void resume_vdo_dedupe_index(struct dedupe_index *index,
+			     bool dedupe,
+			     bool create)
 {
 	int result = uds_resume_index_session(index->index_session);
 
@@ -710,6 +712,18 @@ void resume_vdo_dedupe_index(struct dedupe_index *index)
 
 	spin_lock(&index->state_lock);
 	index->suspended = false;
+
+	if (dedupe) {
+		index->index_target = IS_OPENED;
+		index->dedupe_flag = true;
+	} else {
+		index->index_target = IS_CLOSED;
+	}
+
+	if (create) {
+		index->create_flag = true;
+	}
+
 	launch_dedupe_state_change(index);
 	spin_unlock(&index->state_lock);
 }

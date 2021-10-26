@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-load.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-load.c#3 $
  */
 
 #include "vdo-load.h"
@@ -56,7 +56,7 @@ enum {
 	LOAD_PHASE_PREPARE_TO_ALLOCATE,
 	LOAD_PHASE_SCRUB_SLABS,
 	LOAD_PHASE_STATS,
-	LOAD_PHASE_INDEX,
+	LOAD_PHASE_DATA_REDUCTION,
 	LOAD_PHASE_FINISHED,
 	LOAD_PHASE_DRAIN_JOURNAL,
 	LOAD_PHASE_WAIT_FOR_READ_ONLY,
@@ -69,7 +69,7 @@ static const char *LOAD_PHASE_NAMES[] = {
 	"LOAD_PHASE_PREPARE_TO_ALLOCATE",
 	"LOAD_PHASE_SCRUB_SLABS",
 	"LOAD_PHASE_STATS",
-	"LOAD_PHASE_INDEX",
+	"LOAD_PHASE_DATA_REDUCTION",
 	"LOAD_PHASE_FINISHED",
 	"LOAD_PHASE_DRAIN_JOURNAL",
 	"LOAD_PHASE_WAIT_FOR_READ_ONLY",
@@ -308,7 +308,9 @@ static void load_callback(struct vdo_completion *completion)
 				      initialize_vdo_kobjects(vdo));
 		return;
 
-	case LOAD_PHASE_INDEX:
+	case LOAD_PHASE_DATA_REDUCTION:
+		WRITE_ONCE(vdo->compressing, vdo->device_config->compression);
+
 		if (vdo->device_config->deduplication) {
 			/*
 			 * Don't try to load or rebuild the index first (and
@@ -337,7 +339,6 @@ static void load_callback(struct vdo_completion *completion)
 		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 							   completion);
 		return;
-
 
 	default:
 		set_vdo_completion_result(reset_vdo_admin_sub_task(completion),

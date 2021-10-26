@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#3 $
  */
 
 #include "device-config.h"
@@ -350,6 +350,10 @@ static int parse_one_key_value_pair(const char *key,
 		return parse_bool(value, "on", "off", &config->deduplication);
 	}
 
+	if (strcmp(key, "compression") == 0) {
+		return parse_bool(value, "on", "off", &config->compression);
+	}
+
 	// The remaining arguments must have integral values.
 	result = vdo_string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
@@ -525,6 +529,7 @@ int parse_vdo_device_config(int argc,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
+	config->compression = true;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;

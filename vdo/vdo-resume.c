@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resume.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo-resume.c#4 $
  */
 
 #include "vdo-resume.h"
@@ -151,7 +151,9 @@ static void resume_callback(struct vdo_completion *completion)
 
 	case RESUME_PHASE_INDEX:
 		if (!vdo_is_read_only(vdo->read_only_notifier)) {
-			resume_vdo_dedupe_index(vdo->dedupe_index);
+			resume_vdo_dedupe_index(vdo->dedupe_index,
+						vdo->device_config->deduplication,
+						vdo->load_state == VDO_NEW);
 		}
 
 		complete_vdo_completion(reset_vdo_admin_sub_task(completion));
@@ -177,6 +179,15 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_PACKER:
+		bool was_enabled = get_vdo_compressing(vdo);
+		bool enable = vdo->device_config->compression;
+
+		if (enable != was_enabled) {
+			WRITE_ONCE(vdo->compressing, enable);
+		}
+		uds_log_info("compression is %s",
+			     (enable ? "enabled" : "disabled"));
+
 		resume_vdo_packer(vdo->packer,
 				  reset_vdo_admin_sub_task(completion));
 		return;

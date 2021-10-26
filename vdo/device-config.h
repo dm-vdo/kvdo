@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.h#2 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -62,6 +62,7 @@ struct device_config {
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
 	bool deduplication;
+	bool compression;
 	struct thread_count_config thread_counts;
 	block_count_t max_discard_blocks;
 };

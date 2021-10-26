@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#165 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#166 $
  */
 
 #include <linux/module.h>
@@ -450,6 +450,9 @@ static int vdo_initialize(struct dm_target *ti,
 		      config->block_map_maximum_age);
 	uds_log_debug("Deduplication          = %s",
 		      (config->deduplication ? "on" : "off"));
+	uds_log_debug("Compression            = %s",
+		      (config->compression ? "on" : "off"));
+
 
 	vdo = find_vdo_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
@@ -691,7 +694,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 6, 2, 3 },
+	.version = { 8, 1, 0 },
 	.module = THIS_MODULE,
 	.ctr = vdo_ctr,
 	.dtr = vdo_dtr,
