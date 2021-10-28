@@ -15,8 +15,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
- *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/reference-count-rebuild.c#3 $
  */
 
 #include "reference-count-rebuild.h"
@@ -152,7 +150,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->leaf_pages =
 		compute_vdo_block_map_page_count(vdo->block_map->entry_count);
 
-	rebuild->logical_thread_id = 
+	rebuild->logical_thread_id =
 		vdo_get_logical_zone_thread(vdo->thread_config, 0);
 	rebuild->admin_thread_id = vdo->thread_config->admin_thread;
 
