@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/device-config.c#4 $
  */
 
 #include "device-config.h"
@@ -529,7 +529,7 @@ int parse_vdo_device_config(int argc,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
-	config->compression = true;
+	config->compression = false;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
