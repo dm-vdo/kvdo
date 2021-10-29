@@ -15,8 +15,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
- *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadsLinuxKernel.c#3 $
  */
 
 #include <linux/completion.h>
@@ -33,7 +31,7 @@ static struct mutex kernel_thread_mutex;
 static once_state_t kernel_thread_once;
 
 struct thread {
-	void (*thread_func)(void *);
+	void (*thread_func)(void *thread_data);
 	void *thread_data;
 	struct hlist_node thread_links;
 	struct task_struct *thread_task;

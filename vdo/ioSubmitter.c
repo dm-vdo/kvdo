@@ -208,8 +208,7 @@ void process_data_vio_io(struct vdo_completion *completion)
 	for (bio = get_bio_list(as_vio(completion)); bio != NULL; bio = next) {
 		next = bio->bi_next;
 		bio->bi_next = NULL;
-		send_bio_to_device((struct vio *) bio->bi_private,
-				   bio);
+		send_bio_to_device((struct vio *) bio->bi_private, bio);
 	}
 }
 
@@ -391,7 +390,6 @@ void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
 	struct io_submitter *submitter = get_vdo_from_vio(vio)->io_submitter;
-
 
 	bio->bi_next = NULL;
 	setup_vio_work(vio, process_bio_map, priority);

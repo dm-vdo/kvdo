@@ -15,8 +15,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
- *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/memoryLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -342,7 +340,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 
 /**********************************************************************/
 void *uds_allocate_memory_nowait(size_t size,
-				 const char *what __attribute__((unused)))
+				 const char *what __maybe_unused)
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
 

@@ -489,6 +489,7 @@ void launch_data_vio(struct vdo *vdo,
 /**********************************************************************/
 void check_data_vio_for_duplication(struct data_vio *data_vio)
 {
+
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero block not checked for duplication");
 	ASSERT_LOG_ONLY(data_vio->new_mapped.state != VDO_MAPPING_STATE_UNMAPPED,

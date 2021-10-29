@@ -266,10 +266,7 @@ process_vdo_message_locked(struct vdo *vdo,
 			   unsigned int argc,
 			   char **argv)
 {
-	// Messages with fixed numbers of arguments.
-	switch (argc) {
-
-	case 2:
+	if (argc == 2) {
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
 				set_vdo_compressing(vdo, true);
@@ -285,11 +282,6 @@ process_vdo_message_locked(struct vdo *vdo,
 					argv[1]);
 			return -EINVAL;
 		}
-
-		break;
-
-	default:
-		break;
 	}
 
 	uds_log_warning("unrecognized dmsetup message '%s' received", argv[0]);
