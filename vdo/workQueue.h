@@ -22,7 +22,7 @@
 
 #include <linux/sched.h> /* for TASK_COMM_LEN */
 
-#include "util/funnelQueue.h"
+#include "funnelQueue.h"
 
 #include "kernel-types.h"
 #include "types.h"

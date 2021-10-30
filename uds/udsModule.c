@@ -21,6 +21,7 @@
 
 #include "buffer.h"
 #include "errors.h"
+#include "funnelQueue.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "sysfs.h"
@@ -28,7 +29,6 @@
 #include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
-#include "util/funnelQueue.h"
 
 /**********************************************************************/
 static int __init dedupe_init(void)

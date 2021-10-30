@@ -32,7 +32,7 @@
 #include <linux/types.h>
 
 #include "compiler.h"
-#include "util/funnelQueue.h"
+#include "funnelQueue.h"
 
 /**
  * Valid request types.

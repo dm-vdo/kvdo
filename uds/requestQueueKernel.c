@@ -23,11 +23,11 @@
 #include <linux/wait.h>
 
 #include "compiler.h"
+#include "funnelQueue.h"
 #include "logger.h"
 #include "request.h"
 #include "memoryAlloc.h"
 #include "uds-threads.h"
-#include "util/funnelQueue.h"
 
 /*
  * Ordering:

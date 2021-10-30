@@ -27,10 +27,10 @@
 #include "indexLayout.h"
 #include "indexPageMap.h"
 #include "pageCache.h"
+#include "radixSort.h"
 #include "request.h"
 #include "sparseCache.h"
 #include "uds.h"
-#include "util/radixSort.h"
 #include "volumeStore.h"
 
 enum reader_state {

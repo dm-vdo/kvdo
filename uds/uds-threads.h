@@ -29,7 +29,7 @@
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
-#include "util/eventCount.h"
+#include "eventCount.h"
 
 struct cond_var {
 	struct event_count *event_count;
