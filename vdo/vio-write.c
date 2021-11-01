@@ -1030,17 +1030,15 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
  * (the data_vio may or may not have actually received an allocation). This
  * callback is registered in continue_write_with_block_map_slot().
  *
- * @param allocating_vio  The data_vio which has finished the allocation
- *                        process (as an allocating_vio)
+ * @param completion  The data_vio which has finished the allocation process
  **/
-static void
-continue_write_after_allocation(struct allocating_vio *allocating_vio)
+static void continue_write_after_allocation(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = allocating_vio_as_data_vio(allocating_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	struct allocating_vio *allocating_vio =
+		data_vio_as_allocating_vio(data_vio);
 
-	if (abort_on_error(data_vio_as_completion(data_vio)->result,
-			   data_vio,
-			   NOT_READ_ONLY)) {
+	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
 
@@ -1056,7 +1054,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 		.state = VDO_MAPPING_STATE_UNCOMPRESSED,
 	};
 
-	if (vio_requires_flush_after(allocating_vio_as_vio(allocating_vio))) {
+	if (vio_requires_flush_after(as_vio(completion))) {
 		prepare_for_dedupe(data_vio);
 		return;
 	}

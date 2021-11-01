@@ -75,156 +75,167 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Attempt to allocate and lock a physical block. If successful, continue
- * along the write path.
+ * Finish the allocation process.
  *
- * @param allocating_vio  The allocating_vio which needs an allocation
- *
- * @return VDO_SUCCESS or an error if a block could not be allocated
+ * @param allocating_vio  The allocating vio
+ * @param result          The allocation result
  **/
-static int allocate_and_lock_block(struct allocating_vio *allocating_vio)
+static void finish_allocation(struct allocating_vio *allocating_vio,
+			      int result)
 {
-	struct block_allocator *allocator =
-		get_vdo_physical_zone_block_allocator(allocating_vio->zone);
-	int result = allocate_vdo_block(allocator, &allocating_vio->allocation);
+	struct vdo_completion *completion =
+		allocating_vio_as_completion(allocating_vio);
 
-	if (result != VDO_SUCCESS) {
-		return result;
+	if (result == VDO_NO_SPACE) {
+		/*
+		 * We will still try to deduplicate if we didn't get an
+		 * allocation, so don't treat no space as an error.
+		 */
+		result = VDO_SUCCESS;
 	}
 
-	result = attempt_pbn_write_lock(allocating_vio);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// We got a block!
-	allocating_vio->allocation_callback(allocating_vio);
-	return VDO_SUCCESS;
+	completion->callback = allocating_vio->allocation_callback;
+	continue_vdo_completion(completion, result);
 }
 
-static void allocate_block_for_write(struct vdo_completion *completion);
+static void allocate_block_in_zone(struct vdo_completion *completion);
 
 /**
- * Retry allocating a block for write.
+ * Retry allocating a block now that we're done waiting for scrubbing.
  *
  * @param waiter   The allocating_vio that was waiting to allocate
  * @param context  The context (unused)
  **/
 static void
-retry_allocate_block_for_write(struct waiter *waiter,
-			       void *context __always_unused)
+retry_allocate_block_in_zone(struct waiter *waiter,
+			     void *context __always_unused)
 {
-	struct allocating_vio *allocating_vio = waiter_as_allocating_vio(waiter);
+	struct allocating_vio *allocating_vio =
+		waiter_as_allocating_vio(waiter);
 
-	allocate_block_for_write(allocating_vio_as_completion(allocating_vio));
+	// Now that some slab has scrubbed, start the allocation process anew.
+	allocating_vio->wait_for_clean_slab = false;
+	allocating_vio->allocation_attempts = 0;
+	allocate_block_in_zone(allocating_vio_as_completion(allocating_vio));
 }
 
 /**
- * Attempt to enqueue an allocating_vio to wait for a slab to be scrubbed in the
- * current allocation zone.
+ * Check whether an allocating_vio still has zones to attempt to allocate from.
  *
- * @param allocating_vio  The struct allocating_vio which wants to allocate a
- *                        block
+ * @param allocating_vio  The allocating_vio which needs an allocation
  *
- * @return VDO_SUCCESS if the allocating_vio was queued, VDO_NO_SPACE if there
- *         are no slabs to be scrubbed in the current zone, or some other
- *         error
+ * @return true if there are still zones to try
  **/
-static int wait_for_clean_slab(struct allocating_vio *allocating_vio)
+static inline bool
+has_zones_to_try(struct allocating_vio *allocating_vio)
 {
-	int result;
+	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
+
+	return (allocating_vio->allocation_attempts <
+		vdo->thread_config->physical_zone_count);
+}
+
+/**
+ * Check whether to move on to the next allocation zone now. If not, either
+ * there are no more zones to try, we've enqueued to wait for scrubbing,
+ * or there was an error.
+ *
+ * @param allocating_vio  The vio
+ *
+ * @return true if the we should try allocating in the next zone
+ **/
+static bool should_try_next_zone(struct allocating_vio *allocating_vio)
+{
 	struct block_allocator *allocator =
 		get_vdo_physical_zone_block_allocator(allocating_vio->zone);
 	struct waiter *waiter = allocating_vio_as_waiter(allocating_vio);
+	int result;
 
-	waiter->callback = retry_allocate_block_for_write;
+	if (!allocating_vio->wait_for_clean_slab) {
+		if (has_zones_to_try(allocating_vio)) {
+			return true;
+		}
 
-	result = enqueue_for_clean_vdo_slab(allocator, waiter);
-	if (result != VDO_SUCCESS) {
-		return result;
+		// No zone has known free blocks, so check them all again after
+		// waiting for scrubbing.
+		allocating_vio->wait_for_clean_slab = true;
+		allocating_vio->allocation_attempts = 1;
 	}
 
-	// We've successfully enqueued, when we come back, pretend like we've
-	// never tried this allocation before.
-	allocating_vio->wait_for_clean_slab = false;
-	allocating_vio->allocation_attempts = 0;
-	return VDO_SUCCESS;
+	waiter->callback = retry_allocate_block_in_zone;
+	result = enqueue_for_clean_vdo_slab(allocator, waiter);
+	if (result == VDO_SUCCESS) {
+		return false;
+	}
+
+	if ((result != VDO_NO_SPACE) || !has_zones_to_try(allocating_vio)) {
+		// Either there was an error, or we've tried everything and
+		// found nothing.
+		finish_allocation(allocating_vio, result);
+		return false;
+	}
+
+	return true;
 }
 
 /**
- * Attempt to allocate a block in an allocating_vio's current allocation zone.
+ * Try the next zone since we didn't find a free block in the current one.
  *
  * @param allocating_vio  The allocating_vio
- *
- * @return VDO_SUCCESS or an error
  **/
-static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
+static void try_next_zone(struct allocating_vio *allocating_vio)
 {
 	zone_count_t zone_number;
-	int result;
 	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
 
-	allocating_vio->allocation_attempts++;
-	result = allocate_and_lock_block(allocating_vio);
-	if (result != VDO_NO_SPACE) {
-		return result;
+	if (!should_try_next_zone(allocating_vio)) {
+		return;
 	}
 
-	if (allocating_vio->wait_for_clean_slab) {
-		result = wait_for_clean_slab(allocating_vio);
-		if (result != VDO_NO_SPACE) {
-			return result;
-		}
-	}
-
-	if (allocating_vio->allocation_attempts >=
-	    vdo->thread_config->physical_zone_count) {
-		if (allocating_vio->wait_for_clean_slab) {
-			// There were no free blocks in any zone, and no zone
-			// had slabs to scrub.
-			allocating_vio->allocation_callback(allocating_vio);
-			return VDO_SUCCESS;
-		}
-
-		allocating_vio->wait_for_clean_slab = true;
-		allocating_vio->allocation_attempts = 0;
-	}
-
-	// Try the next zone
 	zone_number = get_vdo_physical_zone_number(allocating_vio->zone) + 1;
 	if (zone_number == vdo->thread_config->physical_zone_count) {
 		zone_number = 0;
 	}
+
 	allocating_vio->zone = vdo->physical_zones[zone_number];
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write);
-	return VDO_SUCCESS;
+					  allocate_block_in_zone);
 }
 
 /**
  * Attempt to allocate a block. This callback is registered in
- * vio_allocate_data_block() and allocate_block_in_zone().
+ * vio_allocate_data_block() and from itself.
  *
  * @param completion  The allocating_vio needing an allocation
  **/
-static void allocate_block_for_write(struct vdo_completion *completion)
+static void allocate_block_in_zone(struct vdo_completion *completion)
 {
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
+	struct block_allocator *allocator =
+		get_vdo_physical_zone_block_allocator(allocating_vio->zone);
 
 	assert_vio_in_physical_zone(allocating_vio);
-	result = allocate_block_in_zone(allocating_vio);
-	if (result != VDO_SUCCESS) {
-		set_vdo_completion_result(completion, result);
-		allocating_vio->allocation_callback(allocating_vio);
+
+	allocating_vio->allocation_attempts++;
+	result = allocate_vdo_block(allocator, &allocating_vio->allocation);
+	if (result == VDO_NO_SPACE) {
+		try_next_zone(allocating_vio);
+		return;
 	}
+
+	if (result == VDO_SUCCESS) {
+		result = attempt_pbn_write_lock(allocating_vio);
+	}
+
+	finish_allocation(allocating_vio, result);
 }
 
 /**********************************************************************/
 void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 			     struct allocation_selector *selector,
 			     enum pbn_lock_type write_lock_type,
-			     allocation_callback *callback)
+			     vdo_action *callback)
 {
 	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
 
@@ -237,7 +248,7 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 		vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
 
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write);
+					  allocate_block_in_zone);
 }
 
 /**********************************************************************/

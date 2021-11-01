@@ -547,15 +547,15 @@ static void finish_compressed_write(struct vdo_completion *completion)
 /**
  * Continue the write path for a compressed write allocating_vio now that block
  * allocation is complete (the allocating_vio may or may not have actually
- * received an allocation).
+ * received an allocation). This callback is registered in
+ * launch_compressed_write().
  *
- * @param allocating_vio  The allocating_vio which has finished the allocation
- *                       process
+ * @param completion  The allocating_vio which has finished the allocation
+ *                    process
  **/
-static void continue_after_allocation(struct allocating_vio *allocating_vio)
+static void continue_after_allocation(struct vdo_completion *completion)
 {
-	struct vio *vio = allocating_vio_as_vio(allocating_vio);
-	struct vdo_completion *completion = vio_as_completion(vio);
+	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 
 	if (allocating_vio->allocation == VDO_ZERO_BLOCK) {
 		completion->requeue = true;
@@ -566,7 +566,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 
 	vio_set_physical_zone_callback(allocating_vio,
 				       finish_compressed_write);
-	write_compressed_block_vio(vio);
+	write_compressed_block_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**

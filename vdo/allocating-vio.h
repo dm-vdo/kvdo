@@ -29,8 +29,6 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-typedef void allocation_callback(struct allocating_vio *allocation_vio);
-
 /**
  * A vio which can receive an allocation from the block allocator. Currently,
  * these are used both for servicing external data requests and for compressed
@@ -66,7 +64,7 @@ struct allocating_vio {
 	bool wait_for_clean_slab;
 
 	/** The function to call once allocation is complete */
-	allocation_callback *allocation_callback;
+	vdo_action *allocation_callback;
 };
 
 /**
@@ -230,7 +228,7 @@ vio_launch_physical_zone_callback(struct allocating_vio *allocating_vio,
 void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 			     struct allocation_selector *selector,
 			     enum pbn_lock_type write_lock_type,
-			     allocation_callback *callback);
+			     vdo_action *callback);
 
 /**
  * Release the PBN lock on the allocated block. If the reference to the locked

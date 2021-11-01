@@ -1195,20 +1195,22 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 
 /**
  * Continue the process of allocating a block map page now that the
- * block_allocator has given us a block. This method is supplied as the
- * callback to vio_allocate_data_block() by allocate_block_map_page().
+ * block_allocator has given us a block. This callback is registered in
+ * allocate_block_map_page().
  *
- * @param allocating_vio  The data_vio which is doing the allocation
+ * @param completion  The data_vio which is doing the allocation
  **/
 static void
-continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
+continue_block_map_page_allocation(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = allocating_vio_as_data_vio(allocating_vio);
+	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	struct tree_lock *lock = &data_vio->tree_lock;
 	physical_block_number_t pbn = allocating_vio->allocation;
 
-	if (!data_vio_has_allocation(data_vio)) {
-		set_data_vio_logical_callback(data_vio, allocation_failure);
+	if (pbn == VDO_ZERO_BLOCK) {
+		set_data_vio_logical_callback(data_vio,
+					      allocation_failure);
 		continue_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
