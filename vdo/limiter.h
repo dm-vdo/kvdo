@@ -31,17 +31,17 @@
  */
 
 struct limiter {
-	// A spinlock controlling access to the contents of this struct
+	/* A spinlock controlling access to the contents of this struct */
 	spinlock_t lock;
-	// The queue of threads waiting for a resource to become available
+	/* The queue of threads waiting for a resource to become available */
 	wait_queue_head_t waiter_queue;
-	// The number of resources in use
+	/* The number of resources in use */
 	uint32_t active;
-	// The maximum number of resources that have ever been in use
+	/* The maximum number of resources that have ever been in use */
 	uint32_t maximum;
-	// The limit to the number of resources that are allowed to be used
+	/* The limit to the number of resources that are allowed to be used */
 	uint32_t limit;
-	// A completion waiting for the limiter to become idle
+	/* A completion waiting for the limiter to become idle */
 	struct vdo_completion *completion;
 };
 

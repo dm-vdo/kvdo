@@ -194,7 +194,7 @@ static int make_segment(struct forest *old_forest,
 
 			segment->levels[height] = page_ptr;
 			if (height == (VDO_BLOCK_MAP_TREE_HEIGHT - 1)) {
-				// Record the root.
+				/* Record the root. */
 				struct block_map_page *page =
 					format_vdo_block_map_page(page_ptr->page_buffer,
 							      forest->map->nonce,
@@ -403,8 +403,10 @@ static void traverse(struct cursor *cursor)
 			struct data_location location =
 				unpack_vdo_block_map_entry(&page->entries[level->slot]);
 			if (!vdo_is_valid_location(&location)) {
-				// This entry is invalid, so remove it from the
-				// page.
+				/*
+				 * This entry is invalid, so remove it from the 
+				 * page. 
+				 */
 				page->entries[level->slot] =
 					pack_vdo_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
@@ -417,8 +419,10 @@ static void traverse(struct cursor *cursor)
 				continue;
 			}
 
-			// Erase mapped entries past the end of the logical
-			// space.
+			/*
+			 * Erase mapped entries past the end of the logical 
+			 * space. 
+			 */
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
 					pack_vdo_pbn(VDO_ZERO_BLOCK,
@@ -517,7 +521,7 @@ static struct boundary compute_boundary(struct block_map *map,
 						   VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 	}
 
-	// The root node always exists, even if the root is otherwise unused.
+	/* The root node always exists, even if the root is otherwise unused. */
 	boundary.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1] = 1;
 
 	return boundary;

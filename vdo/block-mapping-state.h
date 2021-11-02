@@ -29,10 +29,10 @@
  * physical block, including the zero block.
  **/
 enum block_mapping_state {
-	VDO_MAPPING_STATE_UNMAPPED = 0, // Must be zero to be the default value
-	VDO_MAPPING_STATE_UNCOMPRESSED = 1, // A normal (uncompressed) block
-	VDO_MAPPING_STATE_COMPRESSED_BASE = 2, // Compressed in slot 0
-	VDO_MAPPING_STATE_COMPRESSED_MAX = 15, // Compressed in slot 13
+	VDO_MAPPING_STATE_UNMAPPED = 0, /* Must be zero to be the default value */
+	VDO_MAPPING_STATE_UNCOMPRESSED = 1, /* A normal (uncompressed) block */
+	VDO_MAPPING_STATE_COMPRESSED_BASE = 2, /* Compressed in slot 0 */
+	VDO_MAPPING_STATE_COMPRESSED_MAX = 15, /* Compressed in slot 13 */
 };
 
 /**
@@ -63,4 +63,4 @@ vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
 }
 
-#endif // BLOCK_MAPPING_STATE_H
+#endif /* BLOCK_MAPPING_STATE_H */

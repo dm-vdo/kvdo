@@ -143,4 +143,4 @@ unpack_vdo_journal_point(const struct packed_journal_point *packed,
 	unpacked->entry_count = (native & 0xffff);
 }
 
-#endif // JOURNAL_POINT_H
+#endif /* JOURNAL_POINT_H */

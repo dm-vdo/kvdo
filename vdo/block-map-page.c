@@ -56,8 +56,10 @@ validate_vdo_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn)
 {
-	// Make sure the page layout isn't accidentally changed by changing the
-	// length of the page header.
+	/*
+	 * Make sure the page layout isn't accidentally changed by changing the 
+	 * length of the page header. 
+	 */
 	STATIC_ASSERT_SIZEOF(struct block_map_page_header,
 			     PAGE_HEADER_4_1_SIZE);
 

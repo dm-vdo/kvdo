@@ -112,7 +112,7 @@ void free_vio_pool(struct vio_pool *pool)
 		return;
 	}
 
-	// Remove all available entries from the object pool.
+	/* Remove all available entries from the object pool. */
 	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
 			"VIO pool must not have any waiters when being freed");
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
@@ -127,7 +127,7 @@ void free_vio_pool(struct vio_pool *pool)
 		free_vio(UDS_FORGET(entry->vio));
 	}
 
-	// Make sure every vio_pool_entry has been removed.
+	/* Make sure every vio_pool_entry has been removed. */
 	for (i = 0; i < pool->size; i++) {
 		entry = &pool->entries[i];
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),

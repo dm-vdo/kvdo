@@ -109,4 +109,4 @@ pack_vdo_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state
 	};
 }
 
-#endif // BLOCK_MAP_ENTRY_H
+#endif /* BLOCK_MAP_ENTRY_H */

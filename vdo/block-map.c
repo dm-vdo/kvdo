@@ -95,11 +95,11 @@ static bool handle_page_write(void *raw_page,
 	struct block_map_page_context *context = page_context;
 
 	if (mark_vdo_block_map_page_initialized(page, true)) {
-		// Cause the page to be re-written.
+		/* Cause the page to be re-written. */
 		return true;
 	}
 
-	// Release the page's references on the recovery journal.
+	/* Release the page's references on the recovery journal. */
 	release_vdo_recovery_journal_block_reference(zone->block_map->journal,
 						     context->recovery_lock,
 						     VDO_ZONE_TYPE_LOGICAL,
@@ -346,8 +346,10 @@ struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
 {
 	struct block_map_state_2_0 state = {
 		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
-		// This is the flat page count, which has turned out to always
-		// be 0.
+		/*
+		 * This is the flat page count, which has turned out to always 
+		 * be 0. 
+		 */
 		.flat_page_count = 0,
 		.root_origin = map->root_origin,
 		.root_count = map->root_count,
@@ -626,7 +628,7 @@ static int __must_check
 set_mapped_entry(struct data_vio *data_vio,
 		 const struct block_map_entry *entry)
 {
-	// Unpack the PBN for logging purposes even if the entry is invalid.
+	/* Unpack the PBN for logging purposes even if the entry is invalid. */
 	struct data_location mapped = unpack_vdo_block_map_entry(entry);
 
 	if (vdo_is_valid_location(&mapped)) {
@@ -643,21 +645,27 @@ set_mapped_entry(struct data_vio *data_vio,
 		}
 	}
 
-	// Log the corruption even if we wind up ignoring it for write VIOs,
-	// converting all cases to VDO_BAD_MAPPING.
+	/*
+	 * Log the corruption even if we wind up ignoring it for write VIOs, 
+	 * converting all cases to VDO_BAD_MAPPING. 
+	 */
 	uds_log_error_strerror(VDO_BAD_MAPPING,
 			       "PBN %llu with state %u read from the block map was invalid",
 			       (unsigned long long) mapped.pbn,
 			       mapped.state);
 
-	// A read VIO has no option but to report the bad mapping--reading
-	// zeros would be hiding known data loss.
+	/*
+	 * A read VIO has no option but to report the bad mapping--reading 
+	 * zeros would be hiding known data loss. 
+	 */
 	if (is_read_data_vio(data_vio)) {
 		return VDO_BAD_MAPPING;
 	}
 
-	// A write VIO only reads this mapping to decref the old block. Treat
-	// this as an unmapped entry rather than fail the write.
+	/*
+	 * A write VIO only reads this mapping to decref the old block. Treat 
+	 * this as an unmapped entry rather than fail the write. 
+	 */
 	clear_data_vio_mapped_location(data_vio);
 	return VDO_SUCCESS;
 }
@@ -705,24 +713,24 @@ void update_vdo_block_map_page(struct block_map_page *page,
 	struct recovery_journal *journal = block_map->journal;
 	sequence_number_t old_locked, new_locked;
 
-	// Encode the new mapping.
+	/* Encode the new mapping. */
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	slot_number_t slot =
 		tree_lock->tree_slots[tree_lock->height].block_map_slot.slot;
 	page->entries[slot] = pack_vdo_pbn(pbn, mapping_state);
 
-	// Adjust references (locks) on the recovery journal blocks.
+	/* Adjust references (locks) on the recovery journal blocks. */
 	old_locked = *recovery_lock;
 	new_locked = data_vio->recovery_sequence_number;
 
 	if ((old_locked == 0) || (old_locked > new_locked)) {
-		// Acquire a lock on the newly referenced journal block.
+		/* Acquire a lock on the newly referenced journal block. */
 		acquire_vdo_recovery_journal_block_reference(journal,
 							     new_locked,
 							     VDO_ZONE_TYPE_LOGICAL,
 							     zone->zone_number);
 
-		// If the block originally held a newer lock, release it.
+		/* If the block originally held a newer lock, release it. */
 		if (old_locked > 0) {
 			release_vdo_recovery_journal_block_reference(journal,
 								     old_locked,
@@ -733,7 +741,7 @@ void update_vdo_block_map_page(struct block_map_page *page,
 		*recovery_lock = new_locked;
 	}
 
-	// Release the transferred lock from the data_vio.
+	/* Release the transferred lock from the data_vio. */
 	vdo_release_journal_per_entry_lock_from_other_zone(journal, new_locked);
 	data_vio->recovery_sequence_number = 0;
 }
@@ -778,8 +786,10 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 {
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
 	    VDO_ZERO_BLOCK) {
-		// We know that the block map page for this LBN has not been
-		// allocated, so the block must be unmapped.
+		/*
+		 * We know that the block map page for this LBN has not been 
+		 * allocated, so the block must be unmapped. 
+		 */
 		clear_data_vio_mapped_location(data_vio);
 		continue_data_vio(data_vio, VDO_SUCCESS);
 		return;

@@ -236,4 +236,4 @@ bool schedule_vdo_operation_with_context(struct action_manager *manager,
 					 void *context,
 					 struct vdo_completion *parent);
 
-#endif // ACTION_MANAGER_H
+#endif /* ACTION_MANAGER_H */

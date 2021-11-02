@@ -47,9 +47,11 @@ static inline int log_base_two(uint64_t n)
 	if (n == 0) {
 		return -1;
 	}
-	// Many CPUs, including x86, directly support this calculation, so use
-	// the GCC function for counting the number of leading high-order zero
-	// bits.
+	/*
+	 * Many CPUs, including x86, directly support this calculation, so use 
+	 * the GCC function for counting the number of leading high-order zero 
+	 * bits.
+	 */
 	return 63 - __builtin_clzll(n);
 }
 
@@ -111,4 +113,4 @@ static inline uint64_t compute_bucket_count(uint64_t object_count,
 	return quotient;
 }
 
-#endif // NUM_UTILS_H
+#endif /* NUM_UTILS_H */

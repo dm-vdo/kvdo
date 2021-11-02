@@ -455,4 +455,4 @@ static inline void set_vdo_operation_result(struct admin_state *state,
 	}
 }
 
-#endif // ADMIN_STATE_H
+#endif /* ADMIN_STATE_H */

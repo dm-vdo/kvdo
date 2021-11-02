@@ -57,4 +57,4 @@ struct packed_reference_block {
 	struct packed_reference_sector sectors[VDO_SECTORS_PER_BLOCK];
 };
 
-#endif // PACKED_REFERENCE_BLOCK_H
+#endif /* PACKED_REFERENCE_BLOCK_H */

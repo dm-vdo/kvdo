@@ -211,7 +211,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 
 	assert_on_vdo_admin_thread(vdo, __func__);
 	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
-		// A "rebuild" for upgrade should not increment this count.
+		/* A "rebuild" for upgrade should not increment this count. */
 		vdo->states.vdo.complete_recoveries++;
 	}
 
@@ -232,7 +232,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
 
-	// We must allocate ref_counts before we can rebuild them.
+	/* We must allocate ref_counts before we can rebuild them. */
 	int result = vdo_allocate_slab_ref_counts(vdo->depot);
 
 	if (abort_rebuild_on_error(result, rebuild)) {
@@ -271,8 +271,10 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 		int result = validate_vdo_recovery_journal_entry(rebuild->vdo,
 								 &entry);
 		if (result != VDO_SUCCESS) {
-			// When recovering from read-only mode, ignore damaged
-			// entries.
+			/*
+			 * When recovering from read-only mode, ignore damaged 
+			 * entries. 
+			 */
 			continue;
 		}
 
@@ -334,12 +336,14 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
 		if (!is_exact_vdo_recovery_journal_block(journal, &header, i)) {
-			// This block is invalid, so skip it.
+			/* This block is invalid, so skip it. */
 			continue;
 		}
 
-		// Don't extract more than the expected maximum entries per
-		// block.
+		/*
+		 * Don't extract more than the expected maximum entries per 
+		 * block. 
+		 */
 		block_entries = min(journal->entries_per_block,
 				    header.entry_count);
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
@@ -347,8 +351,10 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 			struct packed_journal_sector *sector =
 				get_vdo_journal_block_sector(packed_header, j);
-			// Stop when all entries counted in the header are
-			// applied or skipped.
+			/*
+			 * Stop when all entries counted in the header are 
+			 * applied or skipped. 
+			 */
 			if (block_entries == 0) {
 				break;
 			}
@@ -360,17 +366,21 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 				continue;
 			}
 
-			// Don't extract more than the expected maximum entries
-			// per sector.
+			/*
+			 * Don't extract more than the expected maximum entries 
+			 * per sector. 
+			 */
 			sector_entries =
 				min(sector->entry_count,
 				    (uint8_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
-			// Only extract as many as the block header calls for.
+			/* Only extract as many as the block header calls for. */
 			sector_entries = min(sector_entries, block_entries);
 			append_sector_entries(rebuild, sector, sector_entries);
-			// Even if the sector wasn't full, count it as full
-			// when counting up to the entry count the block
-			// header claims.
+			/*
+			 * Even if the sector wasn't full, count it as full 
+			 * when counting up to the entry count the block 
+			 * header claims.
+			 */
 			block_entries -=
 				min(block_entries,
 				    (journal_entry_count_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
@@ -412,11 +422,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		}
 	}
 
-	// Suppress block map errors.
+	/* Suppress block map errors. */
 	set_vdo_page_cache_rebuild_mode(vdo->block_map->zones[0].page_cache,
 					true);
 
-	// Play the recovery journal into the block map.
+	/* Play the recovery journal into the block map. */
 	prepare_vdo_completion(completion,
 			       launch_reference_count_rebuild,
 			       finish_vdo_completion_parent_callback,
@@ -455,7 +465,7 @@ void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 	struct vdo_completion *completion, *sub_task_completion;
 	int result;
 
-	// Note: These messages must be recognizable by Permabit::VDODeviceBase.
+	/* Note: These messages must be recognizable by Permabit::VDODeviceBase. */
 	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
 		uds_log_warning("Rebuilding reference counts for upgrade");
 	} else {

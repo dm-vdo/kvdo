@@ -41,7 +41,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 			.minor_version = 0,
 		},
 
-	// This is the minimum size, if the super block contains no components.
+	/* This is the minimum size, if the super block contains no components. */
 	.size = SUPER_BLOCK_FIXED_SIZE - VDO_ENCODED_HEADER_SIZE,
 };
 
@@ -60,9 +60,11 @@ int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 		return result;
 	}
 
-	// Even though the buffer is a full block, to avoid the potential
-	// corruption from a torn write, the entire encoding must fit in the
-	// first sector.
+	/*
+	 * Even though the buffer is a full block, to avoid the potential 
+	 * corruption from a torn write, the entire encoding must fit in the 
+	 * first sector.
+	 */
 	return wrap_buffer(codec->encoded_super_block,
 			   VDO_SECTOR_SIZE,
 			   0,
@@ -92,21 +94,21 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 
 	component_data_size = content_length(codec->component_buffer);
 
-	// Encode the header.
+	/* Encode the header. */
 	header.size += component_data_size;
 	result = encode_vdo_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// Copy the already-encoded component data.
+	/* Copy the already-encoded component data. */
 	result = put_bytes(buffer, component_data_size,
 			  get_buffer_contents(codec->component_buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// Compute and encode the checksum.
+	/* Compute and encode the checksum. */
 	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
 				    codec->encoded_super_block,
 				    content_length(buffer));
@@ -126,12 +128,12 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 	size_t component_data_size;
 	crc32_checksum_t checksum, saved_checksum;
 
-	// Reset the block buffer to start decoding the entire first sector.
+	/* Reset the block buffer to start decoding the entire first sector. */
 	struct buffer *buffer = codec->block_buffer;
 
 	clear_buffer(buffer);
 
-	// Decode and validate the header.
+	/* Decode and validate the header. */
 	result = decode_vdo_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -144,22 +146,24 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 	}
 
 	if (header.size > content_length(buffer)) {
-		// We can't check release version or checksum until we know the
-		// content size, so we have to assume a version mismatch on
-		// unexpected values.
+		/*
+		 * We can't check release version or checksum until we know the 
+		 * content size, so we have to assume a version mismatch on 
+		 * unexpected values.
+		 */
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "super block contents too large: %zu",
 					      header.size);
 	}
 
-	// Restrict the buffer to the actual payload bytes that remain.
+	/* Restrict the buffer to the actual payload bytes that remain. */
 	result =
 		reset_buffer_end(buffer, uncompacted_amount(buffer) + header.size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	// The component data is all the rest, except for the checksum.
+	/* The component data is all the rest, except for the checksum. */
 	component_data_size =
 		content_length(buffer) - sizeof(crc32_checksum_t);
 	result = put_buffer(codec->component_buffer, buffer,
@@ -168,13 +172,15 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 		return result;
 	}
 
-	// Checksum everything up to but not including the saved checksum
-	// itself.
+	/*
+	 * Checksum everything up to but not including the saved checksum 
+	 * itself. 
+	 */
 	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
 				    codec->encoded_super_block,
 				    uncompacted_amount(buffer));
 
-	// Decode and verify the saved checksum.
+	/* Decode and verify the saved checksum. */
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		return result;

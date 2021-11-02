@@ -51,4 +51,4 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length);
  **/
 bool __must_check is_zero_block(char *block);
 
-#endif // COMPARISONS_H
+#endif /* COMPARISONS_H */

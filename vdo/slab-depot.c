@@ -103,7 +103,7 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	slab_size = get_vdo_slab_config(depot)->slab_blocks;
 	slab_origin = depot->first_block + (depot->slab_count * slab_size);
 
-	// The translation between allocator partition PBNs and layer PBNs.
+	/* The translation between allocator partition PBNs and layer PBNs. */
 	translation = depot->origin - depot->first_block;
 	depot->new_slab_count = depot->slab_count;
 	while (depot->new_slab_count < slab_count) {
@@ -122,8 +122,10 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
-		// Increment here to ensure that vdo_abandon_new_slabs will
-		// clean up correctly.
+		/*
+		 * Increment here to ensure that vdo_abandon_new_slabs will 
+		 * clean up correctly. 
+		 */
 		depot->new_slab_count++;
 
 		slab_origin += slab_size;
@@ -243,7 +245,7 @@ static int allocate_components(struct slab_depot *depot,
 					      slab_count);
 	}
 
-	// Allocate the block allocators.
+	/* Allocate the block allocators. */
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		thread_id_t thread_id =
 			vdo_get_physical_zone_thread(thread_config, zone);
@@ -260,13 +262,13 @@ static int allocate_components(struct slab_depot *depot,
 		}
 	}
 
-	// Allocate slabs.
+	/* Allocate slabs. */
 	result = allocate_slabs(depot, slab_count);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	// Use the new slabs.
+	/* Use the new slabs. */
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
 
@@ -291,8 +293,10 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	struct slab_depot *depot;
 	int result;
 
-	// Calculate the bit shift for efficiently mapping block numbers to
-	// slabs. Using a shift requires that the slab size be a power of two.
+	/*
+	 * Calculate the bit shift for efficiently mapping block numbers to 
+	 * slabs. Using a shift requires that the slab size be a power of two. 
+	 */
 	block_count_t slab_size = state.slab_config.slab_blocks;
 
 	if (!is_power_of_2(slab_size)) {
@@ -498,7 +502,7 @@ block_count_t get_vdo_slab_depot_allocated_blocks(const struct slab_depot *depot
 	zone_count_t zone;
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		// The allocators are responsible for thread safety.
+		/* The allocators are responsible for thread safety. */
 		total += get_vdo_allocated_blocks(depot->allocators[zone]);
 	}
 	return total;
@@ -518,7 +522,7 @@ slab_count_t get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *
 	zone_count_t zone;
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		// The allocators are responsible for thread safety.
+		/* The allocators are responsible for thread safety. */
 		total += get_vdo_unrecovered_slab_count(depot->allocators[zone]);
 	}
 	return total;
@@ -587,7 +591,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
-	// Generate the depot configuration for the new block count.
+	/* Generate the depot configuration for the new block count. */
 	result = configure_vdo_slab_depot(new_size,
 					  depot->first_block,
 					  depot->slab_config,
@@ -605,7 +609,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 					      "Depot can only grow");
 	}
 	if (new_slab_count == depot->new_slab_count) {
-		// Check it out, we've already got all the new slabs allocated!
+		/* Check it out, we've already got all the new slabs allocated! */
 		return VDO_SUCCESS;
 	}
 
@@ -740,11 +744,13 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 		return;
 	}
 
-	// We're the last!
+	/* We're the last! */
 	prior_state = atomic_cmpxchg(&depot->vdo->state,
 				     VDO_RECOVERING, VDO_DIRTY);
-	// To be safe, even if the CAS failed, ensure anything that follows is
-	// ordered with respect to whatever state change did happen.
+	/*
+	 * To be safe, even if the CAS failed, ensure anything that follows is 
+	 * ordered with respect to whatever state change did happen. 
+	 */
 	smp_mb__after_atomic();
 
 	/*

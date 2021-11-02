@@ -129,4 +129,4 @@ validate_new_vdo_device_config(struct device_config *to_validate,
 			       bool may_grow,
 			       char **error_ptr);
 
-#endif // DEVICE_CONFIG_H
+#endif /* DEVICE_CONFIG_H */

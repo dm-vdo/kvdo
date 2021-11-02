@@ -148,7 +148,7 @@ enum read_only_action {
 	READ_ONLY,
 };
 
-// Forward declarations required because of circular function references.
+/* Forward declarations required because of circular function references. */
 static void perform_cleanup_stage(struct data_vio *data_vio,
 				  enum data_vio_cleanup_stage stage);
 static void write_block(struct data_vio *data_vio);
@@ -388,14 +388,18 @@ static void finish_write_data_vio(struct vdo_completion *completion)
 static void abort_deduplication(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio)) {
-		// There was no space to write this block and we failed to
-		// deduplicate or compress it.
+		/*
+		 * There was no space to write this block and we failed to 
+		 * deduplicate or compress it. 
+		 */
 		finish_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
 
-	// We failed to deduplicate or compress so now we need to actually
-	// write the data.
+	/*
+	 * We failed to deduplicate or compress so now we need to actually 
+	 * write the data. 
+	 */
 	write_block(data_vio);
 }
 
@@ -624,8 +628,10 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
-	// XXX this is a callback, so there should probably be an error check
-	// here even if we think compression can't currently return one.
+	/*
+	 * XXX this is a callback, so there should probably be an error check 
+	 * here even if we think compression can't currently return one. 
+	 */
 
 	if (!may_pack_data_vio(data_vio)) {
 		abort_deduplication(data_vio);
@@ -737,7 +743,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 	int result;
 
 	assert_data_vio_in_hash_zone(data_vio);
-	// Shouldn't have had any errors since all we did was switch threads.
+	/* Shouldn't have had any errors since all we did was switch threads. */
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -748,9 +754,11 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 	}
 
 	if (data_vio->hash_lock == NULL) {
-		// It's extremely unlikely, but in the case of a hash
-		// collision, the data_vio will not obtain a reference to the
-		// lock and cannot deduplicate.
+		/*
+		 * It's extremely unlikely, but in the case of a hash 
+		 * collision, the data_vio will not obtain a reference to the 
+		 * lock and cannot deduplicate.
+		 */
 		launch_compress_data_vio(data_vio);
 		return;
 	}
@@ -792,7 +800,7 @@ static void hash_data_vio(struct vdo_completion *completion)
  **/
 static void prepare_for_dedupe(struct data_vio *data_vio)
 {
-	// We don't care what thread we are on
+	/* We don't care what thread we are on */
 	if (abort_on_error(data_vio_as_completion(data_vio)->result,
 			   data_vio,
 			   READ_ONLY)) {
@@ -802,8 +810,10 @@ static void prepare_for_dedupe(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"must not prepare to dedupe zero blocks");
 
-	// Before we can dedupe, we need to know the chunk name, so the first
-	// step is to hash the block data.
+	/*
+	 * Before we can dedupe, we need to know the chunk name, so the first 
+	 * step is to hash the block data. 
+	 */
 	data_vio->last_async_operation = VIO_ASYNC_OP_HASH_DATA_VIO;
 	launch_data_vio_cpu_callback(data_vio,
 				     hash_data_vio,
@@ -827,9 +837,11 @@ static void update_block_map_for_write(struct vdo_completion *completion)
 	}
 
 	if (data_vio->hash_lock != NULL) {
-		// The write is finished, but must return to the hash lock to
-		// allow other data VIOs with the same data to dedupe against
-		// the write.
+		/*
+		 * The write is finished, but must return to the hash lock to 
+		 * allow other data VIOs with the same data to dedupe against 
+		 * the write.
+		 */
 		set_data_vio_hash_zone_callback(data_vio, finish_write_data_vio);
 	} else {
 		completion->callback = complete_data_vio;
@@ -990,7 +1002,7 @@ static void write_block(struct data_vio *data_vio)
 {
 	int result;
 
-	// Write the data from the data block buffer.
+	/* Write the data from the data block buffer. */
 	result = prepare_data_vio_for_io(data_vio,
 					 data_vio->data_block,
 					 write_bio_finished,
@@ -1074,7 +1086,7 @@ static void
 continue_write_with_block_map_slot(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	// We don't care what thread we're on.
+	/* We don't care what thread we're on. */
 	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
@@ -1088,8 +1100,10 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 			return;
 		}
 
-		// This is a trim for a block on a block map page which has not
-		// been allocated, so there's nothing more we need to do.
+		/*
+		 * This is a trim for a block on a block map page which has not 
+		 * been allocated, so there's nothing more we need to do. 
+		 */
 		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
@@ -1120,13 +1134,13 @@ void launch_write_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	// Write requests join the current flush generation.
+	/* Write requests join the current flush generation. */
 	result = acquire_vdo_flush_generation_lock(data_vio);
 	if (abort_on_error(result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
 
-	// Go find the block map slot for the LBN mapping.
+	/* Go find the block map slot for the LBN mapping. */
 	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
 	vdo_find_block_map_slot(data_vio,
 				continue_write_with_block_map_slot,

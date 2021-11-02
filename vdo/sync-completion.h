@@ -36,4 +36,4 @@ int perform_synchronous_vdo_action(struct vdo *vdo,
 				   thread_id_t thread_id,
 				   void *parent);
 
-#endif // SYNC_COMPLETION_H
+#endif /* SYNC_COMPLETION_H */

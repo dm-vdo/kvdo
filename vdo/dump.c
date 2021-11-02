@@ -35,25 +35,27 @@
 #include "vdo-init.h"
 
 enum dump_options {
-	// Work queues
+	/* Work queues */
 	SHOW_QUEUES,
-	// Memory pools
+	/* Memory pools */
 	SHOW_VIO_POOL,
-	// Others
+	/* Others */
 	SHOW_VDO_STATUS,
-	// This one means an option overrides the "default" choices, instead
-	// of altering them.
+	/*
+	 * This one means an option overrides the "default" choices, instead 
+	 * of altering them. 
+	 */
 	SKIP_DEFAULT
 };
 
 enum dump_option_flags {
-	// Work queues
+	/* Work queues */
 	FLAG_SHOW_QUEUES = (1 << SHOW_QUEUES),
-	// Memory pools
+	/* Memory pools */
 	FLAG_SHOW_VIO_POOL = (1 << SHOW_VIO_POOL),
-	// Others
+	/* Others */
 	FLAG_SHOW_VDO_STATUS = (1 << SHOW_VDO_STATUS),
-	// Special
+	/* Special */
 	FLAG_SKIP_DEFAULT = (1 << SKIP_DEFAULT)
 };
 
@@ -65,7 +67,7 @@ enum {
 /**********************************************************************/
 static inline bool is_arg_string(const char *arg, const char *this_option)
 {
-	// device-mapper convention seems to be case-independent options
+	/* device-mapper convention seems to be case-independent options */
 	return strncasecmp(arg, this_option, strlen(this_option)) == 0;
 }
 
@@ -78,7 +80,7 @@ static void do_dump(struct vdo *vdo,
 	int64_t outstanding;
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
-	// XXX Add in number of outstanding requests being processed by vdo
+	/* XXX Add in number of outstanding requests being processed by vdo */
 
 	active = READ_ONCE(vdo->request_limiter.active);
 	maximum = READ_ONCE(vdo->request_limiter.maximum);
@@ -103,8 +105,10 @@ static void do_dump(struct vdo *vdo,
 	dump_buffer_pool(vdo->data_vio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
-		// Options should become more fine-grained when we have more to
-		// display here.
+		/*
+		 * Options should become more fine-grained when we have more to 
+		 * display here. 
+		 */
 		dump_vdo_status(vdo);
 	}
 
@@ -123,8 +127,10 @@ static int parse_dump_options(unsigned int argc,
 		const char *name;
 		unsigned int flags;
 	} option_names[] = {
-		// Should "index" mean sending queue + receiving thread +
-		// outstanding?
+		/*
+		 * Should "index" mean sending queue + receiving thread + 
+		 * outstanding? 
+		 */
 		{ "viopool", FLAG_SKIP_DEFAULT | FLAG_SHOW_VIO_POOL },
 		{ "vdo", FLAG_SKIP_DEFAULT | FLAG_SHOW_VDO_STATUS },
 		{ "pools", FLAG_SKIP_DEFAULT | FLAGS_ALL_POOLS },
@@ -249,7 +255,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 		*p_flag++ = 'D';
 	}
 	if (p_flag == &buffer[1]) {
-		// No flags, so remove the blank space.
+		/* No flags, so remove the blank space. */
 		p_flag = buffer;
 	}
 	*p_flag = '\0';
@@ -270,8 +276,10 @@ void dump_data_vio(void *data)
 	 * anyway.
 	 */
 	static char vio_work_item_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
-	// Another static buffer...
-	// log10(256) = 2.408+, round up:
+	/*
+	 * Another static buffer... 
+	 * log10(256) = 2.408+, round up: 
+	 */
 	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
 	static char vio_block_number_dump_buffer[sizeof("P L D")
 						 + 3 * DIGITS_PER_UINT64_T];
@@ -312,8 +320,10 @@ void dump_data_vio(void *data)
 			 data_vio->flush_generation);
 	}
 
-	// Encode vio attributes as a string of one-character flags, usually
-	// empty.
+	/*
+	 * Encode vio attributes as a string of one-character flags, usually 
+	 * empty. 
+	 */
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
 	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
@@ -321,10 +331,12 @@ void dump_data_vio(void *data)
 		     get_data_vio_operation_name(data_vio),
 		     vio_work_item_dump_buffer,
 		     flags_dump_buffer);
-	// might want info on: wantUDSAnswer / operation / status
-	// might want info on: bio / bios_merged
+	/*
+	 * might want info on: wantUDSAnswer / operation / status 
+	 * might want info on: bio / bios_merged 
+	 */
 
 	dump_vio_waiters(&data_vio->logical.waiters, "lbn");
 
-	// might want to dump more info from vio here
+	/* might want to dump more info from vio here */
 }

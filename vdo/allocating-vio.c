@@ -60,14 +60,14 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 	}
 
 	if (lock->holder_count > 0) {
-		// This block is already locked, which should be impossible.
+		/* This block is already locked, which should be impossible. */
 		return uds_log_error_strerror(VDO_LOCK_ERROR,
 					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
 					      (unsigned long long) allocating_vio->allocation,
 					      lock->holder_count);
 	}
 
-	// We've successfully acquired a new lock, so mark it as ours.
+	/* We've successfully acquired a new lock, so mark it as ours. */
 	lock->holder_count += 1;
 	allocating_vio->allocation_lock = lock;
 	assign_vdo_pbn_lock_provisional_reference(lock);
@@ -113,7 +113,7 @@ retry_allocate_block_in_zone(struct waiter *waiter,
 	struct allocating_vio *allocating_vio =
 		waiter_as_allocating_vio(waiter);
 
-	// Now that some slab has scrubbed, start the allocation process anew.
+	/* Now that some slab has scrubbed, start the allocation process anew. */
 	allocating_vio->wait_for_clean_slab = false;
 	allocating_vio->allocation_attempts = 0;
 	allocate_block_in_zone(allocating_vio_as_completion(allocating_vio));
@@ -156,8 +156,10 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 			return true;
 		}
 
-		// No zone has known free blocks, so check them all again after
-		// waiting for scrubbing.
+		/*
+		 * No zone has known free blocks, so check them all again after 
+		 * waiting for scrubbing. 
+		 */
 		allocating_vio->wait_for_clean_slab = true;
 		allocating_vio->allocation_attempts = 1;
 	}
@@ -169,8 +171,10 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 	}
 
 	if ((result != VDO_NO_SPACE) || !has_zones_to_try(allocating_vio)) {
-		// Either there was an error, or we've tried everything and
-		// found nothing.
+		/*
+		 * Either there was an error, or we've tried everything and 
+		 * found nothing. 
+		 */
 		finish_allocation(allocating_vio, result);
 		return false;
 	}
@@ -289,9 +293,11 @@ int create_compressed_write_vio(struct vdo *vdo,
 	struct allocating_vio *allocating_vio;
 	struct vio *vio;
 
-	// Compressed write vios should use direct allocation and not use the
-	// buffer pool, which is reserved for submissions from the linux block
-	// layer.
+	/*
+	 * Compressed write vios should use direct allocation and not use the 
+	 * buffer pool, which is reserved for submissions from the linux block 
+	 * layer.
+	 */
 	int result = UDS_ALLOCATE(1, struct allocating_vio, __func__,
 				  &allocating_vio);
 	if (result != VDO_SUCCESS) {

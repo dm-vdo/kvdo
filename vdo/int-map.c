@@ -77,11 +77,11 @@
 #include "permassert.h"
 
 enum {
-	DEFAULT_CAPACITY = 16, // the number of neighborhoods in a new table
-	NEIGHBORHOOD = 255,    // the number of buckets in each neighborhood
-	MAX_PROBES = 1024,     // limit on the number of probes for a free bucket
-	NULL_HOP_OFFSET = 0,   // the hop offset value terminating the hop list
-	DEFAULT_LOAD = 75      // a compromise between memory use and performance
+	DEFAULT_CAPACITY = 16, /* the number of neighborhoods in a new table */
+	NEIGHBORHOOD = 255,    /* the number of buckets in each neighborhood */
+	MAX_PROBES = 1024,     /* limit on the number of probes for a free bucket */
+	NULL_HOP_OFFSET = 0,   /* the hop offset value terminating the hop list */
+	DEFAULT_LOAD = 75      /* a compromise between memory use and performance */
 };
 
 /**
@@ -92,13 +92,13 @@ enum {
  * lines.
  **/
 struct __packed bucket {
-	uint8_t first_hop; // the biased offset of the first entry in the hop
-			   // list of the neighborhood that hashes to this bucket
-	uint8_t next_hop;  // the biased offset of the next bucket in the
-			   // hop list
+	uint8_t first_hop; /* the biased offset of the first entry in the hop */
+			   /* list of the neighborhood that hashes to this bucket */
+	uint8_t next_hop;  /* the biased offset of the next bucket in the */
+			   /* hop list */
 
-	uint64_t key;	   // the key stored in this bucket
-	void *value;	   // the value stored in this bucket (NULL if empty)
+	uint64_t key;	   /* the key stored in this bucket */
+	void *value;	   /* the value stored in this bucket (NULL if empty) */
 };
 
 /**
@@ -108,10 +108,10 @@ struct __packed bucket {
  * instead, which is why capacity and bucket_count are different.
  **/
 struct int_map {
-	size_t size;		 // the number of entries stored in the map
-	size_t capacity;	 // the number of neighborhoods in the map
-	size_t bucket_count;     // the number of buckets in the bucket array
-	struct bucket *buckets;  // the array of hash buckets
+	size_t size;		 /* the number of entries stored in the map */
+	size_t capacity;	 /* the number of neighborhoods in the map */
+	size_t bucket_count;     /* the number of buckets in the bucket array */
+	struct bucket *buckets;  /* the array of hash buckets */
 };
 
 /**
@@ -148,8 +148,10 @@ static uint64_t mix(uint64_t input1, uint64_t input2)
  **/
 static uint64_t hash_key(uint64_t key)
 {
-	// Aliasing restrictions forbid us from casting pointer types, so use a
-	// union to convert a single uint64_t to two uint32_t values.
+	/*
+	 * Aliasing restrictions forbid us from casting pointer types, so use a 
+	 * union to convert a single uint64_t to two uint32_t values. 
+	 */
 	union {
 		uint64_t u64;
 		uint32_t u32[2];
@@ -170,8 +172,10 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
 	map->size = 0;
 	map->capacity = capacity;
 
-	// Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a
-	// full neighborhood without have to wrap back around to element zero.
+	/*
+	 * Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a 
+	 * full neighborhood without have to wrap back around to element zero. 
+	 */
 	map->bucket_count = capacity + (NEIGHBORHOOD - 1);
 	return UDS_ALLOCATE(map->bucket_count, struct bucket,
 			    "struct int_map buckets", &map->buckets);
@@ -185,7 +189,7 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load,
 	int result;
 	size_t capacity;
 
-	// Use the default initial load if the caller did not specify one.
+	/* Use the default initial load if the caller did not specify one. */
 	if (initial_load == 0) {
 		initial_load = DEFAULT_LOAD;
 	}
@@ -198,11 +202,13 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load,
 		return result;
 	}
 
-	// Use the default capacity if the caller did not specify one.
+	/* Use the default capacity if the caller did not specify one. */
 	capacity = (initial_capacity > 0) ? initial_capacity : DEFAULT_CAPACITY;
 
-	// Scale up the capacity by the specified initial load factor.
-	// (i.e to hold 1000 entries at 80% load we need a capacity of 1250)
+	/*
+	 * Scale up the capacity by the specified initial load factor. 
+	 * (i.e to hold 1000 entries at 80% load we need a capacity of 1250) 
+	 */
 	capacity = capacity * 100 / initial_load;
 
 	result = allocate_buckets(map, capacity);
@@ -263,10 +269,10 @@ static struct bucket *dereference_hop(struct bucket *neighborhood,
 static void insert_in_hop_list(struct bucket *neighborhood,
 			       struct bucket *new_bucket)
 {
-	// Zero indicates a NULL hop offset, so bias the hop offset by one.
+	/* Zero indicates a NULL hop offset, so bias the hop offset by one. */
 	int hop_offset = 1 + (new_bucket - neighborhood);
 
-	// Handle the special case of adding a bucket at the start of the list.
+	/* Handle the special case of adding a bucket at the start of the list. */
 	int next_hop = neighborhood->first_hop;
 
 	if ((next_hop == NULL_HOP_OFFSET) || (next_hop > hop_offset)) {
@@ -275,8 +281,10 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 		return;
 	}
 
-	// Search the hop list for the insertion point that maintains the sort
-	// order.
+	/*
+	 * Search the hop list for the insertion point that maintains the sort 
+	 * order. 
+	 */
 	for (;;) {
 		struct bucket *bucket = dereference_hop(neighborhood, next_hop);
 
@@ -298,8 +306,10 @@ static void insert_in_hop_list(struct bucket *neighborhood,
  **/
 static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
 {
-	// Calculate a good hash value for the provided key. We want exactly 32
-	// bits, so mask the result.
+	/*
+	 * Calculate a good hash value for the provided key. We want exactly 32 
+	 * bits, so mask the result. 
+	 */
 	uint64_t hash = hash_key(key) & 0xFFFFFFFF;
 
 	/*
@@ -336,8 +346,10 @@ search_hop_list(struct int_map *map __attribute__((unused)),
 	unsigned int next_hop = bucket->first_hop;
 
 	while (next_hop != NULL_HOP_OFFSET) {
-		// Check the neighboring bucket indexed by the offset for the
-		// desired key.
+		/*
+		 * Check the neighboring bucket indexed by the offset for the 
+		 * desired key. 
+		 */
 		struct bucket *entry = dereference_hop(bucket, next_hop);
 
 		if ((key == entry->key) && (entry->value != NULL)) {
@@ -371,10 +383,10 @@ static int resize_buckets(struct int_map *map)
 	int result;
 	size_t i;
 
-	// Copy the top-level map data to the stack.
+	/* Copy the top-level map data to the stack. */
 	struct int_map old_map = *map;
 
-	// Re-initialize the map to be empty and 50% larger.
+	/* Re-initialize the map to be empty and 50% larger. */
 	size_t new_capacity = map->capacity / 2 * 3;
 
 	uds_log_info("%s: attempting resize from %zu to %zu, current size=%zu",
@@ -385,7 +397,7 @@ static int resize_buckets(struct int_map *map)
 		return result;
 	}
 
-	// Populate the new hash table from the entries in the old bucket array.
+	/* Populate the new hash table from the entries in the old bucket array. */
 	for (i = 0; i < old_map.bucket_count; i++) {
 		struct bucket *entry = &old_map.buckets[i];
 
@@ -395,15 +407,17 @@ static int resize_buckets(struct int_map *map)
 
 		result = int_map_put(map, entry->key, entry->value, true, NULL);
 		if (result != UDS_SUCCESS) {
-			// Destroy the new partial map and restore the map from
-			// the stack.
+			/*
+			 * Destroy the new partial map and restore the map from 
+			 * the stack. 
+			 */
 			UDS_FREE(UDS_FORGET(map->buckets));
 			*map = old_map;
 			return result;
 		}
 	}
 
-	// Destroy the old bucket array.
+	/* Destroy the old bucket array. */
 	UDS_FREE(UDS_FORGET(old_map.buckets));
 	return UDS_SUCCESS;
 }
@@ -424,8 +438,10 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 					struct bucket *bucket,
 					unsigned int max_probes)
 {
-	// Limit the search to either the nearer of the end of the bucket array
-	// or a fixed distance beyond the initial bucket.
+	/*
+	 * Limit the search to either the nearer of the end of the bucket array 
+	 * or a fixed distance beyond the initial bucket. 
+	 */
 	ptrdiff_t remaining = &map->buckets[map->bucket_count] - bucket;
 	struct bucket *sentinel =
 		&bucket[min(remaining, (ptrdiff_t) max_probes)];
@@ -467,20 +483,26 @@ move_empty_bucket(struct int_map *map __attribute__((unused)),
 	struct bucket *bucket;
 
 	for (bucket = &hole[1 - NEIGHBORHOOD]; bucket < hole; bucket++) {
-		// Find the entry that is nearest to the bucket, which means it
-		// will be nearest to the hash bucket whose neighborhood is
-		// full.
+		/*
+		 * Find the entry that is nearest to the bucket, which means it 
+		 * will be nearest to the hash bucket whose neighborhood is 
+		 * full.
+		 */
 		struct bucket *new_hole =
 			dereference_hop(bucket, bucket->first_hop);
 		if (new_hole == NULL) {
-			// There are no buckets in this neighborhood that are in
-			// use by this one (they must all be owned by
-			// overlapping neighborhoods).
+			/*
+			 * There are no buckets in this neighborhood that are in 
+			 * use by this one (they must all be owned by 
+			 * overlapping neighborhoods).
+			 */
 			continue;
 		}
 
-		// Skip this bucket if its first entry is actually further away
-		// than the hole that we're already trying to fill.
+		/*
+		 * Skip this bucket if its first entry is actually further away 
+		 * than the hole that we're already trying to fill. 
+		 */
 		if (hole < new_hole) {
 			continue;
 		}
@@ -491,24 +513,28 @@ move_empty_bucket(struct int_map *map __attribute__((unused)),
 		 * not all the way into its neighborhood.
 		 */
 
-		// The entry that will be the new hole is the first bucket in
-		// the list, so setting first_hop is all that's needed remove it
-		// from the list.
+		/*
+		 * The entry that will be the new hole is the first bucket in 
+		 * the list, so setting first_hop is all that's needed remove it 
+		 * from the list.
+		 */
 		bucket->first_hop = new_hole->next_hop;
 		new_hole->next_hop = NULL_HOP_OFFSET;
 
-		// Move the entry into the original hole.
+		/* Move the entry into the original hole. */
 		hole->key = new_hole->key;
 		hole->value = new_hole->value;
 		new_hole->value = NULL;
 
-		// Insert the filled hole into the hop list for the
-		// neighborhood.
+		/*
+		 * Insert the filled hole into the hop list for the 
+		 * neighborhood. 
+		 */
 		insert_in_hop_list(bucket, hole);
 		return new_hole;
 	}
 
-	// We couldn't find an entry to relocate to the hole.
+	/* We couldn't find an entry to relocate to the hole. */
 	return NULL;
 }
 
@@ -535,12 +561,14 @@ static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
 
 	if (bucket == NULL) {
-		// There is no bucket containing the key in the neighborhood.
+		/* There is no bucket containing the key in the neighborhood. */
 		return false;
 	}
 
-	// Return the value of the current mapping (if desired) and update the
-	// mapping with the new value (if desired).
+	/*
+	 * Return the value of the current mapping (if desired) and update the 
+	 * mapping with the new value (if desired). 
+	 */
 	if (old_value_ptr != NULL) {
 		*old_value_ptr = bucket->value;
 	}
@@ -566,25 +594,31 @@ static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 static struct bucket *find_or_make_vacancy(struct int_map *map,
 					   struct bucket *neighborhood)
 {
-	// Probe within and beyond the neighborhood for the first empty bucket.
+	/* Probe within and beyond the neighborhood for the first empty bucket. */
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
 
-	// Keep trying until the empty bucket is in the bucket's neighborhood or
-	// we are unable to move it any closer by swapping it with a filled
-	// bucket.
+	/*
+	 * Keep trying until the empty bucket is in the bucket's neighborhood or 
+	 * we are unable to move it any closer by swapping it with a filled 
+	 * bucket.
+	 */
 	while (hole != NULL) {
 		int distance = hole - neighborhood;
 
 		if (distance < NEIGHBORHOOD) {
-			// We've found or relocated an empty bucket close enough
-			// to the initial hash bucket to be referenced by its
-			// hop vector.
+			/*
+			 * We've found or relocated an empty bucket close enough 
+			 * to the initial hash bucket to be referenced by its 
+			 * hop vector.
+			 */
 			return hole;
 		}
 
-		// The nearest empty bucket isn't within the neighborhood that
-		// must contain the new entry, so try to swap it with bucket
-		// that is closer.
+		/*
+		 * The nearest empty bucket isn't within the neighborhood that 
+		 * must contain the new entry, so try to swap it with bucket 
+		 * that is closer.
+		 */
 		hole = move_empty_bucket(map, hole);
 	}
 
@@ -601,12 +635,16 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	// Select the bucket at the start of the neighborhood that must contain
-	// any entry for the provided key.
+	/*
+	 * Select the bucket at the start of the neighborhood that must contain 
+	 * any entry for the provided key. 
+	 */
 	neighborhood = select_bucket(map, key);
 
-	// Check whether the neighborhood already contains an entry for the key,
-	// in which case we optionally update it, returning the old value.
+	/*
+	 * Check whether the neighborhood already contains an entry for the key, 
+	 * in which case we optionally update it, returning the old value. 
+	 */
 	if (update_mapping(map, neighborhood, key, new_value, update,
 			  old_value_ptr)) {
 		return UDS_SUCCESS;
@@ -632,19 +670,23 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 			return result;
 		}
 
-		// Resizing the map invalidates all pointers to buckets, so
-		// recalculate the neighborhood pointer.
+		/*
+		 * Resizing the map invalidates all pointers to buckets, so 
+		 * recalculate the neighborhood pointer. 
+		 */
 		neighborhood = select_bucket(map, key);
 	}
 
-	// Put the new entry in the empty bucket, adding it to the neighborhood.
+	/* Put the new entry in the empty bucket, adding it to the neighborhood. */
 	bucket->key = key;
 	bucket->value = new_value;
 	insert_in_hop_list(neighborhood, bucket);
 	map->size += 1;
 
-	// There was no existing entry, so there was no old value to be
-	// returned.
+	/*
+	 * There was no existing entry, so there was no old value to be 
+	 * returned. 
+	 */
 	if (old_value_ptr != NULL) {
 		*old_value_ptr = NULL;
 	}
@@ -656,27 +698,31 @@ void *int_map_remove(struct int_map *map, uint64_t key)
 {
 	void *value;
 
-	// Select the bucket to search and search it for an existing entry.
+	/* Select the bucket to search and search it for an existing entry. */
 	struct bucket *bucket = select_bucket(map, key);
 	struct bucket *previous;
 	struct bucket *victim = search_hop_list(map, bucket, key, &previous);
 
 	if (victim == NULL) {
-		// There is no matching entry to remove.
+		/* There is no matching entry to remove. */
 		return NULL;
 	}
 
-	// We found an entry to remove. Save the mapped value to return later
-	// and empty the bucket.
+	/*
+	 * We found an entry to remove. Save the mapped value to return later 
+	 * and empty the bucket. 
+	 */
 	map->size -= 1;
 	value = victim->value;
 	victim->value = NULL;
 	victim->key = 0;
 
-	// The victim bucket is now empty, but it still needs to be spliced out
-	// of the hop list.
+	/*
+	 * The victim bucket is now empty, but it still needs to be spliced out 
+	 * of the hop list. 
+	 */
 	if (previous == NULL) {
-		// The victim is the head of the list, so swing first_hop.
+		/* The victim is the head of the list, so swing first_hop. */
 		bucket->first_hop = victim->next_hop;
 	} else {
 		previous->next_hop = victim->next_hop;

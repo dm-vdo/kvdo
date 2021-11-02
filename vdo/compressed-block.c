@@ -36,8 +36,10 @@ enum {
 /**********************************************************************/
 void reset_vdo_compressed_block_header(struct compressed_block_header *header)
 {
-	// Make sure the block layout isn't accidentally changed by changing
-	// the length of the block header.
+	/*
+	 * Make sure the block layout isn't accidentally changed by changing 
+	 * the length of the block header. 
+	 */
 	STATIC_ASSERT_SIZEOF(struct compressed_block_header,
 			     COMPRESSED_BLOCK_1_0_SIZE);
 

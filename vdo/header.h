@@ -67,9 +67,9 @@ enum component_id {
  * The header for versioned data stored on disk.
  **/
 struct header {
-	enum component_id id; // The component this is a header for
-	struct version_number version; // The version of the data format
-	size_t size; // The size of the data following this header
+	enum component_id id; /* The component this is a header for */
+	struct version_number version; /* The version of the data format */
+	size_t size; /* The size of the data following this header */
 } __packed;
 
 enum {
@@ -223,4 +223,4 @@ unpack_vdo_version_number(struct packed_version_number version)
 	};
 }
 
-#endif // HEADER_H
+#endif /* HEADER_H */

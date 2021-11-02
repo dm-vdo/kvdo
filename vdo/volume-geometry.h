@@ -136,4 +136,4 @@ int __must_check
 vdo_read_geometry_block(struct block_device *bdev,
 			struct volume_geometry *geometry);
 
-#endif // VOLUME_GEOMETRY_H
+#endif /* VOLUME_GEOMETRY_H */

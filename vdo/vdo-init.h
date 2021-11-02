@@ -53,4 +53,4 @@ initialize_vdo(struct vdo *vdo,
 	       unsigned int instance,
 	       char **reason);
 
-#endif // VDO_INIT_H
+#endif /* VDO_INIT_H */

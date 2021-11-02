@@ -71,11 +71,11 @@ struct block_map_page {
 } __packed;
 
 enum block_map_page_validity {
-	// A block map page is correctly initialized
+	/* A block map page is correctly initialized */
 	VDO_BLOCK_MAP_PAGE_VALID,
-	// A block map page is uninitialized
+	/* A block map page is uninitialized */
 	VDO_BLOCK_MAP_PAGE_INVALID,
-	// A block map page is intialized, but is the wrong page
+	/* A block map page is intialized, but is the wrong page */
 	VDO_BLOCK_MAP_PAGE_BAD,
 };
 
@@ -156,4 +156,4 @@ validate_vdo_block_map_page(struct block_map_page *page,
 			     nonce_t nonce,
 			     physical_block_number_t pbn);
 
-#endif // BLOCK_MAP_PAGE_H
+#endif /* BLOCK_MAP_PAGE_H */

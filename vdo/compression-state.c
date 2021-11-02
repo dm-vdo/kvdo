@@ -77,8 +77,10 @@ set_vio_compression_state(struct data_vio *data_vio,
 	uint32_t expected = pack_state(state);
 	uint32_t replacement = pack_state(new_state);
 
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	/*
+	 * Extra barriers because this was original developed using 
+	 * a CAS operation that implicitly had them. 
+	 */
 	smp_mb__before_atomic();
 	actual = atomic_cmpxchg(&data_vio->compression.state,
 				expected, replacement);
@@ -101,16 +103,18 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 		struct vio_compression_state new_state = state;
 
 		if (state.status == VIO_POST_PACKER) {
-			// We're already in the last state.
+			/* We're already in the last state. */
 			return state.status;
 		}
 
 		if (state.may_not_compress) {
-			// Compression has been dis-allowed for this VIO, so
-			// skip the rest of the path and go to the end.
+			/*
+			 * Compression has been dis-allowed for this VIO, so 
+			 * skip the rest of the path and go to the end. 
+			 */
 			new_state.status = VIO_POST_PACKER;
 		} else {
-			// Go to the next state.
+			/* Go to the next state. */
 			new_state.status++;
 		}
 
@@ -118,8 +122,10 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 			return new_state.status;
 		}
 
-		// Another thread changed the state out from under us so try
-		// again.
+		/*
+		 * Another thread changed the state out from under us so try 
+		 * again. 
+		 */
 	}
 }
 
@@ -172,9 +178,11 @@ bool may_pack_data_vio(struct data_vio *data_vio)
 	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
 	    !get_vdo_compressing(get_vdo_from_data_vio(data_vio)) ||
 	    get_vio_compression_state(data_vio).may_not_compress) {
-		// If the data in this VIO doesn't compress, or compression is
-		// off, or compression for this VIO has been canceled, don't
-		// send it to the packer.
+		/*
+		 * If the data in this VIO doesn't compress, or compression is 
+		 * off, or compression for this VIO has been canceled, don't 
+		 * send it to the packer.
+		 */
 		set_vio_compression_done(data_vio);
 		return false;
 	}
@@ -207,11 +215,11 @@ void set_vio_compression_done(struct data_vio *data_vio)
 			get_vio_compression_state(data_vio);
 
 		if (state.status == VIO_POST_PACKER) {
-			// The VIO is already done.
+			/* The VIO is already done. */
 			return;
 		}
 
-		// If compression was cancelled on this VIO, preserve that fact.
+		/* If compression was cancelled on this VIO, preserve that fact. */
 		if (set_vio_compression_state(data_vio, state, new_state)) {
 			return;
 		}
@@ -227,8 +235,10 @@ bool cancel_vio_compression(struct data_vio *data_vio)
 		state = get_vio_compression_state(data_vio);
 		if (state.may_not_compress ||
 		    (state.status == VIO_POST_PACKER)) {
-			// This data_vio is already set up to not block in the
-			// packer.
+			/*
+			 * This data_vio is already set up to not block in the 
+			 * packer. 
+			 */
 			break;
 		}
 

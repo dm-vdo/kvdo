@@ -46,7 +46,7 @@ static void verify_duplication_work(struct vdo_work_item *item)
 	if (likely(memory_equal(data_vio->data_block,
 				data_vio->read_block.data,
 				VDO_BLOCK_SIZE))) {
-		// Leave data_vio->is_duplicate set to true.
+		/* Leave data_vio->is_duplicate set to true. */
 	} else {
 		data_vio->is_duplicate = false;
 	}

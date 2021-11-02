@@ -294,9 +294,11 @@ static int merge_to_next_head(struct int_map *bio_map,
 {
 	int result;
 
-	// Handle "next merge" and "gap fill" cases the same way so as to
-	// reorder bios in a way that's compatible with using funnel queues
-	// in work queues.  This avoids removing an existing work item.
+	/*
+	 * Handle "next merge" and "gap fill" cases the same way so as to 
+	 * reorder bios in a way that's compatible with using funnel queues 
+	 * in work queues.  This avoids removing an existing work item.
+	 */
 	int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
 	result = int_map_put(bio_map,
@@ -338,17 +340,17 @@ static bool try_bio_map_merge(struct vio *vio)
 	}
 
 	if ((prev_vio == NULL) && (next_vio == NULL)) {
-		// no merge. just add to bio_queue
+		/* no merge. just add to bio_queue */
 		merged = false;
 		result = int_map_put(bio_queue_data->map, get_bio_sector(bio),
 				     vio, true, NULL);
 	} else if (next_vio == NULL) {
-		// Only prev. merge to prev's tail
+		/* Only prev. merge to prev's tail */
 		result = merge_to_prev_tail(bio_queue_data->map,
 					    vio,
 					    prev_vio);
 	} else {
-		// Only next. merge to next's head
+		/* Only next. merge to next's head */
 		result = merge_to_next_head(bio_queue_data->map,
 					    vio,
 					    next_vio);
@@ -356,7 +358,7 @@ static bool try_bio_map_merge(struct vio *vio)
 
 	mutex_unlock(&bio_queue_data->lock);
 
-	// We don't care about failure of int_map_put in this case.
+	/* We don't care about failure of int_map_put in this case. */
 	ASSERT_LOG_ONLY(result == UDS_SUCCESS, "bio map insertion succeeds");
 	return merged;
 }
@@ -406,7 +408,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 
 	io_submitter->bio_queue_rotation_interval = rotation_interval;
 
-	// Setup for each bio-submission work queue
+	/* Setup for each bio-submission work queue */
 	for (i = 0; i < thread_count; i++) {
 		struct bio_queue_data *bio_queue_data =
 			&io_submitter->bio_queue_data[i];
@@ -426,8 +428,10 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 		result = make_int_map(max_requests_active * 2, 0,
 				      &bio_queue_data->map);
 		if (result != 0) {
-			// Clean up the partially initialized bio-queue
-			// entirely and indicate that initialization failed.
+			/*
+			 * Clean up the partially initialized bio-queue 
+			 * entirely and indicate that initialization failed. 
+			 */
 			uds_log_error("bio map initialization failed %d",
 				      result);
 			cleanup_vdo_io_submitter(io_submitter);
@@ -443,8 +447,10 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 					 1,
 					 (void **) &bio_queue_data);
 		if (result != VDO_SUCCESS) {
-			// Clean up the partially initialized bio-queue
-			// entirely and indicate that initialization failed.
+			/*
+			 * Clean up the partially initialized bio-queue 
+			 * entirely and indicate that initialization failed. 
+			 */
 			free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
 				      result);
@@ -488,8 +494,10 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter)
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
-		// destroy_vdo() will free the work queue, so just give up our
-		// reference to it.
+		/*
+		 * destroy_vdo() will free the work queue, so just give up our 
+		 * reference to it. 
+		 */
 		UDS_FORGET(io_submitter->bio_queue_data[i].queue);
 		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}

@@ -60,7 +60,7 @@ get_partition_offset(struct vdo_layout *layout, enum partition_id id)
 int decode_vdo_layout(struct fixed_layout *layout,
 		      struct vdo_layout **vdo_layout_ptr)
 {
-	// Check that all the expected partitions exist
+	/* Check that all the expected partitions exist */
 	struct vdo_layout *vdo_layout;
 	struct partition *partition;
 	uint8_t i;
@@ -83,7 +83,7 @@ int decode_vdo_layout(struct fixed_layout *layout,
 
 	vdo_layout->layout = layout;
 
-	// XXX Assert this is the same as where we loaded the super block.
+	/* XXX Assert this is the same as where we loaded the super block. */
 	vdo_layout->starting_offset =
 		get_partition_offset(vdo_layout, VDO_BLOCK_MAP_PARTITION);
 
@@ -175,12 +175,14 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	block_count_t min_new_size;
 
 	if (get_next_vdo_layout_size(vdo_layout) == new_physical_blocks) {
-		// We are already prepared to grow to the new size, so we're
-		// done.
+		/*
+		 * We are already prepared to grow to the new size, so we're 
+		 * done. 
+		 */
 		return VDO_SUCCESS;
 	}
 
-	// Make a copy completion if there isn't one
+	/* Make a copy completion if there isn't one */
 	if (vdo_layout->copy_completion == NULL) {
 		int result =
 			make_vdo_copy_completion(vdo,
@@ -190,11 +192,13 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 		}
 	}
 
-	// Free any unused preparation.
+	/* Free any unused preparation. */
 	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 
-	// Make a new layout with the existing partition sizes for everything
-	// but the block allocator partition.
+	/*
+	 * Make a new layout with the existing partition sizes for everything 
+	 * but the block allocator partition. 
+	 */
 	result = make_partitioned_vdo_fixed_layout(new_physical_blocks,
 						   vdo_layout->starting_offset,
 						   get_partition_size(vdo_layout,
@@ -209,8 +213,10 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 		return result;
 	}
 
-	// Ensure the new journal and summary are entirely within the added
-	// blocks.
+	/*
+	 * Ensure the new journal and summary are entirely within the added 
+	 * blocks. 
+	 */
 	slab_summary_partition =
 		get_partition_from_next_layout(vdo_layout,
 					       VDO_SLAB_SUMMARY_PARTITION);
@@ -222,8 +228,10 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 		 get_vdo_fixed_layout_partition_size(slab_summary_partition) +
 		 get_vdo_fixed_layout_partition_size(recovery_journal_partition));
 	if (min_new_size > new_physical_blocks) {
-		// Copying the journal and summary would destroy some old
-		// metadata.
+		/*
+		 * Copying the journal and summary would destroy some old 
+		 * metadata. 
+		 */
 		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return VDO_INCREMENT_TOO_SMALL;
@@ -244,8 +252,10 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 static block_count_t __must_check
 get_vdo_size(struct fixed_layout *layout, block_count_t starting_offset)
 {
-	// The fixed_layout does not include the super block or any earlier
-	// metadata; all that is captured in the vdo_layout's starting offset
+	/*
+	 * The fixed_layout does not include the super block or any earlier 
+	 * metadata; all that is captured in the vdo_layout's starting offset 
+	 */
 	return get_total_vdo_fixed_layout_size(layout) + starting_offset;
 }
 

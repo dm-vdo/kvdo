@@ -112,8 +112,10 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 	case REQ_OP_DISCARD:
 		atomic64_inc(&bio_stats->discard);
 		break;
-		// All other operations are filtered out in dmvdo.c, or
-		// not created by VDO, so shouldn't exist.
+		/*
+		 * All other operations are filtered out in dmvdo.c, or 
+		 * not created by VDO, so shouldn't exist. 
+		 */
 	default:
 		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
 				bio_op(bio));
@@ -199,15 +201,15 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	int len = VDO_BLOCK_SIZE;
 	int offset = offset_in_page(data);
 	unsigned int i;
-#endif // >= 5.1.0
+#endif /* >= 5.1.0 */
 
-	bio_reset(bio); // Memsets most of the bio to reset most fields.
+	bio_reset(bio); /* Memsets most of the bio to reset most fields. */
 	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
 	if (data == NULL) {
 		return VDO_SUCCESS;
 	}
 
-	// Make sure we use our own inlined iovecs.
+	/* Make sure we use our own inlined iovecs. */
 	bio->bi_io_vec = bio->bi_inline_vecs;
 	bio->bi_max_vecs = INLINE_BVEC_COUNT;
 
@@ -222,8 +224,10 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	// bio_add_page() can take any contiguous buffer on any number of
-	// pages and add it in one shot.
+	/*
+	 * bio_add_page() can take any contiguous buffer on any number of 
+	 * pages and add it in one shot. 
+	 */
 	page = is_vmalloc_addr(data) ? vmalloc_to_page(data) :
 				       virt_to_page(data);
 	bytes_added = bio_add_page(bio, page, VDO_BLOCK_SIZE,
@@ -235,7 +239,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 					      bytes_added);
 	}
 #else
-	// On pre-5.1 kernels, we have to add one page at a time to the bio.
+	/* On pre-5.1 kernels, we have to add one page at a time to the bio. */
 	for (i = 0; (i < bvec_count) && (len > 0); i++) {
 		unsigned int bytes = PAGE_SIZE - offset;
 		struct page *page;
@@ -259,7 +263,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		len -= bytes;
 		offset = 0;
 	}
-#endif // >= 5.1.0
+#endif /* >= 5.1.0 */
 	return VDO_SUCCESS;
 }
 

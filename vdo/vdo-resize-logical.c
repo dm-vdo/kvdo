@@ -122,8 +122,10 @@ static void handle_growth_error(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
 	if (admin_completion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
-		// We've failed to write the new size in the super block, so set
-		// our in memory config back to the old size.
+		/*
+		 * We've failed to write the new size in the super block, so set 
+		 * our in memory config back to the old size. 
+		 */
 		struct vdo *vdo = admin_completion->vdo;
 
 		vdo->states.vdo.config.logical_blocks =
@@ -141,8 +143,10 @@ int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 	int result;
 
 	if (vdo->device_config->logical_blocks == new_logical_blocks) {
-		// A table was loaded for which we prepared to grow, but
-		// a table without that growth was what we are resuming with.
+		/*
+		 * A table was loaded for which we prepared to grow, but 
+		 * a table without that growth was what we are resuming with. 
+		 */
 		vdo_abandon_block_map_growth(vdo->block_map);
 		return VDO_SUCCESS;
 	}

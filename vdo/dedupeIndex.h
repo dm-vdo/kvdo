@@ -193,12 +193,16 @@ void resume_vdo_dedupe_index(struct dedupe_index *index,
  **/
 void finish_vdo_dedupe_index(struct dedupe_index *index);
 
-// Interval (in milliseconds or jiffies) from submission until switching to
-// fast path and skipping UDS.
+/*
+ * Interval (in milliseconds or jiffies) from submission until switching to 
+ * fast path and skipping UDS. 
+ */
 extern unsigned int vdo_dedupe_index_timeout_interval;
 
-// Minimum time interval (in milliseconds) between timer invocations to
-// check for requests waiting for UDS that should now time out.
+/*
+ * Minimum time interval (in milliseconds) between timer invocations to 
+ * check for requests waiting for UDS that should now time out. 
+ */
 extern unsigned int vdo_dedupe_index_min_timer_interval;
 
 /**

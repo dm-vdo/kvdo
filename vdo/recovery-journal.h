@@ -212,8 +212,10 @@ static inline physical_block_number_t __must_check
 get_vdo_recovery_journal_block_number(const struct recovery_journal *journal,
 				      sequence_number_t sequence)
 {
-	// Since journal size is a power of two, the block number modulus can
-	// just be extracted from the low-order bits of the sequence.
+	/*
+	 * Since journal size is a power of two, the block number modulus can 
+	 * just be extracted from the low-order bits of the sequence. 
+	 */
 	return compute_vdo_recovery_journal_block_number(journal->size, sequence);
 }
 
@@ -229,7 +231,7 @@ static inline uint8_t __must_check
 compute_vdo_recovery_journal_check_byte(const struct recovery_journal *journal,
 					sequence_number_t sequence)
 {
-	// The check byte must change with each trip around the journal.
+	/* The check byte must change with each trip around the journal. */
 	return (((sequence / journal->size) & 0x7F) | 0x80);
 }
 
@@ -487,4 +489,4 @@ get_vdo_recovery_journal_statistics(const struct recovery_journal *journal);
  **/
 void dump_vdo_recovery_journal_statistics(const struct recovery_journal *journal);
 
-#endif // RECOVERY_JOURNAL_H
+#endif /* RECOVERY_JOURNAL_H */

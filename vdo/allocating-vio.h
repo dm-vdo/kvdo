@@ -262,4 +262,4 @@ create_compressed_write_vio(struct vdo *vdo,
 			    char *data,
 			    struct allocating_vio **allocating_vio_ptr);
 
-#endif // ALLOCATING_VIO_H
+#endif /* ALLOCATING_VIO_H */

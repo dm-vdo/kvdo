@@ -75,4 +75,4 @@ int __must_check encode_vdo_super_block(struct super_block_codec *codec);
  **/
 int __must_check decode_vdo_super_block(struct super_block_codec *codec);
 
-#endif // SUPER_BLOCK_CODEC_H
+#endif /* SUPER_BLOCK_CODEC_H */

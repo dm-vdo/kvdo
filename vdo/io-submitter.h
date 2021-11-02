@@ -98,4 +98,4 @@ void submit_data_vio_io(struct data_vio *data_vio);
  **/
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority);
 
-#endif // IO_SUBMITTER_H
+#endif /* IO_SUBMITTER_H */

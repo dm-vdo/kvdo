@@ -30,11 +30,11 @@
  * the relative order of journal entries with the same logical block number.
  **/
 struct numbered_block_mapping {
-	// Block map slot to map
+	/* Block map slot to map */
 	struct block_map_slot block_map_slot;
-	// The encoded block map entry for the LBN
+	/* The encoded block map entry for the LBN */
 	struct block_map_entry block_map_entry;
-	// The serial number to use during replay
+	/* The serial number to use during replay */
 	uint32_t number;
 } __packed;
 
@@ -52,4 +52,4 @@ void recover_vdo_block_map(struct vdo *vdo,
 			   struct numbered_block_mapping *journal_entries,
 			   struct vdo_completion *parent);
 
-#endif // BLOCK_MAP_RECOVERY_H
+#endif /* BLOCK_MAP_RECOVERY_H */

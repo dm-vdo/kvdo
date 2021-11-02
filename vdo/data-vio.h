@@ -310,8 +310,10 @@ struct data_vio {
          */
 	uint32_t remaining_discard;
 
-	// Fields beyond this point will not be reset when a pooled data_vio
-	// is reused.
+	/*
+	 * Fields beyond this point will not be reset when a pooled data_vio 
+	 * is reused. 
+	 */
 
 	/* Dedupe */
 	struct dedupe_context dedupe_context;
@@ -643,9 +645,11 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected = get_vdo_hash_zone_thread_id(data_vio->hash_zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
-	// It's odd to use the LBN, but converting the chunk name to hex is a
-	// bit clunky for an inline, and the LBN better than nothing as an
-	// identifier.
+	/*
+	 * It's odd to use the LBN, but converting the chunk name to hex is a 
+	 * bit clunky for an inline, and the LBN better than nothing as an 
+	 * identifier.
+	 */
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on hash zone thread %u",
 			(unsigned long long) data_vio->logical.lbn,
@@ -1254,4 +1258,4 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 				  bi_opf);
 }
 
-#endif // DATA_VIO_H
+#endif /* DATA_VIO_H */

@@ -101,4 +101,4 @@ void advance_vdo_dirty_lists_period(struct dirty_lists *dirty_lists,
  **/
 void flush_vdo_dirty_lists(struct dirty_lists *dirty_lists);
 
-#endif // DIRTY_LISTS_H
+#endif /* DIRTY_LISTS_H */

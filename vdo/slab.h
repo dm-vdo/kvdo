@@ -340,4 +340,4 @@ void finish_scrubbing_vdo_slab(struct vdo_slab *slab);
  **/
 void dump_vdo_slab(const struct vdo_slab *slab);
 
-#endif // VDO_SLAB_H
+#endif /* VDO_SLAB_H */

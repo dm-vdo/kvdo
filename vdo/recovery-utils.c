@@ -120,8 +120,10 @@ bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
 		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
-			// This block is old, unformatted, or doesn't belong at
-			// this location.
+			/*
+			 * This block is old, unformatted, or doesn't belong at 
+			 * this location. 
+			 */
 			continue;
 		}
 

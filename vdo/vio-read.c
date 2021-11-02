@@ -114,7 +114,7 @@ void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_data_vio_in_logical_zone(data_vio);
 	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
-	// Go find the block map slot for the LBN mapping.
+	/* Go find the block map slot for the LBN mapping. */
 	vdo_find_block_map_slot(data_vio,
 				read_block_mapping,
 				get_vdo_logical_zone_thread_id(data_vio->logical.zone));

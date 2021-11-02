@@ -253,9 +253,11 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 /**********************************************************************/
 bool should_save_fully_built_vdo_slab(const struct vdo_slab *slab)
 {
-	// Write out the ref_counts if the slab has written them before, or it
-	// has any non-zero reference counts, or there are any slab journal
-	// blocks.
+	/*
+	 * Write out the ref_counts if the slab has written them before, or it 
+	 * has any non-zero reference counts, or there are any slab journal 
+	 * blocks.
+	 */
 	block_count_t data_blocks =
 		get_vdo_slab_config(slab->allocator->depot)->data_blocks;
 	return (vdo_must_load_ref_counts(slab->allocator->summary,
@@ -317,9 +319,11 @@ void start_vdo_slab_action(struct vdo_slab *slab,
 void notify_vdo_slab_journal_is_loaded(struct vdo_slab *slab, int result)
 {
 	if ((result == VDO_SUCCESS) && is_vdo_state_clean_load(&slab->state)) {
-		// Since this is a normal or new load, we don't need the memory
-		// to read and process the recovery journal, so we can allocate
-		// reference counts now.
+		/*
+		 * Since this is a normal or new load, we don't need the memory 
+		 * to read and process the recovery journal, so we can allocate 
+		 * reference counts now.
+		 */
 		result = allocate_ref_counts_for_vdo_slab(slab);
 	}
 
@@ -396,8 +400,10 @@ static const char *status_to_string(enum slab_rebuild_status status)
 void dump_vdo_slab(const struct vdo_slab *slab)
 {
 	if (slab->reference_counts != NULL) {
-		// Terse because there are a lot of slabs to dump and syslog is
-		// lossy.
+		/*
+		 * Terse because there are a lot of slabs to dump and syslog is 
+		 * lossy. 
+		 */
 		uds_log_info("slab %u: P%u, %llu free",
 			     slab->slab_number,
 			     slab->priority,

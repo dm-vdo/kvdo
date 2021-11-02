@@ -124,7 +124,7 @@ extern const block_count_t MAXIMUM_VDO_LOGICAL_BLOCKS;
 /** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
 extern const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS;
 
-// unit test minimum
+/** unit test minimum */
 extern const block_count_t MINIMUM_VDO_SLAB_JOURNAL_BLOCKS;
 
-#endif // CONSTANTS_H
+#endif /* CONSTANTS_H */

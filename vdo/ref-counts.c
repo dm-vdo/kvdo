@@ -109,8 +109,10 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 
 	cursor->block = cursor->first_block;
 	cursor->index = 0;
-	// Unit tests have slabs with only one reference block (and it's a
-	// runt).
+	/*
+	 * Unit tests have slabs with only one reference block (and it's a 
+	 * runt). 
+	 */
 	cursor->end_index = min((uint32_t) COUNTS_PER_BLOCK,
 				ref_counts->block_count);
 }
@@ -128,20 +130,24 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 {
 	struct search_cursor *cursor = &ref_counts->search_cursor;
 
-	// If we just finished searching the last reference block, then wrap
-	// back around to the start of the array.
+	/*
+	 * If we just finished searching the last reference block, then wrap 
+	 * back around to the start of the array. 
+	 */
 	if (cursor->block == cursor->last_block) {
 		vdo_reset_search_cursor(ref_counts);
 		return false;
 	}
 
-	// We're not already at the end, so advance to cursor to the next
-	// block.
+	/*
+	 * We're not already at the end, so advance to cursor to the next 
+	 * block. 
+	 */
 	cursor->block++;
 	cursor->index = cursor->end_index;
 
 	if (cursor->block == cursor->last_block) {
-		// The last reference block will usually be a runt.
+		/* The last reference block will usually be a runt. */
 		cursor->end_index = ref_counts->block_count;
 	} else {
 		cursor->end_index += COUNTS_PER_BLOCK;
@@ -169,8 +175,10 @@ int make_vdo_ref_counts(block_count_t block_count,
 		return result;
 	}
 
-	// Allocate such that the runt slab has a full-length memory array,
-	// plus a little padding so we can word-search even at the very end.
+	/*
+	 * Allocate such that the runt slab has a full-length memory array, 
+	 * plus a little padding so we can word-search even at the very end. 
+	 */
 	bytes = ((ref_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
 	result = UDS_ALLOCATE(bytes,
 			      vdo_refcount_t,
@@ -237,7 +245,7 @@ bool are_vdo_ref_counts_active(struct ref_counts *ref_counts)
 		return true;
 	}
 
-	// When not suspending or recovering, the ref_counts must be clean.
+	/* When not suspending or recovering, the ref_counts must be clean. */
 	code = get_vdo_admin_state_code(&ref_counts->slab->state);
 	return (has_waiters(&ref_counts->dirty_blocks) &&
 		(code != VDO_ADMIN_STATE_SUSPENDING) &&
@@ -262,7 +270,7 @@ static void enqueue_dirty_block(struct reference_block *block)
 	int result = enqueue_waiter(&block->ref_counts->dirty_blocks,
 				    &block->waiter);
 	if (result != VDO_SUCCESS) {
-		// This should never happen.
+		/* This should never happen. */
 		enter_ref_counts_read_only_mode(block->ref_counts, result);
 	}
 }
@@ -281,8 +289,10 @@ static void dirty_block(struct reference_block *block)
 
 	block->is_dirty = true;
 	if (block->is_writing) {
-		// The conclusion of the current write will enqueue the block
-		// again.
+		/*
+		 * The conclusion of the current write will enqueue the block 
+		 * again. 
+		 */
 		return;
 	}
 
@@ -393,7 +403,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 		break;
 
 	default:
-		// Single or shared
+		/* Single or shared */
 		if (*counter_ptr >= MAXIMUM_REFERENCE_COUNT) {
 			return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 						      "Incrementing a block already having 254 references (slab %u, offset %u)",
@@ -448,8 +458,10 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 	case RS_PROVISIONAL:
 	case RS_SINGLE:
 		if (lock != NULL) {
-			// There is a read lock on this block, so the block must
-			// not become unreferenced.
+			/*
+			 * There is a read lock on this block, so the block must 
+			 * not become unreferenced. 
+			 */
 			*counter_ptr = PROVISIONAL_REFERENCE_COUNT;
 			*free_status_changed = false;
 			assign_vdo_pbn_lock_provisional_reference(lock);
@@ -462,7 +474,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 		break;
 
 	default:
-		// Shared
+		/* Shared */
 		(*counter_ptr)--;
 		*free_status_changed = false;
 	}
@@ -751,12 +763,14 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 	struct reference_operation operation = { .type = entry.operation };
 
 	if (!before_vdo_journal_point(&block->commit_points[sector], entry_point)) {
-		// This entry is already reflected in the existing counts, so
-		// do nothing.
+		/*
+		 * This entry is already reflected in the existing counts, so 
+		 * do nothing. 
+		 */
 		return VDO_SUCCESS;
 	}
 
-	// This entry is not yet counted in the reference counts.
+	/* This entry is not yet counted in the reference counts. */
 	result = update_reference_count(ref_counts, block, entry.sbn,
 					entry_point, operation,
 					!NORMAL_OPERATION,
@@ -789,12 +803,14 @@ find_zero_byte_in_word(const byte *word_ptr,
 {
 	uint64_t word = get_unaligned_le64(word_ptr);
 
-	// This looks like a loop, but GCC will unroll the eight iterations for
-	// us.
+	/*
+	 * This looks like a loop, but GCC will unroll the eight iterations for 
+	 * us. 
+	 */
 	unsigned int offset;
 
 	for (offset = 0; offset < BYTES_PER_WORD; offset++) {
-		// Assumes little-endian byte order, which we have on X86.
+		/* Assumes little-endian byte order, which we have on X86. */
 		if ((word & 0xFF) == 0) {
 			return (start_index + offset);
 		}
@@ -816,8 +832,10 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
 	byte *next_counter = &ref_counts->counters[next_index];
 	byte *end_counter = &ref_counts->counters[end_index];
 
-	// Search every byte of the first unaligned word. (Array is padded so
-	// reading past end is safe.)
+	/*
+	 * Search every byte of the first unaligned word. (Array is padded so 
+	 * reading past end is safe.) 
+	 */
 	zero_index = find_zero_byte_in_word(next_counter, next_index,
 					    end_index);
 	if (zero_index < end_index) {
@@ -825,13 +843,17 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
 		return true;
 	}
 
-	// On architectures where unaligned word access is expensive, this
-	// would be a good place to advance to an alignment boundary.
+	/*
+	 * On architectures where unaligned word access is expensive, this 
+	 * would be a good place to advance to an alignment boundary. 
+	 */
 	next_index += BYTES_PER_WORD;
 	next_counter += BYTES_PER_WORD;
 
-	// Now we're word-aligned; check an word at a time until we find a word
-	// containing a zero. (Array is padded so reading past end is safe.)
+	/*
+	 * Now we're word-aligned; check an word at a time until we find a word 
+	 * containing a zero. (Array is padded so reading past end is safe.) 
+	 */
 	while (next_counter < end_counter) {
 		/*
 		 * The following code is currently an exact copy of the code
@@ -867,7 +889,7 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
 static bool search_current_reference_block(const struct ref_counts *ref_counts,
 					   slab_block_number *free_index_ptr)
 {
-	// Don't bother searching if the current block is known to be full.
+	/* Don't bother searching if the current block is known to be full. */
 	return ((ref_counts->search_cursor.block->allocated_count <
 		 COUNTS_PER_BLOCK) &&
 		vdo_find_free_block(ref_counts,
@@ -890,12 +912,12 @@ static bool search_current_reference_block(const struct ref_counts *ref_counts,
 static bool search_reference_blocks(struct ref_counts *ref_counts,
 				    slab_block_number *free_index_ptr)
 {
-	// Start searching at the saved search position in the current block.
+	/* Start searching at the saved search position in the current block. */
 	if (search_current_reference_block(ref_counts, free_index_ptr)) {
 		return true;
 	}
 
-	// Search each reference block up to the end of the slab.
+	/* Search each reference block up to the end of the slab. */
 	while (advance_search_cursor(ref_counts)) {
 		if (search_current_reference_block(ref_counts, free_index_ptr)) {
 			return true;
@@ -916,11 +938,13 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 {
 	struct reference_block *block =
 		vdo_get_reference_block(ref_counts, block_number);
-	// Make the initial transition from an unreferenced block to a
-	// provisionally allocated block.
+	/*
+	 * Make the initial transition from an unreferenced block to a 
+	 * provisionally allocated block. 
+	 */
 	ref_counts->counters[block_number] = PROVISIONAL_REFERENCE_COUNT;
 
-	// Account for the allocation.
+	/* Account for the allocation. */
 	block->allocated_count++;
 	ref_counts->free_blocks--;
 }
@@ -944,8 +968,10 @@ int vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
 			"free block must have ref count of zero");
 	make_provisional_reference(ref_counts, free_index);
 
-	// Update the search hint so the next search will start at the array
-	// index just past the free block we just found.
+	/*
+	 * Update the search hint so the next search will start at the array 
+	 * index just past the free block we just found. 
+	 */
 	ref_counts->search_cursor.index = (free_index + 1);
 
 	*allocated_ptr = index_to_pbn(ref_counts, free_index);
@@ -1029,7 +1055,7 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 		return;
 	}
 
-	// Update the slab summary to indicate this ref_counts is clean.
+	/* Update the slab summary to indicate this ref_counts is clean. */
 	offset = vdo_get_summarized_tail_block_offset(summary,
 						      ref_counts->slab->slab_number);
 	ref_counts->updating_slab_summary = true;
@@ -1073,7 +1099,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 
 	ref_counts->active_count--;
 
-	// Release the slab journal lock.
+	/* Release the slab journal lock. */
 	adjust_vdo_slab_journal_block_reference(ref_counts->slab->journal,
 						block->slab_journal_lock_to_release,
 						-1);
@@ -1091,20 +1117,24 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 		return;
 	}
 
-	// Re-queue the block if it was re-dirtied while it was writing.
+	/* Re-queue the block if it was re-dirtied while it was writing. */
 	if (block->is_dirty) {
 		enqueue_dirty_block(block);
 		if (is_vdo_slab_draining(ref_counts->slab)) {
-			// We must be saving, and this block will otherwise not
-			// be relaunched.
+			/*
+			 * We must be saving, and this block will otherwise not 
+			 * be relaunched. 
+			 */
 			vdo_save_dirty_reference_blocks(ref_counts);
 		}
 
 		return;
 	}
 
-	// Mark the ref_counts as clean in the slab summary if there are no
-	// dirty or writing blocks and no summary update in progress.
+	/*
+	 * Mark the ref_counts as clean in the slab summary if there are no 
+	 * dirty or writing blocks and no summary update in progress. 
+	 */
 	if (!has_active_io(ref_counts)
 	    && !has_waiters(&ref_counts->dirty_blocks)) {
 		update_slab_summary_as_clean(ref_counts);
@@ -1181,9 +1211,11 @@ static void write_reference_block(struct waiter *block_waiter,
 	 */
 	block->is_dirty = false;
 
-	// Flush before writing to ensure that the recovery journal and slab
-	// journal entries which cover this reference update are stable
-	// (VDO-2331).
+	/*
+	 * Flush before writing to ensure that the recovery journal and slab 
+	 * journal entries which cover this reference update are stable 
+	 * (VDO-2331).
+	 */
 	WRITE_ONCE(block->ref_counts->statistics->blocks_written,
 		   block->ref_counts->statistics->blocks_written + 1);
 	entry->vio->completion.callback_thread_id =
@@ -1222,7 +1254,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 	result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
 						 block_waiter);
 	if (result != VDO_SUCCESS) {
-		// This should never happen.
+		/* This should never happen. */
 		ref_counts->active_count--;
 		enter_ref_counts_read_only_mode(ref_counts, result);
 	}
@@ -1249,7 +1281,7 @@ void vdo_save_several_reference_blocks(struct ref_counts *ref_counts,
 	}
 
 	blocks_to_write = dirty_block_count / flush_divisor;
-	// Always save at least one block.
+	/* Always save at least one block. */
 	if (blocks_to_write == 0) {
 		blocks_to_write = 1;
 	}
@@ -1318,8 +1350,10 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
 		       sector->counts,
 		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
-		// The slab_journal_point must be the latest point found in any
-		// sector.
+		/*
+		 * The slab_journal_point must be the latest point found in any 
+		 * sector. 
+		 */
 		if (before_vdo_journal_point(&ref_counts->slab_journal_point,
 					     &block->commit_points[i])) {
 			ref_counts->slab_journal_point =
@@ -1409,7 +1443,7 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 		result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
 							 block_waiter);
 		if (result != VDO_SUCCESS) {
-			// This should never happen.
+			/* This should never happen. */
 			ref_counts->active_count -=
 				(ref_counts->reference_block_count - i);
 			enter_ref_counts_read_only_mode(ref_counts, result);
@@ -1440,8 +1474,10 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 	} else if (state == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING) {
 		if (!vdo_must_load_ref_counts(slab->allocator->summary,
 					      slab->slab_number)) {
-			// These reference counts were never written, so mark
-			// them all dirty.
+			/*
+			 * These reference counts were never written, so mark 
+			 * them all dirty. 
+			 */
 			vdo_dirty_all_reference_blocks(ref_counts);
 		}
 
@@ -1480,7 +1516,7 @@ void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
 /**********************************************************************/
 void dump_vdo_ref_counts(const struct ref_counts *ref_counts)
 {
-	// Terse because there are a lot of slabs to dump and syslog is lossy.
+	/* Terse because there are a lot of slabs to dump and syslog is lossy. */
 	uds_log_info("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
 		     ref_counts->free_blocks,
 		     ref_counts->block_count,

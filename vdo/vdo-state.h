@@ -36,7 +36,7 @@ enum vdo_state {
 	VDO_REPLAYING = 6,
 	VDO_REBUILD_FOR_UPGRADE = 7,
 
-	// Keep VDO_STATE_COUNT at the bottom.
+	/* Keep VDO_STATE_COUNT at the bottom. */
 	VDO_STATE_COUNT
 };
 
@@ -50,4 +50,4 @@ enum vdo_state {
  **/
 const char * __must_check describe_vdo_state(enum vdo_state state);
 
-#endif // VDO_STATE_H
+#endif /* VDO_STATE_H */

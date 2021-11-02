@@ -31,13 +31,13 @@
 #include "vdoStringUtils.h"
 
 enum {
-	// If we bump this, update the arrays below
+	/* If we bump this, update the arrays below */
 	TABLE_VERSION = 4,
 };
 
-// arrays for handling different table versions
+/* arrays for handling different table versions */
 static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
-// pool name no longer used. only here for verification of older versions
+/* pool name no longer used. only here for verification of older versions */
 static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
 /**
@@ -55,20 +55,22 @@ static int get_version_number(int argc,
 			      char **error_ptr,
 			      unsigned int *version_ptr)
 {
-	// version, if it exists, is in a form of V<n>
+	/* version, if it exists, is in a form of V<n> */
 	if (sscanf(argv[0], "V%u", version_ptr) == 1) {
 		if (*version_ptr < 1 || *version_ptr > TABLE_VERSION) {
 			*error_ptr = "Unknown version number detected";
 			return VDO_BAD_CONFIGURATION;
 		}
 	} else {
-		// V0 actually has no version number in the table string
+		/* V0 actually has no version number in the table string */
 		*version_ptr = 0;
 	}
 
-	// V0 and V1 have no optional parameters. There will always be
-	// a parameter for thread config, even if it's a "." to show
-	// it's an empty list.
+	/*
+	 * V0 and V1 have no optional parameters. There will always be 
+	 * a parameter for thread config, even if it's a "." to show 
+	 * it's an empty list.
+	 */
 	if (*version_ptr <= 1) {
 		if (argc != REQUIRED_ARGC[*version_ptr]) {
 			*error_ptr =
@@ -138,7 +140,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 					  unsigned int count,
 					  struct thread_count_config *config)
 {
-	// Handle limited thread parameters
+	/* Handle limited thread parameters */
 	if (strcmp(thread_param_type, "bioRotationInterval") == 0) {
 		if (count == 0) {
 			uds_log_error("thread config string error:  'bioRotationInterval' of at least 1 is required");
@@ -167,7 +169,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		config->physical_zones = count;
 		return VDO_SUCCESS;
 	} else {
-		// Handle other thread count parameters
+		/* Handle other thread count parameters */
 		if (count > MAXIMUM_VDO_THREADS) {
 			uds_log_error("thread config string error: at most %d '%s' threads are allowed",
 				      MAXIMUM_VDO_THREADS,
@@ -198,8 +200,10 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		}
 	}
 
-	// Don't fail, just log. This will handle version mismatches between
-	// user mode tools and kernel.
+	/*
+	 * Don't fail, just log. This will handle version mismatches between 
+	 * user mode tools and kernel. 
+	 */
 	uds_log_info("unknown thread parameter type \"%s\"",
 		     thread_param_type);
 	return VDO_SUCCESS;
@@ -307,13 +311,13 @@ static int process_one_key_value_pair(const char *key,
 				      unsigned int value,
 				      struct device_config *config)
 {
-	// Non thread optional parameters
+	/* Non thread optional parameters */
 	if (strcmp(key, "maxDiscard") == 0) {
 		if (value == 0) {
 			uds_log_error("optional parameter error: at least one max discard block required");
 			return -EINVAL;
 		}
-		// Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9
+		/* Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9 */
 		if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
 			uds_log_error("optional parameter error: at most %d max discard  blocks are allowed",
 				      UINT_MAX / VDO_BLOCK_SIZE);
@@ -322,7 +326,7 @@ static int process_one_key_value_pair(const char *key,
 		config->max_discard_blocks = value;
 		return VDO_SUCCESS;
 	}
-	// Handles unknown key names
+	/* Handles unknown key names */
 	return process_one_thread_config_spec(key, value,
 					      &config->thread_counts);
 }
@@ -352,7 +356,7 @@ static int parse_one_key_value_pair(const char *key,
 		return parse_bool(value, "on", "off", &config->compression);
 	}
 
-	// The remaining arguments must have integral values.
+	/* The remaining arguments must have integral values. */
 	result = vdo_string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("optional config string error: integer value needed, found \"%s\"",
@@ -497,7 +501,7 @@ int parse_vdo_device_config(int argc,
 	config->logical_blocks = logical_bytes / VDO_BLOCK_SIZE;
 	INIT_LIST_HEAD(&config->config_list);
 
-	// Save the original string.
+	/* Save the original string. */
 	result = vdo_join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
@@ -506,15 +510,16 @@ int parse_vdo_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Set defaults.
-	//
-	// XXX Defaults for bio_threads and bio_rotation_interval are currently
-	// defined using the old configuration scheme of constants.  These
-	// values are relied upon for performance testing on MGH machines
-	// currently. This should be replaced with the normally used testing
-	// defaults being defined in the file-based thread-configuration
-	// settings.  The values used as defaults internally should really be
-	// those needed for VDO in its default shipped-product state.
+	/* Set defaults.
+	 *
+	 * XXX Defaults for bio_threads and bio_rotation_interval are currently 
+	 * defined using the old configuration scheme of constants.  These 
+	 * values are relied upon for performance testing on MGH machines 
+	 * currently. This should be replaced with the normally used testing 
+	 * defaults being defined in the file-based thread-configuration 
+	 * settings.  The values used as defaults internally should really be 
+	 * those needed for VDO in its default shipped-product state.
+	 */
 	config->thread_counts = (struct thread_count_config) {
 		.bio_ack_threads = 1,
 		.bio_threads = DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT,
@@ -534,11 +539,11 @@ int parse_vdo_device_config(int argc,
 
 	result = get_version_number(argc, argv, error_ptr, &config->version);
 	if (result != VDO_SUCCESS) {
-		// get_version_number sets error_ptr itself.
+		/* get_version_number sets error_ptr itself. */
 		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
-	// Move the arg pointer forward only if the argument was there.
+	/* Move the arg pointer forward only if the argument was there. */
 	if (config->version >= 1) {
 		dm_shift_arg(&arg_set);
 	}
@@ -553,7 +558,7 @@ int parse_vdo_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Get the physical blocks, if known.
+	/* Get the physical blocks, if known. */
 	if (config->version >= 1) {
 		result = kstrtoull(dm_shift_arg(&arg_set),
 				   10,
@@ -566,7 +571,7 @@ int parse_vdo_device_config(int argc,
 		}
 	}
 
-	// Get the logical block size and validate
+	/* Get the logical block size and validate */
 	result = parse_bool(dm_shift_arg(&arg_set),
 			    "512",
 			    "4096",
@@ -579,12 +584,12 @@ int parse_vdo_device_config(int argc,
 	}
 	config->logical_block_size = (enable_512e ? 512 : 4096);
 
-	// Skip past the two no longer used read cache options.
+	/* Skip past the two no longer used read cache options. */
 	if (config->version <= 1) {
 		dm_consume_args(&arg_set, 2);
 	}
 
-	// Get the page cache size.
+	/* Get the page cache size. */
 	result = vdo_string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
@@ -593,7 +598,7 @@ int parse_vdo_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Get the block map era length.
+	/* Get the block map era length. */
 	result = vdo_string_to_uint(dm_shift_arg(&arg_set),
 				    &config->block_map_maximum_age);
 	if (result != VDO_SUCCESS) {
@@ -603,20 +608,22 @@ int parse_vdo_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Skip past the no longer used MD RAID5 optimization mode
+	/* Skip past the no longer used MD RAID5 optimization mode */
 	if (config->version <= 2) {
 		dm_consume_args(&arg_set, 1);
 	}
 
-	// Skip past the no longer used write policy setting
+	/* Skip past the no longer used write policy setting */
 	if (config->version <= 3) {
 		dm_consume_args(&arg_set, 1);
 	}
 
-	// Skip past the no longer used pool name for older table lines
+	/* Skip past the no longer used pool name for older table lines */
 	if (config->version <= 2) {
-		// Make sure the enum to get the pool name from argv directly
-		// is still in sync with the parsing of the table line.
+		/*
+		 * Make sure the enum to get the pool name from argv directly 
+		 * is still in sync with the parsing of the table line. 
+		 */
 		if (&arg_set.argv[0] !=
 		    &argv[POOL_NAME_ARG_INDEX[config->version]]) {
 			handle_parse_error(config,
@@ -627,10 +634,10 @@ int parse_vdo_device_config(int argc,
 		dm_shift_arg(&arg_set);
 	}
 
-	// Get the optional arguments and validate.
+	/* Get the optional arguments and validate. */
 	result = parse_optional_arguments(&arg_set, error_ptr, config);
 	if (result != VDO_SUCCESS) {
-		// parse_optional_arguments sets error_ptr itself.
+		/* parse_optional_arguments sets error_ptr itself. */
 		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
@@ -697,7 +704,7 @@ void free_vdo_device_config(struct device_config *config)
 	UDS_FREE(config->parent_device_name);
 	UDS_FREE(config->original_string);
 
-	// Reduce the chance a use-after-free (as in BZ 1669960) happens to work.
+	/* Reduce the chance a use-after-free (as in BZ 1669960) happens to work. */
 	memset(config, 0, sizeof(*config));
 
 	UDS_FREE(config);

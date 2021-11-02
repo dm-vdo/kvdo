@@ -129,7 +129,7 @@ void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 {
 	idle_pbn_lock *idle;
 
-	// A bit expensive, but will promptly catch some use-after-free errors.
+	/* A bit expensive, but will promptly catch some use-after-free errors. */
 	memset(lock, 0, sizeof(*lock));
 
 	idle = container_of(lock, idle_pbn_lock, lock);

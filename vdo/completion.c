@@ -31,11 +31,13 @@
 #include "vdo.h"
 
 static const char *VDO_COMPLETION_TYPE_NAMES[] = {
-	// Keep VDO_UNSET_COMPLETION_TYPE at the top.
+	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
 	"VDO_UNSET_COMPLETION_TYPE",
 
-	// Keep this block in sorted order. If you add or remove an
-	// entry, be sure to update the corresponding list in completion.h.
+	/*
+	 * Keep this block in sorted order. If you add or remove an 
+	 * entry, be sure to update the corresponding list in completion.h. 
+	 */
 	"VDO_ACTION_COMPLETION",
 	"VDO_ADMIN_COMPLETION",
 	"VDO_BLOCK_ALLOCATOR_COMPLETION",
@@ -178,8 +180,10 @@ preserve_vdo_completion_error_and_continue(struct vdo_completion *completion)
 static const char *
 get_completion_type_name(enum vdo_completion_type completion_type)
 {
-	// Try to catch failures to update the array when the enum values
-	// change.
+	/*
+	 * Try to catch failures to update the array when the enum values 
+	 * change. 
+	 */
 	STATIC_ASSERT(ARRAY_SIZE(VDO_COMPLETION_TYPE_NAMES) ==
 		      (VDO_MAX_COMPLETION_TYPE - VDO_UNSET_COMPLETION_TYPE));
 
@@ -237,7 +241,7 @@ void enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
 			   &completion->work_item);
 }
 
-// Preparing work items
+/* Preparing work items */
 
 /**********************************************************************/
 void setup_work_item(struct vdo_work_item *item,

@@ -37,14 +37,14 @@ struct fixed_layout {
 };
 
 struct partition {
-	enum partition_id id; // The id of this partition
-	struct fixed_layout *layout; // The layout to which this partition
-				     // belongs
-	physical_block_number_t offset; // The offset into the layout of this
-				    // partition
-	physical_block_number_t base; // The untranslated number of the first block
-	block_count_t count; // The number of blocks in the partition
-	struct partition *next; // A pointer to the next partition in the layout
+	enum partition_id id; /* The id of this partition */
+	struct fixed_layout *layout; /* The layout to which this partition */
+				     /* belongs */
+	physical_block_number_t offset; /* The offset into the layout of this */
+				    /* partition */
+	physical_block_number_t base; /* The untranslated number of the first block */
+	block_count_t count; /* The number of blocks in the partition */
+	struct partition *next; /* A pointer to the next partition in the layout */
 };
 
 struct layout_3_0 {
@@ -66,8 +66,8 @@ static const struct header LAYOUT_HEADER_3_0 = {
 		.major_version = 3,
 		.minor_version = 0,
 	},
-	.size = sizeof(struct layout_3_0), // Minimum size
-					   // (contains no partitions)
+	.size = sizeof(struct layout_3_0), /* Minimum size */
+					   /* (contains no partitions) */
 };
 
 /**********************************************************************/
@@ -535,7 +535,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 		return result;
 	}
 
-	// Layout is variable size, so only do a minimum size check here.
+	/* Layout is variable size, so only do a minimum size check here. */
 	result = validate_vdo_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;

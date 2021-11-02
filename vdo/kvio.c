@@ -36,8 +36,10 @@
 /**********************************************************************/
 void write_compressed_block_vio(struct vio *vio)
 {
-	// This method assumes that compressed writes never set the flush or
-	// FUA bits.
+	/*
+	 * This method assumes that compressed writes never set the flush or 
+	 * FUA bits. 
+	 */
 	int result = ASSERT(is_compressed_write_vio(vio),
 			    "Compressed write vio has correct type");
 	if (result != VDO_SUCCESS) {
@@ -45,7 +47,7 @@ void write_compressed_block_vio(struct vio *vio)
 		return;
 	}
 
-	// Write the compressed block, using the compressed vio's own bio.
+	/* Write the compressed block, using the compressed vio's own bio. */
 	set_vio_physical(vio, vio_as_allocating_vio(vio)->allocation);
 	result = prepare_vio_for_io(vio,
 				    vio->data,
@@ -115,6 +117,6 @@ void submit_metadata_vio(struct vio *vio)
 		return;
 	}
 
-	// Perform the metadata IO, using the metadata vio's own bio.
+	/* Perform the metadata IO, using the metadata vio's own bio. */
 	vdo_submit_bio(vio->bio, get_metadata_priority(vio));
 }

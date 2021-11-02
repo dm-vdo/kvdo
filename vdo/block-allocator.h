@@ -391,4 +391,4 @@ get_vdo_ref_counts_statistics(const struct block_allocator *allocator);
  **/
 void dump_vdo_block_allocator(const struct block_allocator *allocator);
 
-#endif // BLOCK_ALLOCATOR_H
+#endif /* BLOCK_ALLOCATOR_H */

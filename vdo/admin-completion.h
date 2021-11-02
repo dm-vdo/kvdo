@@ -53,8 +53,10 @@ typedef thread_id_t
 vdo_thread_id_getter_for_phase(struct admin_completion *admin_completion);
 
 struct admin_completion {
-	// XXX should be replaced by container_of() when enqueuables go away
-	// and this becomes a field of struct vdo.
+	/*
+	 * XXX should be replaced by container_of() when enqueuables go away 
+	 * and this becomes a field of struct vdo. 
+	 */
 	struct vdo *vdo;
 	/** The completion */
 	struct vdo_completion completion;

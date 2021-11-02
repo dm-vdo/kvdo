@@ -113,9 +113,11 @@ static inline physical_block_number_t __must_check
 compute_vdo_recovery_journal_block_number(block_count_t journal_size,
 					  sequence_number_t sequence_number)
 {
-	// Since journal size is a power of two, the block number modulus can
-	// just be extracted from the low-order bits of the sequence.
+	/*
+	 * Since journal size is a power of two, the block number modulus can 
+	 * just be extracted from the low-order bits of the sequence. 
+	 */
 	return (sequence_number & (journal_size - 1));
 }
 
-#endif // RECOVERY_JOURNAL_FORMAT_H
+#endif /* RECOVERY_JOURNAL_FORMAT_H */

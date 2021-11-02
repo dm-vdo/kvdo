@@ -54,4 +54,4 @@ void vdo_dump_all(struct vdo *vdo, const char *why);
  **/
 void dump_data_vio(void *data);
 
-#endif // DUMP_H
+#endif /* DUMP_H */

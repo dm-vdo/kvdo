@@ -33,4 +33,4 @@
  **/
 void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent);
 
-#endif // READ_ONLY_REBUILD_H
+#endif /* READ_ONLY_REBUILD_H */

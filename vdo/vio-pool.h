@@ -120,4 +120,4 @@ static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 	return list_entry(entry, struct vio_pool_entry, available_entry);
 }
 
-#endif // VIO_POOL_H
+#endif /* VIO_POOL_H */

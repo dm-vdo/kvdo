@@ -106,7 +106,7 @@ static void write_super_block(struct vdo *vdo,
 	case VDO_FORCE_REBUILD:
 	case VDO_RECOVERING:
 	case VDO_REBUILD_FOR_UPGRADE:
-		// No need to write the super block in these cases
+		/* No need to write the super block in these cases */
 		complete_vdo_completion(completion);
 		return;
 
@@ -243,12 +243,14 @@ int preresume_vdo(struct vdo *vdo,
 {
 	int result;
 
-	// The VDO was not in a state to be resumed. This should never happen.
+	/* The VDO was not in a state to be resumed. This should never happen. */
 	result = apply_new_vdo_configuration(vdo, config);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
 
-	// Now that we've tried to modify the vdo, the new config *is* the
-	// config, whether the modifications worked or not.
+	/*
+	 * Now that we've tried to modify the vdo, the new config *is* the 
+	 * config, whether the modifications worked or not. 
+	 */
 	vdo->device_config = config;
 
 	/*
@@ -265,7 +267,7 @@ int preresume_vdo(struct vdo *vdo,
 	}
 
 	if (get_vdo_admin_state(vdo)->normal) {
-		// The VDO was just started, so we don't need to resume it.
+		/* The VDO was just started, so we don't need to resume it. */
 		return VDO_SUCCESS;
 	}
 

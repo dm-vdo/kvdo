@@ -63,7 +63,7 @@ static unsigned int next_instance;
  **/
 static size_t get_bit_array_size(unsigned int bit_count)
 {
-	// Round up to a multiple of the word size and convert to a byte count.
+	/* Round up to a multiple of the word size and convert to a byte count. */
 	return (compute_bucket_count(bit_count, BITS_PER_LONG) *
 		sizeof(unsigned long));
 }
@@ -98,7 +98,7 @@ static int grow_bit_array(void)
 static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 {
 	unsigned int instance;
-	// If there are no unallocated instances, grow the bit array.
+	/* If there are no unallocated instances, grow the bit array. */
 	if (instance_count >= bit_count) {
 		int result = grow_bit_array();
 
@@ -107,13 +107,17 @@ static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 		}
 	}
 
-	// There must be a zero bit somewhere now. Find it, starting just after
-	// the last instance allocated.
+	/*
+	 * There must be a zero bit somewhere now. Find it, starting just after 
+	 * the last instance allocated. 
+	 */
 	instance = find_next_zero_bit(words, bit_count, next_instance);
 	if (instance >= bit_count) {
 		int result;
-		// Nothing free after next_instance, so wrap around to instance
-		// zero.
+		/*
+		 * Nothing free after next_instance, so wrap around to instance 
+		 * zero. 
+		 */
 		instance = find_first_zero_bit(words, bit_count);
 		result = ASSERT(instance < bit_count,
 				"impossibly, no zero bit found");

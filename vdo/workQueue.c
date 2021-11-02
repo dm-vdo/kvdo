@@ -165,7 +165,7 @@ as_round_robin_work_queue(struct vdo_work_queue *queue)
 		 container_of(queue, struct round_robin_work_queue, common));
 }
 
-// Finding the simple_work_queue to actually operate on.
+/* Finding the simple_work_queue to actually operate on. */
 
 /**
  * Pick the subordinate service queue to use, distributing the work evenly
@@ -210,7 +210,7 @@ pick_simple_queue(struct vdo_work_queue *queue)
 			as_simple_work_queue(queue));
 }
 
-// Processing normal work items.
+/* Processing normal work items. */
 
 /**
  * Scan the work queue's work item lists, and dequeue and return the next
@@ -269,7 +269,7 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 
 	item->my_queue = &queue->common;
 
-	// Funnel queue handles the synchronization for the put.
+	/* Funnel queue handles the synchronization for the put. */
 	funnel_queue_put(queue->priority_lists[item->priority],
 			 &item->work_queue_entry_link);
 
@@ -301,7 +301,7 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 
 	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
 
-	// Despite the name, there's a maximum of one thread in this list.
+	/* Despite the name, there's a maximum of one thread in this list. */
 	wake_up(&queue->waiting_worker_threads);
 }
 
@@ -364,7 +364,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		 * little.)
 		 */
 		atomic_set(&queue->idle, 1);
-		smp_mb(); // store-load barrier between "idle" and funnel queue
+		smp_mb(); /* store-load barrier between "idle" and funnel queue */
 
 		item = poll_for_work_item(queue);
 		if (item != NULL) {
@@ -415,7 +415,7 @@ static void process_work_item(struct simple_work_queue *queue,
 	}
 
 	item->work(item);
-	// We just surrendered control of the work item; no more access.
+	/* We just surrendered control of the work item; no more access. */
 	item = NULL;
 
 }
@@ -450,7 +450,7 @@ static void service_work_queue(struct simple_work_queue *queue)
 		}
 
 		if (item == NULL) {
-			// No work items but kthread_should_stop was triggered.
+			/* No work items but kthread_should_stop was triggered. */
 			break;
 		}
 
@@ -494,7 +494,7 @@ static int work_queue_runner(void *ptr)
 	return 0;
 }
 
-// Creation & teardown
+/* Creation & teardown */
 
 /**
  * Tear down a simple work queue.
@@ -724,7 +724,7 @@ int make_work_queue(const char *thread_name_prefix,
 						&queue->service_queues[i]);
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
-			// Destroy previously created subordinates.
+			/* Destroy previously created subordinates. */
 			free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
@@ -745,11 +745,13 @@ static void finish_simple_work_queue(struct simple_work_queue *queue)
 		return;
 	}
 
-	// Reduces (but does not eliminate) the chance of the sysfs support
-	// reporting the pid even after the thread is gone.
+	/*
+	 * Reduces (but does not eliminate) the chance of the sysfs support 
+	 * reporting the pid even after the thread is gone. 
+	 */
 	WRITE_ONCE(queue->thread_pid, 0);
 
-	// Tells the worker thread to shut down and waits for it to exit.
+	/* Tells the worker thread to shut down and waits for it to exit. */
 	kthread_stop(queue->thread);
 	queue->thread = NULL;
 }
@@ -786,7 +788,7 @@ void finish_work_queue(struct vdo_work_queue *queue)
 	}
 }
 
-// Debugging dumps
+/* Debugging dumps */
 
 /**********************************************************************/
 static void dump_simple_work_queue(struct simple_work_queue *queue)
@@ -805,8 +807,10 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		     thread_status,
 		     task_state_report);
 
-	// ->lock spin lock status?
-	// ->waiting_worker_threads wait queue status? anyone waiting?
+	/*
+	 * ->lock spin lock status? 
+	 * ->waiting_worker_threads wait queue status? anyone waiting? 
+	 */
 }
 
 /**********************************************************************/
@@ -887,7 +891,7 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 	}
 }
 
-// Work submission
+/* Work submission */
 
 /**********************************************************************/
 void enqueue_work_queue(struct vdo_work_queue *queue,
@@ -896,7 +900,7 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 	enqueue_work_queue_item(pick_simple_queue(queue), item);
 }
 
-// Misc
+/* Misc */
 
 /**
  * Return the work queue pointer recorded at initialization time in
@@ -944,7 +948,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	}
 
 	if (kthread_func(current) != work_queue_runner) {
-		// Not a VDO workQueue thread.
+		/* Not a VDO workQueue thread. */
 		return NULL;
 	}
 	return kthread_data(current);

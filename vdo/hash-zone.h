@@ -137,4 +137,4 @@ void bump_vdo_hash_zone_collision_count(struct hash_zone *zone);
  **/
 void dump_vdo_hash_zone(const struct hash_zone *zone);
 
-#endif // HASH_ZONE_H
+#endif /* HASH_ZONE_H */

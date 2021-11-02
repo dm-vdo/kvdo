@@ -135,8 +135,10 @@ struct vdo {
 	bool dump_on_shutdown;
 	atomic_t processing_message;
 
-	// Statistics
-	/* Atomic stats counters */
+	/*
+	 * Statistics 
+	 * Atomic stats counters 
+	 */
 	struct atomic_statistics stats;
 	/* Used to gather statistics without allocating memory */
 	struct vdo_statistics stats_buffer;
@@ -158,7 +160,7 @@ struct vdo {
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;
 
-	// For sysfs
+	/* For sysfs */
 	struct kobject vdo_directory;
 	struct kobject stats_directory;
 

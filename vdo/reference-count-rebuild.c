@@ -265,8 +265,10 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		return VDO_SUCCESS;
 	}
 
-	// Remove any bogus entries which exist beyond the end of the logical
-	// space.
+	/*
+	 * Remove any bogus entries which exist beyond the end of the logical 
+	 * space. 
+	 */
 	if (get_vdo_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		slot_number_t slot;
 
@@ -283,14 +285,14 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		}
 	}
 
-	// Inform the slab depot of all entries on this page.
+	/* Inform the slab depot of all entries on this page. */
 	for (slot = 0; slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 		struct vdo_slab *slab;
 		int result;
 		struct data_location mapping =
 			unpack_vdo_block_map_entry(&page->entries[slot]);
 		if (!vdo_is_valid_location(&mapping)) {
-			// This entry is invalid, so remove it from the page.
+			/* This entry is invalid, so remove it from the page. */
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
@@ -307,8 +309,10 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		}
 
 		if (!vdo_is_physical_data_block(rebuild->depot, mapping.pbn)) {
-			// This is a nonsense mapping. Remove it from the map so
-			// we're at least consistent and mark the page dirty.
+			/*
+			 * This is a nonsense mapping. Remove it from the map so 
+			 * we're at least consistent and mark the page dirty. 
+			 */
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
@@ -361,8 +365,10 @@ static void page_loaded(struct vdo_completion *completion)
 		return;
 	}
 
-	// Advance progress to the next page, and fetch the next page we
-	// haven't yet requested.
+	/*
+	 * Advance progress to the next page, and fetch the next page we 
+	 * haven't yet requested. 
+	 */
 	fetch_page(rebuild, completion);
 }
 
@@ -417,8 +423,10 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 		as_rebuild_completion(completion->parent);
 	*rebuild->logical_blocks_used = 0;
 
-	// The PBN calculation doesn't work until the tree pages have been
-	// loaded, so we can't set this value at the start of rebuild.
+	/*
+	 * The PBN calculation doesn't work until the tree pages have been 
+	 * loaded, so we can't set this value at the start of rebuild. 
+	 */
 	rebuild->last_slot = (struct block_map_slot){
 		.slot = rebuild->block_map->entry_count
 			% VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
@@ -426,8 +434,10 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 						   rebuild->leaf_pages - 1),
 	};
 
-	// Prevent any page from being processed until all pages have been
-	// launched.
+	/*
+	 * Prevent any page from being processed until all pages have been 
+	 * launched. 
+	 */
 	rebuild->launching = true;
 	for (i = 0; i < rebuild->page_count; i++) {
 		fetch_page(rebuild, &rebuild->page_completions[i].completion);
@@ -492,8 +502,10 @@ void rebuild_vdo_reference_counts(struct vdo *vdo,
 		return;
 	}
 
-	// Completion chaining from page cache hits can lead to stack overflow
-	// during the rebuild, so clear out the cache before this rebuild phase.
+	/*
+	 * Completion chaining from page cache hits can lead to stack overflow 
+	 * during the rebuild, so clear out the cache before this rebuild phase. 
+	 */
 	result =
 		invalidate_vdo_page_cache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
@@ -501,7 +513,7 @@ void rebuild_vdo_reference_counts(struct vdo *vdo,
 		return;
 	}
 
-	// First traverse the block map trees.
+	/* First traverse the block map trees. */
 	*rebuild->block_map_data_blocks = 0;
 	completion = &rebuild->sub_task_completion;
 	prepare_vdo_completion(completion, rebuild_from_leaves,

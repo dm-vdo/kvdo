@@ -224,8 +224,10 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 {
 	vdo_enter_read_only_mode(zone->map_zone->read_only_notifier, result);
 
-	// We are in read-only mode, so we won't ever write any page out. Just
-	// take all waiters off the queue so the tree zone can be closed.
+	/*
+	 * We are in read-only mode, so we won't ever write any page out. Just 
+	 * take all waiters off the queue so the tree zone can be closed. 
+	 */
 	while (has_waiters(&zone->flush_waiters)) {
 		dequeue_next_waiter(&zone->flush_waiters);
 	}
@@ -553,8 +555,10 @@ static void write_page(struct tree_page *tree_page,
 
 	if ((zone->flusher != tree_page) &&
 	    (is_not_older(zone, tree_page->generation, zone->generation))) {
-		// This page was re-dirtied after the last flush was issued,
-		// hence we need to do another flush.
+		/*
+		 * This page was re-dirtied after the last flush was issued, 
+		 * hence we need to do another flush. 
+		 */
 		enqueue_page(tree_page, zone);
 		return_to_pool(zone, entry);
 		return;
@@ -569,7 +573,7 @@ static void write_page(struct tree_page *tree_page,
 	tree_page->writing_generation = tree_page->generation;
 	tree_page->writing_recovery_lock = tree_page->recovery_lock;
 
-	// Clear this now so that we know this page is not on any dirty list.
+	/* Clear this now so that we know this page is not on any dirty list. */
 	tree_page->recovery_lock = 0;
 
 	if (!mark_vdo_block_map_page_initialized(page, true)) {
@@ -760,7 +764,7 @@ is_invalid_tree_entry(const struct vdo *vdo,
 		return true;
 	}
 
-	// Roots aren't physical data blocks, so we can't check their PBNs.
+	/* Roots aren't physical data blocks, so we can't check their PBNs. */
 	if (height == VDO_BLOCK_MAP_TREE_HEIGHT) {
 		return false;
 	}
@@ -802,7 +806,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	}
 
 	if (!vdo_is_mapped_location(&mapping)) {
-		// The page we need is unallocated
+		/* The page we need is unallocated */
 		allocate_block_map_page(get_block_map_tree_zone(data_vio),
 					data_vio);
 		return;
@@ -814,7 +818,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		return;
 	}
 
-	// We know what page we need to load next
+	/* We know what page we need to load next */
 	load_block_map_page(get_block_map_tree_zone(data_vio), data_vio);
 }
 
@@ -863,7 +867,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	}
 	return_vio_to_pool(zone->vio_pool, entry);
 
-	// Release our claim to the load and wake any waiters
+	/* Release our claim to the load and wake any waiters */
 	release_page_lock(data_vio, "load");
 	notify_all_waiters(&tree_lock->waiters, continue_load_for_waiter, page);
 	continue_with_loaded_page(data_vio, page);
@@ -944,12 +948,12 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	}
 
 	if (lock_holder == NULL) {
-		// We got the lock
+		/* We got the lock */
 		data_vio->tree_lock.locked = true;
 		return VDO_SUCCESS;
 	}
 
-	// Someone else is loading or allocating the page we need
+	/* Someone else is loading or allocating the page we need */
 	return enqueue_data_vio(&lock_holder->waiters, data_vio);
 }
 
@@ -1073,7 +1077,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 
 	pbn = tree_lock->tree_slots[height - 1].block_map_slot.pbn;
 
-	// Record the allocation.
+	/* Record the allocation. */
 	page = (struct block_map_page *) tree_page->page_buffer;
 	old_lock = tree_page->recovery_lock;
 	update_vdo_block_map_page(page, data_vio, pbn,
@@ -1081,14 +1085,16 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 				  &tree_page->recovery_lock);
 
 	if (is_waiting(&tree_page->waiter)) {
-		// This page is waiting to be written out.
+		/* This page is waiting to be written out. */
 		if (zone->flusher != tree_page) {
-			// The outstanding flush won't cover the update we just
-			// made, so mark the page as needing another flush.
+			/*
+			 * The outstanding flush won't cover the update we just 
+			 * made, so mark the page as needing another flush. 
+			 */
 			set_generation(zone, tree_page, zone->generation, true);
 		}
 	} else {
-		// Put the page on a dirty list
+		/* Put the page on a dirty list */
 		if (old_lock == 0) {
 			INIT_LIST_HEAD(&tree_page->entry);
 		}
@@ -1100,7 +1106,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 
 	tree_lock->height--;
 	if (height > 1) {
-		// Format the interior node we just allocated (in memory).
+		/* Format the interior node we just allocated (in memory). */
 		tree_page = get_tree_page(zone, tree_lock);
 		format_vdo_block_map_page(tree_page->page_buffer,
 					  zone->map_zone->block_map->nonce,
@@ -1108,7 +1114,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 					  false);
 	}
 
-	// Release our claim to the allocation and wake any waiters
+	/* Release our claim to the allocation and wake any waiters */
 	release_page_lock(data_vio, "allocation");
 	notify_all_waiters(&tree_lock->waiters, continue_allocation_for_waiter,
 			   &pbn);
@@ -1140,7 +1146,8 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
 
 	vio_release_allocation_lock(allocating_vio);
 	vio_reset_allocation(allocating_vio);
-	launch_data_vio_logical_callback(data_vio, finish_block_map_allocation);
+	launch_data_vio_logical_callback(data_vio,
+					 finish_block_map_allocation);
 }
 
 /**
@@ -1188,7 +1195,8 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 		return;
 	}
 
-	set_data_vio_allocated_zone_callback(data_vio, set_block_map_page_reference_count);
+	set_data_vio_allocated_zone_callback(data_vio,
+					     set_block_map_page_reference_count);
 	add_vdo_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
@@ -1209,8 +1217,7 @@ continue_block_map_page_allocation(struct vdo_completion *completion)
 	physical_block_number_t pbn = allocating_vio->allocation;
 
 	if (pbn == VDO_ZERO_BLOCK) {
-		set_data_vio_logical_callback(data_vio,
-					      allocation_failure);
+		set_data_vio_logical_callback(data_vio, allocation_failure);
 		continue_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
@@ -1221,7 +1228,8 @@ continue_block_map_page_allocation(struct vdo_completion *completion)
 						 VDO_MAPPING_STATE_UNCOMPRESSED,
 						 allocating_vio->allocation_lock,
 						 &data_vio->operation);
-	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation);
+	launch_data_vio_journal_callback(data_vio,
+					 journal_block_map_allocation);
 }
 
 /**
@@ -1236,8 +1244,10 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 	int result;
 
 	if (!is_write_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
-		// This is a pure read, the read phase of a read-modify-write,
-		// or a trim, so there's nothing left to do here.
+		/*
+		 * This is a pure read, the read phase of a read-modify-write, 
+		 * or a trim, so there's nothing left to do here. 
+		 */
 		finish_lookup(data_vio, VDO_SUCCESS);
 		return;
 	}
@@ -1297,14 +1307,14 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 			break;
 		}
 
-		// Calculate the index and slot for the next level.
+		/* Calculate the index and slot for the next level. */
 		tree_slot.block_map_slot.slot =
 			tree_slot.page_index % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 		tree_slot.page_index =
 			tree_slot.page_index / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 	}
 
-	// The page at this height has been allocated and loaded.
+	/* The page at this height has been allocated and loaded. */
 	mapping =
 		unpack_vdo_block_map_entry(&page->entries[tree_slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
@@ -1320,20 +1330,22 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 	}
 
 	if (!vdo_is_mapped_location(&mapping)) {
-		// The page we want one level down has not been allocated, so
-		// allocate it.
+		/*
+		 * The page we want one level down has not been allocated, so 
+		 * allocate it. 
+		 */
 		allocate_block_map_page(zone, data_vio);
 		return;
 	}
 
 	lock->tree_slots[lock->height - 1].block_map_slot.pbn = mapping.pbn;
 	if (lock->height == 1) {
-		// This is the ultimate block map page, so we're done
+		/* This is the ultimate block map page, so we're done */
 		finish_lookup(data_vio, VDO_SUCCESS);
 		return;
 	}
 
-	// We know what page we need to load.
+	/* We know what page we need to load. */
 	load_block_map_page(zone, data_vio);
 }
 

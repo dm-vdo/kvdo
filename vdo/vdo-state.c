@@ -25,7 +25,7 @@
 /**********************************************************************/
 const char *describe_vdo_state(enum vdo_state state)
 {
-	// These strings should all fit in the 15 chars of VDOStatistics.mode.
+	/* These strings should all fit in the 15 chars of VDOStatistics.mode. */
 	switch (state) {
 	case VDO_RECOVERING:
 		return "recovering";

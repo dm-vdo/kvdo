@@ -75,7 +75,7 @@ bool is_zero_block(char *block)
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
 
-	// Unroll to process 64 bytes at a time
+	/* Unroll to process 64 bytes at a time */
 	while (chunk_count-- > 0) {
 		uint64_t word0 = get_unaligned((u64 *) block);
 		uint64_t word1 =
@@ -94,7 +94,7 @@ bool is_zero_block(char *block)
 			get_unaligned((u64 *) (block + 7 * sizeof(uint64_t)));
 		uint64_t or = (word0 | word1 | word2 | word3 | word4 | word5 |
 			       word6 | word7);
-		// Prevent compiler from using 8*(cmp;jne).
+		/* Prevent compiler from using 8*(cmp;jne). */
 		__asm__ __volatile__("" : : "g"(or));
 		if (or != 0) {
 			return false;
@@ -103,8 +103,10 @@ bool is_zero_block(char *block)
 	}
 	word_count %= 8;
 
-	// Unroll to process 8 bytes at a time.
-	// (Is this still worthwhile?)
+	/*
+	 * Unroll to process 8 bytes at a time. 
+	 * (Is this still worthwhile?) 
+	 */
 	while (word_count-- > 0) {
 		if (get_unaligned((u64 *) block) != 0) {
 			return false;

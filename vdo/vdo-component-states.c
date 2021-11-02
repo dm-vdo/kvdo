@@ -97,7 +97,7 @@ int decode_vdo_component_states(struct buffer *buffer,
 				release_version_number_t expected_release_version,
 				struct vdo_component_states *states)
 {
-	// Check the release version against the one from the geometry.
+	/* Check the release version against the one from the geometry. */
 	int result = get_uint32_le_from_buffer(buffer,
 					       &states->release_version);
 	if (result != VDO_SUCCESS) {
@@ -111,7 +111,7 @@ int decode_vdo_component_states(struct buffer *buffer,
 					      states->release_version);
 	}
 
-	// Check the VDO volume version
+	/* Check the VDO volume version */
 	result = decode_vdo_version_number(buffer, &states->volume_version);
 	if (result != VDO_SUCCESS) {
 		return result;

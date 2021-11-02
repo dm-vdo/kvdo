@@ -233,7 +233,7 @@ int make_vdo(unsigned int instance,
 	struct vdo *vdo;
 	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
 
-	// VDO-3769 - Set a generic reason so we don't ever return garbage.
+	/* VDO-3769 - Set a generic reason so we don't ever return garbage. */
 	*reason = "Unspecified error";
 
 	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
@@ -248,7 +248,7 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// From here on, the caller will clean up if there is an error.
+	/* From here on, the caller will clean up if there is an error. */
 	*vdo_ptr = vdo;
 
 	snprintf(thread_name_prefix,
@@ -266,7 +266,7 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// Request threads, etc
+	/* Request threads, etc */
 	result = make_vdo_request_threads(vdo, thread_name_prefix);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot initialize request queues";
@@ -282,7 +282,7 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// Dedupe Index
+	/* Dedupe Index */
 	result = make_vdo_dedupe_index(&vdo->dedupe_index,
 				       vdo,
 				       thread_name_prefix);
@@ -297,8 +297,7 @@ int make_vdo(unsigned int instance,
 	 * Order dependencies for initialization are identified using BUG_ON.
 	 */
 
-
-	// Data vio pool
+	/* Data vio pool */
 	BUG_ON(vdo->device_config->logical_block_size <= 0);
 	BUG_ON(vdo->request_limiter.limit <= 0);
 	BUG_ON(vdo->device_config->owned_device == NULL);
@@ -309,7 +308,7 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// Bio queue
+	/* Bio queue */
 	result = make_vdo_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
@@ -321,7 +320,7 @@ int make_vdo(unsigned int instance,
 		return result;
 	}
 
-	// Bio ack queue
+	/* Bio ack queue */
 	if (vdo_uses_bio_ack_queue(vdo)) {
 		result = make_vdo_thread(vdo,
 					 thread_name_prefix,
@@ -335,7 +334,7 @@ int make_vdo(unsigned int instance,
 		}
 	}
 
-	// CPU Queues
+	/* CPU Queues */
 	result = make_vdo_thread(vdo,
 				 thread_name_prefix,
 				 vdo->thread_config->cpu_thread,
@@ -380,14 +379,16 @@ void destroy_vdo(struct vdo *vdo)
 		return;
 	}
 
-	// A running VDO should never be destroyed without suspending first.
+	/* A running VDO should never be destroyed without suspending first. */
 	BUG_ON(get_vdo_admin_state(vdo)->normal);
 
 	thread_config = vdo->thread_config;
 	vdo->allocations_allowed = true;
 
-	// Stop services that need to gather VDO statistics from the worker
-	// threads.
+	/*
+	 * Stop services that need to gather VDO statistics from the worker 
+	 * threads. 
+	 */
 	if (vdo->sysfs_added) {
 		init_completion(&vdo->stats_shutdown);
 		kobject_put(&vdo->stats_directory);
@@ -708,8 +709,10 @@ static void set_compression_callback(struct vdo_completion *completion)
 	if (*enable != was_enabled) {
 		WRITE_ONCE(vdo->compressing, *enable);
 		if (was_enabled) {
-			// Signal the packer to flush since compression has
-			// been disabled.
+			/*
+			 * Signal the packer to flush since compression has 
+			 * been disabled. 
+			 */
 			flush_vdo_packer(vdo->packer);
 		}
 	}
@@ -844,9 +847,11 @@ get_vdo_physical_blocks_allocated(const struct vdo *vdo)
 static block_count_t __must_check
 get_vdo_physical_blocks_overhead(const struct vdo *vdo)
 {
-	// XXX config.physical_blocks is actually mutated during resize and is in
-	// a packed structure, but resize runs on admin thread so we're usually
-	// OK.
+	/*
+	 * XXX config.physical_blocks is actually mutated during resize and is in 
+	 * a packed structure, but resize runs on admin thread so we're usually 
+	 * OK.
+	 */
 	return (vdo->states.vdo.config.physical_blocks -
 		get_vdo_slab_depot_data_blocks(vdo->depot) +
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
@@ -866,24 +871,28 @@ static void get_vdo_statistics(const struct vdo *vdo,
 
 	assert_on_vdo_admin_thread(vdo, __func__);
 
-	// start with a clean slate
+	/* start with a clean slate */
 	memset(stats, 0, sizeof(struct vdo_statistics));
 
-	// These are immutable properties of the vdo object, so it is safe to
-	// query them from any thread.
+	/*
+	 * These are immutable properties of the vdo object, so it is safe to 
+	 * query them from any thread. 
+	 */
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
-	// XXX config.physical_blocks is actually mutated during resize and is
-	// in a packed structure, but resize runs on the admin thread so we're
-	// usually OK.
+	/*
+	 * XXX config.physical_blocks is actually mutated during resize and is 
+	 * in a packed structure, but resize runs on the admin thread so we're 
+	 * usually OK.
+	 */
 	stats->physical_blocks = vdo->states.vdo.config.physical_blocks;
 	stats->block_size = VDO_BLOCK_SIZE;
 	stats->complete_recoveries = vdo->states.vdo.complete_recoveries;
 	stats->read_only_recoveries = vdo->states.vdo.read_only_recoveries;
 	stats->block_map_cache_size = get_block_map_cache_size(vdo);
 
-	// The callees are responsible for thread-safety.
+	/* The callees are responsible for thread-safety. */
 	stats->data_blocks_used = get_vdo_physical_blocks_allocated(vdo);
 	stats->overhead_blocks_used = get_vdo_physical_blocks_overhead(vdo);
 	stats->logical_blocks_used =
@@ -907,9 +916,11 @@ static void get_vdo_statistics(const struct vdo *vdo,
 		READ_ONCE(vdo->request_limiter.active);
 	stats->max_vios = READ_ONCE(vdo->request_limiter.maximum);
 
-	// get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
-	// and dedupe_context_busy gives the number of queries not made because
-	// of earlier timeouts.
+	/*
+	 * get_vdo_dedupe_index_timeout_count() gives the number of timeouts, 
+	 * and dedupe_context_busy gives the number of queries not made because 
+	 * of earlier timeouts.
+	 */
 	stats->dedupe_advice_timeouts =
 		(get_vdo_dedupe_index_timeout_count(vdo->dedupe_index) +
 		 atomic64_read(&vdo->stats.dedupe_context_busy));
@@ -1052,9 +1063,10 @@ struct hash_zone *select_vdo_hash_zone(const struct vdo *vdo,
 	 * distributions, it must not overlap with fragments used elsewhere.
 	 * Eight bits of hash should suffice since the number of hash zones is
 	 * small.
+	 *
+	 * XXX Make a central repository for these offsets ala hashUtils. 
+	 * XXX Verify that the first byte is independent enough. 
 	 */
-	// XXX Make a central repository for these offsets ala hashUtils.
-	// XXX Verify that the first byte is independent enough.
 	uint32_t hash = name->name[0];
 
 	/*
@@ -1081,15 +1093,19 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 		return VDO_SUCCESS;
 	}
 
-	// Used because it does a more restrictive bounds check than
-	// get_vdo_slab(), and done first because it won't trigger read-only
-	// mode on an invalid PBN.
+	/*
+	 * Used because it does a more restrictive bounds check than 
+	 * get_vdo_slab(), and done first because it won't trigger read-only 
+	 * mode on an invalid PBN.
+	 */
 	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
 		return VDO_OUT_OF_RANGE;
 	}
 
-	// With the PBN already checked, we should always succeed in finding a
-	// slab.
+	/*
+	 * With the PBN already checked, we should always succeed in finding a 
+	 * slab. 
+	 */
 	slab = get_vdo_slab(vdo->depot, pbn);
 	result =
 		ASSERT(slab != NULL, "get_vdo_slab must succeed on all valid PBNs");
@@ -1115,7 +1131,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 		return no_advice;
 	}
 
-	// Don't use advice that's clearly meaningless.
+	/* Don't use advice that's clearly meaningless. */
 	if ((advice->state == VDO_MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == VDO_ZERO_BLOCK)) {
 		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",

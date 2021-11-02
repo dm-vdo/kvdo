@@ -53,7 +53,7 @@ struct slab_summary_entry {
 #endif
 } __packed;
 
-// XXX: These methods shouldn't take a block_size parameter.
+/* XXX: These methods shouldn't take a block_size parameter. */
 
 /**
  * Returns the size on disk of a single zone of the slab_summary.
@@ -99,4 +99,4 @@ get_vdo_slab_summary_hint_shift(unsigned int slab_size_shift)
 		(slab_size_shift - VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) : 0);
 }
 
-#endif // SLAB_SUMMARY_FORMAT_H
+#endif /* SLAB_SUMMARY_FORMAT_H */

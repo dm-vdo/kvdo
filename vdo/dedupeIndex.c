@@ -37,26 +37,26 @@ struct uds_attribute {
 	const char *(*show_string)(struct dedupe_index *);
 };
 
-// These are the values in the atomic dedupe_context.request_state field
+/* These are the values in the atomic dedupe_context.request_state field */
 enum {
-	// The uds_request object is not in use.
+	/* The uds_request object is not in use. */
 	UR_IDLE = 0,
-	// The uds_request object is in use, and VDO is waiting for the result.
+	/* The uds_request object is in use, and VDO is waiting for the result. */
 	UR_BUSY = 1,
-	// The uds_request object is in use, but has timed out.
+	/* The uds_request object is in use, but has timed out. */
 	UR_TIMED_OUT = 2,
 };
 
 enum index_state {
-	// The UDS index is closed
+	/* The UDS index is closed */
 	IS_CLOSED = 0,
-	// The UDS index session is opening or closing
+	/* The UDS index session is opening or closing */
 	IS_CHANGING = 1,
-	// The UDS index is open.
+	/* The UDS index is open. */
 	IS_OPENED = 2,
 };
 
-// Data managing the reporting of UDS timeouts
+/* Data managing the reporting of UDS timeouts */
 struct periodic_event_reporter {
 	uint64_t last_reported_value;
 	atomic64_t value;
@@ -69,39 +69,45 @@ struct dedupe_index {
 	struct uds_parameters parameters;
 	struct uds_index_session *index_session;
 	atomic_t active;
-	// for reporting UDS timeouts
+	/* for reporting UDS timeouts */
 	struct periodic_event_reporter timeout_reporter;
-	// This spinlock protects the state fields and the starting of dedupe
-	// requests.
+	/*
+	 * This spinlock protects the state fields and the starting of dedupe 
+	 * requests. 
+	 */
 	spinlock_t state_lock;
-	struct vdo_work_item work_item; // protected by state_lock
-	struct vdo_work_queue *uds_queue; // protected by state_lock
-	unsigned int maximum; // protected by state_lock
-	enum index_state index_state; // protected by state_lock
-	enum index_state index_target; // protected by state_lock
-	bool changing; // protected by state_lock
-	bool create_flag; // protected by state_lock
-	bool dedupe_flag; // protected by state_lock
-	bool deduping; // protected by state_lock
-	bool error_flag; // protected by state_lock
-	bool suspended; // protected by state_lock
-	// This spinlock protects the pending list, the pending flag in each
-	// vio, and the timeout list.
+	struct vdo_work_item work_item; /* protected by state_lock */
+	struct vdo_work_queue *uds_queue; /* protected by state_lock */
+	unsigned int maximum; /* protected by state_lock */
+	enum index_state index_state; /* protected by state_lock */
+	enum index_state index_target; /* protected by state_lock */
+	bool changing; /* protected by state_lock */
+	bool create_flag; /* protected by state_lock */
+	bool dedupe_flag; /* protected by state_lock */
+	bool deduping; /* protected by state_lock */
+	bool error_flag; /* protected by state_lock */
+	bool suspended; /* protected by state_lock */
+	/*
+	 * This spinlock protects the pending list, the pending flag in each 
+	 * vio, and the timeout list. 
+	 */
 	spinlock_t pending_lock;
-	struct list_head pending_head; // protected by pending_lock
-	struct timer_list pending_timer; // protected by pending_lock
-	bool started_timer; // protected by pending_lock
+	struct list_head pending_head; /* protected by pending_lock */
+	struct timer_list pending_timer; /* protected by pending_lock */
+	bool started_timer; /* protected by pending_lock */
 };
 
-// Version 1:  user space UDS index (limited to 32 bytes)
-// Version 2:  kernel space UDS index (limited to 16 bytes)
+/*
+ * Version 1:  user space UDS index (limited to 32 bytes) 
+ * Version 2:  kernel space UDS index (limited to 16 bytes) 
+ */
 enum {
 	UDS_ADVICE_VERSION = 2,
-	// version byte + state byte + 64-bit little-endian PBN
+	/* version byte + state byte + 64-bit little-endian PBN */
 	UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
 };
 
-// We want to ensure that there is only one copy of the following constants.
+/* We want to ensure that there is only one copy of the following constants. */
 static const char *CLOSED = "closed";
 static const char *CLOSING = "closing";
 static const char *ERROR = "error";
@@ -111,11 +117,11 @@ static const char *OPENING = "opening";
 static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
-// These times are in milliseconds, and these are the default values.
+/* These times are in milliseconds, and these are the default values. */
 unsigned int vdo_dedupe_index_timeout_interval = 5000;
 unsigned int vdo_dedupe_index_min_timer_interval = 100;
 
-// These times are in jiffies
+/* These times are in jiffies */
 static uint64_t vdo_dedupe_index_timeout_jiffies;
 static uint64_t vdo_dedupe_index_min_timer_jiffies;
 
@@ -129,14 +135,16 @@ static const char *index_state_to_string(struct dedupe_index *index,
 
 	switch (state) {
 	case IS_CLOSED:
-		// Closed. The error_flag tells if it is because of an error.
+		/* Closed. The error_flag tells if it is because of an error. */
 		return index->error_flag ? ERROR : CLOSED;
 	case IS_CHANGING:
-		// The index_target tells if we are opening or closing the
-		// index.
+		/*
+		 * The index_target tells if we are opening or closing the 
+		 * index. 
+		 */
 		return index->index_target == IS_OPENED ? OPENING : CLOSING;
 	case IS_OPENED:
-		// Opened. The dedupe_flag tells if we are online or offline.
+		/* Opened. The dedupe_flag tells if we are online or offline. */
 		return index->dedupe_flag ? ONLINE : OFFLINE;
 	default:
 		return UNKNOWN;
@@ -214,11 +222,11 @@ void set_vdo_dedupe_index_timeout_interval(unsigned int value)
 {
 	uint64_t alb_jiffies;
 
-	// Arbitrary maximum value is two minutes
+	/* Arbitrary maximum value is two minutes */
 	if (value > 120000) {
 		value = 120000;
 	}
-	// Arbitrary minimum value is 2 jiffies
+	/* Arbitrary minimum value is 2 jiffies */
 	alb_jiffies = msecs_to_jiffies(value);
 
 	if (alb_jiffies < 2) {
@@ -234,12 +242,12 @@ void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 {
 	uint64_t min_jiffies;
 
-	// Arbitrary maximum value is one second
+	/* Arbitrary maximum value is one second */
 	if (value > 1000) {
 		value = 1000;
 	}
 
-	// Arbitrary minimum value is 2 jiffies
+	/* Arbitrary minimum value is 2 jiffies */
 	min_jiffies = msecs_to_jiffies(value);
 
 	if (min_jiffies < 2) {
@@ -390,8 +398,10 @@ init_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
 	INIT_WORK(&reporter->work, report_events_work);
 	ratelimit_default_init(&reporter->ratelimiter);
-	// Since we will save up the timeouts that would have been reported
-	// but were ratelimited, we don't need to report ratelimiting.
+	/*
+	 * Since we will save up the timeouts that would have been reported 
+	 * but were ratelimited, we don't need to report ratelimiting. 
+	 */
 	ratelimit_set_flags(&reporter->ratelimiter, RATELIMIT_MSG_ON_RELEASE);
 }
 
@@ -409,7 +419,7 @@ static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
 				   unsigned int timeouts)
 {
 	atomic64_add(timeouts, &reporter->value);
-	// If it's already queued, requeueing it will do nothing.
+	/* If it's already queued, requeueing it will do nothing. */
 	schedule_work(&reporter->work);
 }
 
@@ -517,8 +527,10 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 		}
 		spin_unlock(&index->state_lock);
 	} else {
-		// A previous user of the vio had a dedupe timeout
-		// and its request is still outstanding.
+		/*
+		 * A previous user of the vio had a dedupe timeout 
+		 * and its request is still outstanding. 
+		 */
 		atomic64_inc(&vdo->stats.dedupe_context_busy);
 	}
 
@@ -532,10 +544,12 @@ static void close_index(struct dedupe_index *index)
 {
 	int result;
 
-	// Change the index state so that get_vdo_dedupe_index_statistics will
-	// not try to use the index session we are closing.
+	/*
+	 * Change the index state so that get_vdo_dedupe_index_statistics will 
+	 * not try to use the index session we are closing. 
+	 */
 	index->index_state = IS_CHANGING;
-	// Close the index session, while not holding the state_lock.
+	/* Close the index session, while not holding the state_lock. */
 	spin_unlock(&index->state_lock);
 	result = uds_close_index(index->index_session);
 
@@ -545,22 +559,24 @@ static void close_index(struct dedupe_index *index)
 	spin_lock(&index->state_lock);
 	index->index_state = IS_CLOSED;
 	index->error_flag |= result != UDS_SUCCESS;
-	// ASSERTION: We leave in IS_CLOSED state.
+	/* ASSERTION: We leave in IS_CLOSED state. */
 }
 
 /**********************************************************************/
 static void open_index(struct dedupe_index *index)
 {
-	// ASSERTION: We enter in IS_CLOSED state.
+	/* ASSERTION: We enter in IS_CLOSED state. */
 	int result;
 	bool create_flag = index->create_flag;
 
 	index->create_flag = false;
-	// Change the index state so that the it will be reported to the
-	// outside world as "opening".
+	/*
+	 * Change the index state so that the it will be reported to the 
+	 * outside world as "opening". 
+	 */
 	index->index_state = IS_CHANGING;
 	index->error_flag = false;
-	// Open the index session, while not holding the state_lock
+	/* Open the index session, while not holding the state_lock */
 	spin_unlock(&index->state_lock);
 	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
 				&index->parameters,
@@ -572,9 +588,11 @@ static void open_index(struct dedupe_index *index)
 	if (!create_flag) {
 		switch (result) {
 		case -ENOENT:
-			// Either there is no index, or there is no way we can
-			// recover the index. We will be called again and try
-			// to create a new index.
+			/*
+			 * Either there is no index, or there is no way we can 
+			 * recover the index. We will be called again and try 
+			 * to create a new index.
+			 */
 			index->index_state = IS_CLOSED;
 			index->create_flag = true;
 			return;
@@ -592,8 +610,10 @@ static void open_index(struct dedupe_index *index)
 		uds_log_info("Setting UDS index target state to error");
 		spin_lock(&index->state_lock);
 	}
-	// ASSERTION: On success, we leave in IS_OPENED state.
-	// ASSERTION: On failure, we leave in IS_CLOSED state.
+	/*
+	 * ASSERTION: On success, we leave in IS_OPENED state. 
+	 * ASSERTION: On failure, we leave in IS_CLOSED state. 
+	 */
 }
 
 /**********************************************************************/
@@ -604,8 +624,10 @@ static void change_dedupe_state(struct vdo_work_item *item)
 						  work_item);
 	spin_lock(&index->state_lock);
 
-	// Loop until the index is in the target state and the create flag is
-	// clear.
+	/*
+	 * Loop until the index is in the target state and the create flag is 
+	 * clear. 
+	 */
 	while (!index->suspended &&
 	       ((index->index_state != index->index_target) ||
 		index->create_flag)) {
@@ -624,10 +646,12 @@ static void change_dedupe_state(struct vdo_work_item *item)
 /**********************************************************************/
 static void launch_dedupe_state_change(struct dedupe_index *index)
 {
-	// ASSERTION: We enter with the state_lock held.
+	/* ASSERTION: We enter with the state_lock held. */
 	if (index->changing || index->suspended) {
-		// Either a change is already in progress, or changes are
-		// not allowed.
+		/*
+		 * Either a change is already in progress, or changes are 
+		 * not allowed. 
+		 */
 		return;
 	}
 
@@ -642,11 +666,11 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 		return;
 	}
 
-	// Online vs. offline changes happen immediately
+	/* Online vs. offline changes happen immediately */
 	index->deduping = (index->dedupe_flag && !index->suspended &&
 			   (index->index_state == IS_OPENED));
 
-	// ASSERTION: We exit with the state_lock held.
+	/* ASSERTION: We exit with the state_lock held. */
 }
 
 /**********************************************************************/
@@ -763,8 +787,10 @@ void free_vdo_dedupe_index(struct dedupe_index *index)
 		return;
 	}
 
-	// The queue will get freed along with all the others, but give up
-	// our reference to it.
+	/*
+	 * The queue will get freed along with all the others, but give up 
+	 * our reference to it. 
+	 */
 	UDS_FORGET(index->uds_queue);
 	stop_periodic_event_reporter(&index->timeout_reporter);
 	spin_lock_bh(&index->pending_lock);
@@ -994,7 +1020,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	spin_lock_init(&index->state_lock);
 	timer_setup(&index->pending_timer, timeout_index_operations, 0);
 
-	// UDS Timeout Reporter
+	/* UDS Timeout Reporter */
 	init_periodic_event_reporter(&index->timeout_reporter);
 
 	*index_ptr = index;

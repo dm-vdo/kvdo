@@ -60,4 +60,4 @@ void unregister_vdo(struct vdo *vdo);
 struct vdo * __must_check
 find_vdo_matching(vdo_filter_t *filter, void *context);
 
-#endif // DEVICE_REGISTRY_H
+#endif /* DEVICE_REGISTRY_H */

@@ -293,7 +293,7 @@ void write_vdo_page_cache_pages(struct vdo_page_cache *cache,
  **/
 void rotate_vdo_page_cache_eras(struct vdo_page_cache *cache);
 
-// ASYNC
+/* ASYNC */
 
 /**
  * A completion awaiting a specific page.  Also a live reference into the
@@ -438,7 +438,7 @@ void drain_vdo_page_cache(struct vdo_page_cache *cache);
  **/
 int __must_check invalidate_vdo_page_cache(struct vdo_page_cache *cache);
 
-// STATISTICS & TESTING
+/* STATISTICS & TESTING */
 
 /**
  * Get current cache statistics.
@@ -450,4 +450,4 @@ int __must_check invalidate_vdo_page_cache(struct vdo_page_cache *cache);
 struct block_map_statistics __must_check
 get_vdo_page_cache_statistics(const struct vdo_page_cache *cache);
 
-#endif // VDO_PAGE_CACHE_H
+#endif /* VDO_PAGE_CACHE_H */

@@ -113,7 +113,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 		free_buffer_pointers(&fbp);
 	}
 
-	// Notify the limiter, so it can wake any blocked processes.
+	/* Notify the limiter, so it can wake any blocked processes. */
 	if (count > 0) {
 		limiter_release_many(&vdo->request_limiter, count);
 	}
@@ -148,8 +148,10 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(work_item);
 
-	// For a read-modify-write, copy the data into the data_block buffer so
-	// it will be set up for the write phase.
+	/*
+	 * For a read-modify-write, copy the data into the data_block buffer so 
+	 * it will be set up for the write phase. 
+	 */
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		memcpy(data_vio->data_block, data_vio->read_block.data,
 		       VDO_BLOCK_SIZE);
@@ -157,14 +159,16 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 		return;
 	}
 
-	// For a partial read, the callback will copy the requested data from
-	// the read block.
+	/*
+	 * For a partial read, the callback will copy the requested data from 
+	 * the read block. 
+	 */
 	if (data_vio->is_partial) {
 		enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
-	// For a 4k read, copy the data to the user bio and acknowledge.
+	/* For a 4k read, copy the data to the user bio and acknowledge. */
 	vdo_bio_copy_data_out(data_vio->user_bio, data_vio->read_block.data);
 	acknowledge_data_vio(data_vio);
 	enqueue_data_vio_callback(data_vio);
@@ -208,8 +212,10 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 	struct read_block *read_block = &data_vio->read_block;
 	int size;
 
-	// The data_vio's scratch block will be used to contain the
-	// uncompressed data.
+	/*
+	 * The data_vio's scratch block will be used to contain the 
+	 * uncompressed data. 
+	 */
 	uint16_t fragment_offset, fragment_size;
 	char *compressed_data = read_block->data;
 	int result = get_vdo_compressed_block_fragment(read_block->mapping_state,
@@ -290,7 +296,7 @@ void vdo_read_block(struct data_vio *data_vio,
 	read_block->status = VDO_SUCCESS;
 	read_block->mapping_state = mapping_state;
 
-	// Read the data using the read block buffer.
+	/* Read the data using the read block buffer. */
 	result = prepare_data_vio_for_io(data_vio,
 					 read_block->buffer,
 					 read_bio_callback,
@@ -338,8 +344,10 @@ void read_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	// Read into the data block (for a RMW or partial IO) or directly into
-	// the user buffer (for a 4k read).
+	/*
+	 * Read into the data block (for a RMW or partial IO) or directly into 
+	 * the user buffer (for a 4k read). 
+	 */
 	opf = (data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS) | REQ_OP_READ;
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio)) ||
 	    (data_vio->is_partial)) {
@@ -353,12 +361,16 @@ void read_data_vio(struct data_vio *data_vio)
 			return;
 		}
 	} else {
-		// A full 4k read. Use the incoming bio to avoid having to
-		// copy the data
+		/*
+		 * A full 4k read. Use the incoming bio to avoid having to 
+		 * copy the data 
+		 */
 		set_vio_physical(vio, data_vio->mapped.pbn);
 		bio_reset(bio);
-		// Use __bio_clone_fast() to copy over the original bio iovec
-		// information and opflags.
+		/*
+		 * Use __bio_clone_fast() to copy over the original bio iovec 
+		 * information and opflags. 
+		 */
 		__bio_clone_fast(bio, data_vio->user_bio);
 		vdo_set_bio_properties(bio,
 				       vio,
@@ -393,12 +405,16 @@ void vdo_apply_partial_write(struct data_vio *data_vio)
 static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	// XXX We save the bio out of the vio so that we don't forget it.
-	// Maybe we should just not zero that field somehow.
+	/*
+	 * XXX We save the bio out of the vio so that we don't forget it. 
+	 * Maybe we should just not zero that field somehow. 
+	 */
 	struct bio *bio = vio->bio;
 
-	// Zero out the fields which don't need to be preserved (i.e. which
-	// are not pointers to separately allocated objects).
+	/*
+	 * Zero out the fields which don't need to be preserved (i.e. which 
+	 * are not pointers to separately allocated objects). 
+	 */
 	memset(data_vio, 0, offsetof(struct data_vio, dedupe_context));
 	memset(&data_vio->dedupe_context.pending_list, 0,
 	       sizeof(struct list_head));
@@ -467,9 +483,11 @@ void launch_data_vio(struct vdo *vdo,
 	} else if (bio_data_dir(bio) == READ) {
 		operation = VIO_READ;
 	} else {
-		// Copy the bio data to a char array so that we can
-		// continue to use the data after we acknowledge the
-		// bio.
+		/*
+		 * Copy the bio data to a char array so that we can 
+		 * continue to use the data after we acknowledge the 
+		 * bio.
+		 */
 		vdo_bio_copy_data_in(bio, data_vio->data_block);
 		data_vio->is_zero_block = is_zero_block(data_vio->data_block);
 		data_vio->read_block.data = data_vio->data_block;
@@ -498,9 +516,11 @@ void check_data_vio_for_duplication(struct data_vio *data_vio)
 	if (data_vio_has_allocation(data_vio)) {
 		post_vdo_dedupe_advice(data_vio);
 	} else {
-		// This block has not actually been written (presumably because
-		// we are full), so attempt to dedupe without posting bogus
-		// advice.
+		/*
+		 * This block has not actually been written (presumably because 
+		 * we are full), so attempt to dedupe without posting bogus 
+		 * advice.
+		 */
 		query_vdo_dedupe_advice(data_vio);
 	}
 }

@@ -93,18 +93,18 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 			"vdo should not receive bios while in state %s",
 			code->name);
 
-	// Count all incoming bios.
+	/* Count all incoming bios. */
 	vdo_count_bios(&vdo->stats.bios_in, bio);
 
 
-	// Handle empty bios.  Empty flush bios are not associated with a vio.
+	/* Handle empty bios.  Empty flush bios are not associated with a vio. */
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
 		launch_vdo_flush(vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
 
-	// This could deadlock,
+	/* This could deadlock, */
 	current_work_queue = get_current_work_queue();
 	BUG_ON((current_work_queue != NULL)
 	       && (vdo == get_work_queue_owner(current_work_queue)->vdo));
@@ -138,9 +138,9 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->logical_block_size = vdo->device_config->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
-	// The minimum io size for random io
+	/* The minimum io size for random io */
 	blk_limits_io_min(limits, VDO_BLOCK_SIZE);
-	// The optimal io size for streamed/sequential io
+	/* The optimal io size for streamed/sequential io */
 	blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
 
 	/*
@@ -163,8 +163,10 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
 				       * VDO_SECTORS_PER_BLOCK);
 
-	// Force discards to not begin or end with a partial block by stating
-	// the granularity is 4k.
+	/*
+	 * Force discards to not begin or end with a partial block by stating 
+	 * the granularity is 4k. 
+	 */
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
@@ -199,13 +201,15 @@ static void vdo_status(struct dm_target *ti,
 	struct vdo_statistics *stats;
 	struct device_config *device_config;
 	char name_buffer[BDEVNAME_SIZE];
-	// N.B.: The DMEMIT macro uses the variables named "sz", "result",
-	// "maxlen".
+	/*
+	 * N.B.: The DMEMIT macro uses the variables named "sz", "result", 
+	 * "maxlen". 
+	 */
 	int sz = 0;
 
 	switch (status_type) {
 	case STATUSTYPE_INFO:
-		// Report info for dmsetup status
+		/* Report info for dmsetup status */
 		mutex_lock(&vdo->stats_mutex);
 		fetch_vdo_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
@@ -222,17 +226,19 @@ static void vdo_status(struct dm_target *ti,
 		break;
 
 	case STATUSTYPE_TABLE:
-		// Report the string actually specified in the beginning.
+		/* Report the string actually specified in the beginning. */
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
-	// XXX We ought to print more detailed output here, but this is what
-	// thin does.
+	/*
+	 * XXX We ought to print more detailed output here, but this is what 
+	 * thin does. 
+	 */
 	case STATUSTYPE_IMA:
 		*result = '\0';
 		break;
-#endif // 5.15+
+#endif /* 5.15+ */
 	}
 }
 
@@ -311,7 +317,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 	 * process_vdo_message_locked().
 	 */
 
-	// Dump messages should always be processed
+	/* Dump messages should always be processed */
 	if (strcasecmp(argv[0], "dump") == 0) {
 		return vdo_dump(vdo, argc, argv, "dmsetup message");
 	}
@@ -322,7 +328,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 			return 0;
 		}
 
-		// Index messages should always be processed
+		/* Index messages should always be processed */
 		if ((strcasecmp(argv[0], "index-close") == 0) ||
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
@@ -363,9 +369,11 @@ static int vdo_message(struct dm_target *ti,
 	uds_register_allocating_thread(&allocating_thread, NULL);
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
-	// Must be done here so we don't map return codes. The code in
-	// dm-ioctl expects a 1 for a return code to look at the buffer
-	// and see if it is full or not.
+	/*
+	 * Must be done here so we don't map return codes. The code in 
+	 * dm-ioctl expects a 1 for a return code to look at the buffer 
+	 * and see if it is full or not.
+	 */
 	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
 		write_vdo_stats(vdo, result_buffer, maxlen);
 		result = 1;
@@ -392,8 +400,10 @@ static void configure_target_capabilities(struct dm_target *ti)
 	ti->num_discard_bios = 1;
 	ti->num_flush_bios = 1;
 
-	// If this value changes, please make sure to update the
-	// value for max_discard_sectors accordingly.
+	/*
+	 * If this value changes, please make sure to update the 
+	 * value for max_discard_sectors accordingly. 
+	 */
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 }
 
@@ -527,7 +537,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		return -EINVAL;
 	}
 
-	// Is there already a device of this name?
+	/* Is there already a device of this name? */
 	if (old_vdo != NULL) {
 		bool may_grow = (get_vdo_admin_state(old_vdo)
 				 != VDO_ADMIN_STATE_PRE_LOADED);
@@ -552,7 +562,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
-		// vdo_initialize calls into various VDO routines, so map error
+		/* vdo_initialize calls into various VDO routines, so map error */
 		result = vdo_map_to_system_error(result);
 		free_vdo_device_config(config);
 	}
@@ -572,7 +582,7 @@ static void vdo_dtr(struct dm_target *ti)
 	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
-		// This was the last config referencing the VDO. Free it.
+		/* This was the last config referencing the VDO. Free it. */
 		unsigned int instance = vdo->instance;
 		struct registered_thread allocating_thread, instance_thread;
 
@@ -590,8 +600,10 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
-		// The VDO still references this config. Give it a reference
-		// to a config that isn't being destroyed.
+		/*
+		 * The VDO still references this config. Give it a reference 
+		 * to a config that isn't being destroyed. 
+		 */
 		vdo->device_config =
 			as_vdo_device_config(vdo->device_config_list.next);
 	}
@@ -635,7 +647,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
-		// XXX: can this still happen?
+		/* XXX: can this still happen? */
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name,
 			      (unsigned long long) backing_blocks,
@@ -723,7 +735,7 @@ static int __init vdo_init(void)
 	initialize_vdo_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
-	// Add VDO errors to the already existing set of errors in UDS.
+	/* Add VDO errors to the already existing set of errors in UDS. */
 	result = register_vdo_status_codes();
 	if (result != UDS_SUCCESS) {
 		uds_log_error("register_vdo_status_codes failed %d", result);

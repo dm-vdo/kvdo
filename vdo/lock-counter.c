@@ -298,9 +298,11 @@ void acquire_vdo_lock_count_reference(struct lock_counter *counter,
 			"increment of lock counter must not overflow");
 
 	if (*current_value == 0) {
-		// This zone is acquiring this lock for the first time.
-		// Extra barriers because this was original developed using
-		// an atomic add operation that implicitly had them.
+		/*
+		 * This zone is acquiring this lock for the first time. 
+		 * Extra barriers because this was original developed using 
+		 * an atomic add operation that implicitly had them.
+		 */
 		smp_mb__before_atomic();
 		atomic_inc(get_zone_count_ptr(counter, lock_number,
 					      zone_type));
@@ -344,8 +346,10 @@ static void attempt_notification(struct lock_counter *counter)
 {
 	int prior_state;
 
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	/*
+	 * Extra barriers because this was original developed using 
+	 * a CAS operation that implicitly had them. 
+	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,
 				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
@@ -376,8 +380,10 @@ void release_vdo_lock_count_reference(struct lock_counter *counter,
 
 	zone_count = get_zone_count_ptr(counter, lock_number, zone_type);
 	if (atomic_add_return(-1, zone_count) == 0) {
-		// This zone was the last lock holder of its type, so try to
-		// notify the owner.
+		/*
+		 * This zone was the last lock holder of its type, so try to 
+		 * notify the owner. 
+		 */
 		attempt_notification(counter);
 	}
 }
@@ -389,7 +395,7 @@ void release_vdo_journal_zone_reference(struct lock_counter *counter,
 	assert_on_journal_thread(counter, __func__);
 	release_reference(counter, lock_number, VDO_ZONE_TYPE_JOURNAL, 0);
 	if (!is_journal_zone_locked(counter, lock_number)) {
-		// The journal zone is not locked, so try to notify the owner.
+		/* The journal zone is not locked, so try to notify the owner. */
 		attempt_notification(counter);
 	}
 }
@@ -399,8 +405,10 @@ void
 release_vdo_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 						   block_count_t lock_number)
 {
-	// Extra barriers because this was original developed using
-	// an atomic add operation that implicitly had them.
+	/*
+	 * Extra barriers because this was original developed using 
+	 * an atomic add operation that implicitly had them. 
+	 */
 	smp_mb__before_atomic();
 	atomic_inc(&(counter->journal_decrement_counts[lock_number]));
 	smp_mb__after_atomic();
@@ -420,8 +428,10 @@ bool suspend_vdo_lock_counter(struct lock_counter *counter)
 
 	assert_on_journal_thread(counter, __func__);
 
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	/*
+	 * Extra barriers because this was original developed using 
+	 * a CAS operation that implicitly had them. 
+	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,
 				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
@@ -439,8 +449,10 @@ bool resume_vdo_lock_counter(struct lock_counter *counter)
 
 	assert_on_journal_thread(counter, __func__);
 
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	/*
+	 * Extra barriers because this was original developed using 
+	 * a CAS operation that implicitly had them. 
+	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,
 				     LOCK_COUNTER_STATE_SUSPENDED,

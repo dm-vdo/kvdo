@@ -74,8 +74,10 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 		slab->allocator->unopened_slab_priority;
 	unsigned int priority;
 
-	// Slabs that are completely full must be the only ones with the lowest
-	// priority: zero.
+	/*
+	 * Slabs that are completely full must be the only ones with the lowest 
+	 * priority: zero. 
+	 */
 	if (free_blocks == 0) {
 		return 0;
 	}
@@ -204,8 +206,10 @@ static int allocate_components(struct block_allocator *allocator,
 			       block_count_t vio_pool_size)
 {
 	struct slab_depot *depot = allocator->depot;
-	// The number of data blocks is the maximum number of free blocks that
-	// could be used in calculate_slab_priority().
+	/*
+	 * The number of data blocks is the maximum number of free blocks that 
+	 * could be used in calculate_slab_priority(). 
+	 */
 	block_count_t slab_journal_size =
 		depot->slab_config.slab_journal_blocks;
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
@@ -378,8 +382,10 @@ void queue_vdo_slab(struct vdo_slab *slab)
 	}
 
 	if (!is_vdo_slab_resuming(slab)) {
-		// If the slab is resuming, we've already accounted for it
-		// here, so don't do it again.
+		/*
+		 * If the slab is resuming, we've already accounted for it 
+		 * here, so don't do it again. 
+		 */
 		WRITE_ONCE(allocator->allocated_blocks,
 			   allocator->allocated_blocks - free_blocks);
 		if (!is_vdo_slab_journal_blank(slab->journal)) {
@@ -388,7 +394,7 @@ void queue_vdo_slab(struct vdo_slab *slab)
 		}
 	}
 
-	// All slabs are kept in a priority queue for allocation.
+	/* All slabs are kept in a priority queue for allocation. */
 	prioritize_slab(slab);
 }
 
@@ -396,25 +402,31 @@ void queue_vdo_slab(struct vdo_slab *slab)
 void adjust_vdo_free_block_count(struct vdo_slab *slab, bool increment)
 {
 	struct block_allocator *allocator = slab->allocator;
-	// The sense of increment is reversed since allocations are being
-	// counted.
+	/*
+	 * The sense of increment is reversed since allocations are being 
+	 * counted. 
+	 */
 	WRITE_ONCE(allocator->allocated_blocks,
 		   allocator->allocated_blocks + (increment ? -1 : 1));
 
-	// The open slab doesn't need to be reprioritized until it is closed.
+	/* The open slab doesn't need to be reprioritized until it is closed. */
 	if (slab == allocator->open_slab) {
 		return;
 	}
 
-	// The slab priority rarely changes; if no change, then don't requeue
-	// it.
+	/*
+	 * The slab priority rarely changes; if no change, then don't requeue 
+	 * it. 
+	 */
 	if (slab->priority == calculate_slab_priority(slab)) {
 		return;
 	}
 
-	// Reprioritize the slab to reflect the new free block count by
-	// removing it from the table and re-enqueuing it with the new
-	// priority.
+	/*
+	 * Reprioritize the slab to reflect the new free block count by 
+	 * removing it from the table and re-enqueuing it with the new 
+	 * priority.
+	 */
 	priority_table_remove(allocator->prioritized_slabs,
 			      &slab->allocq_entry);
 	prioritize_slab(slab);
@@ -454,25 +466,29 @@ int allocate_vdo_block(struct block_allocator *allocator,
 		       physical_block_number_t *block_number_ptr)
 {
 	if (allocator->open_slab != NULL) {
-		// Try to allocate the next block in the currently open slab.
+		/* Try to allocate the next block in the currently open slab. */
 		int result =
 			allocate_slab_block(allocator->open_slab, block_number_ptr);
 		if ((result == VDO_SUCCESS) || (result != VDO_NO_SPACE)) {
 			return result;
 		}
 
-		// Put the exhausted open slab back into the priority table.
+		/* Put the exhausted open slab back into the priority table. */
 		prioritize_slab(allocator->open_slab);
 	}
 
-	// Remove the highest priority slab from the priority table and make it
-	// the open slab.
+	/*
+	 * Remove the highest priority slab from the priority table and make it 
+	 * the open slab. 
+	 */
 	allocator->open_slab =
 		vdo_slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
 	open_vdo_slab(allocator->open_slab);
 
-	// Try allocating again. If we're out of space immediately after
-	// opening a slab, then every slab must be fully allocated.
+	/*
+	 * Try allocating again. If we're out of space immediately after 
+	 * opening a slab, then every slab must be fully allocated. 
+	 */
 	return allocate_slab_block(allocator->open_slab, block_number_ptr);
 }
 
@@ -613,11 +629,13 @@ static void apply_to_slabs(struct block_allocator *allocator,
 			       NULL);
 	allocator->completion.requeue = false;
 
-	// Since we are going to dequeue all of the slabs, the open slab will
-	// become invalid, so clear it.
+	/*
+	 * Since we are going to dequeue all of the slabs, the open slab will 
+	 * become invalid, so clear it. 
+	 */
 	allocator->open_slab = NULL;
 
-	// Ensure that we don't finish before we're done starting.
+	/* Ensure that we don't finish before we're done starting. */
 	allocator->slab_actor = (struct slab_actor) {
 		.slab_action_count = 1,
 		.callback = callback,
@@ -734,7 +752,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 	vdo_get_summarized_slab_statuses(allocator->summary, slab_count,
 					 slab_statuses);
 
-	// Sort the slabs by cleanliness, then by emptiness hint.
+	/* Sort the slabs by cleanliness, then by emptiness hint. */
 	initialize_heap(&heap,
 			compare_slab_statuses,
 			swap_slab_statuses,
@@ -1064,9 +1082,11 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 	while (vdo_has_next_slab(&iterator)) {
 		dump_vdo_slab(vdo_next_slab(&iterator));
 
-		// Wait for a while after each batch of 32 slabs dumped,
-		// allowing the kernel log a chance to be flushed instead of
-		// being overrun.
+		/*
+		 * Wait for a while after each batch of 32 slabs dumped, 
+		 * allowing the kernel log a chance to be flushed instead of 
+		 * being overrun.
+		 */
 		if (pause_counter++ == 31) {
 			pause_counter = 0;
 			uds_pause_for_logger();

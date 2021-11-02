@@ -196,13 +196,15 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 		free_extent_and_buffer(scrubber);
 	}
 
-	// Inform whoever is waiting that scrubbing has completed.
+	/* Inform whoever is waiting that scrubbing has completed. */
 	complete_vdo_completion(&scrubber->completion);
 
 	notify = has_waiters(&scrubber->waiters);
 
-	// Note that the scrubber has stopped, and inform anyone who might be
-	// waiting for that to happen.
+	/*
+	 * Note that the scrubber has stopped, and inform anyone who might be 
+	 * waiting for that to happen. 
+	 */
 	if (!finish_vdo_draining(&scrubber->admin_state)) {
 		WRITE_ONCE(scrubber->admin_state.current_state,
 			   VDO_ADMIN_STATE_SUSPENDED);
@@ -287,7 +289,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 			decode_vdo_slab_journal_entry(block,
 						      entry_point.entry_count);
 		if (entry.sbn > max_sbn) {
-			// This entry is out of bounds.
+			/* This entry is out of bounds. */
 			return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 						      "vdo_slab journal entry (%llu, %u) had invalid offset %u in slab (size %u blocks)",
 						      (unsigned long long) block_number,
@@ -328,7 +330,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct slab_journal *journal = slab->journal;
 	struct ref_counts *reference_counts = slab->reference_counts;
 
-	// Find the boundaries of the useful part of the journal.
+	/* Find the boundaries of the useful part of the journal. */
 	sequence_number_t tail = journal->tail;
 	tail_block_offset_t end_index =
 		get_vdo_slab_journal_block_offset(journal, tail - 1);
@@ -361,7 +363,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		    (header.entry_count > journal->entries_per_block) ||
 		    (header.has_block_map_increments &&
 		     (header.entry_count > journal->full_entries_per_block))) {
-			// The block is not what we expect it to be.
+			/* The block is not what we expect it to be. */
 			uds_log_error("vdo_slab journal block for slab %u was invalid",
 				      slab->slab_number);
 			abort_scrubbing(scrubber, VDO_CORRUPT_JOURNAL);
@@ -383,8 +385,10 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		}
 	}
 
-	// At the end of rebuild, the ref_counts should be accurate to the end
-	// of the journal we just applied.
+	/*
+	 * At the end of rebuild, the ref_counts should be accurate to the end 
+	 * of the journal we just applied. 
+	 */
 	result = ASSERT(!before_vdo_journal_point(&last_entry_applied,
 						  &ref_counts_point),
 			"Refcounts are not more accurate than the slab journal");
@@ -393,7 +397,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		return;
 	}
 
-	// Save out the rebuilt reference blocks.
+	/* Save out the rebuilt reference blocks. */
 	prepare_vdo_completion(completion,
 			       slab_scrubbed,
 			       handle_scrubber_error,
@@ -438,8 +442,10 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	struct vdo_completion *completion;
 	struct vdo_slab *slab;
 
-	// Note: this notify call is always safe only because scrubbing can
-	// only be started when the VDO is quiescent.
+	/*
+	 * Note: this notify call is always safe only because scrubbing can 
+	 * only be started when the VDO is quiescent. 
+	 */
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (vdo_is_read_only(scrubber->read_only_notifier)) {
 		set_vdo_completion_result(&scrubber->completion, VDO_READ_ONLY);

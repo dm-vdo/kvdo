@@ -184,4 +184,4 @@ struct slab_config {
 
 struct vdo_config;
 
-#endif // TYPES_H
+#endif /* TYPES_H */

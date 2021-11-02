@@ -31,21 +31,25 @@ enum hash_lock_state {
 	/** State for locks that are not in use or are being initialized. */
 	VDO_HASH_LOCK_INITIALIZING = 0,
 
-	// This is the sequence of states typically used on the non-dedupe path.
+	/* This is the sequence of states typically used on the non-dedupe path. */
 	VDO_HASH_LOCK_QUERYING,
 	VDO_HASH_LOCK_WRITING,
 	VDO_HASH_LOCK_UPDATING,
 
-	// The remaining states are typically used on the dedupe path in this
-	// order.
+	/*
+	 * The remaining states are typically used on the dedupe path in this 
+	 * order. 
+	 */
 	VDO_HASH_LOCK_LOCKING,
 	VDO_HASH_LOCK_VERIFYING,
 	VDO_HASH_LOCK_DEDUPING,
 	VDO_HASH_LOCK_UNLOCKING,
 
-	// XXX This is a temporary state denoting a lock which is sending VIOs
-	// back to the old dedupe and vioWrite pathways. It won't be in the
-	// final version of VDOSTORY-190.
+	/*
+	 * XXX This is a temporary state denoting a lock which is sending VIOs 
+	 * back to the old dedupe and vioWrite pathways. It won't be in the 
+	 * final version of VDOSTORY-190.
+	 */
 	VDO_HASH_LOCK_BYPASSING,
 
 	/**
@@ -217,4 +221,4 @@ void release_vdo_hash_lock(struct data_vio *data_vio);
 void share_compressed_vdo_write_lock(struct data_vio *data_vio,
 				     struct pbn_lock *pbn_lock);
 
-#endif // HASH_LOCK_H
+#endif /* HASH_LOCK_H */

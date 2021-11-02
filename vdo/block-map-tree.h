@@ -191,4 +191,4 @@ physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
  **/
 void vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 
-#endif // BLOCK_MAP_TREE_H
+#endif /* BLOCK_MAP_TREE_H */

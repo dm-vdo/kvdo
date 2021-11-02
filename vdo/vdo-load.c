@@ -240,7 +240,7 @@ static void load_callback(struct vdo_completion *completion)
 			return;
 		}
 
-		// Prepare the recovery journal for new entries.
+		/* Prepare the recovery journal for new entries. */
 		open_vdo_recovery_journal(vdo->recovery_journal,
 					  vdo->depot,
 					  vdo->block_map);
@@ -365,7 +365,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	    && (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 
-		// Preserve the error.
+		/* Preserve the error. */
 		set_vdo_operation_result(&vdo->admin_state,
 					 completion->result);
 		admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
@@ -396,14 +396,18 @@ int load_vdo(struct vdo *vdo)
 					     handle_load_error);
 
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-		// Even if the VDO is read-only, it is now able to handle
-		// (read) requests.
+		/*
+		 * Even if the VDO is read-only, it is now able to handle 
+		 * (read) requests. 
+		 */
 		uds_log_info("device '%s' started", device_name);
 		return VDO_SUCCESS;
 	}
 
-	// Something has gone very wrong. Make sure everything has drained and
-	// leave the device in an unresumable state.
+	/*
+	 * Something has gone very wrong. Make sure everything has drained and 
+	 * leave the device in an unresumable state. 
+	 */
 	uds_log_error_strerror(result,
 			       "Start failed, could not load VDO metadata");
 	vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;

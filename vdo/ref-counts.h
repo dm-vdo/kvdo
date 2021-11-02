@@ -31,10 +31,10 @@
  * Represents the possible status of a block.
  **/
 enum reference_status {
-	RS_FREE, // this block is free
-	RS_SINGLE, // this block is singly-referenced
-	RS_SHARED, // this block is shared
-	RS_PROVISIONAL // this block is provisionally allocated
+	RS_FREE, /* this block is free */
+	RS_SINGLE, /* this block is singly-referenced */
+	RS_SHARED, /* this block is shared */
+	RS_PROVISIONAL /* this block is provisionally allocated */
 };
 
 /*
@@ -103,7 +103,7 @@ struct ref_counts {
 	/** The number of free blocks */
 	uint32_t free_blocks;
 	/** The array of reference counts */
-	vdo_refcount_t *counters; // use UDS_ALLOCATE to align data ptr
+	vdo_refcount_t *counters; /* use UDS_ALLOCATE to align data ptr */
 
 	/**
 	 * The saved block pointer and array indexes for the free block search
@@ -369,4 +369,4 @@ void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts);
 void dump_vdo_ref_counts(const struct ref_counts *ref_counts);
 
 
-#endif // REF_COUNTS_H
+#endif /* REF_COUNTS_H */

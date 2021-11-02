@@ -94,4 +94,4 @@ static inline struct vdo_slab *vdo_next_slab(struct slab_iterator *iterator)
 	return slab;
 }
 
-#endif // SLAB_ITERATOR_H
+#endif /* SLAB_ITERATOR_H */

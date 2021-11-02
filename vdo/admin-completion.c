@@ -179,11 +179,15 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	reinit_completion(&admin_completion->callback_sync);
 	enqueue_vdo_completion(&admin_completion->sub_task_completion);
 
-	// Using the "interruptible" interface means that Linux will not log a
-	// message when we wait for more than 120 seconds.
+	/*
+	 * Using the "interruptible" interface means that Linux will not log a 
+	 * message when we wait for more than 120 seconds. 
+	 */
 	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0) {
-		// However, if we get a signal in a user-mode process, we could
-		// spin...
+		/*
+		 * However, if we get a signal in a user-mode process, we could 
+		 * spin... 
+		 */
 		fsleep(1000);
 	}
 

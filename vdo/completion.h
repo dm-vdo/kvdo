@@ -28,11 +28,13 @@
 #include "workQueue.h"
 
 enum vdo_completion_type {
-	// Keep VDO_UNSET_COMPLETION_TYPE at the top.
+	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
 	VDO_UNSET_COMPLETION_TYPE = 0,
 
-	// Keep this block in sorted order. If you add or remove an entry, be
-	// sure to update the corresponding list in completion.c.
+	/*
+	 * Keep this block in sorted order. If you add or remove an entry, be 
+	 * sure to update the corresponding list in completion.c. 
+	 */
 	VDO_ACTION_COMPLETION,
 	VDO_ADMIN_COMPLETION,
 	VDO_BLOCK_ALLOCATOR_COMPLETION,
@@ -54,7 +56,7 @@ enum vdo_completion_type {
 	VIO_COMPLETION,
 
 
-	// Keep VDO_MAX_COMPLETION_TYPE at the bottom.
+	/* Keep VDO_MAX_COMPLETION_TYPE at the bottom. */
 	VDO_MAX_COMPLETION_TYPE
 } __packed;
 
@@ -402,4 +404,4 @@ static inline void enqueue_vdo_completion(struct vdo_completion *completion)
 					     VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
-#endif // COMPLETION_H
+#endif /* COMPLETION_H */

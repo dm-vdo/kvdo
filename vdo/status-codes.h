@@ -141,4 +141,4 @@ int register_vdo_status_codes(void);
  **/
 int vdo_map_to_system_error(int error);
 
-#endif // STATUS_CODES_H
+#endif /* STATUS_CODES_H */

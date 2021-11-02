@@ -180,8 +180,10 @@ make_output_bin(struct packer *packer, struct vdo *vdo)
 		return result;
 	}
 
-	// Add the bin to the stack even before it's fully initialized so it
-	// will be freed even if we fail to initialize it below.
+	/*
+	 * Add the bin to the stack even before it's fully initialized so it 
+	 * will be freed even if we fail to initialize it below. 
+	 */
 	INIT_LIST_HEAD(&output->list);
 	list_add_tail(&output->list, &packer->output_bins);
 	push_output_bin(packer, output);
@@ -429,8 +431,10 @@ static void finish_output_bin(struct packer *packer, struct output_bin *bin)
 		notify_all_waiters(&bin->outgoing, continue_vio_without_packing,
 				   NULL);
 	} else {
-		// No waiters implies no error, so the compressed block was
-		// written.
+		/*
+		 * No waiters implies no error, so the compressed block was 
+		 * written. 
+		 */
 		struct packer_statistics *stats = &packer->statistics;
 
 		WRITE_ONCE(stats->compressed_fragments_in_packer,
@@ -503,9 +507,9 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 
 	share_compressed_vdo_write_lock(data_vio, bin->writer->allocation_lock);
 
-	// Wait again for all the waiters to get a share.
+	/* Wait again for all the waiters to get a share. */
 	result = enqueue_waiter(&bin->outgoing, waiter);
-	// Cannot fail since this waiter was just dequeued.
+	/* Cannot fail since this waiter was just dequeued. */
 	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
 			"impossible enqueue_waiter error");
 }
@@ -524,23 +528,27 @@ static void finish_compressed_write(struct vdo_completion *completion)
 
 	if (completion->result != VDO_SUCCESS) {
 		vio_release_allocation_lock(bin->writer);
-		// Invokes complete_output_bin() on the packer thread, which
-		// will deal with the waiters.
+		/*
+		 * Invokes complete_output_bin() on the packer thread, which 
+		 * will deal with the waiters. 
+		 */
 		vio_done_callback(completion);
 		return;
 	}
 
-	// First give every data_vio/hash_lock a share of the PBN lock to
-	// ensure it can't be released until they've all done their incRefs.
+	/*
+	 * First give every data_vio/hash_lock a share of the PBN lock to 
+	 * ensure it can't be released until they've all done their incRefs. 
+	 */
 	notify_all_waiters(&bin->outgoing, share_compressed_block, bin);
 
-	// The waiters now hold the (downgraded) PBN lock.
+	/* The waiters now hold the (downgraded) PBN lock. */
 	bin->writer->allocation_lock = NULL;
 
-	// Invokes the callbacks registered before entering the packer.
+	/* Invokes the callbacks registered before entering the packer. */
 	notify_all_waiters(&bin->outgoing, continue_waiter, NULL);
 
-	// Invokes complete_output_bin() on the packer thread.
+	/* Invokes complete_output_bin() on the packer thread. */
 	vio_done_callback(completion);
 }
 
@@ -564,8 +572,7 @@ static void continue_after_allocation(struct vdo_completion *completion)
 		return;
 	}
 
-	vio_set_physical_zone_callback(allocating_vio,
-				       finish_compressed_write);
+	vio_set_physical_zone_callback(allocating_vio, finish_compressed_write);
 	write_compressed_block_vio(allocating_vio_as_vio(allocating_vio));
 }
 
@@ -613,15 +620,19 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 	while ((data_vio =
 		waiter_as_data_vio(get_first_waiter(&packer->batched_data_vios)))
 	       != NULL) {
-		// If there's not enough space for the next data_vio, the batch
-		// is done.
+		/*
+		 * If there's not enough space for the next data_vio, the batch 
+		 * is done. 
+		 */
 		if ((data_vio->compression.size > space_remaining) ||
 		    (batch->slots_used == packer->max_slots)) {
 			break;
 		}
 
-		// Remove the next data_vio from the queue and put it in the
-		// output batch.
+		/*
+		 * Remove the next data_vio from the queue and put it in the 
+		 * output batch. 
+		 */
 		dequeue_next_waiter(&packer->batched_data_vios);
 		batch->slots[batch->slots_used++] = data_vio;
 		space_remaining -= data_vio->compression.size;
@@ -648,14 +659,18 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 	get_next_batch(packer, &batch);
 
 	if (batch.slots_used == 0) {
-		// The pending queue must now be empty (there may have been
-		// mooted vios).
+		/*
+		 * The pending queue must now be empty (there may have been 
+		 * mooted vios). 
+		 */
 		return false;
 	}
 
-	// If the batch contains only a single vio, then we save nothing by
-	// saving the compressed form. Continue processing the single vio in
-	// the batch.
+	/*
+	 * If the batch contains only a single vio, then we save nothing by 
+	 * saving the compressed form. Continue processing the single vio in 
+	 * the batch.
+	 */
 	if (batch.slots_used == 1) {
 		abort_packing(batch.slots[0]);
 		return false;
@@ -710,8 +725,10 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 {
 	slot_number_t slot;
 	int result;
-	// Move all the data_vios in the current batch to the batched queue so
-	// they will get packed into the next free output bin.
+	/*
+	 * Move all the data_vios in the current batch to the batched queue so 
+	 * they will get packed into the next free output bin. 
+	 */
 	for (slot = 0; slot < bin->slots_used; slot++) {
 		struct data_vio *data_vio = bin->incoming[slot];
 
@@ -727,16 +744,17 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 			continue;
 		}
 
-		result = enqueue_data_vio(&packer->batched_data_vios,
-					  data_vio);
+		result = enqueue_data_vio(&packer->batched_data_vios, data_vio);
 		if (result != VDO_SUCCESS) {
-			// Impossible but we're required to check the result
-			// from enqueue.
+			/*
+			 * Impossible but we're required to check the result 
+			 * from enqueue. 
+			 */
 			abort_packing(data_vio);
 		}
 	}
 
-	// The bin is now empty.
+	/* The bin is now empty. */
 	bin->slots_used = 0;
 	bin->free_space = packer->bin_data_size;
 }
@@ -753,8 +771,10 @@ static void add_data_vio_to_input_bin(struct packer *packer,
 				      struct input_bin *bin,
 				      struct data_vio *data_vio)
 {
-	// If the selected bin doesn't have room, start a new batch to make
-	// room.
+	/*
+	 * If the selected bin doesn't have room, start a new batch to make 
+	 * room. 
+	 */
 	if (bin->free_space < data_vio->compression.size) {
 		start_new_batch(packer, bin);
 	}
@@ -762,13 +782,15 @@ static void add_data_vio_to_input_bin(struct packer *packer,
 	add_to_input_bin(bin, data_vio);
 	bin->free_space -= data_vio->compression.size;
 
-	// If we happen to exactly fill the bin, start a new input batch.
+	/* If we happen to exactly fill the bin, start a new input batch. */
 	if ((bin->slots_used == packer->max_slots) || (bin->free_space == 0)) {
 		start_new_batch(packer, bin);
 	}
 
-	// Now that we've finished changing the free space, restore the sort
-	// order.
+	/*
+	 * Now that we've finished changing the free space, restore the sort 
+	 * order. 
+	 */
 	insert_in_sorted_list(packer, bin);
 }
 
@@ -795,15 +817,19 @@ static void write_pending_batches(struct packer *packer)
 		return;
 	}
 
-	// Record that we are in this function for the above check. IMPORTANT:
-	// never return from this function without clearing this flag.
+	/*
+	 * Record that we are in this function for the above check. IMPORTANT: 
+	 * never return from this function without clearing this flag. 
+	 */
 	packer->writing_batches = true;
 
 	while (has_waiters(&packer->batched_data_vios)
 	       && ((output = pop_output_bin(packer)) != NULL)) {
 		if (!write_next_batch(packer, output)) {
-			// We didn't use the output bin to write, so push it
-			// back on the stack.
+			/*
+			 * We didn't use the output bin to write, so push it 
+			 * back on the stack. 
+			 */
 			push_output_bin(packer, output);
 		}
 	}
@@ -821,8 +847,10 @@ static void write_pending_batches(struct packer *packer)
 static struct input_bin * __must_check
 select_input_bin(struct packer *packer, struct data_vio *data_vio)
 {
-	// First best fit: select the bin with the least free space that has
-	// enough room for the compressed data in the data_vio.
+	/*
+	 * First best fit: select the bin with the least free space that has 
+	 * enough room for the compressed data in the data_vio. 
+	 */
 	struct input_bin *fullest_bin = get_vdo_packer_fullest_bin(packer);
 	struct input_bin *bin;
 
@@ -849,9 +877,11 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 		return NULL;
 	}
 
-	// The fullest bin doesn't have room, but writing it out and starting a
-	// new batch with the incoming data_vio will increase the packer's free
-	// space.
+	/*
+	 * The fullest bin doesn't have room, but writing it out and starting a 
+	 * new batch with the incoming data_vio will increase the packer's free 
+	 * space.
+	 */
 	return fullest_bin;
 }
 
@@ -880,8 +910,10 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer + 1);
 
-	// If packing of this data_vio is disallowed for administrative
-	// reasons, give up before making any state changes.
+	/*
+	 * If packing of this data_vio is disallowed for administrative 
+	 * reasons, give up before making any state changes. 
+	 */
 	if (!is_vdo_state_normal(&packer->state) ||
 	    (data_vio->flush_generation < packer->flush_generation)) {
 		abort_packing(data_vio);
@@ -925,9 +957,11 @@ static void write_all_non_empty_bins(struct packer *packer)
 	for (bin = get_vdo_packer_fullest_bin(packer); bin != NULL;
 	     bin = next_vdo_packer_bin(packer, bin)) {
 		start_new_batch(packer, bin);
-		// We don't need to re-sort the bin here since this loop will
-		// make every bin have the same amount of free space, so every
-		// ordering is sorted.
+		/*
+		 * We don't need to re-sort the bin here since this loop will 
+		 * make every bin have the same amount of free space, so every 
+		 * ordering is sorted.
+		 */
 	}
 
 	write_pending_batches(packer);
@@ -1027,7 +1061,7 @@ void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
 static void dump_input_bin(const struct input_bin *bin, bool canceled)
 {
 	if (bin->slots_used == 0) {
-		// Don't dump empty input bins.
+		/* Don't dump empty input bins. */
 		return;
 	}
 
@@ -1035,9 +1069,11 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 		     (canceled ? "Canceled" : "Input"), bin->slots_used,
 		     bin->free_space);
 
-	// XXX dump vios in bin->incoming? The vios should have been dumped
-	// from the vio pool. Maybe just dump their addresses so it's clear
-	// they're here?
+	/*
+	 * XXX dump vios in bin->incoming? The vios should have been dumped 
+	 * from the vio pool. Maybe just dump their addresses so it's clear 
+	 * they're here?
+	 */
 }
 
 /**********************************************************************/
@@ -1046,18 +1082,20 @@ static void dump_output_bin(const struct output_bin *bin)
 	size_t count = count_waiters(&bin->outgoing);
 
 	if (bin->slots_used == 0) {
-		// Don't dump empty output bins.
+		/* Don't dump empty output bins. */
 		return;
 	}
 
 	uds_log_info("    struct output_bin contains %zu outgoing waiters",
 		     count);
 
-	// XXX dump vios in bin->outgoing? The vios should have been dumped
-	// from the vio pool. Maybe just dump their addresses so it's clear
-	// they're here?
+	/*
+	 * XXX dump vios in bin->outgoing? The vios should have been dumped 
+	 * from the vio pool. Maybe just dump their addresses so it's clear 
+	 * they're here?
+	 */
 
-	// XXX dump writer vio?
+	/* XXX dump writer vio? */
 }
 
 /**********************************************************************/

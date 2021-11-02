@@ -281,7 +281,7 @@ int configure_vdo_slab_depot(block_count_t block_count,
 		      (unsigned long long) slab_size,
 		      zone_count);
 
-	// We do not allow runt slabs, so we waste up to a slab's worth.
+	/* We do not allow runt slabs, so we waste up to a slab's worth. */
 	slab_count = (block_count / slab_size);
 	if (slab_count == 0) {
 		return VDO_NO_SPACE;
@@ -334,7 +334,7 @@ int configure_vdo_slab(block_count_t slab_size,
 		vdo_get_saved_reference_count_size(slab_size - slab_journal_blocks);
 	meta_blocks = (ref_blocks + slab_journal_blocks);
 
-	// Make sure test code hasn't configured slabs to be too small.
+	/* Make sure test code hasn't configured slabs to be too small. */
 	if (meta_blocks >= slab_size) {
 		return VDO_BAD_CONFIGURATION;
 	}

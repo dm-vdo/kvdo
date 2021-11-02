@@ -26,12 +26,12 @@
 
 /* Keep struct bio statistics atomically */
 struct atomic_bio_stats {
-	atomic64_t read; // Number of not REQ_WRITE bios
-	atomic64_t write; // Number of REQ_WRITE bios
-	atomic64_t discard; // Number of REQ_DISCARD bios
-	atomic64_t flush; // Number of REQ_FLUSH bios
-	atomic64_t empty_flush; // Number of REQ_PREFLUSH bios without data
-	atomic64_t fua; // Number of REQ_FUA bios
+	atomic64_t read; /* Number of not REQ_WRITE bios */
+	atomic64_t write; /* Number of REQ_WRITE bios */
+	atomic64_t discard; /* Number of REQ_DISCARD bios */
+	atomic64_t flush; /* Number of REQ_FLUSH bios */
+	atomic64_t empty_flush; /* Number of REQ_PREFLUSH bios without data */
+	atomic64_t fua; /* Number of REQ_FUA bios */
 };
 
 /**

@@ -404,8 +404,10 @@ static void launch_flush(struct vdo_flush *flush)
 /**********************************************************************/
 void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 {
-	// Try to allocate a vdo_flush to represent the flush request. If the
-	// allocation fails, we'll deal with it later.
+	/*
+	 * Try to allocate a vdo_flush to represent the flush request. If the 
+	 * allocation fails, we'll deal with it later. 
+	 */
 	struct vdo_flush *flush
 		= UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
@@ -418,31 +420,35 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 
 	spin_lock(&flusher->lock);
 
-	// We have a new bio to start. Add it to the list.
+	/* We have a new bio to start. Add it to the list. */
 	bio_list_add(&flusher->waiting_flush_bios, bio);
 
 	if (flush == NULL) {
-		// The vdo_flush allocation failed. Try to use the spare
-		// vdo_flush structure.
+		/*
+		 * The vdo_flush allocation failed. Try to use the spare 
+		 * vdo_flush structure. 
+		 */
 		if (flusher->spare_flush == NULL) {
-			// The spare is already in use. This bio is on
-			// waiting_flush_bios and it will be handled by a flush
-			// completion or by a bio that can allocate.
+			/*
+			 * The spare is already in use. This bio is on 
+			 * waiting_flush_bios and it will be handled by a flush 
+			 * completion or by a bio that can allocate.
+			 */
 			spin_unlock(&flusher->lock);
 			return;
 		}
 
-		// Take and use the spare flush request.
+		/* Take and use the spare flush request. */
 		flush = flusher->spare_flush;
 		flusher->spare_flush = NULL;
 	}
 
-	// We have flushes to start. Capture them in the vdo_flush structure.
+	/* We have flushes to start. Capture them in the vdo_flush structure. */
 	initialize_flush(flush, vdo);
 
 	spin_unlock(&flusher->lock);
 
-	// Finish launching the flushes.
+	/* Finish launching the flushes. */
 	launch_flush(flush);
 }
 
@@ -462,23 +468,25 @@ static void release_flush(struct vdo_flush *flush)
 
 	spin_lock(&flusher->lock);
 	if (bio_list_empty(&flusher->waiting_flush_bios)) {
-		// Nothing needs to be started.  Save one spare flush request.
+		/* Nothing needs to be started.  Save one spare flush request. */
 		if (flusher->spare_flush == NULL) {
-			// Make the new spare all zero, just like a newly
-			// allocated one.
+			/*
+			 * Make the new spare all zero, just like a newly 
+			 * allocated one. 
+			 */
 			memset(flush, 0, sizeof(*flush));
 			flusher->spare_flush = flush;
 			flush = NULL;
 		}
 	} else {
-		// We have flushes to start. Capture them in a flush request.
+		/* We have flushes to start. Capture them in a flush request. */
 		initialize_flush(flush, flusher->vdo);
 		relaunch_flush = true;
 	}
 	spin_unlock(&flusher->lock);
 
 	if (relaunch_flush) {
-		// Finish launching the flushes.
+		/* Finish launching the flushes. */
 		launch_flush(flush);
 		return;
 	}
@@ -501,11 +509,13 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 	struct bio *bio;
 
 	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
-		// We're not acknowledging this bio now, but we'll never touch
-		// it again, so this is the last chance to account for it.
+		/*
+		 * We're not acknowledging this bio now, but we'll never touch 
+		 * it again, so this is the last chance to account for it. 
+		 */
 		vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 
-		// Update the device, and send it on down...
+		/* Update the device, and send it on down... */
 		bio_set_dev(bio, get_vdo_backing_device(vdo));
 		atomic64_inc(&vdo->stats.flush_out);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
@@ -516,9 +526,11 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 	}
 
 
-	// Release the flush structure, freeing it, re-using it as the spare,
-	// or using it to launch any flushes that had to wait when allocations
-	// failed.
+	/*
+	 * Release the flush structure, freeing it, re-using it as the spare, 
+	 * or using it to launch any flushes that had to wait when allocations 
+	 * failed.
+	 */
 	release_flush(flush);
 }
 

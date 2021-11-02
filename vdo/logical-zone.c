@@ -433,8 +433,10 @@ void release_vdo_flush_generation_lock(struct data_vio *data_vio)
 
 	assert_on_zone_thread(zone, __func__);
 	if (list_empty(&data_vio->write_entry)) {
-		// This VIO never got a lock, either because it is a read, or
-		// because we are in read-only mode.
+		/*
+		 * This VIO never got a lock, either because it is a read, or 
+		 * because we are in read-only mode. 
+		 */
 		ASSERT_LOG_ONLY(!data_vio->has_flush_generation_lock,
 				"has_flush_generation_lock false for VIO not on active list");
 		return;

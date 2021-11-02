@@ -68,7 +68,7 @@ struct hash_zone {
  **/
 static bool compare_keys(const void *this_key, const void *that_key)
 {
-	// Null keys are not supported.
+	/* Null keys are not supported. */
 	return (memcmp(this_key, that_key, sizeof(struct uds_chunk_name)) == 0);
 }
 
@@ -82,7 +82,7 @@ static uint32_t hash_key(const void *key)
 	 * Use a fragment of the chunk name as a hash code. It must not overlap
 	 * with fragments used elsewhere to ensure uniform distributions.
 	 */
-	// XXX pick an offset in the chunk name that isn't used elsewhere
+	/* XXX pick an offset in the chunk name that isn't used elsewhere */
 	return get_unaligned_le32(&name->name[4]);
 }
 
@@ -187,8 +187,10 @@ int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
 {
 	struct hash_lock *lock, *new_lock;
 
-	// Borrow and prepare a lock from the pool so we don't have to do two
-	// pointer_map accesses in the common case of no lock contention.
+	/*
+	 * Borrow and prepare a lock from the pool so we don't have to do two 
+	 * pointer_map accesses in the common case of no lock contention. 
+	 */
 	int result = ASSERT(!list_empty(&zone->lock_pool),
 			    "never need to wait for a free hash lock");
 	if (result != VDO_SUCCESS) {
@@ -198,8 +200,10 @@ int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
 			      pool_node);
 	list_del_init(&new_lock->pool_node);
 
-	// Fill in the hash of the new lock so we can map it, since we have to
-	// use the hash as the map key.
+	/*
+	 * Fill in the hash of the new lock so we can map it, since we have to 
+	 * use the hash as the map key. 
+	 */
 	new_lock->hash = *hash;
 
 	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
@@ -210,11 +214,13 @@ int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
 	}
 
 	if (replace_lock != NULL) {
-		// XXX on mismatch put the old lock back and return a severe
-		// error
+		/*
+		 * XXX on mismatch put the old lock back and return a severe 
+		 * error 
+		 */
 		ASSERT_LOG_ONLY(lock == replace_lock,
 				"old lock must have been in the lock map");
-		// XXX check earlier and bail out?
+		/* XXX check earlier and bail out? */
 		ASSERT_LOG_ONLY(replace_lock->registered,
 				"old lock must have been marked registered");
 		replace_lock->registered = false;
@@ -224,8 +230,10 @@ int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
 		lock = new_lock;
 		lock->registered = true;
 	} else {
-		// There's already a lock for the hash, so we don't need the
-		// borrowed lock.
+		/*
+		 * There's already a lock for the hash, so we don't need the 
+		 * borrowed lock. 
+		 */
 		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
 	}
 
@@ -274,13 +282,15 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	const char *state;
 
 	if (!list_empty(&lock->pool_node)) {
-		// This lock is on the free list.
+		/* This lock is on the free list. */
 		return;
 	}
 
-	// Necessarily cryptic since we can log a lot of these. First three
-	// chars of state is unambiguous. 'U' indicates a lock not registered in
-	// the map.
+	/*
+	 * Necessarily cryptic since we can log a lot of these. First three 
+	 * chars of state is unambiguous. 'U' indicates a lock not registered in 
+	 * the map.
+	 */
 	state = get_vdo_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
@@ -296,8 +306,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
  **/
 static void increment_stat(uint64_t *stat)
 {
-	// Must only be mutated on the hash zone thread. Prevents any compiler
-	// shenanigans from affecting other threads reading stats.
+	/*
+	 * Must only be mutated on the hash zone thread. Prevents any compiler 
+	 * shenanigans from affecting other threads reading stats. 
+	 */
 	WRITE_ONCE(*stat, *stat + 1);
 }
 

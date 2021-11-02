@@ -99,4 +99,4 @@ void free_batch_processor(struct batch_processor *batch);
  **/
 void cond_resched_batch_processor(struct batch_processor *batch);
 
-#endif // BATCHPROCESSOR_H
+#endif /* BATCHPROCESSOR_H */

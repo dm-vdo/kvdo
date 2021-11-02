@@ -309,4 +309,4 @@ void load_vdo_slab_summary(struct slab_summary *summary,
 struct slab_summary_statistics __must_check
 get_vdo_slab_summary_statistics(const struct slab_summary *summary);
 
-#endif // SLAB_SUMMARY_H
+#endif /* SLAB_SUMMARY_H */

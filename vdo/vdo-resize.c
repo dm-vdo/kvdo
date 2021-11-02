@@ -90,7 +90,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
-			// Copy the journal into the new layout.
+			/* Copy the journal into the new layout. */
 			copy_vdo_layout_partition(vdo->layout,
 						  VDO_RECOVERY_JOURNAL_PARTITION,
 						  reset_vdo_admin_sub_task(completion));
@@ -159,7 +159,7 @@ int perform_vdo_grow_physical(struct vdo *vdo,
 	block_count_t old_physical_blocks =
 		vdo->states.vdo.config.physical_blocks;
 
-	// Skip any noop grows.
+	/* Skip any noop grows. */
 	if (old_physical_blocks == new_physical_blocks) {
 		return VDO_SUCCESS;
 	}
@@ -176,7 +176,7 @@ int perform_vdo_grow_physical(struct vdo *vdo,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	// Validate that we are prepared to grow appropriately.
+	/* Validate that we are prepared to grow appropriately. */
 	new_depot_size =
 		vdo_get_next_block_allocator_partition_size(vdo->layout);
 	prepared_depot_size = get_vdo_slab_depot_new_size(vdo->depot);
@@ -217,13 +217,13 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 
 	reset_vdo_admin_sub_task(completion);
 
-	// This check can only be done from a base code thread.
+	/* This check can only be done from a base code thread. */
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
-	// This check should only be done from a base code thread.
+	/* This check should only be done from a base code thread. */
 	if (in_vdo_recovery_mode(vdo)) {
 		finish_vdo_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
 		return;

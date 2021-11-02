@@ -74,9 +74,11 @@ int vdo_split_string(const char *string,
 				vdo_free_string_array(substrings);
 				return result;
 			}
-			// Trailing NUL is already in place after allocation;
-			// deal with the zero or more non-NUL bytes in the
-			// string.
+			/*
+			 * Trailing NUL is already in place after allocation; 
+			 * deal with the zero or more non-NUL bytes in the 
+			 * string.
+			 */
 			if (length > 0) {
 				memcpy(substrings[current_substring],
 				       string,
@@ -87,7 +89,7 @@ int vdo_split_string(const char *string,
 			BUG_ON(current_substring >= substring_count);
 		}
 	}
-	// Process final string, with no trailing separator.
+	/* Process final string, with no trailing separator. */
 	BUG_ON(current_substring != (substring_count - 1));
 	length = strlen(string);
 
@@ -101,7 +103,7 @@ int vdo_split_string(const char *string,
 	}
 	memcpy(substrings[current_substring], string, length);
 	current_substring++;
-	// substrings[current_substring] is NULL already
+	/* substrings[current_substring] is NULL already */
 	*substring_array_ptr = substrings;
 	return UDS_SUCCESS;
 }
@@ -136,7 +138,7 @@ int vdo_join_strings(char **substring_array, size_t array_length,
 		current_position++;
 	}
 
-	// We output one too many separators; replace the last with a zero byte.
+	/* We output one too many separators; replace the last with a zero byte. */
 	if (current_position != output) {
 		*(current_position - 1) = '\0';
 	}

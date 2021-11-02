@@ -31,13 +31,13 @@
  * part of the extent. A vio may belong to a single extent.
  **/
 struct vdo_extent {
-	// The completion for asynchronous extent processing
+	/* The completion for asynchronous extent processing */
 	struct vdo_completion completion;
-	// The number of vios in the extent
+	/* The number of vios in the extent */
 	block_count_t count;
-	// The number of completed vios in the extent
+	/* The number of completed vios in the extent */
 	block_count_t complete_count;
-	// The vios in the extent
+	/* The vios in the extent */
 	struct vio *vios[];
 };
 

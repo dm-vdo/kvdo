@@ -37,15 +37,15 @@
 #include "types.h"
 
 struct vdo_layout {
-	// The current layout of the VDO
+	/* The current layout of the VDO */
 	struct fixed_layout *layout;
-	// The next layout of the VDO
+	/* The next layout of the VDO */
 	struct fixed_layout *next_layout;
-	// The previous layout of the VDO
+	/* The previous layout of the VDO */
 	struct fixed_layout *previous_layout;
-	// The first block in the layouts
+	/* The first block in the layouts */
 	physical_block_number_t starting_offset;
-	// A pointer to the copy completion (if there is one)
+	/* A pointer to the copy completion (if there is one) */
 	struct vdo_completion *copy_completion;
 };
 
@@ -155,4 +155,4 @@ void copy_vdo_layout_partition(struct vdo_layout *layout,
 struct fixed_layout * __must_check
 get_vdo_fixed_layout(const struct vdo_layout *vdo_layout);
 
-#endif // VDO_LAYOUT_H
+#endif /* VDO_LAYOUT_H */

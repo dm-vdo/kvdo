@@ -72,4 +72,4 @@ borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 				 struct pbn_lock *lock);
 
-#endif // PBN_LOCK_POOL_H
+#endif /* PBN_LOCK_POOL_H */

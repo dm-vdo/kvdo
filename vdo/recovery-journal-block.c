@@ -39,8 +39,10 @@ int make_vdo_recovery_block(struct vdo *vdo,
 	struct recovery_journal_block *block;
 	int result;
 
-	// Ensure that a block is large enough to store
-	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
+	/*
+	 * Ensure that a block is large enough to store 
+	 * RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries. 
+	 */
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
 		      <= ((VDO_BLOCK_SIZE -
 			   sizeof(struct packed_journal_header)) /
@@ -51,8 +53,10 @@ int make_vdo_recovery_block(struct vdo *vdo,
 		return result;
 	}
 
-	// Allocate a full block for the journal block even though not all of
-	// the space is used since the VIO needs to write a full disk block.
+	/*
+	 * Allocate a full block for the journal block even though not all of 
+	 * the space is used since the VIO needs to write a full disk block. 
+	 */
 	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
 			      &block->block);
 	if (result != VDO_SUCCESS) {
@@ -152,12 +156,14 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
 				     struct data_vio *data_vio)
 {
-	// First queued entry indicates this is a journal block we've just
-	// opened or a committing block we're extending and will have to write
-	// again.
+	/*
+	 * First queued entry indicates this is a journal block we've just 
+	 * opened or a committing block we're extending and will have to write 
+	 * again.
+	 */
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
-	// Enqueue the data_vio to wait for its entry to commit.
+	/* Enqueue the data_vio to wait for its entry to commit. */
 	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -166,7 +172,7 @@ int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
 	block->entry_count++;
 	block->uncommitted_entry_count++;
 
-	// Update stats to reflect the journal entry we're going to write.
+	/* Update stats to reflect the journal entry we're going to write. */
 	if (new_batch) {
 		block->journal->events.blocks.started++;
 	}
@@ -218,7 +224,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
 		}
 
-		// Compose and encode the entry.
+		/* Compose and encode the entry. */
 		packed_entry =
 			&block->sector->entries[block->sector->entry_count++];
 		new_entry = (struct recovery_journal_entry) {
@@ -236,7 +242,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 				block->sequence_number;
 		}
 
-		// Enqueue the data_vio to wait for its entry to commit.
+		/* Enqueue the data_vio to wait for its entry to commit. */
 		result = enqueue_data_vio(&block->commit_waiters, data_vio);
 		if (result != VDO_SUCCESS) {
 			continue_data_vio(data_vio, result);
@@ -272,8 +278,10 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 /**********************************************************************/
 bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
 {
-	// Cannot commit in read-only mode, if already committing the block,
-	// or if there are no entries to commit.
+	/*
+	 * Cannot commit in read-only mode, if already committing the block, 
+	 * or if there are no entries to commit. 
+	 */
 	return ((block != NULL)
 		&& !block->committing
 		&& has_waiters(&block->entry_waiters)
@@ -307,7 +315,7 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
 		return result;
 	}
 
-	// Update stats to reflect the block and entries we're about to write.
+	/* Update stats to reflect the block and entries we're about to write. */
 	journal->pending_write_count += 1;
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;

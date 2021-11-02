@@ -27,16 +27,16 @@
 #include "types.h"
 
 struct recovery_block_header {
-	sequence_number_t block_map_head; // Block map head sequence number
-	sequence_number_t slab_journal_head; // Slab journal head seq. number
-	sequence_number_t sequence_number; // Sequence number for this block
-	nonce_t nonce; // A given VDO instance's nonce
-	block_count_t logical_blocks_used; // Logical blocks in use
-	block_count_t block_map_data_blocks; // Allocated block map pages
-	journal_entry_count_t entry_count; // Number of entries written
-	uint8_t check_byte; // The protection check byte
-	uint8_t recovery_count; // Number of recoveries completed
-	enum vdo_metadata_type metadata_type; // Metadata type
+	sequence_number_t block_map_head; /* Block map head sequence number */
+	sequence_number_t slab_journal_head; /* Slab journal head seq. number */
+	sequence_number_t sequence_number; /* Sequence number for this block */
+	nonce_t nonce; /* A given VDO instance's nonce */
+	block_count_t logical_blocks_used; /* Logical blocks in use */
+	block_count_t block_map_data_blocks; /* Allocated block map pages */
+	journal_entry_count_t entry_count; /* Number of entries written */
+	uint8_t check_byte; /* The protection check byte */
+	uint8_t recovery_count; /* Number of recoveries completed */
+	enum vdo_metadata_type metadata_type; /* Metadata type */
 };
 
 /**
@@ -99,8 +99,10 @@ struct packed_journal_sector {
 } __packed;
 
 enum {
-	// Allowing more than 311 entries in each block changes the math
-	// concerning the amortization of metadata writes and recovery speed.
+	/*
+	 * Allowing more than 311 entries in each block changes the math 
+	 * concerning the amortization of metadata writes and recovery speed. 
+	 */
 	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
 	/**
 	 * The number of entries in each sector (except the last) when filled
@@ -183,4 +185,4 @@ unpack_vdo_recovery_block_header(const struct packed_journal_header *packed,
 	};
 }
 
-#endif // PACKED_RECOVERY_JOURNAL_BLOCK_H
+#endif /* PACKED_RECOVERY_JOURNAL_BLOCK_H */

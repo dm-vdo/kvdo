@@ -175,4 +175,4 @@ bool __must_check suspend_vdo_lock_counter(struct lock_counter *counter);
  **/
 bool __must_check resume_vdo_lock_counter(struct lock_counter *counter);
 
-#endif // LOCK_COUNTER_H
+#endif /* LOCK_COUNTER_H */

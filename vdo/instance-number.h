@@ -46,4 +46,4 @@ void initialize_vdo_instance_number_tracking(void);
  **/
 void clean_up_vdo_instance_number_tracking(void);
 
-#endif // INSTANCE_NUMBER_H
+#endif /* INSTANCE_NUMBER_H */

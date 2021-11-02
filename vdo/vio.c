@@ -41,8 +41,10 @@ int create_metadata_vio(struct vdo *vdo,
 	struct bio *bio;
 	int result;
 
-	// If struct vio grows past 256 bytes, we'll lose benefits of
-	// VDOSTORY-176.
+	/*
+	 * If struct vio grows past 256 bytes, we'll lose benefits of 
+	 * VDOSTORY-176. 
+	 */
 	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
 	result = ASSERT(is_vdo_metadata_vio_type(vio_type),
@@ -52,8 +54,10 @@ int create_metadata_vio(struct vdo *vdo,
 		return result;
 	}
 
-	// Metadata vios should use direct allocation and not use the buffer
-	// pool, which is reserved for submissions from the linux block layer.
+	/*
+	 * Metadata vios should use direct allocation and not use the buffer 
+	 * pool, which is reserved for submissions from the linux block layer. 
+	 */
 	result = UDS_ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata vio allocation failure %d", result);
@@ -133,8 +137,10 @@ void get_vio_operation_description(const struct vio *vio, char *buffer)
 	int written = snprintf(buffer, buffer_remaining, "%s",
 		operations[vio->operation & VIO_READ_WRITE_MASK]);
 	if ((written < 0) || (buffer_remaining < written)) {
-		// Should never happen, but if it does, we've done as much
-		// description as possible.
+		/*
+		 * Should never happen, but if it does, we've done as much 
+		 * description as possible. 
+		 */
 		return;
 	}
 
@@ -146,8 +152,10 @@ void get_vio_operation_description(const struct vio *vio, char *buffer)
 	}
 
 	if ((written < 0) || (buffer_remaining < written)) {
-		// Should never happen, but if it does, we've done as much
-		// description as possible.
+		/*
+		 * Should never happen, but if it does, we've done as much 
+		 * description as possible. 
+		 */
 		return;
 	}
 

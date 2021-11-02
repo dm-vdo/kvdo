@@ -230,4 +230,4 @@ make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 				  block_count_t summary_blocks,
 				  struct fixed_layout **layout_ptr);
 
-#endif // FIXED_LAYOUT_H
+#endif /* FIXED_LAYOUT_H */

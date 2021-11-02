@@ -95,4 +95,4 @@ void traverse_vdo_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent);
 
-#endif // FOREST_H
+#endif /* FOREST_H */

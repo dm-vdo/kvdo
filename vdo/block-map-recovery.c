@@ -56,8 +56,8 @@ struct block_map_recovery_completion {
 	/** whether we are currently launching the initial round of requests */
 	bool launching;
 
-	// Fields for the journal entries.
-	/** the journal entries to apply */
+	/* Fields for the journal entries. */
+	/* the journal entries to apply */
 	struct numbered_block_mapping *journal_entries;
 	/**
 	 * a heap wrapping journal_entries. It re-orders and sorts journal
@@ -66,14 +66,14 @@ struct block_map_recovery_completion {
 	 **/
 	struct heap replay_heap;
 
-	// Fields tracking progress through the journal entries.
-	/** a pointer to the next journal entry to apply */
+	/* Fields tracking progress through the journal entries. */ 
+	/* a pointer to the next journal entry to apply */
 	struct numbered_block_mapping *current_entry;
 	/** next entry for which the block map page has not been requested */
 	struct numbered_block_mapping *current_unfetched_entry;
 
-	// Fields tracking requested pages.
-	/** the absolute PBN of the current page being processed */
+	/* Fields tracking requested pages. */
+	/* the absolute PBN of the current page being processed */
 	physical_block_number_t pbn;
 	/** number of pending (non-ready) requests */
 	page_count_t outstanding;
@@ -210,9 +210,11 @@ make_vdo_recovery_completion(struct vdo *vdo,
 	recovery->logical_thread_id =
 		vdo_get_logical_zone_thread(vdo->thread_config, 0);
 
-	// Organize the journal entries into a binary heap so we can iterate
-	// over them in sorted order incrementally, avoiding an expensive sort
-	// call.
+	/*
+	 * Organize the journal entries into a binary heap so we can iterate 
+	 * over them in sorted order incrementally, avoiding an expensive sort 
+	 * call.
+	 */
 	initialize_heap(&recovery->replay_heap,
 			compare_mappings,
 			swap_mappings,
@@ -233,7 +235,7 @@ make_vdo_recovery_completion(struct vdo *vdo,
 			       recovery->logical_thread_id,
 			       parent);
 
-	// This message must be recognizable by VDOTest::RebuildBase.
+	/* This message must be recognizable by VDOTest::RebuildBase. */
 	uds_log_info("Replaying %zu recovery entries into block map",
 		     recovery->replay_heap.count);
 
@@ -268,7 +270,7 @@ static void flush_block_map(struct vdo_completion *completion)
  **/
 static bool finish_if_done(struct block_map_recovery_completion *recovery)
 {
-	// Pages are still being launched or there is still work to do
+	/* Pages are still being launched or there is still work to do */
 	if (recovery->launching || (recovery->outstanding > 0) ||
 	    (!recovery->aborted &&
 	     (recovery->current_entry >= recovery->journal_entries))) {
@@ -334,14 +336,16 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 			      bool needs_sort)
 {
 	size_t current_page;
-	// If current_entry is invalid, return immediately.
+	/* If current_entry is invalid, return immediately. */
 	if (current_entry < recovery->journal_entries) {
 		return current_entry;
 	}
 	current_page = current_entry->block_map_slot.pbn;
 
-	// Decrement current_entry until it's out of bounds or on a different
-	// page.
+	/*
+	 * Decrement current_entry until it's out of bounds or on a different 
+	 * page. 
+	 */
 	while ((current_entry >= recovery->journal_entries) &&
 	       (current_entry->block_map_slot.pbn == current_page)) {
 		if (needs_sort) {
@@ -421,11 +425,11 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 	physical_block_number_t new_pbn;
 
 	if (recovery->current_unfetched_entry < recovery->journal_entries) {
-		// Nothing left to fetch.
+		/* Nothing left to fetch. */
 		return;
 	}
 
-	// Fetch the next page we haven't yet requested.
+	/* Fetch the next page we haven't yet requested. */
 	new_pbn = recovery->current_unfetched_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery,
@@ -543,8 +547,10 @@ void recover_vdo_block_map(struct vdo *vdo,
 	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
 			"heap is returning elements in an unexpected order");
 
-	// Prevent any page from being processed until all pages have been
-	// launched.
+	/*
+	 * Prevent any page from being processed until all pages have been 
+	 * launched. 
+	 */
 	recovery->launching = true;
 	recovery->pbn = recovery->current_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry = recovery->current_entry;
@@ -558,6 +564,6 @@ void recover_vdo_block_map(struct vdo *vdo,
 	}
 	recovery->launching = false;
 
-	// Process any ready pages.
+	/* Process any ready pages. */
 	recover_ready_pages(recovery, &recovery->page_completions[0].completion);
 }

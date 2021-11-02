@@ -111,16 +111,16 @@ int vdo_map_to_system_error(int error)
 {
 	char error_name[80], error_message[ERRBUF_SIZE];
 
-	// 0 is success, negative a system error code
+	/* 0 is success, negative a system error code */
 	if (likely(error <= 0)) {
 		return error;
 	}
 	if (error < 1024) {
-		// errno macro used without negating - may be a minor bug
+		/* errno macro used without negating - may be a minor bug */
 		return -error;
 	}
 
-	// VDO or UDS error
+	/* VDO or UDS error */
 	switch (error) {
 	case VDO_NO_SPACE:
 		return -ENOSPC;

@@ -227,4 +227,4 @@ static inline size_t __must_check count_waiters(const struct wait_queue *queue)
 const struct waiter * __must_check
 get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter);
 
-#endif // WAIT_QUEUE_H
+#endif /* WAIT_QUEUE_H */

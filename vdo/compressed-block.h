@@ -95,4 +95,4 @@ void put_vdo_compressed_block_fragment(struct compressed_block *block,
 				       unsigned int fragment, uint16_t offset,
 				       const char *data, uint16_t size);
 
-#endif // COMPRESSED_BLOCK_H
+#endif /* COMPRESSED_BLOCK_H */

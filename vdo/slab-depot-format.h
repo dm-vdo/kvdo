@@ -123,4 +123,4 @@ int __must_check configure_vdo_slab(block_count_t slab_size,
 block_count_t __must_check
 vdo_get_saved_reference_count_size(block_count_t block_count);
 
-#endif // SLAB_DEPOT_FORMAT_H
+#endif /* SLAB_DEPOT_FORMAT_H */

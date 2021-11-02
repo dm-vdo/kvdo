@@ -394,4 +394,4 @@ void dump_vdo_slab_depot(const struct slab_depot *depot);
  **/
 void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
-#endif // SLAB_DEPOT_H
+#endif /* SLAB_DEPOT_H */

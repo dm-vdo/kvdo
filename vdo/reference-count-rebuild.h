@@ -38,4 +38,4 @@ void rebuild_vdo_reference_counts(struct vdo *vdo,
 				  block_count_t *logical_blocks_used,
 				  block_count_t *block_map_data_blocks);
 
-#endif // REFERENCE_COUNT_REBUILD_H
+#endif /* REFERENCE_COUNT_REBUILD_H */

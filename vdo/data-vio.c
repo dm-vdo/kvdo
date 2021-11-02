@@ -201,8 +201,10 @@ void prepare_data_vio(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	// Clearing the tree lock must happen before initializing the LBN lock,
-	// which also adds information to the tree lock.
+	/*
+	 * Clearing the tree lock must happen before initializing the LBN lock, 
+	 * which also adds information to the tree lock. 
+	 */
 	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
 	initialize_lbn_lock(data_vio, lbn);
 	INIT_LIST_HEAD(&data_vio->hash_lock_entry);
@@ -220,10 +222,10 @@ void prepare_data_vio(struct data_vio *data_vio,
 
 	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 	if (data_vio->is_partial || (data_vio->remaining_discard == 0)) {
-		// This is either a write or a partial block discard
+		/* This is either a write or a partial block discard */
 		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 	} else {
-		// This is a full block discard
+		/* This is a full block discard */
 		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNMAPPED;
 	}
 
@@ -377,7 +379,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	}
 
 	if (lock_holder == NULL) {
-		// We got the lock
+		/* We got the lock */
 		launch_locked_request(data_vio);
 		return;
 	}
@@ -415,14 +417,16 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
-				data_vio);
+				  data_vio);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
 	}
 
-	// Prevent writes and read-modify-writes from blocking indefinitely on
-	// lock holders in the packer.
+	/*
+	 * Prevent writes and read-modify-writes from blocking indefinitely on 
+	 * lock holders in the packer. 
+	 */
 	if (!is_read_data_vio(lock_holder) &&
 	    cancel_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
@@ -444,8 +448,10 @@ static void release_lock(struct data_vio *data_vio)
 	struct data_vio *lock_holder;
 
 	if (!lock->locked) {
-		// The lock is not locked, so it had better not be registered
-		// in the lock map.
+		/*
+		 * The lock is not locked, so it had better not be registered 
+		 * in the lock map. 
+		 */
 		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
 
 		ASSERT_LOG_ONLY((data_vio != lock_holder),
@@ -454,7 +460,7 @@ static void release_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	// Remove the lock from the logical block lock map, releasing the lock.
+	/* Remove the lock from the logical block lock map, releasing the lock. */
 	lock_holder = int_map_remove(lock_map, lock->lbn);
 	ASSERT_LOG_ONLY((data_vio == lock_holder),
 			"logical block lock mismatch for block %llu",
@@ -478,12 +484,14 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
 
-	// Another data_vio is waiting for the lock, so just transfer it in a
-	// single lock map operation
+	/*
+	 * Another data_vio is waiting for the lock, so just transfer it in a 
+	 * single lock map operation 
+	 */
 	next_lock_holder =
 		waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
 
-	// Transfer the remaining lock waiters to the next lock holder.
+	/* Transfer the remaining lock waiters to the next lock holder. */
 	transfer_all_waiters(&lock->waiters,
 			     &next_lock_holder->logical.waiters);
 
@@ -509,8 +517,10 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 		cancel_vio_compression(next_lock_holder);
 	}
 
-	// Avoid stack overflow on lock transfer.
-	// XXX: this is only an issue in the 1 thread config.
+	/*
+	 * Avoid stack overflow on lock transfer. 
+	 * XXX: this is only an issue in the 1 thread config. 
+	 */
 	data_vio_as_completion(next_lock_holder)->requeue = true;
 	launch_locked_request(next_lock_holder);
 }
@@ -552,13 +562,17 @@ void compress_data_vio(struct data_vio *data_vio)
 				    VDO_BLOCK_SIZE,
 				    context);
 	if (size > 0) {
-		// The scratch block will be used to contain the compressed
-		// data.
+		/*
+		 * The scratch block will be used to contain the compressed 
+		 * data. 
+		 */
 		data_vio->compression.data = data_vio->scratch_block;
 		data_vio->compression.size = size;
 	} else {
-		// Use block size plus one as an indicator for uncompressible
-		// data.
+		/*
+		 * Use block size plus one as an indicator for uncompressible 
+		 * data. 
+		 */
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 	}
 }

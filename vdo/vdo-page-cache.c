@@ -194,7 +194,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 			return result;
 		}
 
-		// The thread ID should never change.
+		/* The thread ID should never change. */
 		info->vio->completion.callback_thread_id =
 			cache->zone->thread_id;
 
@@ -259,7 +259,7 @@ int make_vdo_page_cache(struct vdo *vdo,
 		return result;
 	}
 
-	// initialize empty circular queues
+	/* initialize empty circular queues */
 	INIT_LIST_HEAD(&cache->lru_list);
 	INIT_LIST_HEAD(&cache->outgoing_list);
 
@@ -482,7 +482,7 @@ set_info_pbn(struct page_info *info, physical_block_number_t pbn)
 {
 	struct vdo_page_cache *cache = info->cache;
 
-	// Either the new or the old page number must be NO_PAGE.
+	/* Either the new or the old page number must be NO_PAGE. */
 	int result = ASSERT((pbn == NO_PAGE) || (info->pbn == NO_PAGE),
 			    "Must free a page before reusing it.");
 	if (result != VDO_SUCCESS) {
@@ -627,7 +627,7 @@ get_vdo_page_cache_statistics(const struct vdo_page_cache *cache)
 	};
 }
 
-// ASYNCHRONOUS INTERFACE BEYOND THIS POINT
+/* ASYNCHRONOUS INTERFACE BEYOND THIS POINT */
 
 /**
  * Helper to complete the VDO Page Completion request successfully.
@@ -742,7 +742,7 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 				 int result)
 {
 	struct page_info *info;
-	// If we're already read-only, there's no need to log.
+	/* If we're already read-only, there's no need to log. */
 	struct read_only_notifier *notifier = cache->zone->read_only_notifier;
 
 	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(notifier)) {
@@ -933,8 +933,10 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 
 	assert_on_cache_thread(cache, __func__);
 
-	// We are doing a read-only rebuild, so treat this as a successful read
-	// of an uninitialized page.
+	/*
+	 * We are doing a read-only rebuild, so treat this as a successful read 
+	 * of an uninitialized page. 
+	 */
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	reset_vdo_completion(completion);
@@ -1121,8 +1123,10 @@ static void allocate_free_page(struct page_info *info)
 	oldest_waiter = get_first_waiter(&cache->free_waiters);
 	pbn = page_completion_from_waiter(oldest_waiter)->pbn;
 
-	// Remove all entries which match the page number in question
-	// and push them onto the page info's wait queue.
+	/*
+	 * Remove all entries which match the page number in question 
+	 * and push them onto the page info's wait queue. 
+	 */
 	dequeue_matching_waiters(&cache->free_waiters, completion_needs_page,
 				 &pbn, &info->waiting);
 	cache->waiter_count -= count_waiters(&info->waiting);
@@ -1239,7 +1243,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	struct page_info *info = completion->parent;
 	struct vdo_page_cache *cache = info->cache;
 
-	// If we're already read-only, write failures are to be expected.
+	/* If we're already read-only, write failures are to be expected. */
 	if (result != VDO_READ_ONLY) {
 		static DEFINE_RATELIMIT_STATE(error_limiter,
 					      DEFAULT_RATELIMIT_INTERVAL,
@@ -1355,8 +1359,10 @@ static void write_pages(struct vdo_completion *flush_completion)
 	}
 
 	if (has_unflushed_pages) {
-		// If there are unflushed pages, the cache can't have been
-		// freed, so this call is safe.
+		/*
+		 * If there are unflushed pages, the cache can't have been 
+		 * freed, so this call is safe. 
+		 */
 		save_pages(cache);
 	}
 }
@@ -1378,7 +1384,7 @@ void release_vdo_page_completion(struct vdo_completion *completion)
 			discard_info = page_completion->info;
 		}
 	} else {
-		// Do not check for errors if the completion was not successful.
+		/* Do not check for errors if the completion was not successful. */
 		page_completion = as_vdo_page_completion(completion);
 	}
 	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
@@ -1393,9 +1399,11 @@ void release_vdo_page_completion(struct vdo_completion *completion)
 			discard_info->write_status = WRITE_STATUS_NORMAL;
 			launch_page_save(discard_info);
 		}
-		// if there are excess requests for pages (that have not already
-		// started discards) we need to discard some page (which may be
-		// this one)
+		/*
+		 * if there are excess requests for pages (that have not already 
+		 * started discards) we need to discard some page (which may be 
+		 * this one)
+		 */
 		discard_page_if_needed(cache);
 	}
 }
@@ -1447,12 +1455,12 @@ void get_vdo_page(struct vdo_completion *completion)
 
 	info = find_page(cache, vdo_page_comp->pbn);
 	if (info != NULL) {
-		// The page is in the cache already.
+		/* The page is in the cache already. */
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
 		    is_incoming(info) ||
 		    (is_outgoing(info) && vdo_page_comp->writable)) {
 			int result;
-			// The page is unusable until it has finished I/O.
+			/* The page is unusable until it has finished I/O. */
 			ADD_ONCE(cache->stats.wait_for_page, 1);
 			result = enqueue_waiter(&info->waiting,
 						&vdo_page_comp->waiter);
@@ -1465,7 +1473,7 @@ void get_vdo_page(struct vdo_completion *completion)
 		}
 
 		if (is_valid(info)) {
-			// The page is usable.
+			/* The page is usable. */
 			ADD_ONCE(cache->stats.found_in_cache, 1);
 			if (!is_present(info)) {
 				ADD_ONCE(cache->stats.read_outgoing, 1);
@@ -1475,11 +1483,11 @@ void get_vdo_page(struct vdo_completion *completion)
 			complete_with_page(info, vdo_page_comp);
 			return;
 		}
-		// Something horrible has gone wrong.
+		/* Something horrible has gone wrong. */
 		ASSERT_LOG_ONLY(false, "Info found in a usable state.");
 	}
 
-	// The page must be fetched.
+	/* The page must be fetched. */
 	info = find_free_page(cache);
 	if (info != NULL) {
 		ADD_ONCE(cache->stats.fetch_required, 1);
@@ -1487,7 +1495,7 @@ void get_vdo_page(struct vdo_completion *completion)
 		return;
 	}
 
-	// The page must wait for a page to be discarded.
+	/* The page must wait for a page to be discarded. */
 	ADD_ONCE(cache->stats.discard_required, 1);
 	discard_page_for_completion(vdo_page_comp);
 }
@@ -1579,7 +1587,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 
 	assert_on_cache_thread(cache, __func__);
 
-	// Make sure we don't throw away any dirty pages.
+	/* Make sure we don't throw away any dirty pages. */
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     info++) {
 		int result = ASSERT(!is_dirty(info),
@@ -1589,7 +1597,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 		}
 	}
 
-	// Reset the page map by re-allocating it.
+	/* Reset the page map by re-allocating it. */
 	free_int_map(UDS_FORGET(cache->page_map));
 	return make_int_map(cache->page_count, 0, &cache->page_map);
 }

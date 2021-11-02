@@ -127,4 +127,4 @@ vdo_compute_new_forest_pages(root_count_t root_count,
 			     block_count_t entries,
 			     struct boundary *new_sizes);
 
-#endif // BLOCK_MAP_FORMAT_H
+#endif /* BLOCK_MAP_FORMAT_H */

@@ -215,8 +215,10 @@ static void suspend_callback(struct vdo_completion *completion)
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
 		if (is_vdo_state_suspending(admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
-			// If we didn't save the VDO or there was an error,
-			// we're done.
+			/*
+			 * If we didn't save the VDO or there was an error, 
+			 * we're done. 
+			 */
 			break;
 		}
 
@@ -256,8 +258,10 @@ int suspend_vdo(struct vdo *vdo)
 					     suspend_callback,
 					     preserve_vdo_completion_error_and_continue);
 
-	// Treat VDO_READ_ONLY as a success since a read-only suspension still
-	// leaves the VDO suspended.
+	/*
+	 * Treat VDO_READ_ONLY as a success since a read-only suspension still 
+	 * leaves the VDO suspended. 
+	 */
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
 		uds_log_info("device '%s' suspended", device_name);
 		return VDO_SUCCESS;

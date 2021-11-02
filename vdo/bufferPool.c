@@ -39,22 +39,22 @@
  * These are both "free lists", in a sense; don't get confused!
  */
 struct buffer_element {
-	struct list_head list;	// links in current list
-	void *data;		// element data, if on free list
+	struct list_head list;	/* links in current list */
+	void *data;		/* element data, if on free list */
 };
 
 struct buffer_pool {
-	const char *name; // Pool name
-	spinlock_t lock; // Locks this object
-	unsigned int size; // Total number of buffers
-	struct list_head free_object_list; // List of free buffers
-	struct list_head spare_list_nodes; // Unused list nodes
-	unsigned int num_busy; // Number of buffers in use
-	unsigned int max_busy; // Maximum value of the above
-	buffer_allocate_function *alloc; // Allocate function for buffer data
-	buffer_free_function *free; // Free function for buffer data
-	buffer_dump_function *dump; // Dump function for buffer data
-	struct buffer_element *bhead; // Array of buffer_element
+	const char *name; /* Pool name */
+	spinlock_t lock; /* Locks this object */
+	unsigned int size; /* Total number of buffers */
+	struct list_head free_object_list; /* List of free buffers */
+	struct list_head spare_list_nodes; /* Unused list nodes */
+	unsigned int num_busy; /* Number of buffers in use */
+	unsigned int max_busy; /* Maximum value of the above */
+	buffer_allocate_function *alloc; /* Allocate function for buffer data */
+	buffer_free_function *free; /* Free function for buffer data */
+	buffer_dump_function *dump; /* Dump function for buffer data */
+	struct buffer_element *bhead; /* Array of buffer_element */
 	void **objects;
 };
 
@@ -165,9 +165,11 @@ static bool in_free_list(struct buffer_pool *pool, void *data)
 /*************************************************************************/
 void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 {
-	// In order that syslog can empty its buffer, sleep after 35 elements
-	// for 4ms (till the second clock tick).  These numbers chosen in
-	// October 2012 running on an lfarm.
+	/*
+	 * In order that syslog can empty its buffer, sleep after 35 elements
+	 * for 4ms (till the second clock tick).  These numbers chosen in
+	 * October 2012 running on an lfarm.
+	 */
 	enum { ELEMENTS_PER_BATCH = 35 };
 	enum { SLEEP_FOR_SYSLOG = 4000 };
 

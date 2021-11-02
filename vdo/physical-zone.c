@@ -36,8 +36,10 @@
 #include "vdo.h"
 
 enum {
-	// Each user data_vio needs a PBN read lock and write lock, and each
-	// packer output bin has an allocating_vio that needs a PBN write lock.
+	/*
+	 * Each user data_vio needs a PBN read lock and write lock, and each 
+	 * packer output bin has an allocating_vio that needs a PBN write lock. 
+	 */
 	LOCK_POOL_CAPACITY = 2 * MAXIMUM_VDO_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
 };
 
@@ -132,8 +134,10 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 				       enum pbn_lock_type type,
 				       struct pbn_lock **lock_ptr)
 {
-	// Borrow and prepare a lock from the pool so we don't have to do two
-	// int_map accesses in the common case of no lock contention.
+	/*
+	 * Borrow and prepare a lock from the pool so we don't have to do two 
+	 * int_map accesses in the common case of no lock contention. 
+	 */
 	struct pbn_lock *lock, *new_lock;
 	int result = borrow_vdo_pbn_lock_from_pool(zone->lock_pool, type,
 						   &new_lock);
@@ -151,7 +155,7 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 	}
 
 	if (lock != NULL) {
-		// The lock is already held, so we don't need the borrowed one.
+		/* The lock is already held, so we don't need the borrowed one. */
 		return_vdo_pbn_lock_to_pool(zone->lock_pool,
 					    UDS_FORGET(new_lock));
 		result = ASSERT(lock->holder_count > 0,
@@ -183,8 +187,10 @@ void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 
 	lock->holder_count -= 1;
 	if (lock->holder_count > 0) {
-		// The lock was shared and is still referenced, so don't
-		// release it yet.
+		/*
+		 * The lock was shared and is still referenced, so don't 
+		 * release it yet. 
+		 */
 		return;
 	}
 

@@ -132,4 +132,4 @@ int __must_check
 validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry);
 
-#endif // RECOVERY_UTILS_H
+#endif /* RECOVERY_UTILS_H */

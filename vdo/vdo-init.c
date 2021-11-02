@@ -71,7 +71,7 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 		     config->thread_counts.hash_zones,
 		     vdo->thread_config->base_thread_count);
 
-	// Compression context storage
+	/* Compression context storage */
 	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
 			      char *,
 			      "LZ4 context",

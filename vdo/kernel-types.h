@@ -141,9 +141,9 @@ enum vdo_work_item_priority {
 	VDO_REQ_Q_SYNC_PRIORITY = 2,
 	VDO_REQ_Q_VIO_CALLBACK_PRIORITY = 1,
 	VDO_REQ_Q_MAX_PRIORITY = 2,
-	// The maximum allowable priority
+	/* The maximum allowable priority */
 	VDO_WORK_Q_MAX_PRIORITY = 3,
-	// A value which must be out of range for a valid priority
+	/* A value which must be out of range for a valid priority */
 	VDO_WORK_Q_DEFAULT_PRIORITY = VDO_WORK_Q_MAX_PRIORITY + 1,
 };
 

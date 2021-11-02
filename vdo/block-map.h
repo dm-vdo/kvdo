@@ -335,4 +335,4 @@ void vdo_put_mapped_block(struct data_vio *data_vio);
 struct block_map_statistics __must_check
 get_vdo_block_map_statistics(struct block_map *map);
 
-#endif // BLOCK_MAP_H
+#endif /* BLOCK_MAP_H */

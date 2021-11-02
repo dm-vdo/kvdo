@@ -95,14 +95,18 @@ void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock)
 			"PBN write lock should have one holder but has %u",
 			lock->holder_count);
 	if (has_lock_type(lock, VIO_WRITE_LOCK)) {
-		// data_vio write locks are downgraded in place--the writer
-		// retains the hold on the lock. They've already had a single
-		// incRef journaled.
+		/*
+		 * data_vio write locks are downgraded in place--the writer 
+		 * retains the hold on the lock. They've already had a single 
+		 * incRef journaled.
+		 */
 		lock->increment_limit = MAXIMUM_REFERENCE_COUNT - 1;
 	} else {
-		// Compressed block write locks are downgraded when they are
-		// shared with all their hash locks. The writer is releasing
-		// its hold on the lock.
+		/*
+		 * Compressed block write locks are downgraded when they are 
+		 * shared with all their hash locks. The writer is releasing 
+		 * its hold on the lock.
+		 */
 		lock->holder_count = 0;
 		lock->increment_limit = MAXIMUM_REFERENCE_COUNT;
 	}

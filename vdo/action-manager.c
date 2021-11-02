@@ -239,12 +239,14 @@ static void apply_to_zone(struct vdo_completion *completion)
 
 	zone = manager->acting_zone++;
 	if (manager->acting_zone == manager->zones) {
-		// We are about to apply to the last zone. Once that is
-		// finished, we're done, so go back to the initiator thread and
-		// finish up.
+		/*
+		 * We are about to apply to the last zone. Once that is 
+		 * finished, we're done, so go back to the initiator thread and 
+		 * finish up.
+		 */
 		prepare_for_conclusion(manager);
 	} else {
-		// Prepare to come back on the next zone
+		/* Prepare to come back on the next zone */
 		prepare_for_next_zone(manager);
 	}
 
@@ -258,7 +260,7 @@ static void apply_to_zone(struct vdo_completion *completion)
  **/
 static void handle_preamble_error(struct vdo_completion *completion)
 {
-	// Skip the zone actions since the preamble failed.
+	/* Skip the zone actions since the preamble failed. */
 	completion->callback = finish_action_callback;
 	preserve_vdo_completion_error_and_continue(completion);
 }
@@ -278,8 +280,10 @@ static void launch_current_action(struct action_manager *manager)
 			set_vdo_completion_result(action->parent, result);
 		}
 
-		// We aren't going to run the preamble, so don't run the
-		// conclusion
+		/*
+		 * We aren't going to run the preamble, so don't run the 
+		 * conclusion 
+		 */
 		action->conclusion = no_conclusion;
 		finish_action_callback(&manager->completion);
 		return;
@@ -302,8 +306,10 @@ static void launch_current_action(struct action_manager *manager)
 /**********************************************************************/
 bool schedule_vdo_default_action(struct action_manager *manager)
 {
-	// Don't schedule a default action if we are operating or not in normal
-	// operation.
+	/*
+	 * Don't schedule a default action if we are operating or not in normal 
+	 * operation. 
+	 */
 	const struct admin_state_code *code
 		= get_current_vdo_manager_operation(manager);
 	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)

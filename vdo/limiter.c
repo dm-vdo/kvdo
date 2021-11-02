@@ -52,7 +52,7 @@ void limiter_release_many(struct limiter *limiter, uint32_t count)
 		return;
 	}
 
-	// Only take the lock a second time if we are releasing the completion.
+	/* Only take the lock a second time if we are releasing the completion. */
 	spin_lock(&limiter->lock);
 	limiter->completion = NULL;
 	spin_unlock(&limiter->lock);

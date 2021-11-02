@@ -51,4 +51,4 @@ void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
 		 enum vdo_work_item_priority priority);
 
-#endif // KERNEL_VDO_H
+#endif /* KERNEL_VDO_H */

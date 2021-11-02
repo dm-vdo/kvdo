@@ -116,7 +116,7 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count);
 struct free_buffer_pointers {
 	struct buffer_pool *pool;
 	int index;
-	void *pointers[30]; // size is arbitrary
+	void *pointers[30]; /* size is arbitrary */
 };
 
 /**

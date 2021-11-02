@@ -192,4 +192,4 @@ void dump_vdo_recovery_block(const struct recovery_journal_block *block);
 bool __must_check
 can_commit_vdo_recovery_block(struct recovery_journal_block *block);
 
-#endif // RECOVERY_JOURNAL_BLOCK_H
+#endif /* RECOVERY_JOURNAL_BLOCK_H */

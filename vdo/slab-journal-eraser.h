@@ -34,4 +34,4 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 			     struct slab_iterator slabs,
 			     struct vdo_completion *parent);
 
-#endif // SLAB_JOURNAL_ERASER_H
+#endif /* SLAB_JOURNAL_ERASER_H */

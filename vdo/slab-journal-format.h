@@ -197,4 +197,4 @@ decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
 			      journal_entry_count_t entry_count);
 
 
-#endif // SLAB_JOURNAL_FORMAT_H
+#endif /* SLAB_JOURNAL_FORMAT_H */

@@ -347,4 +347,4 @@ get_vdo_slab_journal_block_offset(struct slab_journal *journal,
  **/
 void dump_vdo_slab_journal(const struct slab_journal *journal);
 
-#endif // SLAB_JOURNAL_H
+#endif /* SLAB_JOURNAL_H */

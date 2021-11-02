@@ -127,8 +127,10 @@ int make_vdo_thread_config(struct thread_count_config counts,
 		config->physical_threads[0] = config->thread_count;
 		config->hash_zone_threads[0] = config->thread_count++;
 	} else {
-		// Add in the admin/recovery journal and packer threads, of
-		// which, there are one each.
+		/*
+		 * Add in the admin/recovery journal and packer threads, of 
+		 * which, there are one each. 
+		 */
 		total += 2;
 		result = allocate_thread_config(counts.logical_zones,
 						counts.physical_zones,
@@ -206,7 +208,7 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 {
 	if ((thread_config->base_thread_count == 1)
 	    && (thread_id == 0)) {
-		// Historically this was the "request queue" thread.
+		/* Historically this was the "request queue" thread. */
 		snprintf(buffer, buffer_length, "reqQ");
 		return;
 	}
@@ -215,8 +217,10 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 		snprintf(buffer, buffer_length, "journalQ");
 		return;
 	} else if (thread_id == thread_config->admin_thread) {
-		// Theoretically this could be different from the journal
-		// thread.
+		/*
+		 * Theoretically this could be different from the journal 
+		 * thread. 
+		 */
 		snprintf(buffer, buffer_length, "adminQ");
 		return;
 	} else if (thread_id == thread_config->packer_thread) {
@@ -269,6 +273,6 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 		return;
 	}
 
-	// Some sort of misconfiguration?
+	/* Some sort of misconfiguration? */
 	snprintf(buffer, buffer_length, "reqQ%d", thread_id);
 }

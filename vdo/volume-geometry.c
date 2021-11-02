@@ -50,8 +50,10 @@ static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
 		.major_version = 5,
 		.minor_version = 0,
 	},
-	// Note: this size isn't just the payload size following the header,
-	// like it is everywhere else in VDO.
+	/*
+	 * Note: this size isn't just the payload size following the header, 
+	 * like it is everywhere else in VDO. 
+	 */
 	.size = sizeof(struct geometry_block) + sizeof(struct volume_geometry),
 };
 
@@ -61,8 +63,10 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 		.major_version = 4,
 		.minor_version = 0,
 	},
-	// Note: this size isn't just the payload size following the header,
-	// like it is everywhere else in VDO.
+	/*
+	 * Note: this size isn't just the payload size following the header, 
+	 * like it is everywhere else in VDO. 
+	 */
 	.size = sizeof(struct geometry_block) +
 		sizeof(struct volume_geometry_4_0),
 };
@@ -271,7 +275,7 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 	}
 
-	// Leave the CRC for the caller to decode and verify.
+	/* Leave the CRC for the caller to decode and verify. */
 	return ASSERT(header.size == (uncompacted_amount(buffer) +
 				      sizeof(crc32_checksum_t)),
 		      "should have decoded up to the geometry checksum");
@@ -301,7 +305,7 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 		return result;
 	}
 
-	// Checksum everything decoded so far.
+	/* Checksum everything decoded so far. */
 	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM, block,
 				    uncompacted_amount(buffer));
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
@@ -310,7 +314,7 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 		return result;
 	}
 
-	// Finished all decoding. Everything that follows is validation code.
+	/* Finished all decoding. Everything that follows is validation code. */
 	free_buffer(UDS_FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version)) {

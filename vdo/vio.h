@@ -518,4 +518,4 @@ static inline void continue_vio(struct vio *vio, int result)
 	enqueue_vdo_completion(completion);
 }
 
-#endif // VIO_H
+#endif /* VIO_H */

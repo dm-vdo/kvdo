@@ -47,4 +47,4 @@ void vdo_replay_into_slab_journals(struct block_allocator *allocator,
  **/
 void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent);
 
-#endif // VDO_RECOVERY_H
+#endif /* VDO_RECOVERY_H */

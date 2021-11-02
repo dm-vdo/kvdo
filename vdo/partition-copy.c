@@ -155,7 +155,7 @@ static void complete_write_for_copy(struct vdo_completion *completion)
 
 	copy->current_index += get_stride_size(copy);
 	if (copy->current_index >= copy->ending_index) {
-		// We're done.
+		/* We're done. */
 		finish_vdo_completion(completion->parent, VDO_SUCCESS);
 		return;
 	}

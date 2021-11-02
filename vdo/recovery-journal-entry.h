@@ -120,4 +120,4 @@ unpack_vdo_recovery_journal_entry(const struct packed_recovery_journal_entry *en
 	};
 }
 
-#endif // RECOVERY_JOURNAL_ENTRY_H
+#endif /* RECOVERY_JOURNAL_ENTRY_H */

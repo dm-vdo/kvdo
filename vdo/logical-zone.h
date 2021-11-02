@@ -174,4 +174,4 @@ get_vdo_logical_zone_allocation_selector(struct logical_zone *zone);
  **/
 void dump_vdo_logical_zone(const struct logical_zone *zone);
 
-#endif // LOGICAL_ZONE_H
+#endif /* LOGICAL_ZONE_H */

@@ -30,7 +30,7 @@
 #include "thread-config.h"
 #include "types.h"
 
-// FULLNESS HINT COMPUTATION
+/* FULLNESS HINT COMPUTATION */
 
 /**
  * Translate a slab's free block count into a 'fullness hint' that can be
@@ -85,7 +85,7 @@ get_approximate_free_blocks(struct slab_summary *summary,
 	return ((block_count_t) free_block_hint) << summary->hint_shift;
 }
 
-// MAKE/FREE FUNCTIONS
+/* MAKE/FREE FUNCTIONS */
 
 /**********************************************************************/
 static void launch_write(struct slab_summary_block *summary_block);
@@ -168,7 +168,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	set_vdo_admin_state_code(&summary_zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	// Initialize each block.
+	/* Initialize each block. */
 	for (i = 0; i < summary->blocks_per_zone; i++) {
 		result = initialize_slab_summary_block(vdo, summary_zone,
 						       thread_id, entries, i,
@@ -205,8 +205,10 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	}
 
 	if (partition == NULL) {
-		// Don't make a slab summary for the formatter since it doesn't
-		// need it.
+		/*
+		 * Don't make a slab summary for the formatter since it doesn't 
+		 * need it. 
+		 */
 		return VDO_SUCCESS;
 	}
 
@@ -233,11 +235,13 @@ int make_vdo_slab_summary(struct vdo *vdo,
 		return result;
 	}
 
-	// Initialize all the entries.
+	/* Initialize all the entries. */
 	hint = compute_fullness_hint(summary, maximum_free_blocks_per_slab);
 	for (i = 0; i < total_entries; i++) {
-		// This default tail block offset must be reflected in
-		// slabJournal.c::read_slab_journal_tail().
+		/*
+		 * This default tail block offset must be reflected in 
+		 * slabJournal.c::read_slab_journal_tail(). 
+		 */
 		summary->entries[i] = (struct slab_summary_entry) {
 			.tail_block_offset = 0,
 			.fullness_hint = hint,
@@ -309,7 +313,7 @@ vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone)
 	return summary->zones[zone];
 }
 
-// WRITING FUNCTIONALITY
+/* WRITING FUNCTIONALITY */
 
 /**
  * Check whether a summary zone has finished draining.
@@ -420,9 +424,11 @@ static void launch_write(struct slab_summary_block *block)
 	memcpy(block->outgoing_entries, block->entries,
 	       sizeof(struct slab_summary_entry) * summary->entries_per_block);
 
-	// Flush before writing to ensure that the slab journal tail blocks and
-	// reference updates covered by this summary update are stable
-	// (VDO-2332).
+	/*
+	 * Flush before writing to ensure that the slab journal tail blocks and 
+	 * reference updates covered by this summary update are stable 
+	 * (VDO-2332).
+	 */
 	pbn = summary->origin +
 	      (summary->blocks_per_zone * zone->zone_number) + block->index;
 	launch_write_metadata_vio_with_flush(block->vio, pbn, finish_update,
@@ -458,7 +464,7 @@ void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
 			      resume_vdo_if_quiescent(&summary_zone->state));
 }
 
-// READ/UPDATE FUNCTIONS
+/* READ/UPDATE FUNCTIONS */
 
 /**
  * Get the summary block, and offset into it, for storing the summary for a
@@ -566,7 +572,7 @@ void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 	}
 }
 
-// RESIZE FUNCTIONS
+/* RESIZE FUNCTIONS */
 
 /**********************************************************************/
 void set_vdo_slab_summary_origin(struct slab_summary *summary,
@@ -575,7 +581,7 @@ void set_vdo_slab_summary_origin(struct slab_summary *summary,
 	summary->origin = get_vdo_fixed_layout_partition_offset(partition);
 }
 
-// COMBINING FUNCTIONS (LOAD)
+/* COMBINING FUNCTIONS (LOAD) */
 
 /**
  * Clean up after saving out the combined slab summary. This callback is
@@ -600,8 +606,10 @@ static void finish_combining_zones(struct vdo_completion *completion)
  **/
 static void combine_zones(struct slab_summary *summary)
 {
-	// Combine all the old summary data into the portion of the buffer
-	// corresponding to the first zone.
+	/*
+	 * Combine all the old summary data into the portion of the buffer 
+	 * corresponding to the first zone. 
+	 */
 	zone_count_t zone = 0;
 
 	if (summary->zones_to_combine > 1) {
@@ -623,7 +631,7 @@ static void combine_zones(struct slab_summary *summary)
 		}
 	}
 
-	// Copy the combined data to each zones's region of the buffer.
+	/* Copy the combined data to each zones's region of the buffer. */
 	for (zone = 1; zone < MAX_VDO_PHYSICAL_ZONES; zone++) {
 		memcpy(summary->entries + (zone * MAX_VDO_SLABS),
 		       summary->entries,
@@ -644,10 +652,10 @@ static void finish_loading_summary(struct vdo_completion *completion)
 	struct slab_summary *summary = completion->parent;
 	struct vdo_extent *extent = vdo_completion_as_extent(completion);
 
-	// Combine the zones so each zone is correct for all slabs.
+	/* Combine the zones so each zone is correct for all slabs. */
 	combine_zones(summary);
 
-	// Write the combined summary back out.
+	/* Write the combined summary back out. */
 	extent->completion.callback = finish_combining_zones;
 	write_vdo_metadata_extent(extent, summary->origin);
 }

@@ -104,4 +104,4 @@ set_up_vdo_reference_operation_with_zone(enum journal_operation type,
 					 struct physical_zone *zone,
 					 struct reference_operation *operation);
 
-#endif // REFERENCE_OPERATION_H
+#endif /* REFERENCE_OPERATION_H */
