@@ -1,4 +1,4 @@
-UDS_VERSION = 8.2.0.62
+UDS_VERSION = 8.2.0.63
 
 SOURCES =  $(notdir $(wildcard $(src)/*.c)) murmur/murmurhash3.c
 OBJECTS = $(SOURCES:%.c=%.o)

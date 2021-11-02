@@ -52,6 +52,13 @@ int __must_check uds_allocate_memory(size_t size,
 void uds_free_memory(void *ptr);
 
 /**
+ * Free memory allocated with UDS_ALLOCATE().
+ *
+ * @param PTR  Pointer to the memory to free
+ **/
+#define UDS_FREE(PTR) uds_free_memory(PTR)
+
+/**
  * Null out a reference and return a copy of the referenced object.
  *
  * @param ptr_ptr  A pointer to the reference to NULL out
@@ -203,16 +210,6 @@ int __must_check uds_reallocate_memory(void *ptr,
 	uds_do_allocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
 
 /**
- * Free memory allocated with UDS_ALLOCATE().
- *
- * @param ptr    Pointer to the memory to free
- **/
-static INLINE void UDS_FREE(void *ptr)
-{
-	uds_free_memory(ptr);
-}
-
-/**
  * Allocate memory starting on a cache line boundary, logging an error if the
  * allocation fails. The memory will be zeroed.
  *
@@ -267,21 +264,6 @@ int __must_check uds_duplicate_string(const char *string,
 				      char **new_string);
 
 /**
- * Duplicate a buffer, logging an error if the allocation fails.
- *
- * @param ptr      The buffer to copy
- * @param size     The size of the buffer
- * @param what     What is being duplicated (for error logging)
- * @param dup_ptr  A pointer to hold the allocated array
- *
- * @return UDS_SUCCESS or -ENOMEM
- **/
-int __must_check uds_memdup(const void *ptr,
-			    size_t size,
-			    const char *what,
-			    void *dup_ptr);
-
-/**
  * Wrapper which permits freeing a const pointer.
  *
  * @param pointer  the pointer to be freed
@@ -295,6 +277,7 @@ static INLINE void uds_free_const(const void *pointer)
 	UDS_FREE(u.not_const);
 }
 
+#if defined(MODULE)
 /**
  * Perform termination of the memory allocation subsystem.
  **/
@@ -305,6 +288,7 @@ void uds_memory_exit(void);
  **/
 void uds_memory_init(void);
 
+#endif /* MODULE */
 /**
  * Register the current thread as an allocating thread.
  *

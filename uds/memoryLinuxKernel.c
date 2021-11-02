@@ -395,6 +395,22 @@ int uds_reallocate_memory(void *ptr,
 }
 
 /**********************************************************************/
+int uds_duplicate_string(const char *string,
+			 const char *what,
+			 char **new_string)
+{
+	byte *dup;
+	int result = UDS_ALLOCATE(strlen(string) + 1, byte, what, &dup);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	memcpy(dup, string, strlen(string) + 1);
+	*new_string = dup;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 void uds_memory_init(void)
 {
 
