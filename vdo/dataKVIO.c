@@ -32,6 +32,7 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "hash-lock.h"
+#include "io-submitter.h"
 #include "vdo.h"
 
 #include "batchProcessor.h"
@@ -40,7 +41,6 @@
 #include "dedupeIndex.h"
 #include "dump.h"
 #include "kvio.h"
-#include "ioSubmitter.h"
 
 /**
  * For certain flags set on user bios, if the user bio has not yet been

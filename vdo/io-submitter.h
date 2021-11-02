@@ -17,10 +17,12 @@
  * 02110-1301, USA. 
  */
 
-#ifndef IOSUBMITTER_H
-#define IOSUBMITTER_H
+#ifndef IO_SUBMITTER_H
+#define IO_SUBMITTER_H
 
-#include "kvio.h"
+#include <linux/bio.h>
+
+#include "kernel-types.h"
 
 /**
  * Create an io_submitter structure.
@@ -96,4 +98,4 @@ void submit_data_vio_io(struct data_vio *data_vio);
  **/
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority);
 
-#endif // IOSUBMITTER_H
+#endif // IO_SUBMITTER_H

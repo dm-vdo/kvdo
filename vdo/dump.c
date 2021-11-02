@@ -27,7 +27,7 @@
 #include "bufferPool.h"
 #include "constants.h"
 #include "dedupeIndex.h"
-#include "ioSubmitter.h"
+#include "io-submitter.h"
 #include "kernel-types.h"
 #include "logger.h"
 #include "types.h"

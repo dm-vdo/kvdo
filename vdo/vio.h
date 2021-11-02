@@ -71,8 +71,6 @@ struct vio {
 	 * the work queue as separate work items.
 	 **/
 	struct bio_list bios_merged;
-	/** A slot for an arbitrary bit of data, for use by systemtap. */
-	long debug_slot;
 };
 
 /**

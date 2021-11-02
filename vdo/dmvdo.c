@@ -31,7 +31,7 @@
 #include "dump.h"
 #include "flush.h"
 #include "instance-number.h"
-#include "ioSubmitter.h"
+#include "io-submitter.h"
 #include "messageStats.h"
 #include "stringUtils.h"
 #include "thread-config.h"

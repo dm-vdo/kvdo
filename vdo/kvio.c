@@ -25,13 +25,13 @@
 #include "permassert.h"
 
 #include "allocating-vio.h"
+#include "io-submitter.h"
 #include "num-utils.h"
 #include "vdo.h"
 #include "wait-queue.h"
 
 #include "bio.h"
 #include "dataKVIO.h"
-#include "ioSubmitter.h"
 
 /**********************************************************************/
 void write_compressed_block_vio(struct vio *vio)

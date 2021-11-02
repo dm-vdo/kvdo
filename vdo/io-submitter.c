@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
@@ -17,8 +17,9 @@
  * 02110-1301, USA. 
  */
 
-#include "ioSubmitter.h"
+#include "io-submitter.h"
 
+#include <linux/mutex.h>
 #include <linux/version.h>
 
 #include "memoryAlloc.h"
@@ -183,8 +184,10 @@ static void process_bio_map(struct vdo_work_item *item)
  **/
 static struct bio *get_bio_list(struct vio *vio)
 {
-	struct bio_queue_data *bio_queue_data = get_work_queue_private_data();
 	struct bio *bio;
+	struct io_submitter *submitter = get_vdo_from_vio(vio)->io_submitter;
+	struct bio_queue_data *bio_queue_data
+		= &(submitter->bio_queue_data[vio->bio_zone]);
 
 	assert_in_bio_zone(vio);
 
@@ -220,25 +223,22 @@ void process_data_vio_io(struct vdo_completion *completion)
  *
  * @param map         The bio map to use for merging
  * @param vio         The vio we want to merge
- * @param merge_type  The type of merging we want to try
+ * @param back_merge  Set to true for a back merge, false for a front merge
  *
  * @return the vio to merge to, NULL if no merging is possible
  */
 static struct vio *get_mergeable_locked(struct int_map *map,
 					struct vio *vio,
-					unsigned int merge_type)
+					bool back_merge)
 {
 	struct bio *bio = vio->bio;
 	sector_t merge_sector = get_bio_sector(bio);
 	struct vio *vio_merge;
 
-	switch (merge_type) {
-	case ELEVATOR_BACK_MERGE:
+	if (back_merge) {
 		merge_sector -= VDO_SECTORS_PER_BLOCK;
-		break;
-	case ELEVATOR_FRONT_MERGE:
+	} else {
 		merge_sector += VDO_SECTORS_PER_BLOCK;
-		break;
 	}
 
 	vio_merge = int_map_get(map, merge_sector);
@@ -260,23 +260,13 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		return NULL;
 	}
 
-	switch (merge_type) {
-	case ELEVATOR_BACK_MERGE:
-		if (get_bio_sector(vio_merge->bios_merged.tail) !=
-		    merge_sector) {
-			return NULL;
-		}
-		break;
-
-	case ELEVATOR_FRONT_MERGE:
-		if (get_bio_sector(vio_merge->bios_merged.head) !=
-		    merge_sector) {
-			return NULL;
-		}
-		break;
+	if (back_merge) {
+		return ((get_bio_sector(vio_merge->bios_merged.tail) ==
+			 merge_sector) ? vio_merge : NULL);
 	}
 
-	return vio_merge;
+	return ((get_bio_sector(vio_merge->bios_merged.head) ==
+		 merge_sector) ? vio_merge : NULL);
 }
 
 /**********************************************************************/
@@ -341,10 +331,8 @@ static bool try_bio_map_merge(struct vio *vio)
 	bio_list_add(&vio->bios_merged, bio);
 
 	mutex_lock(&bio_queue_data->lock);
-	prev_vio = get_mergeable_locked(bio_queue_data->map, vio,
-					ELEVATOR_BACK_MERGE);
-	next_vio = get_mergeable_locked(bio_queue_data->map, vio,
-					ELEVATOR_FRONT_MERGE);
+	prev_vio = get_mergeable_locked(bio_queue_data->map, vio, true);
+	next_vio = get_mergeable_locked(bio_queue_data->map, vio, false);
 	if (prev_vio == next_vio) {
 		next_vio = NULL;
 	}

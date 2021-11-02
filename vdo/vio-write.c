@@ -117,7 +117,7 @@
 #include "compression-state.h"
 #include "data-vio.h"
 #include "hash-lock.h"
-#include "ioSubmitter.h"
+#include "io-submitter.h"
 #include "kernel-types.h"
 #include "recovery-journal.h"
 #include "reference-operation.h"
