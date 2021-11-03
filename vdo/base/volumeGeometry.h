@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#7 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -126,6 +126,18 @@ static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
  * @param geometry  The geometry to be loaded
  **/
 int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+  __attribute__((warn_unused_result));
+
+/**
+ * Attempt to read the volume geometry from a layer at a specified block.
+ *
+ * @param layer       The layer to read and parse the geometry from
+ * @param blockNumber The block at which to read
+ * @param geometry    The geometry to be loaded
+ **/
+int loadVolumeGeometryAtBlock(PhysicalLayer        *layer,
+                              PhysicalBlockNumber   blockNumber,
+                              VolumeGeometry       *geometry)
   __attribute__((warn_unused_result));
 
 /**

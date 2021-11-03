@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#10 $
  */
 
 #include "kernelVDOInternals.h"
@@ -194,7 +194,9 @@ int resumeKVDO(KVDO *kvdo)
 
   KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
   init_completion(&layer->callbackSync);
-  return performVDOResume(kvdo->vdo);
+  int result = performVDOResume(kvdo->vdo);
+  // Even if the VDO is read-only, it has still resumed.
+  return ((result == VDO_READ_ONLY) ? VDO_SUCCESS : result);
 }
 
 /**********************************************************************/

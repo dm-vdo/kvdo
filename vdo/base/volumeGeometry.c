@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#13 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#14 $
  */
 
 #include "volumeGeometry.h"
@@ -389,12 +389,15 @@ static int encodeGeometryBlock(const VolumeGeometry *geometry,
  * Allocate a block-size buffer to read the geometry from the physical layer,
  * read the block, and return the buffer.
  *
- * @param [in]  layer     The physical layer containing the block to read
- * @param [out] blockPtr  A pointer to receive the allocated buffer
+ * @param [in]  layer       The physical layer containing the block to read
+ * @param [in]  blockNumber The block from which to read
+ * @param [out] blockPtr    A pointer to receive the allocated buffer
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int readGeometryBlock(PhysicalLayer *layer, byte **blockPtr)
+static int readGeometryBlock(PhysicalLayer         *layer,
+                             PhysicalBlockNumber    blockNumber,
+                             byte                 **blockPtr)
 {
   int result = ASSERT(layer->reader != NULL, "Layer must have a sync reader");
   if (result != VDO_SUCCESS) {
@@ -408,7 +411,7 @@ static int readGeometryBlock(PhysicalLayer *layer, byte **blockPtr)
     return result;
   }
 
-  result = layer->reader(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
+  result = layer->reader(layer, blockNumber, 1, block, NULL);
   if (result != VDO_SUCCESS) {
     FREE(block);
     return result;
@@ -421,8 +424,16 @@ static int readGeometryBlock(PhysicalLayer *layer, byte **blockPtr)
 /**********************************************************************/
 int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 {
+  return loadVolumeGeometryAtBlock(layer, GEOMETRY_BLOCK_LOCATION, geometry);
+}
+
+/**********************************************************************/
+int loadVolumeGeometryAtBlock(PhysicalLayer        *layer,
+                              PhysicalBlockNumber   blockNumber,
+                              VolumeGeometry       *geometry)
+{
   byte *block;
-  int result = readGeometryBlock(layer, &block);
+  int result = readGeometryBlock(layer, blockNumber, &block);
   if (result != VDO_SUCCESS) {
     return result;
   }
