@@ -39,8 +39,10 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 					      "search list capacity must fit in 8 bits");
 	}
 
-	// We need three temporary entry arrays for purge_search_list().
-	// Allocate them contiguously with the main array.
+	/*
+	 * We need three temporary entry arrays for purge_search_list().
+	 * Allocate them contiguously with the main array.
+	 */
 	bytes = sizeof(struct search_list) + (4 * capacity * sizeof(uint8_t));
 	result = uds_allocate_cache_aligned(bytes, "search list", &list);
 	if (result != UDS_SUCCESS) {
@@ -50,8 +52,10 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 	list->capacity = capacity;
 	list->first_dead_entry = 0;
 
-	// Fill in the indexes of the chapter index cache entries. These will
-	// be only ever be permuted as the search list is used.
+	/*
+	 * Fill in the indexes of the chapter index cache entries. These will
+	 * be only ever be permuted as the search list is used.
+	 */
 	for (i = 0; i < capacity; i++) {
 		list->entries[i] = i;
 	}
@@ -70,7 +74,7 @@ void purge_search_list(struct search_list *search_list,
 	int i;
 
 	if (search_list->first_dead_entry == 0) {
-		// There are no live entries in the list to purge.
+		/* There are no live entries in the list to purge. */
 		return;
 	}
 
@@ -99,8 +103,10 @@ void purge_search_list(struct search_list *search_list,
 		}
 	}
 
-	// Copy the temporary lists back to the search list so we wind up with
-	// [ alive, alive, skippable, new-dead, new-dead, old-dead, old-dead ]
+	/*
+	 * Copy the temporary lists back to the search list so we wind up with
+	 * [ alive, alive, skippable, new-dead, new-dead, old-dead, old-dead ]
+	 */
 	memcpy(entries, alive, next_alive);
 	entries += next_alive;
 
@@ -108,6 +114,6 @@ void purge_search_list(struct search_list *search_list,
 	entries += next_skipped;
 
 	memcpy(entries, dead, next_dead);
-	// The first dead entry is now the start of the copied dead list.
+	/* The first dead entry is now the start of the copied dead list. */
 	search_list->first_dead_entry = (next_alive + next_skipped);
 }

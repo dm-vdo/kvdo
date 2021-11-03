@@ -27,19 +27,19 @@
 
 
 struct buffered_reader {
-	// IO factory owning the block device
+	/* IO factory owning the block device */
 	struct io_factory *br_factory;
-	// The dm_bufio_client to read from
+	/* The dm_bufio_client to read from */
 	struct dm_bufio_client *br_client;
-	// The current dm_buffer
+	/* The current dm_buffer */
 	struct dm_buffer *br_buffer;
-	// The number of blocks that can be read from
+	/* The number of blocks that can be read from */
 	sector_t br_limit;
-	// Number of the current block
+	/* Number of the current block */
 	sector_t br_block_number;
-	// Start of the buffer
+	/* Start of the buffer */
 	byte *br_start;
-	// End of the data read from the buffer
+	/* End of the data read from the buffer */
 	byte *br_pointer;
 };
 

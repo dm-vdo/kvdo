@@ -38,7 +38,7 @@
  * regular chapter indices.
  */
 
-// This is the number of guard bits that are needed in the tail guard list
+/* This is the number of guard bits that are needed in the tail guard list */
 enum { GUARD_BITS = POST_FIELD_GUARD_BYTES * CHAR_BIT };
 
 /**
@@ -149,7 +149,7 @@ void empty_delta_lists(struct delta_memory *delta_memory)
 {
 	uint64_t num_bits, spacing, offset;
 	unsigned int i;
-	// Zero all the delta list headers
+	/* Zero all the delta list headers */
 	struct delta_list *delta_lists = delta_memory->delta_lists;
 	memset(delta_lists, 0,
 	       get_size_of_delta_lists(delta_memory->num_lists));
@@ -172,13 +172,17 @@ void empty_delta_lists(struct delta_memory *delta_memory)
 		num_bits - GUARD_BITS;
 	delta_lists[delta_memory->num_lists + 1].size = GUARD_BITS;
 
-	// Set all the bits in the end guard list.  Do not use the bit field
-	// utilities.
+	/*
+	 * Set all the bits in the end guard list.  Do not use the bit field
+	 * utilities.
+	 */
 	memset(delta_memory->memory + delta_memory->size -
 		POST_FIELD_GUARD_BYTES, ~0, POST_FIELD_GUARD_BYTES);
 
-	// Evenly space out the real delta lists.  The sizes are already zero,
-	// so we just need to set the starting offsets.
+	/*
+	 * Evenly space out the real delta lists.  The sizes are already zero,
+	 * so we just need to set the starting offsets.
+	 */
 	spacing = (num_bits - GUARD_BITS) / delta_memory->num_lists;
 	offset = spacing / 2;
 	for (i = 1; i <= delta_memory->num_lists; i++) {
@@ -186,7 +190,7 @@ void empty_delta_lists(struct delta_memory *delta_memory)
 		offset += spacing;
 	}
 
-	// Update the statistics
+	/* Update the statistics */
 	delta_memory->discard_count += delta_memory->record_count;
 	delta_memory->record_count = 0;
 	delta_memory->collision_count = 0;
@@ -206,9 +210,11 @@ static void compute_coding_constants(unsigned int mean_delta,
 				     unsigned int *min_keys,
 				     unsigned int *incr_keys)
 {
-	// We want to compute the rounded value of log(2) * mean_delta.  Since
-	// we cannot always use floating point, use a really good integer
-	// approximation.
+	/*
+	 * We want to compute the rounded value of log(2) * mean_delta.  Since
+	 * we cannot always use floating point, use a really good integer
+	 * approximation.
+	 */
 	*incr_keys = (836158UL * mean_delta + 603160UL) / 1206321UL;
 	*min_bits = compute_bits(*incr_keys + 1);
 	*min_keys = (1 << *min_bits) - *incr_keys;
@@ -230,31 +236,39 @@ static void rebalance_delta_memory(const struct delta_memory *delta_memory,
 		struct delta_list *delta_list =
 			&delta_memory->delta_lists[first];
 		uint64_t new_start = delta_memory->temp_offsets[first];
-		// We need to move only one list, and we know it is safe to do
-		// so
+		/*
+		 * We need to move only one list, and we know it is safe to do
+		 * so
+		 */
 		if (get_delta_list_start(delta_list) != new_start) {
 			uint64_t destination, source;
-			// Compute the first source byte
+			/* Compute the first source byte */
 			source = get_delta_list_byte_start(delta_list);
-			// Update the delta list location
+			/* Update the delta list location */
 			delta_list->start_offset = new_start;
-			// Now use the same computation to locate the first
-			// destination byte
+			/*
+			 * Now use the same computation to locate the first
+			 * destination byte
+			 */
 			destination = get_delta_list_byte_start(delta_list);
 			memmove(delta_memory->memory + destination,
 				delta_memory->memory + source,
 				get_delta_list_byte_size(delta_list));
 		}
 	} else {
-		// There is more than one list. Divide the problem in half,
-		// and use recursive calls to process each half.  Note that
-		// after this computation, first <= middle, and middle < last.
+		/*
+		 * There is more than one list. Divide the problem in half,
+		 * and use recursive calls to process each half.  Note that
+		 * after this computation, first <= middle, and middle < last.
+		 */
 		unsigned int middle = (first + last) / 2;
 		const struct delta_list *delta_list =
 			&delta_memory->delta_lists[middle];
 		uint64_t new_start = delta_memory->temp_offsets[middle];
-		// The direction that our middle list is moving determines
-		// which half of the problem must be processed first.
+		/*
+		 * The direction that our middle list is moving determines
+		 * which half of the problem must be processed first.
+		 */
 		if (new_start > get_delta_list_start(delta_list)) {
 			rebalance_delta_memory(delta_memory, middle + 1, last);
 			rebalance_delta_memory(delta_memory, first, middle);
@@ -321,7 +335,7 @@ int initialize_delta_memory(struct delta_memory *delta_memory,
 	delta_memory->transfer_status = UDS_SUCCESS;
 	delta_memory->tag = 'm';
 
-	// Allocate the delta lists.
+	/* Allocate the delta lists. */
 	result = UDS_ALLOCATE(delta_memory->num_lists + 2, struct delta_list,
 			      "delta lists", &delta_memory->delta_lists);
 	if (result != UDS_SUCCESS) {
@@ -388,13 +402,13 @@ bool are_delta_memory_transfers_done(const struct delta_memory *delta_memory)
 int start_restoring_delta_memory(struct delta_memory *delta_memory)
 {
 	struct delta_list *delta_list;
-	// Extend and balance memory to receive the delta lists
+	/* Extend and balance memory to receive the delta lists */
 	int result = extend_delta_memory(delta_memory, 0, 0, false);
 	if (result != UDS_SUCCESS) {
 		return UDS_SUCCESS;
 	}
 
-	// The tail guard list needs to be set to ones
+	/* The tail guard list needs to be set to ones */
 	delta_list = &delta_memory->delta_lists[delta_memory->num_lists + 1];
 	set_one(delta_memory->memory,
 		get_delta_list_start(delta_list),
@@ -627,8 +641,10 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 
 	start_time = current_time_ns(CLOCK_MONOTONIC);
 
-	// Calculate the amount of space that is in use.  Include the space
-	// that has a planned use.
+	/*
+	 * Calculate the amount of space that is in use.  Include the space
+	 * that has a planned use.
+	 */
 	delta_lists = delta_memory->delta_lists;
 	used_space = growing_size;
 	for (i = 0; i <= delta_memory->num_lists + 1; i++) {
@@ -639,7 +655,7 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 		return UDS_OVERFLOW;
 	}
 
-	// Compute the new offsets of the delta lists
+	/* Compute the new offsets of the delta lists */
 	spacing = (delta_memory->size - used_space) / delta_memory->num_lists;
 	delta_memory->temp_offsets[0] = 0;
 	for (i = 0; i <= delta_memory->num_lists; i++) {
@@ -659,9 +675,11 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 	delta_memory->temp_offsets[delta_memory->num_lists + 1] =
 		(delta_memory->size * CHAR_BIT -
 		 get_delta_list_size(&delta_lists[delta_memory->num_lists + 1]));
-	// When we rebalance the delta list, we will include the end guard list
-	// in the rebalancing.  It contains the end guard data, which must be
-	// copied.
+	/*
+	 * When we rebalance the delta list, we will include the end guard list
+	 * in the rebalancing.  It contains the end guard data, which must be
+	 * copied.
+	 */
 	if (do_copy) {
 		ktime_t end_time;
 		rebalance_delta_memory(delta_memory, 1,
@@ -686,7 +704,7 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 	int num_guard_bits;
 	unsigned int i;
 	struct delta_list *delta_lists = delta_memory->delta_lists;
-	// Validate the delta index fields set by restoring a delta index
+	/* Validate the delta index fields set by restoring a delta index */
 	if (delta_memory->collision_count > delta_memory->record_count) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"delta index contains more collisions (%ld) than records (%ld)",
@@ -694,7 +712,7 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 						delta_memory->record_count);
 	}
 
-	// Validate the delta lists
+	/* Validate the delta lists */
 	if (get_delta_list_start(&delta_lists[0]) != 0) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"the head guard delta list does not start at 0: %llu",
@@ -726,8 +744,10 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 							(unsigned long long) get_delta_list_end(&delta_lists[i]));
 		}
 		if (i > delta_memory->num_lists) {
-			// The rest of the checks do not apply to the tail guard
-			// list
+			/*
+			 * The rest of the checks do not apply to the tail guard
+			 * list
+			 */
 			continue;
 		}
 		if (get_delta_list_end(&delta_lists[i]) >
@@ -739,8 +759,10 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 							(unsigned long long) get_delta_list_start(&delta_lists[i + 1]));
 		}
 		if (i == 0) {
-			// The rest of the checks do not apply to the head guard
-			// list
+			/*
+			 * The rest of the checks do not apply to the head guard
+			 * list
+			 */
 			continue;
 		}
 		if (delta_lists[i].save_offset >
@@ -773,7 +795,7 @@ size_t get_delta_memory_size(unsigned long num_entries,
 	unsigned short min_bits;
 	unsigned int incr_keys, min_keys;
 	compute_coding_constants(mean_delta, &min_bits, &min_keys, &incr_keys);
-	// On average, each delta is encoded into about min_bits+1.5 bits.
+	/* On average, each delta is encoded into about min_bits+1.5 bits. */
 	return (num_entries * (num_payload_bits + min_bits + 1) +
 		num_entries / 2);
 }

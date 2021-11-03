@@ -75,8 +75,10 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
 	 */
 	bool skip_search;
 
-	// These pointers are immutable during the life of the cache. The
-	// contents of the arrays change when the cache entry is replaced.
+	/*
+	 * These pointers are immutable during the life of the cache. The
+	 * contents of the arrays change when the cache entry is replaced.
+	 */
 
 	/* pointer to a cache-aligned array of ChapterIndexPages */
 	struct delta_index_page *index_pages;
@@ -84,9 +86,11 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
 	/* pointer to an array of volume pages containing the index pages */
 	struct volume_page *volume_pages;
 
-	// The cache-aligned counters change often and are placed at the end of
-	// the structure to prevent false sharing with the more stable fields
-	// above.
+	/*
+	 * The cache-aligned counters change often and are placed at the end of
+	 * the structure to prevent false sharing with the more stable fields
+	 * above.
+	 */
 
 	/* counter values updated by the thread servicing zone zero */
 	struct cached_index_counters counters;
@@ -121,8 +125,10 @@ void destroy_cached_chapter_index(struct cached_chapter_index *chapter);
 static INLINE void set_skip_search(struct cached_chapter_index *chapter,
 				   bool skip_search)
 {
-	// Explicitly check if the field is set so we don't keep dirtying the
-	// memory cache line on continued search hits.
+	/*
+	 * Explicitly check if the field is set so we don't keep dirtying the
+	 * memory cache line on continued search hits.
+	 */
 	if (READ_ONCE(chapter->skip_search) != skip_search) {
 		WRITE_ONCE(chapter->skip_search, skip_search);
 	}
@@ -145,20 +151,26 @@ should_skip_chapter_index(const struct index_zone *zone,
 		          const struct cached_chapter_index *chapter,
 		          uint64_t virtual_chapter)
 {
-	// Don't search unused entries (contents undefined) or invalid entries
-	// (the chapter is no longer the zone's view of the volume).
+	/*
+	 * Don't search unused entries (contents undefined) or invalid entries
+	 * (the chapter is no longer the zone's view of the volume).
+	 */
 	if ((chapter->virtual_chapter == UINT64_MAX) ||
 	    (chapter->virtual_chapter < zone->oldest_virtual_chapter)) {
 		return true;
 	}
 
 	if (virtual_chapter != UINT64_MAX) {
-		// If the caller specified a virtual chapter, only search the
-		// cache entry containing that chapter.
+		/*
+		 * If the caller specified a virtual chapter, only search the
+		 * cache entry containing that chapter.
+		 */
 		return (virtual_chapter != chapter->virtual_chapter);
 	} else {
-		// When searching the entire cache, save time by skipping over
-		// chapters that have had too many consecutive misses.
+		/*
+		 * When searching the entire cache, save time by skipping over
+		 * chapters that have had too many consecutive misses.
+		 */
 		return READ_ONCE(chapter->skip_search);
 	}
 }

@@ -64,7 +64,7 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->remapped_virtual = remapped_virtual;
 	geometry->remapped_physical = remapped_physical;
 
-	// Calculate the number of records in a page, chapter, and volume.
+	/* Calculate the number of records in a page, chapter, and volume. */
 	geometry->records_per_page = bytes_per_page / BYTES_PER_RECORD;
 	geometry->records_per_chapter =
 		geometry->records_per_page * record_pages_per_chapter;
@@ -73,24 +73,28 @@ static int initialize_geometry(struct geometry *geometry,
 		chapters_per_volume;
 	geometry->open_chapter_load_ratio = DEFAULT_OPEN_CHAPTER_LOAD_RATIO;
 
-	// Initialize values for delta chapter indexes.
+	/* Initialize values for delta chapter indexes. */
 	geometry->chapter_mean_delta = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
 	geometry->chapter_payload_bits =
 		compute_bits(record_pages_per_chapter - 1);
-	// We want 1 delta list for every 64 records in the chapter.
-	// The "| 077" ensures that the chapter_delta_list_bits computation
-	// does not underflow.
+	/*
+	 * We want 1 delta list for every 64 records in the chapter.
+	 * The "| 077" ensures that the chapter_delta_list_bits computation
+	 * does not underflow.
+	 */
 	geometry->chapter_delta_list_bits =
 		compute_bits((geometry->records_per_chapter - 1) | 077) - 6;
 	geometry->delta_lists_per_chapter =
 		1 << geometry->chapter_delta_list_bits;
-	// We need enough address bits to achieve the desired mean delta.
+	/* We need enough address bits to achieve the desired mean delta. */
 	geometry->chapter_address_bits =
 		(DEFAULT_CHAPTER_MEAN_DELTA_BITS -
 		 geometry->chapter_delta_list_bits +
 		 compute_bits(geometry->records_per_chapter - 1));
-	// Let the delta index code determine how many pages are needed for the
-	// index
+	/*
+	 * Let the delta index code determine how many pages are needed for the
+	 * index
+	 */
 	geometry->index_pages_per_chapter =
 		get_delta_index_page_count(geometry->records_per_chapter,
 					   geometry->delta_lists_per_chapter,
@@ -98,8 +102,10 @@ static int initialize_geometry(struct geometry *geometry,
 					   geometry->chapter_payload_bits,
 					   bytes_per_page);
 
-	// Now that we have the size of a chapter index, we can calculate the
-	// space used by chapters and volumes.
+	/*
+	 * Now that we have the size of a chapter index, we can calculate the
+	 * space used by chapters and volumes.
+	 */
 	geometry->pages_per_chapter =
 		geometry->index_pages_per_chapter + record_pages_per_chapter;
 	geometry->pages_per_volume =
@@ -188,7 +194,7 @@ map_to_physical_chapter(const struct geometry *geometry,
 		return (geometry->chapters_per_volume - delta);
 	}
 
-	// This chapter is so old the answer doesn't matter.
+	/* This chapter is so old the answer doesn't matter. */
 	return 0;
 }
 
@@ -220,30 +226,34 @@ bool is_chapter_sparse(const struct geometry *geometry,
 unsigned int chapters_to_expire(const struct geometry *geometry,
 				uint64_t newest_chapter)
 {
-	// If the index isn't full yet, don't expire anything.
+	/* If the index isn't full yet, don't expire anything. */
 	if (newest_chapter < geometry->chapters_per_volume) {
 		return 0;
 	}
 
-	// If a chapter is out of order...
+	/* If a chapter is out of order... */
 	if (geometry->remapped_physical > 0) {
 		uint64_t oldest_chapter =
 			newest_chapter - geometry->chapters_per_volume;
 
-		// ... expire an extra chapter when expiring the moved chapter
-		// to free physical space for the new chapter ...
+		/*
+		 * ... expire an extra chapter when expiring the moved chapter
+		 * to free physical space for the new chapter ...
+		 */
 		if (oldest_chapter == geometry->remapped_virtual) {
 			return 2;
 		}
 
-		// ... but don't expire anything when the new chapter will use
-		// the physical chapter freed by expiring the moved chapter.
+		/*
+		 * ... but don't expire anything when the new chapter will use
+		 * the physical chapter freed by expiring the moved chapter.
+		 */
 		if (oldest_chapter == (geometry->remapped_virtual +
 				       geometry->remapped_physical)) {
 			return 0;
 		}
 	}
 
-	// Normally, just expire one.
+	/* Normally, just expire one. */
 	return 1;
 }

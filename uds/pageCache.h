@@ -66,11 +66,11 @@ struct queued_read {
 	struct request_list request_list;
 };
 
-// Reason for invalidating a cache entry, used for gathering statistics
+/* Reason for invalidating a cache entry, used for gathering statistics */
 enum invalidation_reason {
-	INVALIDATION_EVICT, // cache is full, goodbye
-	INVALIDATION_EXPIRE, // your chapter is being overwritten
-	INVALIDATION_ERROR, // error happened; don't try to use data
+	INVALIDATION_EVICT, /* cache is full, goodbye */
+	INVALIDATION_EXPIRE, /* your chapter is being overwritten */
+	INVALIDATION_ERROR, /* error happened; don't try to use data */
 	INVALIDATION_INIT_SHUTDOWN
 };
 
@@ -86,37 +86,45 @@ enum invalidation_reason {
  * the value in the wait_for_pending_searches method.
  */
 typedef int64_t invalidate_counter_t;
-// Fields of invalidate_counter_t.
-// These must be 64 bit, so an enum cannot be not used.
-#define PAGE_FIELD ((long) UINT_MAX) // The page number field
-#define COUNTER_LSB (PAGE_FIELD + 1L) // The LSB of the counter field
+/*
+ * Fields of invalidate_counter_t.
+ * These must be 64 bit, so an enum cannot be not used.
+ */
+#define PAGE_FIELD ((long) UINT_MAX) /* The page number field */
+#define COUNTER_LSB (PAGE_FIELD + 1L) /* The LSB of the counter field */
 
 struct __attribute__((aligned(CACHE_LINE_BYTES))) search_pending_counter {
 	atomic64_t atomic_value;
 };
 
 struct page_cache {
-	// Geometry governing the volume
+	/* Geometry governing the volume */
 	const struct geometry *geometry;
-	// The number of zones
+	/* The number of zones */
 	unsigned int zone_count;
-	// The number of index entries
+	/* The number of index entries */
 	unsigned int num_index_entries;
-	// The max number of cached entries
+	/* The max number of cached entries */
 	uint16_t num_cache_entries;
-	// The index used to quickly access page in cache - top bit is a
-	// 'queued' flag
+	/*
+	 * The index used to quickly access page in cache - top bit is a
+	 * 'queued' flag
+	 */
 	uint16_t *index;
-	// The cache
+	/* The cache */
 	struct cached_page *cache;
-	// A counter for each zone to keep track of when a search is occurring
-	// within that zone.
+	/*
+	 * A counter for each zone to keep track of when a search is occurring
+	 * within that zone.
+	 */
 	struct search_pending_counter *search_pending_counters;
-	// Queued reads, as a circular array, with first and last indexes
+	/* Queued reads, as a circular array, with first and last indexes */
 	struct queued_read *read_queue;
-	// Cache counters for stats.  This is the first field of a
-	// page_cache that is not constant after the struct is
-	// initialized.
+	/*
+	 * Cache counters for stats.  This is the first field of a
+	 * page_cache that is not constant after the struct is
+	 * initialized.
+	 */
 	struct cache_counters counters;
 	/**
 	 * Entries are enqueued at read_queue_last.
@@ -144,7 +152,7 @@ struct page_cache {
 	uint16_t read_queue_first;
 	uint16_t read_queue_last_read;
 	uint16_t read_queue_last;
-	// Page access counter
+	/* Page access counter */
 	atomic64_t clock;
 };
 
@@ -468,9 +476,11 @@ static INLINE void end_pending_search(struct page_cache *cache,
 				      unsigned int zone_number)
 {
 	invalidate_counter_t invalidate_counter;
-	// This memory barrier ensures that this thread completes reads of the
-	// cached page before other threads see the write to the invalidate
-	// counter.
+	/*
+	 * This memory barrier ensures that this thread completes reads of the
+	 * cached page before other threads see the write to the invalidate
+	 * counter.
+	 */
 	smp_mb();
 
 	invalidate_counter = get_invalidate_counter(cache, zone_number);

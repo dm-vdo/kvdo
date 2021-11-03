@@ -35,7 +35,7 @@
 
 #if defined(MODULE)
 #define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
-#else // compiled into the kernel
+#else /* compiled into the kernel */
 #define UDS_LOGGING_MODULE_NAME "vdo"
 #endif
 

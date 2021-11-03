@@ -26,7 +26,7 @@
 
 struct chapter_writer;
 
-// This opaque declaration breaks the dependency loop with index.h
+/* This opaque declaration breaks the dependency loop with index.h */
 struct uds_index;
 
 

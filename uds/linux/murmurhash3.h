@@ -11,4 +11,4 @@
 
 void murmurhash3_128(const void *key, int len, uint32_t seed, void *out);
 
-#endif // _MURMURHASH3_H_
+#endif /* _MURMURHASH3_H_ */

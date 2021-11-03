@@ -24,19 +24,19 @@
 #include "deltaMemory.h"
 
 enum {
-	// the number of extra bytes and bits needed to store a collision entry
+	/* the number of extra bytes and bits needed to store a collision entry */
 	COLLISION_BYTES = UDS_CHUNK_NAME_SIZE,
 	COLLISION_BITS = COLLISION_BYTES * CHAR_BIT
 };
 
 struct delta_index {
-	struct delta_memory *delta_zones;  // The zones
-	unsigned int num_zones;            // The number of zones
-	unsigned int num_lists;            // The number of delta lists
-	unsigned int lists_per_zone;       // Lists per zone (last zone can be
-				           // smaller)
-	bool is_mutable;                   // True if this index is mutable
-	byte tag;                          // Tag belonging to this delta index
+	struct delta_memory *delta_zones;  /* The zones */
+	unsigned int num_zones;            /* The number of zones */
+	unsigned int num_lists;            /* The number of delta lists */
+	unsigned int lists_per_zone;       /* Lists per zone (last zone can be */
+				           /* smaller) */
+	bool is_mutable;                   /* True if this index is mutable */
+	byte tag;                          /* Tag belonging to this delta index */
 };
 
 /*
@@ -48,11 +48,11 @@ struct delta_index {
 
 struct delta_index_page {
 	struct delta_index delta_index;
-	// These values are loaded from the DeltaPageHeader
+	/* These values are loaded from the DeltaPageHeader */
 	unsigned int lowest_list_number;
 	unsigned int highest_list_number;
 	uint64_t virtual_chapter_number;
-	// This structure describes the single zone of a delta index page.
+	/* This structure describes the single zone of a delta index page. */
 	struct delta_memory delta_memory;
 };
 
@@ -88,38 +88,38 @@ struct delta_index_page {
  */
 
 struct delta_index_entry {
-	// Public fields
-	unsigned int key;                   // The key for this entry
-	bool at_end;                        // We are after the last entry in
-					    // the list
-	bool is_collision;                  // This record is a collision
-	// Private fields (but DeltaIndex_t1 cheats and looks at them)
-	bool list_overflow;                 // This delta list overflowed
-	unsigned short value_bits;          // The number of bits used for
-					    // the value
-	unsigned short entry_bits;          // The number of bits used for
-					    // the entire entry
-	struct delta_memory *delta_zone;    // The delta index zone
-	struct delta_list *delta_list;      // The delta list containing
-					    // the entry
-	unsigned int list_number;           // The delta list number
-	uint32_t offset;                    // Bit offset of this entry within
-					    // the list
-	unsigned int delta;                 // The delta between this and
-					    // previous entry
-	struct delta_list temp_delta_list;  // Temporary delta list for
-					    // immutable indices
+	/* Public fields */
+	unsigned int key;                   /* The key for this entry */
+	bool at_end;                        /* We are after the last entry in */
+					    /* the list */
+	bool is_collision;                  /* This record is a collision */
+	/* Private fields (but DeltaIndex_t1 cheats and looks at them) */
+	bool list_overflow;                 /* This delta list overflowed */
+	unsigned short value_bits;          /* The number of bits used for */
+					    /* the value */
+	unsigned short entry_bits;          /* The number of bits used for */
+					    /* the entire entry */
+	struct delta_memory *delta_zone;    /* The delta index zone */
+	struct delta_list *delta_list;      /* The delta list containing */
+					    /* the entry */
+	unsigned int list_number;           /* The delta list number */
+	uint32_t offset;                    /* Bit offset of this entry within */
+					    /* the list */
+	unsigned int delta;                 /* The delta between this and */
+					    /* previous entry */
+	struct delta_list temp_delta_list;  /* Temporary delta list for */
+					    /* immutable indices */
 };
 
 struct delta_index_stats {
-	size_t memory_allocated;    // Number of bytes allocated
-	ktime_t rebalance_time;	    // Nanoseconds spent rebalancing
-	int rebalance_count;        // Number of memory rebalances
-	long record_count;          // The number of records in the index
-	long collision_count;       // The number of collision records
-	long discard_count;         // The number of records removed
-	long overflow_count;        // The number of UDS_OVERFLOWs detected
-	unsigned int num_lists;     // The number of delta lists
+	size_t memory_allocated;    /* Number of bytes allocated */
+	ktime_t rebalance_time;	    /* Nanoseconds spent rebalancing */
+	int rebalance_count;        /* Number of memory rebalances */
+	long record_count;          /* The number of records in the index */
+	long collision_count;       /* The number of collision records */
+	long discard_count;         /* The number of records removed */
+	long overflow_count;        /* The number of UDS_OVERFLOWs detected */
+	unsigned int num_lists;     /* The number of delta lists */
 };
 
 /**

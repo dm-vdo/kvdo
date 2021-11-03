@@ -206,8 +206,10 @@ static int __must_check initialize_sparse_cache(struct sparse_cache *cache,
 	cache->capacity = capacity;
 	cache->zone_count = zone_count;
 
-	// Scale down the skip threshold by the number of zones since we count
-	// the chapter search misses only in zone zero.
+	/*
+	 * Scale down the skip threshold by the number of zones since we count
+	 * the chapter search misses only in zone zero.
+	 */
 	cache->skip_search_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
 	result = uds_initialize_barrier(&cache->begin_cache_update, zone_count);
@@ -226,7 +228,7 @@ static int __must_check initialize_sparse_cache(struct sparse_cache *cache,
 		}
 	}
 
-	// Allocate each zone's independent LRU order.
+	/* Allocate each zone's independent LRU order. */
 	for (i = 0; i < zone_count; i++) {
 		result = make_search_list(capacity, &cache->search_lists[i]);
 		if (result != UDS_SUCCESS) {
@@ -266,8 +268,10 @@ int make_sparse_cache(const struct geometry *geometry,
 /**********************************************************************/
 size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
 {
-	// Count the delta_index_page as cache memory, but ignore all other
-	// overhead.
+	/*
+	 * Count the delta_index_page as cache memory, but ignore all other
+	 * overhead.
+	 */
 	size_t page_size = (sizeof(struct delta_index_page) +
 			    cache->geometry->bytes_per_page);
 	size_t chapter_size =
@@ -394,7 +398,7 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 	 * disabled because of too many search misses.
 	 */
 
-	// Get the chapter search order for this zone thread.
+	/* Get the chapter search order for this zone thread. */
 	struct search_list_iterator iterator =
 		iterate_search_list(cache->search_lists[zone_number],
 				    cache->chapters);
@@ -406,13 +410,13 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 				score_chapter_hit(cache, chapter);
 			}
 
-			// Move the chapter to the front of the search list.
+			/* Move the chapter to the front of the search list. */
 			rotate_search_list(iterator.list, iterator.next_entry);
 			return true;
 		}
 	}
 
-	// The specified virtual chapter isn't cached.
+	/* The specified virtual chapter isn't cached. */
 	if (zone_number == ZONE_ZERO) {
 		score_chapter_miss(cache);
 	}
@@ -426,15 +430,19 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	const struct uds_index *index = zone->index;
 	struct sparse_cache *cache = index->volume->sparse_cache;
 
-	// If the chapter is already in the cache, we don't need to do a thing
-	// except update the search list order, which this check does.
+	/*
+	 * If the chapter is already in the cache, we don't need to do a thing
+	 * except update the search list order, which this check does.
+	 */
 	if (sparse_cache_contains(cache, virtual_chapter, zone->id)) {
 		return UDS_SUCCESS;
 	}
 
-	// Wait for every zone thread to have reached its corresponding barrier
-	// request and invoked this function before starting to modify the
-	// cache.
+	/*
+	 * Wait for every zone thread to have reached its corresponding barrier
+	 * request and invoked this function before starting to modify the
+	 * cache.
+	 */
 	uds_enter_barrier(&cache->begin_cache_update, NULL);
 
 	/*
@@ -447,47 +455,59 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 
 	if (zone->id == ZONE_ZERO) {
 		unsigned int z;
-		// Purge invalid chapters from the LRU search list.
+		/* Purge invalid chapters from the LRU search list. */
 		struct search_list *zone_zero_list =
 			cache->search_lists[ZONE_ZERO];
 		purge_search_list(zone_zero_list,
 				  cache->chapters,
 				  zone->oldest_virtual_chapter);
 
-		// First check that the desired chapter is still in the volume.
-		// If it's not, the hook fell out of the index and there's
-		// nothing to do for it.
+		/*
+		 * First check that the desired chapter is still in the volume.
+		 * If it's not, the hook fell out of the index and there's
+		 * nothing to do for it.
+		 */
 		if (virtual_chapter >= index->oldest_virtual_chapter) {
-			// Evict the least recently used live chapter, or
-			// replace a dead cache entry, all by rotating the the
-			// last list entry to the front.
+			/*
+			 * Evict the least recently used live chapter, or
+			 * replace a dead cache entry, all by rotating the the
+			 * last list entry to the front.
+			 */
 			struct cached_chapter_index *victim =
 				&cache->chapters[rotate_search_list(zone_zero_list,
 								    cache->capacity)];
 
-			// Check if the victim is already dead, and if it's
-			// not, add to the tally of evicted or invalidated
-			// cache entries.
+			/*
+			 * Check if the victim is already dead, and if it's
+			 * not, add to the tally of evicted or invalidated
+			 * cache entries.
+			 */
 			score_eviction(zone, cache, victim);
 
-			// Read the index page bytes and initialize the page
-			// array.
+			/*
+			 * Read the index page bytes and initialize the page
+			 * array.
+			 */
 			result = cache_chapter_index(victim, virtual_chapter,
 						     index->volume);
 		}
 
-		// Copy the new search list state to all the other zone threads
-		// so they'll get the result of pruning and see the new
-		// chapter.
+		/*
+		 * Copy the new search list state to all the other zone threads
+		 * so they'll get the result of pruning and see the new
+		 * chapter.
+		 */
 		for (z = 1; z < cache->zone_count; z++) {
 			copy_search_list(zone_zero_list,
 					 cache->search_lists[z]);
 		}
 	}
 
-	// This is the end of the critical section. All cache invariants must
-	// have been restored--it will be shared/read-only again beyond the
-	// barrier.
+	/*
+	 * This is the end of the critical section. All cache invariants must
+	 * have been restored--it will be shared/read-only again beyond the
+	 * barrier.
+	 */
 
 	uds_enter_barrier(&cache->end_cache_update, NULL);
 	return result;
@@ -503,13 +523,17 @@ int search_sparse_cache(struct index_zone *zone,
 	struct volume *volume = zone->index->volume;
 	struct sparse_cache *cache = volume->sparse_cache;
 	unsigned int zone_number = zone->id;
-	// If the caller did not specify a virtual chapter, search the entire
-	// cache.
+	/*
+	 * If the caller did not specify a virtual chapter, search the entire
+	 * cache.
+	 */
 	bool search_all = (*virtual_chapter_ptr == UINT64_MAX);
 	unsigned int chapters_searched = 0;
 
-	// Get the chapter search order for this zone thread, searching the
-	// chapters from most recently hit to least recently hit.
+	/*
+	 * Get the chapter search order for this zone thread, searching the
+	 * chapters from most recently hit to least recently hit.
+	 */
 	struct search_list_iterator iterator =
 		iterate_search_list(cache->search_lists[zone_number],
 				    cache->chapters);
@@ -518,8 +542,10 @@ int search_sparse_cache(struct index_zone *zone,
 		struct cached_chapter_index *chapter =
 			get_next_chapter(&iterator);
 
-		// Skip chapters no longer cached, or that have too many search
-		// misses.
+		/*
+		 * Skip chapters no longer cached, or that have too many search
+		 * misses.
+		 */
 		if (should_skip_chapter_index(zone, chapter,
 					      *virtual_chapter_ptr)) {
 			continue;
@@ -535,19 +561,21 @@ int search_sparse_cache(struct index_zone *zone,
 		}
 		chapters_searched += 1;
 
-		// Did we find an index entry for the name?
+		/* Did we find an index entry for the name? */
 		if (*record_page_ptr != NO_CHAPTER_INDEX_ENTRY) {
 			if (zone_number == ZONE_ZERO) {
 				score_search_hit(cache, chapter);
 			}
 
-			// Move the chapter to the front of the search list.
+			/* Move the chapter to the front of the search list. */
 			rotate_search_list(iterator.list, iterator.next_entry);
 
-			// Return a matching entry as soon as it is found. It
-			// might be a false collision that has a true match in
-			// another chapter, but that's a very rare case and not
-			// worth the extra search cost or complexity.
+			/*
+			 * Return a matching entry as soon as it is found. It
+			 * might be a false collision that has a true match in
+			 * another chapter, but that's a very rare case and not
+			 * worth the extra search cost or complexity.
+			 */
 			*virtual_chapter_ptr = chapter->virtual_chapter;
 			return UDS_SUCCESS;
 		}
@@ -557,13 +585,15 @@ int search_sparse_cache(struct index_zone *zone,
 		}
 
 		if (!search_all) {
-			// We just searched the virtual chapter the caller
-			// specified and there was no match, so we're done.
+			/*
+			 * We just searched the virtual chapter the caller
+			 * specified and there was no match, so we're done.
+			 */
 			break;
 		}
 	}
 
-	// The name was not found in the cache.
+	/* The name was not found in the cache. */
 	*record_page_ptr = NO_CHAPTER_INDEX_ENTRY;
 	return UDS_SUCCESS;
 }

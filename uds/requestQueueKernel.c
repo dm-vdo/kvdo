@@ -74,8 +74,8 @@ enum {
  * that have been processed since the worker thread last woke up.
  **/
 enum {
-	MINIMUM_BATCH = 32, // wait time increases if batch smaller than this
-	MAXIMUM_BATCH = 64  // wait time decreases if batch larger than this
+	MINIMUM_BATCH = 32, /* wait time increases if batch smaller than this */
+	MAXIMUM_BATCH = 64  /* wait time decreases if batch larger than this */
 };
 
 struct uds_request_queue {
@@ -108,20 +108,20 @@ struct uds_request_queue {
  **/
 static INLINE struct uds_request *poll_queues(struct uds_request_queue *queue)
 {
-	// The retry queue has higher priority.
+	/* The retry queue has higher priority. */
 	struct funnel_queue_entry *entry =
 		funnel_queue_poll(queue->retry_queue);
 	if (entry != NULL) {
 		return container_of(entry, struct uds_request, request_queue_link);
 	}
 
-	// The main queue has lower priority.
+	/* The main queue has lower priority. */
 	entry = funnel_queue_poll(queue->main_queue);
 	if (entry != NULL) {
 		return container_of(entry, struct uds_request, request_queue_link);
 	}
 
-	// No entry found.
+	/* No entry found. */
 	return NULL;
 }
 
@@ -158,22 +158,22 @@ static INLINE bool dequeue_request(struct uds_request_queue *queue,
 				   struct uds_request **request_ptr,
 				   bool *waited_ptr)
 {
-	// Because of batching, we expect this to be the most common code path.
+	/* Because of batching, we expect this to be the most common code path. */
 	struct uds_request *request = poll_queues(queue);
 
 	if (request != NULL) {
-		// Return because we found a request
+		/* Return because we found a request */
 		*request_ptr = request;
 		return true;
 	}
 
 	if (!READ_ONCE(queue->alive)) {
-		// Return because we see that shutdown is happening
+		/* Return because we see that shutdown is happening */
 		*request_ptr = NULL;
 		return true;
 	}
 
-	// Return indicating that we need to wait.
+	/* Return indicating that we need to wait. */
 	*request_ptr = NULL;
 	*waited_ptr = true;
 	return false;
@@ -229,53 +229,67 @@ static void request_queue_worker(void *arg)
 		}
 
 		if (likely(request != NULL)) {
-			// We got a request.
+			/* We got a request. */
 			current_batch++;
 			queue->process_one(request);
 		} else if (!READ_ONCE(queue->alive)) {
-			// We got no request and we know we are shutting down.
+			/* We got no request and we know we are shutting down. */
 			break;
 		}
 
 		if (dormant) {
-			// We've been roused from dormancy. Clear the flag so
-			// enqueuers can stop broadcasting (no fence needed for
-			// this transition).
+			/*
+			 * We've been roused from dormancy. Clear the flag so
+			 * enqueuers can stop broadcasting (no fence needed for
+			 * this transition).
+			 */
 			atomic_set(&queue->dormant, false);
 			dormant = false;
-			// Reset the timeout back to the default since we don't
-			// know how long we've been asleep and we also want to
-			// be responsive to a new burst.
+			/*
+			 * Reset the timeout back to the default since we don't
+			 * know how long we've been asleep and we also want to
+			 * be responsive to a new burst.
+			 */
 			time_batch = DEFAULT_WAIT_TIME;
 		} else if (waited) {
-			// We waited for this request to show up.  Adjust the
-			// wait time if the last batch of requests was too
-			// small or too large..
+			/*
+			 * We waited for this request to show up.  Adjust the
+			 * wait time if the last batch of requests was too
+			 * small or too large..
+			 */
 			if (current_batch < MINIMUM_BATCH) {
-				// Adjust the wait time if the last batch of
-				// requests was too small.
+				/*
+				 * Adjust the wait time if the last batch of
+				 * requests was too small.
+				 */
 				time_batch += time_batch / 4;
 				if (time_batch >= MAXIMUM_WAIT_TIME) {
-					// The timeout is getting long enough
-					// that we need to switch into dormant
-					// mode.
+					/*
+					 * The timeout is getting long enough
+					 * that we need to switch into dormant
+					 * mode.
+					 */
 					atomic_set(&queue->dormant, true);
 					dormant = true;
 				}
 			} else if (current_batch > MAXIMUM_BATCH) {
-				// Adjust the wait time if the last batch of
-				// requests was too large.
+				/*
+				 * Adjust the wait time if the last batch of
+				 * requests was too large.
+				 */
 				time_batch -= time_batch / 4;
 				if (time_batch < MINIMUM_WAIT_TIME) {
-					// But if the producer is very fast or
-					// the scheduler doesn't wake up
-					// promptly, waiting for very short
-					// times won't make the batches
-					// smaller.
+					/*
+					 * But if the producer is very fast or
+					 * the scheduler doesn't wake up
+					 * promptly, waiting for very short
+					 * times won't make the batches
+					 * smaller.
+					 */
 					time_batch = MINIMUM_WAIT_TIME;
 				}
 			}
-			// And we must now start a new batch count
+			/* And we must now start a new batch count */
 			current_batch = 0;
 		}
 	}
@@ -287,8 +301,10 @@ static void request_queue_worker(void *arg)
 	 */
 	smp_rmb();
 
-	// Process every request that is still in the queue, and never wait for
-	// any new requests to show up.
+	/*
+	 * Process every request that is still in the queue, and never wait for
+	 * any new requests to show up.
+	 */
 	for (;;) {
 		struct uds_request *request = poll_queues(queue);
 
@@ -343,7 +359,7 @@ int make_uds_request_queue(const char *queue_name,
 /**********************************************************************/
 static INLINE void wake_up_worker(struct uds_request_queue *queue)
 {
-	// This is the code sequence recommended in <linux/wait.h>
+	/* This is the code sequence recommended in <linux/wait.h> */
 	smp_mb();
 	if (waitqueue_active(&queue->wqhead)) {
 		wake_up(&queue->wqhead);
@@ -386,16 +402,18 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 	 */
 	smp_wmb();
 
-	// Mark the queue as dead.
+	/* Mark the queue as dead. */
 	WRITE_ONCE(queue->alive, false);
 
 	if (queue->started) {
 		int result;
-		// Wake the worker so it notices that it should exit.
+		/* Wake the worker so it notices that it should exit. */
 		wake_up_worker(queue);
 
-		// Wait for the worker thread to finish processing any
-		// additional pending work and exit.
+		/*
+		 * Wait for the worker thread to finish processing any
+		 * additional pending work and exit.
+		 */
 		result = uds_join_threads(queue->thread);
 		if (result != UDS_SUCCESS) {
 			uds_log_warning_strerror(result,

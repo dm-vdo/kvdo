@@ -28,9 +28,9 @@
 #include "regionIdentifiers.h"
 
 enum completion_status {
-	CS_NOT_COMPLETED,        // operation has not completed
-	CS_JUST_COMPLETED,       // operation just completed
-	CS_COMPLETED_PREVIOUSLY  // operation completed previously
+	CS_NOT_COMPLETED,        /* operation has not completed */
+	CS_JUST_COMPLETED,       /* operation just completed */
+	CS_COMPLETED_PREVIOUSLY  /* operation completed previously */
 };
 
 struct read_portal {
@@ -72,29 +72,29 @@ struct write_zone {
  * The structure describing how to load or save an index component.
  **/
 struct index_component_info {
-	enum region_kind kind; // Region kind
-	const char *name;      // The name of the component (for logging)
-	bool multi_zone;       // Does this component have multiple zones?
-	bool io_storage;       // Do we do I/O directly to storage?
-	loader_t loader;       // The function load this component
-	saver_t saver;         // The function to store this component
+	enum region_kind kind; /* Region kind */
+	const char *name;      /* The name of the component (for logging) */
+	bool multi_zone;       /* Does this component have multiple zones? */
+	bool io_storage;       /* Do we do I/O directly to storage? */
+	loader_t loader;       /* The function load this component */
+	saver_t saver;         /* The function to store this component */
 };
 
 /**
  * The structure representing a savable (and loadable) part of an index.
  **/
 struct index_component {
-	const struct index_component_info *info; // index_component_info
-						 // specification
-	void *component_data;                    // The object to load or
-						 // save
-	void *context;                           // The context used to
-						 // load or save
-	struct index_state *state;               // The index state
-	unsigned int num_zones;                  // Number of zones in
-						 // write portal
-	struct write_zone **write_zones;         // State for writing
-						 // component
+	const struct index_component_info *info; /* index_component_info */
+						 /* specification */
+	void *component_data;                    /* The object to load or */
+						 /* save */
+	void *context;                           /* The context used to */
+						 /* load or save */
+	struct index_state *state;               /* The index state */
+	unsigned int num_zones;                  /* Number of zones in */
+						 /* write portal */
+	struct write_zone **write_zones;         /* State for writing */
+						 /* component */
 };
 
 /**

@@ -55,21 +55,27 @@ static void collect_stats(const struct uds_index_session *index_session,
 static void handle_callbacks(struct uds_request *request)
 {
 	if (request->status == UDS_SUCCESS) {
-		// Measure the turnaround time of this request and include that
-		// time, along with the rest of the request, in the context's
-		// stat counters.
+		/*
+		 * Measure the turnaround time of this request and include that
+		 * time, along with the rest of the request, in the context's
+		 * stat counters.
+		 */
 		update_request_context_stats(request);
 	}
 
 	if (request->callback != NULL) {
-		// The request has specified its own callback and does not
-		// expect to be freed.
+		/*
+		 * The request has specified its own callback and does not
+		 * expect to be freed.
+		 */
 		struct uds_index_session *index_session = request->session;
 		request->found =
 			(request->location != UDS_LOCATION_UNAVAILABLE);
 		request->callback((struct uds_request *) request);
-		// We do this release after the callback because of the
-		// contract of the uds_flush_index_session method.
+		/*
+		 * We do this release after the callback because of the
+		 * contract of the uds_flush_index_session method.
+		 */
 		release_index_session(index_session);
 	}
 }
@@ -233,7 +239,7 @@ static int initialize_index_session(struct uds_index_session *index_session,
 		return result;
 	}
 
-	// Zero the stats for the new index.
+	/* Zero the stats for the new index. */
 	memset(&index_session->stats, 0, sizeof(index_session->stats));
 
 	result = make_index(config,
@@ -292,7 +298,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 	session->params = *parameters;
         session->params.name = new_name;
 
-	// Map the external open_type to the internal load_type
+	/* Map the external open_type to the internal load_type */
 	load_type = open_type == UDS_CREATE ?
 		LOAD_CREATE :
 		open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
@@ -324,7 +330,7 @@ wait_for_no_requests_in_progress(struct uds_index_session *index_session)
 static int __must_check uds_save_index(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	// save_index waits for open chapter writes to complete
+	/* save_index waits for open chapter writes to complete */
 	return save_index(index_session->index);
 }
 
@@ -336,7 +342,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	bool save_index = false;
 	bool suspend_index = false;
 	uds_lock_mutex(&session->request_mutex);
-	// Wait for any pending close operation to complete.
+	/* Wait for any pending close operation to complete. */
 	while (session->state & IS_FLAG_CLOSING) {
 		uds_wait_cond(&session->request_cond, &session->request_mutex);
 	}
@@ -351,7 +357,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 		suspend_index = true;
 		result = UDS_SUCCESS;
 	} else if (!(session->state & IS_FLAG_LOADED)) {
-		if (session->index != NULL) { 
+		if (session->index != NULL) {
 			flush_index = true;
 			session->state |= IS_FLAG_WAITING;
 		} else {
@@ -363,7 +369,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 		save_index = save;
 		if (save_index) {
 			session->state |= IS_FLAG_WAITING;
-		} else if (session->index != NULL) { 
+		} else if (session->index != NULL) {
 			flush_index = true;
 			session->state |= IS_FLAG_WAITING;
 		} else {
@@ -403,7 +409,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	case INDEX_OPENING:
 		session->load_context.status = INDEX_SUSPENDING;
 
-		// Wait until the index indicates that it is not replaying.
+		/* Wait until the index indicates that it is not replaying. */
 		while ((session->load_context.status != INDEX_SUSPENDED) &&
 		       (session->load_context.status != INDEX_READY)) {
 			uds_wait_cond(&session->load_context.cond,
@@ -412,14 +418,14 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 		break;
 
 	case INDEX_READY:
-		// Index load does not need to be suspended.
+		/* Index load does not need to be suspended. */
 		break;
 
 	case INDEX_SUSPENDED:
 	case INDEX_SUSPENDING:
 	case INDEX_FREEING:
 	default:
-		// These cases should not happen.
+		/* These cases should not happen. */
 		ASSERT_LOG_ONLY(false,
 				"Bad load context state %u",
 				session->load_context.status);
@@ -464,19 +470,19 @@ int uds_resume_index_session(struct uds_index_session *session)
 	switch (session->load_context.status) {
 	case INDEX_SUSPENDED:
 		session->load_context.status = INDEX_OPENING;
-		// Notify the index to start replaying again.
+		/* Notify the index to start replaying again. */
 		uds_broadcast_cond(&session->load_context.cond);
 		break;
 
 	case INDEX_READY:
-		// There is no index rebuild to resume.
+		/* There is no index rebuild to resume. */
 		break;
 
 	case INDEX_OPENING:
 	case INDEX_SUSPENDING:
 	case INDEX_FREEING:
 	default:
-		// These cases should not happen; do nothing.
+		/* These cases should not happen; do nothing. */
 		ASSERT_LOG_ONLY(false,
 				"Bad load context state %u",
 				session->load_context.status);
@@ -512,14 +518,16 @@ static int save_and_free_index(struct uds_index_session *index_session)
 		free_index(index);
 		index_session->index = NULL;
 
-		// Reset all index state that happens to be in the index
-		// session, so it doesn't affect any future index.
+		/*
+		 * Reset all index state that happens to be in the index
+		 * session, so it doesn't affect any future index.
+		 */
 		uds_lock_mutex(&index_session->load_context.mutex);
 		index_session->load_context.status = INDEX_OPENING;
 		uds_unlock_mutex(&index_session->load_context.mutex);
 
 		uds_lock_mutex(&index_session->request_mutex);
-		// Only the suspend bit will remain relevant.
+		/* Only the suspend bit will remain relevant. */
 		index_session->state &= IS_FLAG_SUSPENDED;
 		uds_unlock_mutex(&index_session->request_mutex);
 	}
@@ -534,8 +542,10 @@ int uds_close_index(struct uds_index_session *index_session)
 	int result = UDS_SUCCESS;
 	uds_lock_mutex(&index_session->request_mutex);
 
-	// Wait for any pending suspend, resume or close operations to
-	// complete.
+	/*
+	 * Wait for any pending suspend, resume or close operations to
+	 * complete.
+	 */
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
@@ -547,8 +557,10 @@ int uds_close_index(struct uds_index_session *index_session)
 		result = -EBUSY;
 	} else if ((index_session->state & IS_FLAG_DESTROYING) ||
 		   !(index_session->state & IS_FLAG_LOADED)) {
-		// The index doesn't exist, hasn't finished loading, or is
-		// being destroyed.
+		/*
+		 * The index doesn't exist, hasn't finished loading, or is
+		 * being destroyed.
+		 */
 		result = UDS_NO_INDEX;
 	} else {
 		index_session->state |= IS_FLAG_CLOSING;
@@ -578,8 +590,10 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	uds_lock_mutex(&index_session->request_mutex);
 
-	// Wait for any pending suspend, resume, or close operations to
-	// complete.
+	/*
+	 * Wait for any pending suspend, resume, or close operations to
+	 * complete.
+	 */
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
@@ -598,7 +612,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	uds_unlock_mutex(&index_session->request_mutex);
 
 	if (load_pending) {
-		// Tell the index to terminate the rebuild.
+		/* Tell the index to terminate the rebuild. */
 		uds_lock_mutex(&index_session->load_context.mutex);
 		if (index_session->load_context.status == INDEX_SUSPENDED) {
 			index_session->load_context.status = INDEX_FREEING;
@@ -606,7 +620,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 		}
 		uds_unlock_mutex(&index_session->load_context.mutex);
 
-		// Wait until the load exits before proceeding.
+		/* Wait until the load exits before proceeding. */
 		uds_lock_mutex(&index_session->request_mutex);
 		while (index_session->state & IS_FLAG_LOADING) {
 			uds_wait_cond(&index_session->request_cond,
@@ -633,7 +647,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 int uds_flush_index_session(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	// Wait until any open chapter writes are complete
+	/* Wait until any open chapter writes are complete */
 	wait_for_idle_index(index_session->index);
 	return UDS_SUCCESS;
 }

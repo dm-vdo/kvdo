@@ -91,4 +91,4 @@ int __must_check write_zeros_to_buffered_writer(struct buffered_writer *bw,
  **/
 int __must_check flush_buffered_writer(struct buffered_writer *buffer);
 
-#endif // BUFFERED_WRITER_H
+#endif /* BUFFERED_WRITER_H */

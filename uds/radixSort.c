@@ -35,11 +35,11 @@
 #include "uds.h"
 
 enum {
-	// Piles smaller than this are handled with a simple insertion sort.
+	/* Piles smaller than this are handled with a simple insertion sort. */
 	INSERTION_SORT_THRESHOLD = 12
 };
 
-// Sort keys are pointers to immutable fixed-length arrays of bytes.
+/* Sort keys are pointers to immutable fixed-length arrays of bytes. */
 typedef const uint8_t * sort_key_t;
 
 /**
@@ -48,10 +48,10 @@ typedef const uint8_t * sort_key_t;
  * byte must be counted.
  **/
 struct histogram {
-	uint16_t used; // number of non-empty bins
-	uint16_t first; // index (key byte) of the first non-empty bin
-	uint16_t last; // index (key byte) of the last non-empty bin
-	uint32_t size[256]; // size[byte] == # of occurrences of byte
+	uint16_t used; /* number of non-empty bins */
+	uint16_t first; /* index (key byte) of the first non-empty bin */
+	uint16_t last; /* index (key byte) of the last non-empty bin */
+	uint32_t size[256]; /* size[byte] == # of occurrences of byte */
 };
 
 /**
@@ -59,12 +59,12 @@ struct histogram {
  * and to put a logarithmic bound on the stack space needed.
  **/
 struct task {
-	sort_key_t *first_key; // Pointers to first and last keys to sort,
-			       // inclusive.
+	sort_key_t *first_key; /* Pointers to first and last keys to sort, */
+			       /* inclusive. */
 	sort_key_t *last_key;
-	uint16_t offset; // The offset into the key at which to
-			 // continue sorting.
-	uint16_t length; // The number of bytes remaining in the sort keys.
+	uint16_t offset; /* The offset into the key at which to */
+			 /* continue sorting. */
+	uint16_t length; /* The number of bytes remaining in the sort keys. */
 };
 
 struct radix_sorter {
@@ -99,15 +99,17 @@ compare(sort_key_t key1, sort_key_t key2, uint16_t offset, uint16_t length)
  **/
 static INLINE void insert_key(const struct task task, sort_key_t *next)
 {
-	// Pull the unsorted key out, freeing up the array slot.
+	/* Pull the unsorted key out, freeing up the array slot. */
 	sort_key_t unsorted = *next;
-	// Compare the key to the preceding sorted entries, shifting
-	// down the ones that are larger.
+	/*
+	 * Compare the key to the preceding sorted entries, shifting
+	 * down the ones that are larger.
+	 */
 	while ((--next >= task.first_key) &&
 	       (compare(unsorted, next[0], task.offset, task.length) < 0)) {
 		next[1] = next[0];
 	}
-	// Insert the key into the last slot that was cleared, sorting it.
+	/* Insert the key into the last slot that was cleared, sorting it. */
 	next[1] = unsorted;
 }
 
@@ -120,9 +122,11 @@ static INLINE void insert_key(const struct task task, sort_key_t *next)
  **/
 static INLINE void insertion_sort(const struct task task)
 {
-	// (first_key .. first_key) is trivially sorted. Repeatedly
-	// insert the next key into the sorted list of keys preceding
-	// it, and voila!
+	/*
+	 * (first_key .. first_key) is trivially sorted. Repeatedly
+	 * insert the next key into the sorted list of keys preceding
+	 * it, and voila!
+	 */
 	sort_key_t *next;
 	for (next = task.first_key + 1; next <= task.last_key; next++) {
 		insert_key(task, next);
@@ -164,24 +168,32 @@ static INLINE void swap_keys(sort_key_t *a, sort_key_t *b)
 static INLINE void measure_bins(const struct task task, struct histogram *bins)
 {
 	sort_key_t *key_ptr;
-	// Set bogus values that will will be replaced by min and max,
-	// respectively.
+	/*
+	 * Set bogus values that will will be replaced by min and max,
+	 * respectively.
+	 */
 	bins->first = UINT8_MAX;
 	bins->last = 0;
 
-	// Subtle invariant: bins->used and bins->size[] are zero
-	// because the sorting code clears it all out as it goes. Even
-	// though this structure is re-used, we don't need to pay to
-	// zero it before starting a new tally.
+	/*
+	 * Subtle invariant: bins->used and bins->size[] are zero
+	 * because the sorting code clears it all out as it goes. Even
+	 * though this structure is re-used, we don't need to pay to
+	 * zero it before starting a new tally.
+	 */
 
 	for (key_ptr = task.first_key; key_ptr <= task.last_key; key_ptr++) {
-		// Increment the count for the byte in the key at the
-		// current offset.
+		/*
+		 * Increment the count for the byte in the key at the
+		 * current offset.
+		 */
 		uint8_t bin = (*key_ptr)[task.offset];
 		uint32_t size = ++bins->size[bin];
 
-		// Track non-empty bins when the count transitions
-		// from zero to one.
+		/*
+		 * Track non-empty bins when the count transitions
+		 * from zero to one.
+		 */
 		if (size == 1) {
 			bins->used += 1;
 			if (bin < bins->first) {
@@ -229,11 +241,11 @@ static INLINE int push_bins(struct task **stack,
 	int bin;
 	for (bin = bins->first;; bin++) {
 		uint32_t size = bins->size[bin];
-		// Skip empty piles.
+		/* Skip empty piles. */
 		if (size == 0) {
 			continue;
 		}
-		// There's no need to sort empty keys.
+		/* There's no need to sort empty keys. */
 		if (length > 0) {
 			if (size > INSERTION_SORT_THRESHOLD) {
 				if (*stack >= end_of_stack) {
@@ -297,12 +309,12 @@ int radix_sort(struct radix_sorter *sorter,
 	sort_key_t **pile = sorter->pile;
 	struct task *sp = sorter->stack;
 
-	// All zero-length keys are identical and therefore already sorted.
+	/* All zero-length keys are identical and therefore already sorted. */
 	if ((count == 0) || (length == 0)) {
 		return UDS_SUCCESS;
 	}
 
-	// The initial task is to sort the entire length of all the keys.
+	/* The initial task is to sort the entire length of all the keys. */
 	start = (struct task) {
 		.first_key = keys,
 		.last_key = &keys[count - 1],
@@ -333,9 +345,11 @@ int radix_sort(struct radix_sorter *sorter,
 
 		measure_bins(task, bins);
 
-		// Now that we know how large each bin is, generate pointers for
-		// each of the piles and push a new task to sort each pile by
-		// the next radix byte.
+		/*
+		 * Now that we know how large each bin is, generate pointers for
+		 * each of the piles and push a new task to sort each pile by
+		 * the next radix byte.
+		 */
 		lp = sorter->is_list;
 		result = push_bins(&sp,
 				   sorter->end_of_stack,
@@ -349,34 +363,42 @@ int radix_sort(struct radix_sorter *sorter,
 			memset(bins, 0, sizeof(*bins));
 			return result;
 		}
-		// Now bins->used is zero again.
+		/* Now bins->used is zero again. */
 
-		// Don't bother processing the last pile--when piles 0..N-1 are
-		// all in place, then pile N must also be in place.
+		/*
+		 * Don't bother processing the last pile--when piles 0..N-1 are
+		 * all in place, then pile N must also be in place.
+		 */
 		end = task.last_key - bins->size[bins->last];
 		bins->size[bins->last] = 0;
 
 		for (fence = task.first_key; fence <= end;) {
 			uint8_t bin;
 			sort_key_t key = *fence;
-			// The radix byte of the key tells us which pile it
-			// belongs in. Swap it for an unprocessed item just
-			// below that pile, and repeat.
+			/*
+			 * The radix byte of the key tells us which pile it
+			 * belongs in. Swap it for an unprocessed item just
+			 * below that pile, and repeat.
+			 */
 			while (--pile[bin = key[task.offset]] > fence) {
 				swap_keys(pile[bin], &key);
 			}
-			// The pile reached the fence. Put the key at the bottom
-			// of that pile. completing it, and advance the fence to
-			// the next pile.
+			/*
+			 * The pile reached the fence. Put the key at the bottom
+			 * of that pile. completing it, and advance the fence to
+			 * the next pile.
+			 */
 			*fence = key;
 			fence += bins->size[bin];
 			bins->size[bin] = 0;
 		}
-		// Now bins->size[] is all zero again.
+		/* Now bins->size[] is all zero again. */
 
-		// When the number of keys in a task gets small enough, its
-		// faster to use an insertion sort than to keep subdividing into
-		// tiny piles.
+		/*
+		 * When the number of keys in a task gets small enough, its
+		 * faster to use an insertion sort than to keep subdividing into
+		 * tiny piles.
+		 */
 		while (--lp >= sorter->is_list) {
 			insertion_sort(*lp);
 		}

@@ -77,9 +77,9 @@
  */
 
 struct index_save_data {
-	uint64_t timestamp; // ms since epoch...
+	uint64_t timestamp; /* ms since epoch... */
 	uint64_t nonce;
-	uint32_t version; // 1
+	uint32_t version; /* 1 */
 	uint32_t unused__;
 };
 
@@ -109,11 +109,11 @@ struct super_block_data {
 	byte magic_label[32];
 	byte nonce_info[NONCE_INFO_SIZE];
 	uint64_t nonce;
-	uint32_t version; // 2 or 3 for normal, 7 for converted
-	uint32_t block_size; // for verification
-	uint16_t num_indexes; // always 1
+	uint32_t version; /* 2 or 3 for normal, 7 for converted */
+	uint32_t block_size; /* for verification */
+	uint16_t num_indexes; /* always 1 */
 	uint16_t max_saves;
-	byte padding[4]; // pad to 64 bit boundary
+	byte padding[4]; /* pad to 64 bit boundary */
 	uint64_t open_chapter_blocks;
 	uint64_t page_map_blocks;
 	uint64_t volume_offset;
@@ -140,16 +140,16 @@ struct index_layout {
  * of zones (up to the maximum value) that are used at run time.
  **/
 struct save_layout_sizes {
-	unsigned int num_saves; // per sub-index
-	size_t block_size; // in bytes
-	uint64_t volume_blocks; // per sub-index
-	uint64_t volume_index_blocks; // per save
-	uint64_t page_map_blocks; // per save
-	uint64_t open_chapter_blocks; // per save
-	uint64_t save_blocks; // per sub-index
-	uint64_t sub_index_blocks; // per sub-index
-	uint64_t total_blocks; // for whole layout
-	size_t total_size; // in bytes, for whole layout
+	unsigned int num_saves; /* per sub-index */
+	size_t block_size; /* in bytes */
+	uint64_t volume_blocks; /* per sub-index */
+	uint64_t volume_index_blocks; /* per save */
+	uint64_t page_map_blocks; /* per save */
+	uint64_t open_chapter_blocks; /* per save */
+	uint64_t save_blocks; /* per sub-index */
+	uint64_t sub_index_blocks; /* per sub-index */
+	uint64_t total_blocks; /* for whole layout */
+	size_t total_size; /* in bytes, for whole layout */
 };
 
 /*
@@ -518,7 +518,7 @@ decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = skip_forward(buffer, 4); // aligment
+	result = skip_forward(buffer, 4); /* aligment */
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -620,9 +620,11 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					      (unsigned long long) super->volume_offset);
 	}
 
-	// We dropped the usage of multiple subindices before we ever ran UDS
-	// code in the kernel.  We do not have code that will handle multiple
-	// subindices.
+	/*
+	 * We dropped the usage of multiple subindices before we ever ran UDS
+	 * code in the kernel.  We do not have code that will handle multiple
+	 * subindices.
+	 */
 	if (super->num_indexes != 1) {
 		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
 					      "invalid subindex count %u",
@@ -1425,8 +1427,10 @@ reset_index_save_layout(struct index_save_layout *isl,
 		     remaining,
 		     RL_KIND_SCRATCH,
 		     RL_SOLE_INSTANCE);
-	// number of zones is a save-time parameter
-	// presence of open chapter is a save-time parameter
+	/*
+	 * number of zones is a save-time parameter
+	 * presence of open chapter is a save-time parameter
+	 */
 	return UDS_SUCCESS;
 }
 
@@ -1529,12 +1533,12 @@ make_single_file_region_table(struct index_layout *layout,
 			      unsigned int *num_regions_ptr,
 			      struct region_table **table_ptr)
 {
-	unsigned int num_regions = 1 + // header
-				   1 + // config
-				   1 + // index
-				   1 + // volume
-				   layout->super.max_saves + // saves
-				   1; // seal
+	unsigned int num_regions = 1 + /* header */
+				   1 + /* config */
+				   1 + /* index */
+				   1 + /* volume */
+				   layout->super.max_saves + /* saves */
+				   1; /* seal */
 
 	struct region_table *table;
 	struct sub_index_layout *sil;
@@ -1702,7 +1706,7 @@ static int __must_check encode_super_block_data(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = zero_bytes(buffer, 4); // aligment
+	result = zero_bytes(buffer, 4); /* aligment */
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1741,11 +1745,11 @@ make_index_save_region_table(struct index_save_layout *isl,
 	struct region_table *table;
 	struct layout_region *lr;
 	int result;
-	unsigned int num_regions = 1 + // header
-				   1 + // index page map
-				   isl->num_zones + // volume index zones
-				   (bool) isl->open_chapter; // open chapter if
-							     // needed
+	unsigned int num_regions = 1 + /* header */
+				   1 + /* index page map */
+				   isl->num_zones + /* volume index zones */
+				   (bool) isl->open_chapter; /* open chapter if */
+							     /* needed */
 
 	if (isl->free_space.num_blocks > 0) {
 		num_regions++;
@@ -2193,10 +2197,10 @@ int make_uds_index_layout(struct configuration *config,
 	}
 
 	if (new_layout) {
-		// Populate the layout from the UDS configuration
+		/* Populate the layout from the UDS configuration */
 		result = create_index_layout(layout, config);
 	} else {
-		// Populate the layout from the saved index.
+		/* Populate the layout from the saved index. */
 		result = load_index_layout(layout, config);
 	}
 	if (result != UDS_SUCCESS) {
@@ -2277,7 +2281,7 @@ static uint64_t generate_index_save_nonce(uint64_t volume_nonce,
 	encode_uint64_le(buffer, &offset, nonce_data.data.timestamp);
 	encode_uint64_le(buffer, &offset, nonce_data.data.nonce);
 	encode_uint32_le(buffer, &offset, nonce_data.data.version);
-	encode_uint32_le(buffer, &offset, 0U); // padding
+	encode_uint32_le(buffer, &offset, 0U); /* padding */
 	encode_uint64_le(buffer, &offset, nonce_data.offset);
 	ASSERT_LOG_ONLY(offset == sizeof(nonce_data),
 			"%zu bytes encoded of %zu expected",
@@ -2315,7 +2319,7 @@ select_oldest_index_save_layout(struct sub_index_layout *sil,
 	uint64_t oldest_time = 0;
 	int result;
 
-	// find the oldest valid or first invalid slot
+	/* find the oldest valid or first invalid slot */
 	struct index_save_layout *isl;
 	for (isl = sil->saves; isl < sil->saves + max_saves; ++isl) {
 		uint64_t save_time = 0;
@@ -2347,7 +2351,7 @@ select_latest_index_save_layout(struct sub_index_layout *sil,
 	struct index_save_layout *latest = NULL;
 	uint64_t latest_time = 0;
 
-	// find the latest valid save slot
+	/* find the latest valid save slot */
 	struct index_save_layout *isl;
 	for (isl = sil->saves; isl < sil->saves + max_saves; ++isl) {
 		uint64_t save_time = 0;

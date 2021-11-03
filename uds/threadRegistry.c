@@ -51,8 +51,10 @@ void uds_register_thread(struct thread_registry *registry,
 	spin_lock(&registry->lock);
 	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
-			// This should not have been there.
-			// We'll complain after releasing the lock.
+			/*
+			 * This should not have been there.
+			 * We'll complain after releasing the lock.
+			 */
 			list_del_rcu(&thread->links);
 			found_it = true;
 			break;
@@ -63,7 +65,7 @@ void uds_register_thread(struct thread_registry *registry,
 
 	ASSERT_LOG_ONLY(!found_it, "new thread not already in registry");
 	if (found_it) {
-		// Ensure no RCU iterators see it before re-initializing.
+		/* Ensure no RCU iterators see it before re-initializing. */
 		synchronize_rcu();
 		INIT_LIST_HEAD(&thread->links);
 	}
@@ -87,7 +89,7 @@ void uds_unregister_thread(struct thread_registry *registry)
 
 	ASSERT_LOG_ONLY(found_it, "thread found in registry");
 	if (found_it) {
-		// Ensure no RCU iterators see it before re-initializing.
+		/* Ensure no RCU iterators see it before re-initializing. */
 		synchronize_rcu();
 		INIT_LIST_HEAD(&thread->links);
 	}

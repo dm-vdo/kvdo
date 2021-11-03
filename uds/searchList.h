@@ -164,24 +164,30 @@ get_next_chapter(struct search_list_iterator *iterator)
 static INLINE uint8_t rotate_search_list(struct search_list *search_list,
 					 uint8_t prefix_length)
 {
-	// Grab the value of the last entry in the list prefix.
+	/* Grab the value of the last entry in the list prefix. */
 	uint8_t most_recent = search_list->entries[prefix_length - 1];
 
 	if (prefix_length > 1) {
-		// Push the first N-1 entries down by one entry, overwriting
-		// the entry we just grabbed.
+		/*
+		 * Push the first N-1 entries down by one entry, overwriting
+		 * the entry we just grabbed.
+		 */
 		memmove(&search_list->entries[1],
 			&search_list->entries[0],
 			prefix_length - 1);
 
-		// We now have a hole at the front of the list in which we can
-		// place the rotated entry.
+		/*
+		 * We now have a hole at the front of the list in which we can
+		 * place the rotated entry.
+		 */
 		search_list->entries[0] = most_recent;
 	}
 
-	// This function is also used to move a dead chapter to the front of
-	// the list, in which case the suffix of dead chapters was pushed down
-	// too.
+	/*
+	 * This function is also used to move a dead chapter to the front of
+	 * the list, in which case the suffix of dead chapters was pushed down
+	 * too.
+	 */
 	if (search_list->first_dead_entry < prefix_length) {
 		search_list->first_dead_entry += 1;
 	}

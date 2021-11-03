@@ -26,8 +26,10 @@
 /**********************************************************************/
 int make_funnel_queue(struct funnel_queue **queue_ptr)
 {
-	// Allocate the queue on a cache line boundary so the producer and
-	// consumer fields in the structure will land on separate cache lines.
+	/*
+	 * Allocate the queue on a cache line boundary so the producer and
+	 * consumer fields in the structure will land on separate cache lines.
+	 */
 	struct funnel_queue *queue;
 	int result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue",
 				  &queue);
@@ -35,8 +37,10 @@ int make_funnel_queue(struct funnel_queue **queue_ptr)
 		return result;
 	}
 
-	// Initialize the stub entry and put it in the queue, establishing the
-	// invariant that queue->newest and queue->oldest are never null.
+	/*
+	 * Initialize the stub entry and put it in the queue, establishing the
+	 * invariant that queue->newest and queue->oldest are never null.
+	 */
 	queue->stub.next = NULL;
 	queue->newest = &queue->stub;
 	queue->oldest = &queue->stub;
@@ -64,42 +68,56 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	struct funnel_queue_entry *next = oldest->next;
 
 	if (oldest == &queue->stub) {
-		// When the oldest entry is the stub and it has no successor,
-		// the queue is logically empty.
+		/*
+		 * When the oldest entry is the stub and it has no successor,
+		 * the queue is logically empty.
+		 */
 		if (next == NULL) {
 			return NULL;
 		}
-		// The stub entry has a successor, so the stub can be dequeued
-		// and ignored without breaking the queue invariants.
+		/*
+		 * The stub entry has a successor, so the stub can be dequeued
+		 * and ignored without breaking the queue invariants.
+		 */
 		oldest = next;
 		queue->oldest = oldest;
-		// XXX Some platforms such as Alpha may require an
-		// additional barrier here.  See
-		// https://lkml.org/lkml/2019/11/8/1021
+		/*
+		 * XXX Some platforms such as Alpha may require an
+		 * additional barrier here.  See
+		 * https://lkml.org/lkml/2019/11/8/1021
+		 */
 		next = oldest->next;
 	}
 
-	// We have a non-stub candidate to dequeue. If it lacks a successor,
-	// we'll need to put the stub entry back on the queue first.
+	/*
+	 * We have a non-stub candidate to dequeue. If it lacks a successor,
+	 * we'll need to put the stub entry back on the queue first.
+	 */
 	if (next == NULL) {
 		struct funnel_queue_entry *newest = queue->newest;
 		if (oldest != newest) {
-			// Another thread has already swung queue->newest
-			// atomically, but not yet assigned previous->next. The
-			// queue is really still empty.
+			/*
+			 * Another thread has already swung queue->newest
+			 * atomically, but not yet assigned previous->next. The
+			 * queue is really still empty.
+			 */
 			return NULL;
 		}
 
-		// Put the stub entry back on the queue, ensuring a successor
-		// will eventually be seen.
+		/*
+		 * Put the stub entry back on the queue, ensuring a successor
+		 * will eventually be seen.
+		 */
 		funnel_queue_put(queue, &queue->stub);
 
-		// Check again for a successor.
+		/* Check again for a successor. */
 		next = oldest->next;
 		if (next == NULL) {
-			// We lost a race with a producer who swapped
-			// queue->newest before we did, but who hasn't yet
-			// updated previous->next. Try again later.
+			/*
+			 * We lost a race with a producer who swapped
+			 * queue->newest before we did, but who hasn't yet
+			 * updated previous->next. Try again later.
+			 */
 			return NULL;
 		}
 	}
@@ -171,6 +189,6 @@ bool is_funnel_queue_idle(struct funnel_queue *queue)
 		return false;
 	}
 
-	// Otherwise, we're idle.
+	/* Otherwise, we're idle. */
 	return true;
 }

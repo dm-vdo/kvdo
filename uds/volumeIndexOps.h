@@ -31,15 +31,15 @@ extern const struct index_component_info *const VOLUME_INDEX_INFO;
 extern unsigned int min_volume_index_delta_lists;
 
 struct volume_index_stats {
-	size_t memory_allocated;    // Number of bytes allocated
-	ktime_t rebalance_time;	    // Nanoseconds spent rebalancing
-	int rebalance_count;        // Number of memory rebalances
-	long record_count;          // The number of records in the index
-	long collision_count;       // The number of collision records
-	long discard_count;         // The number of records removed
-	long overflow_count;        // The number of UDS_OVERFLOWs detected
-	unsigned int num_lists;     // The number of delta lists
-	long early_flushes;         // Number of early flushes
+	size_t memory_allocated;    /* Number of bytes allocated */
+	ktime_t rebalance_time;	    /* Nanoseconds spent rebalancing */
+	int rebalance_count;        /* Number of memory rebalances */
+	long record_count;          /* The number of records in the index */
+	long collision_count;       /* The number of collision records */
+	long discard_count;         /* The number of records removed */
+	long overflow_count;        /* The number of UDS_OVERFLOWs detected */
+	unsigned int num_lists;     /* The number of delta lists */
+	long early_flushes;         /* Number of early flushes */
 };
 
 /*
@@ -49,15 +49,15 @@ struct volume_index_stats {
  * that will process the chunk.
  */
 struct volume_index_triage {
-	uint64_t virtual_chapter;  // If in_sampled_chapter is true, then this
-				   // is the chapter containing the entry for
-				   // the chunk name
-	unsigned int zone;         // The zone containing the chunk name
-	bool is_sample;            // If true, this chunk name belongs to the
-				   // sampled index
-	bool in_sampled_chapter;   // If true, this chunk already has an entry
-				   // in the sampled index and virtual_chapter
-				   // is valid
+	uint64_t virtual_chapter;  /* If in_sampled_chapter is true, then this */
+				   /* is the chapter containing the entry for */
+				   /* the chunk name */
+	unsigned int zone;         /* The zone containing the chunk name */
+	bool is_sample;            /* If true, this chunk name belongs to the */
+				   /* sampled index */
+	bool in_sampled_chapter;   /* If true, this chunk already has an entry */
+				   /* in the sampled index and virtual_chapter */
+				   /* is valid */
 };
 
 /*
@@ -70,25 +70,25 @@ struct volume_index_triage {
  * a volume index record.
  */
 struct volume_index_record {
-	// Public fields
-	uint64_t virtual_chapter;  // Chapter where the block info is found
-	bool is_collision;         // This record is a collision
-	bool is_found;             // This record is the block searched for
+	/* Public fields */
+	uint64_t virtual_chapter;  /* Chapter where the block info is found */
+	bool is_collision;         /* This record is a collision */
+	bool is_found;             /* This record is the block searched for */
 
-	// Private fields
-	unsigned char magic;                   // The magic number for valid
-					       // records
-	unsigned int zone_number;              // Zone that contains this block
-	struct volume_index *volume_index;     // The volume index
-	struct mutex *mutex;                   // Mutex that must be held while
-					       // accessing this delta index
-					       // entry; used only for a
-					       // sampled index; otherwise is
-					       // NULL
-	const struct uds_chunk_name *name;     // The blockname to which this
-					       // record refers
-	struct delta_index_entry delta_entry;  // The delta index entry for
-					       // this record
+	/* Private fields */
+	unsigned char magic;                   /* The magic number for valid */
+					       /* records */
+	unsigned int zone_number;              /* Zone that contains this block */
+	struct volume_index *volume_index;     /* The volume index */
+	struct mutex *mutex;                   /* Mutex that must be held while */
+					       /* accessing this delta index */
+					       /* entry; used only for a */
+					       /* sampled index; otherwise is */
+					       /* NULL */
+	const struct uds_chunk_name *name;     /* The blockname to which this */
+					       /* record refers */
+	struct delta_index_entry delta_entry;  /* The delta index entry for */
+					       /* this record */
 };
 
 struct volume_index {

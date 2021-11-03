@@ -24,7 +24,7 @@
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,9,0)
 #include <asm/rwonce.h>
-#endif // >=5.9.0
+#endif /* >=5.9.0 */
 
 #include <linux/compiler.h>
 
@@ -36,8 +36,10 @@
 				offsetof(type, member));                \
 	})
 
-// The "inline" keyword alone takes effect only when the optimization level
-// is high enough.  Define INLINE to force the gcc to "always inline".
+/*
+ * The "inline" keyword alone takes effect only when the optimization level
+ * is high enough.  Define INLINE to force the gcc to "always inline".
+ */
 #define INLINE __attribute__((always_inline)) inline
 
 

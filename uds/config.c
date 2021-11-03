@@ -545,8 +545,10 @@ static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
 	}
 
 	if (sparse) {
-		// Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
-		// footprint
+		/*
+		 * Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
+		 * footprint
+		 */
 		*sparse_chapters_per_volume =
 			(9 * base_chapters) + (base_chapters / 2);
 		base_chapters *= 10;

@@ -67,7 +67,7 @@
  * The queue link structure that must be embedded in client entries.
  **/
 struct funnel_queue_entry {
-	// The next (newer) entry in the queue.
+	/* The next (newer) entry in the queue. */
 	struct funnel_queue_entry *volatile next;
 };
 
@@ -77,17 +77,23 @@ struct funnel_queue_entry {
  * so funnel_queue_put() can be in-lined.
  **/
 struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
-	// The producers' end of the queue--an atomically exchanged pointer
-	// that will never be NULL.
+	/*
+	 * The producers' end of the queue--an atomically exchanged pointer
+	 * that will never be NULL.
+	 */
 	struct funnel_queue_entry *volatile newest;
 
-	// The consumer's end of the queue. Owned by the consumer and never
-	// NULL.
+	/*
+	 * The consumer's end of the queue. Owned by the consumer and never
+	 * NULL.
+	 */
 	struct funnel_queue_entry *oldest
 		__attribute__((aligned(CACHE_LINE_BYTES)));
 
-	// A re-usable dummy entry used to provide the non-NULL invariants
-	// above.
+	/*
+	 * A re-usable dummy entry used to provide the non-NULL invariants
+	 * above.
+	 */
 	struct funnel_queue_entry stub;
 };
 
@@ -149,9 +155,11 @@ static INLINE void funnel_queue_put(struct funnel_queue *queue,
 #endif
 	previous = xchg(&queue->newest, entry);
 #pragma GCC diagnostic pop
-	// Pre-empts between these two statements hide the rest of the queue
-	// from the consumer, preventing consumption until the following
-	// assignment runs.
+	/*
+	 * Pre-empts between these two statements hide the rest of the queue
+	 * from the consumer, preventing consumption until the following
+	 * assignment runs.
+	 */
 	previous->next = entry;
 }
 

@@ -103,7 +103,7 @@ struct error_block {
 };
 
 enum {
-	MAX_ERROR_BLOCKS = 6 // needed for testing
+	MAX_ERROR_BLOCKS = 6 /* needed for testing */
 };
 
 static struct {
@@ -275,36 +275,40 @@ int uds_map_to_system_error(int error)
 {
 	char error_name[80], error_message[ERRBUF_SIZE];
 
-	// 0 is success, negative a system error code
+	/* 0 is success, negative a system error code */
 	if (likely(error <= 0)) {
 		return error;
 	}
 
 	if (error < 1024) {
-		// probably an errno from userspace, just negate it.
+		/* probably an errno from userspace, just negate it. */
 		return -error;
 	}
 
-	// UDS error
+	/* UDS error */
 	switch (error) {
 	case UDS_NO_INDEX:
 	case UDS_CORRUPT_COMPONENT:
-		// The index doesn't exist or can't be recovered.
+		/* The index doesn't exist or can't be recovered. */
 		return -ENOENT;
 
 	case UDS_INDEX_NOT_SAVED_CLEANLY:
 	case UDS_UNSUPPORTED_VERSION:
-		// The index exists, but can't be loaded. Tell the client it
-		// exists so they don't destroy it inadvertently.
+		/*
+		 * The index exists, but can't be loaded. Tell the client it
+		 * exists so they don't destroy it inadvertently.
+		 */
 		return -EEXIST;
 
 	case UDS_DISABLED:
-		// The session is unusable; only returned by requests.
+		/* The session is unusable; only returned by requests. */
 		return -EIO;
 
 	default:
-		// No other UDS error code is expected here, so log what we
-		// got and convert to something reasonable.
+		/*
+		 * No other UDS error code is expected here, so log what we
+		 * got and convert to something reasonable.
+		 */
 		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
 			     __func__,
 			     error,
@@ -340,7 +344,7 @@ int register_error_block(const char *block_name,
 	}
 
 	if (registered_errors.count == registered_errors.allocated) {
-		// could reallocate and grow, but should never happen
+		/* could reallocate and grow, but should never happen */
 		return UDS_OVERFLOW;
 	}
 
@@ -350,7 +354,7 @@ int register_error_block(const char *block_name,
 		if (strcmp(block_name, block->name) == 0) {
 			return UDS_DUPLICATE_NAME;
 		}
-		// check for overlap in error ranges
+		/* check for overlap in error ranges */
 		if ((first_error < block->max) &&
 		    (last_reserved_error > block->base)) {
 			return UDS_ALREADY_REGISTERED;

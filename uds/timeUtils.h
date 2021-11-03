@@ -26,7 +26,7 @@
 #include <linux/ktime.h>
 #include <linux/time.h>
 
-// Some constants that are defined in kernel headers.
+/* Some constants that are defined in kernel headers. */
 
 /**
  * Return the current nanosecond time according to the specified clock
@@ -38,7 +38,7 @@
  **/
 static INLINE ktime_t current_time_ns(clockid_t clock)
 {
-	// clock is always a constant, so gcc reduces this to a single call
+	/* clock is always a constant, so gcc reduces this to a single call */
 	return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
 }
 

@@ -159,8 +159,10 @@ static void emit_log_message(const char *level,
 {
 	int device_instance;
 
-	// In interrupt context, identify the interrupt type and module.
-	// Ignore the process/thread since it could be anything.
+	/*
+	 * In interrupt context, identify the interrupt type and module.
+	 * Ignore the process/thread since it could be anything.
+	 */
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
 
@@ -169,8 +171,10 @@ static void emit_log_message(const char *level,
 		return;
 	}
 
-	// Not at interrupt level; we have a process we can look at, and
-	// might have a device ID.
+	/*
+	 * Not at interrupt level; we have a process we can look at, and
+	 * might have a device ID.
+	 */
 	device_instance = uds_get_thread_device_id();
 	if (device_instance >= 0) {
 		printk("%s%s%u:%s: %s%pV%pV\n",
@@ -184,8 +188,10 @@ static void emit_log_message(const char *level,
 		return;
 	}
 
-	// If it's a kernel thread and the module name is a prefix of its
-	// name, assume it is ours and only identify the thread.
+	/*
+	 * If it's a kernel thread and the module name is a prefix of its
+	 * name, assume it is ours and only identify the thread.
+	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
 	    (strncmp(module, current->comm, strlen(module)) == 0)) {
 		printk("%s%s: %s%pV%pV\n",
@@ -193,7 +199,7 @@ static void emit_log_message(const char *level,
 		return;
 	}
 
-	// Identify the module and the process.
+	/* Identify the module and the process. */
 	printk("%s%s: %s: %s%pV%pV\n",
 	       level, module, current->comm, prefix, vaf1, vaf2);
 }

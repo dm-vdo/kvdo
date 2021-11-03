@@ -191,17 +191,17 @@ int uds_enter_barrier(struct barrier *barrier, bool *winner)
 	uds_acquire_semaphore(&barrier->mutex);
 	last_thread = ++barrier->arrived == barrier->thread_count;
 	if (last_thread) {
-		// This is the last thread to arrive, so wake up the others
+		/* This is the last thread to arrive, so wake up the others */
 		int i;
 
 		for (i = 1; i < barrier->thread_count; i++) {
 			uds_release_semaphore(&barrier->wait);
 		}
-		// Then reinitialize for the next cycle
+		/* Then reinitialize for the next cycle */
 		barrier->arrived = 0;
 		uds_release_semaphore(&barrier->mutex);
 	} else {
-		// This is NOT the last thread to arrive, so just wait
+		/* This is NOT the last thread to arrive, so just wait */
 		uds_release_semaphore(&barrier->mutex);
 		uds_acquire_semaphore(&barrier->wait);
 	}

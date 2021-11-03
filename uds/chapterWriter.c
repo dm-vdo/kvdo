@@ -66,9 +66,11 @@ static void close_chapters(void *arg)
 	for (;;) {
 		while (writer->zones_to_write < writer->index->zone_count) {
 			if (writer->stop && (writer->zones_to_write == 0)) {
-				// We've been told to stop, and all of the
-				// zones are in the same open chapter, so we
-				// can exit now.
+				/*
+				 * We've been told to stop, and all of the
+				 * zones are in the same open chapter, so we
+				 * can exit now.
+				 */
 				uds_unlock_mutex(&writer->mutex);
 				uds_log_debug("chapter writer stopping");
 				return;
@@ -111,8 +113,10 @@ static void close_chapters(void *arg)
 
 
 		uds_lock_mutex(&writer->mutex);
-		// Note that the index is totally finished with the writing
-		// chapter
+		/*
+		 * Note that the index is totally finished with the writing
+		 * chapter
+		 */
 		advance_active_chapters(writer->index);
 		writer->result = result;
 		writer->zones_to_write = 0;
@@ -150,8 +154,10 @@ int make_chapter_writer(struct uds_index *index,
 		return result;
 	}
 
-	// Now that we have the mutex+cond, it is safe to call
-	// free_chapter_writer.
+	/*
+	 * Now that we have the mutex+cond, it is safe to call
+	 * free_chapter_writer.
+	 */
 	result = uds_allocate_cache_aligned(collated_records_size,
 					    "collated records",
 					    &writer->collated_records);
@@ -173,7 +179,7 @@ int make_chapter_writer(struct uds_index *index,
 		 collated_records_size +
 		 writer->open_chapter_index->memory_allocated);
 
-	// We're initialized, so now it's safe to start the writer thread.
+	/* We're initialized, so now it's safe to start the writer thread. */
 	result = uds_create_thread(close_chapters, writer, "writer",
 				   &writer->thread);
 	if (result != UDS_SUCCESS) {
@@ -241,8 +247,10 @@ void wait_for_idle_chapter_writer(struct chapter_writer *writer)
 {
 	uds_lock_mutex(&writer->mutex);
 	while (writer->zones_to_write > 0) {
-		// The chapter writer is probably writing a chapter.  If it is
-		// not, it will soon wake up and write a chapter.
+		/*
+		 * The chapter writer is probably writing a chapter.  If it is
+		 * not, it will soon wake up and write a chapter.
+		 */
 		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
 	uds_unlock_mutex(&writer->mutex);

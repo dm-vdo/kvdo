@@ -44,65 +44,67 @@
  */
 
 struct delta_list {
-	uint64_t start_offset;  // The offset of the delta list start within
-				// memory
-	uint16_t size;          // The number of bits in the delta list
-	uint16_t save_offset;   // Where the last search "found" the key
-	unsigned int save_key;  // The key for the record just before
-				// save_offset.
+	uint64_t start_offset;  /* The offset of the delta list start within */
+				/* memory */
+	uint16_t size;          /* The number of bits in the delta list */
+	uint16_t save_offset;   /* Where the last search "found" the key */
+	unsigned int save_key;  /* The key for the record just before */
+				/* save_offset. */
 };
 
 struct delta_memory {
-	byte *memory;                             // The delta list memory
-	struct delta_list *delta_lists;           // The delta list headers
-	uint64_t *temp_offsets;                   // Temporary starts of delta
-						  // lists
-	byte *flags;                              // Transfer flags
-	struct buffered_writer *buffered_writer;  // Buffered writer for saving
-						  // an index
-	size_t size;                              // The size of delta list
-						  // memory
-	ktime_t rebalance_time;                   // Nanoseconds spent
-						  // rebalancing
-	int rebalance_count;                      // Number of memory
-						  // rebalances
-	unsigned short value_bits;                // The number of bits of
-						  // value
-	unsigned short min_bits;                  // The number of bits in the
-						  // minimal key code
-	unsigned int min_keys;                    // The number of keys used in
-						  // a minimal code
-	unsigned int incr_keys;                   // The number of keys used
-						  // for another code bit
-	long record_count;                        // The number of records in
-						  // the index
-	long collision_count;                     // The number of collision
-						  // records
-	long discard_count;                       // The number of records
-						  // removed
-	long overflow_count;                      // The number of
-						  // UDS_OVERFLOWs detected
-	unsigned int first_list;                  // The index of the first
-						  // delta list
-	unsigned int num_lists;                   // The number of delta lists
-	unsigned int num_transfers;               // Number of transfer flags
-						  // that are set
-	int transfer_status;                      // Status of the transfers in
-						  // progress
-	byte tag;                                 // Tag belonging to this
-						  // delta index
+	byte *memory;                             /* The delta list memory */
+	struct delta_list *delta_lists;           /* The delta list headers */
+	uint64_t *temp_offsets;                   /* Temporary starts of delta */
+						  /* lists */
+	byte *flags;                              /* Transfer flags */
+	struct buffered_writer *buffered_writer;  /* Buffered writer for saving */
+						  /* an index */
+	size_t size;                              /* The size of delta list */
+						  /* memory */
+	ktime_t rebalance_time;                   /* Nanoseconds spent */
+						  /* rebalancing */
+	int rebalance_count;                      /* Number of memory */
+						  /* rebalances */
+	unsigned short value_bits;                /* The number of bits of */
+						  /* value */
+	unsigned short min_bits;                  /* The number of bits in the */
+						  /* minimal key code */
+	unsigned int min_keys;                    /* The number of keys used in */
+						  /* a minimal code */
+	unsigned int incr_keys;                   /* The number of keys used */
+						  /* for another code bit */
+	long record_count;                        /* The number of records in */
+						  /* the index */
+	long collision_count;                     /* The number of collision */
+						  /* records */
+	long discard_count;                       /* The number of records */
+						  /* removed */
+	long overflow_count;                      /* The number of */
+						  /* UDS_OVERFLOWs detected */
+	unsigned int first_list;                  /* The index of the first */
+						  /* delta list */
+	unsigned int num_lists;                   /* The number of delta lists */
+	unsigned int num_transfers;               /* Number of transfer flags */
+						  /* that are set */
+	int transfer_status;                      /* Status of the transfers in */
+						  /* progress */
+	byte tag;                                 /* Tag belonging to this */
+						  /* delta index */
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 struct delta_list_save_info {
-	uint8_t  tag;         // Tag identifying which delta index this list
-			      // is in
-	uint8_t  bit_offset;  // Bit offset of the start of the list data
-	uint16_t byte_count;  // Number of bytes of list data
-	uint32_t index;       // The delta list number within the delta index
+	uint8_t  tag;         /* Tag identifying which delta index this list */
+			      /* is in */
+	uint8_t  bit_offset;  /* Bit offset of the start of the list data */
+	uint16_t byte_count;  /* Number of bytes of list data */
+	uint32_t index;       /* The delta list number within the delta index */
 };
 
-// The maximum size of a single delta list (in bytes).  We add guard bytes
-// to this because such a buffer can be used with move_bits.
+/*
+ * The maximum size of a single delta list (in bytes).  We add guard bytes
+ * to this because such a buffer can be used with move_bits.
+ */
 enum {
 	DELTA_LIST_MAX_BYTE_COUNT =
 		((UINT16_MAX + CHAR_BIT) / CHAR_BIT + POST_FIELD_GUARD_BYTES)

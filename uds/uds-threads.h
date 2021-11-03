@@ -37,10 +37,10 @@ struct cond_var {
 struct thread;
 
 struct barrier {
-	struct semaphore mutex; // Mutex for this barrier object
-	struct semaphore wait;  // Semaphore for threads waiting at the barrier
-	int arrived;            // Number of threads which have arrived
-	int thread_count;       // Total number of threads using this barrier
+	struct semaphore mutex; /* Mutex for this barrier object */
+	struct semaphore wait;  /* Semaphore for threads waiting at the barrier */
+	int arrived;            /* Number of threads which have arrived */
+	int thread_count;       /* Total number of threads using this barrier */
 };
 
 
@@ -266,8 +266,10 @@ static INLINE int uds_destroy_semaphore(struct semaphore *semaphore)
  **/
 static INLINE void uds_acquire_semaphore(struct semaphore *semaphore)
 {
-	// Do not use down(semaphore).  Instead use down_interruptible so that
-	// we do not get 120 second stall messages in kern.log.
+	/*
+	 * Do not use down(semaphore).  Instead use down_interruptible so that
+	 * we do not get 120 second stall messages in kern.log.
+	 */
 	while (down_interruptible(semaphore) != 0) {
 		/*
 		 * If we're called from a user-mode process (e.g., "dmsetup
@@ -302,7 +304,7 @@ __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 				   ktime_t timeout)
 {
 	if (timeout <= 0) {
-		// No timeout, just try to grab the semaphore.
+		/* No timeout, just try to grab the semaphore. */
 		return down_trylock(semaphore) == 0;
 	} else {
 		unsigned int jiffies = nsecs_to_jiffies(timeout);

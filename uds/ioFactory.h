@@ -132,4 +132,4 @@ int __must_check open_uds_buffered_writer(struct io_factory *factory,
 					  size_t size,
 					  struct buffered_writer **writer_ptr);
 
-#endif // IO_FACTORY_H
+#endif /* IO_FACTORY_H */

@@ -161,15 +161,17 @@ static int restore_volume_index_body(struct buffered_reader **buffered_readers,
 				     byte dl_data[DELTA_LIST_MAX_BYTE_COUNT])
 {
 	unsigned int z;
-	// Start by reading the "header" section of the stream
+	/* Start by reading the "header" section of the stream */
 	int result = start_restoring_volume_index(volume_index,
 						  buffered_readers,
 						  num_readers);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	// Loop to read the delta lists, stopping when they have all been
-	// processed.
+	/*
+	 * Loop to read the delta lists, stopping when they have all been
+	 * processed.
+	 */
 	for (z = 0; z < num_readers; z++) {
 		for (;;) {
 			struct delta_list_save_info dlsi;

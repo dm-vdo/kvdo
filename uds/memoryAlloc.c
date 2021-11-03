@@ -80,8 +80,10 @@ void uds_unregister_allocating_thread(void)
  * used.
  */
 
-// We allocate very few large objects, and allocation/deallocation isn't done
-// in a performance-critical stage for us, so a linked list should be fine.
+/*
+ * We allocate very few large objects, and allocation/deallocation isn't done
+ * in a performance-critical stage for us, so a linked list should be fine.
+ */
 struct vmalloc_block_info {
 	void *ptr;
 	size_t size;
@@ -285,7 +287,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			 * possible that more retries will succeed.
 			 */
 			for (;;) {
-// XXX Take out when all Fedora lab machines have upgraded to 5.8+. ALB-3032.
+/* XXX Take out when all Fedora lab machines have upgraded to 5.8+. ALB-3032. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
 #else
@@ -293,8 +295,10 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 					      gfp_flags | __GFP_NOWARN,
 					      PAGE_KERNEL);
 #endif
-				// Try again unless we succeeded or more than 1
-				// second has elapsed.
+				/*
+				 * Try again unless we succeeded or more than 1
+				 * second has elapsed.
+				 */
 				if ((p != NULL) ||
 				    (jiffies_to_msecs(jiffies - start_time) >
 				     1000)) {
@@ -303,8 +307,10 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 				fsleep(1000);
 			}
 			if (p == NULL) {
-				// Try one more time, logging a failure for
-				// this call.
+				/*
+				 * Try one more time, logging a failure for
+				 * this call.
+				 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 				p = __vmalloc(size, gfp_flags);
 #else
@@ -372,7 +378,7 @@ int uds_reallocate_memory(void *ptr,
 			  void *new_ptr)
 {
 	int result;
-	// Handle special case of zero sized result
+	/* Handle special case of zero sized result */
 	if (size == 0) {
 		UDS_FREE(ptr);
 		*(void **) new_ptr = NULL;

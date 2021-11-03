@@ -38,7 +38,7 @@ typedef unsigned char byte;
 #define UINT16_MAX ((uint16_t)~0ul)
 #define UINT64_MAX ((uint64_t)~0ul)
 
-// Some recent versions of <linux/kernel.h> define this for us
+/* Some recent versions of <linux/kernel.h> define this for us */
 #ifndef SIZE_MAX
 #define SIZE_MAX   ((size_t)~0ul)
 #endif /* SIZE_MAX */

@@ -22,7 +22,7 @@
 #include "timeUtils.h"
 
 #include <linux/delay.h>
-#include <linux/ktime.h> // for getnstimeofday on Vivid
+#include <linux/ktime.h>
 
 
 /**********************************************************************/

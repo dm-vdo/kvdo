@@ -30,7 +30,7 @@
  * (Must be a \#define since enums are not proper compile-time constants.)
  **/
 #ifdef __PPC__
-// N.B.: Some PPC processors have smaller cache lines.
+/* N.B.: Some PPC processors have smaller cache lines. */
 #define CACHE_LINE_BYTES 128
 #elif defined(__s390x__)
 #define CACHE_LINE_BYTES 256
@@ -78,8 +78,10 @@ static INLINE void prefetch_address(const void *address, bool for_write)
 static INLINE void
 prefetch_range(const void *start, unsigned int size, bool for_write)
 {
-	// Count the number of cache lines to fetch, allowing for the address
-	// range to span an extra cache line boundary due to address alignment.
+	/*
+	 * Count the number of cache lines to fetch, allowing for the address
+	 * range to span an extra cache line boundary due to address alignment.
+	 */
 	const char *address = (const char *) start;
 	unsigned int offset = ((uintptr_t) address % CACHE_LINE_BYTES);
 	unsigned int cache_lines = (1 + ((size + offset) / CACHE_LINE_BYTES));

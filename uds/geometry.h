@@ -88,7 +88,7 @@ struct geometry {
 	uint64_t remapped_virtual;
 	/** New physical chapter which remapped chapter was moved to */
 	uint64_t remapped_physical;
-	// These are derived properties, expressed as fields for convenience.
+	/* These are derived properties, expressed as fields for convenience. */
 	/** Total number of pages in a volume, excluding header */
 	unsigned int pages_per_volume;
 	/** Total number of header pages per volume */

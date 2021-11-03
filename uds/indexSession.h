@@ -109,8 +109,8 @@ enum index_suspend_status {
 struct index_load_context {
 	struct mutex mutex;
 	struct cond_var cond;
-	enum index_suspend_status status; // Covered by
-					  // index_load_context.mutex.
+	enum index_suspend_status status; /* Covered by */
+					  /* index_load_context.mutex. */
 };
 
 /**
@@ -123,16 +123,16 @@ struct index_load_context {
  * uds_destroy_index_session() that the index session can be safely freed.
  **/
 struct uds_index_session {
-	unsigned int state; // Covered by request_mutex.
+	unsigned int state; /* Covered by request_mutex. */
 	struct uds_index *index;
 	struct uds_request_queue *callback_queue;
 	struct uds_parameters params;
 	struct index_load_context load_context;
-	// Asynchronous request synchronization
+	/* Asynchronous request synchronization */
 	struct mutex request_mutex;
 	struct cond_var request_cond;
 	int request_count;
-	// Request statistics, all owned by the callback thread
+	/* Request statistics, all owned by the callback thread */
 	struct session_stats stats;
 };
 

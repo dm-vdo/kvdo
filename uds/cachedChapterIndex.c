@@ -75,12 +75,14 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 			const struct volume *volume)
 {
 	int result;
-	// Mark the cached chapter as unused in case the update fails midway.
+	/* Mark the cached chapter as unused in case the update fails midway. */
 	chapter->virtual_chapter = UINT64_MAX;
 
-	// Read all the page data and initialize the entire delta_index_page
-	// array. (It's not safe for the zone threads to do it lazily--they'll
-	// race.)
+	/*
+	 * Read all the page data and initialize the entire delta_index_page
+	 * array. (It's not safe for the zone threads to do it lazily--they'll
+	 * race.)
+	 */
 	result = read_chapter_index_from_volume(volume,
 						virtual_chapter,
 						chapter->volume_pages,
@@ -89,12 +91,12 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 		return result;
 	}
 
-	// Reset all chapter counter values to zero.
+	/* Reset all chapter counter values to zero. */
 	chapter->counters.search_hits = 0;
 	chapter->counters.search_misses = 0;
 	chapter->counters.consecutive_misses = 0;
 
-	// Mark the entry as valid--it's now in the cache.
+	/* Mark the entry as valid--it's now in the cache. */
 	chapter->virtual_chapter = virtual_chapter;
 	chapter->skip_search = false;
 
@@ -108,8 +110,10 @@ int search_cached_chapter_index(struct cached_chapter_index *chapter,
 				const struct uds_chunk_name *name,
 				int *record_page_ptr)
 {
-	// Find the index_page_number in the chapter that would have the chunk
-	// name.
+	/*
+	 * Find the index_page_number in the chapter that would have the chunk
+	 * name.
+	 */
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	unsigned int index_page_number;

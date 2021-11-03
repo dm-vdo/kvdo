@@ -162,8 +162,10 @@ static void wait_for_pending_searches(struct page_cache *cache,
 		if (search_pending(initial_counters[i]) &&
 		    (page_being_searched(initial_counters[i]) ==
 		     physical_page)) {
-			// There is an active search using the physical page.
-			// We need to wait for the search to finish.
+			/*
+			 * There is an active search using the physical page.
+			 * We need to wait for the search to finish.
+			 */
 			while (initial_counters[i] ==
 			       get_invalidate_counter(cache, i)) {
 				uds_yield_scheduler();
@@ -186,7 +188,7 @@ invalidate_page_in_cache(struct page_cache *cache,
 			 struct cached_page *page,
 			 enum invalidation_reason reason)
 {
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if (page == NULL) {
 		return UDS_SUCCESS;
 	}
@@ -231,7 +233,7 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 	int queued_index = -1;
 	int result;
 
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if (cache == NULL) {
 		return UDS_SUCCESS;
 	}
@@ -257,14 +259,16 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 		return UDS_SUCCESS;
 	}
 
-	// Invalidate the page and unmap it from the cache.
+	/* Invalidate the page and unmap it from the cache. */
 	result = invalidate_page_in_cache(cache, page, reason);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// Move the cached page to the least recently used end of the list
-	// so it will be replaced before any page with valid data.
+	/*
+	 * Move the cached page to the least recently used end of the list
+	 * so it will be replaced before any page with valid data.
+	 */
 	WRITE_ONCE(page->cp_last_used, 0);
 
 	return UDS_SUCCESS;
@@ -317,7 +321,7 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 		return result;
 	}
 
-	// Initialize index values to invalid values.
+	/* Initialize index values to invalid values. */
 	for (i = 0; i < cache->num_index_entries; i++) {
 		cache->index[i] = cache->num_cache_entries;
 	}
@@ -407,7 +411,7 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 {
 	int result;
 	unsigned int i;
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if ((cache == NULL) || (cache->cache == NULL)) {
 		return UDS_SUCCESS;
 	}
@@ -432,9 +436,11 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 /**********************************************************************/
 void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 {
-	// ASSERTION: We are either a zone thread holding a
-	// search_pending_counter, or we are any thread holding the
-	// readThreadsMutex.
+	/*
+	 * ASSERTION: We are either a zone thread holding a
+	 * search_pending_counter, or we are any thread holding the
+	 */
+	/* readThreadsMutex. */
 	if (atomic64_read(&cache->clock) != READ_ONCE(page->cp_last_used)) {
 		WRITE_ONCE(page->cp_last_used,
 			   atomic64_inc_return(&cache->clock));
@@ -453,15 +459,17 @@ void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 static int __must_check get_least_recent_page(struct page_cache *cache,
 					      struct cached_page **page_ptr)
 {
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	int oldest_index = 0;
-	// Our first candidate is any page that does have a pending read.  We
-	// ensure above that there are more entries than read threads, so there
-	// must be one.
+	/*
+	 * Our first candidate is any page that does have a pending read.  We
+	 * ensure above that there are more entries than read threads, so there
+	 * must be one.
+	 */
 	unsigned int i;
 	for (i = 0;; i++) {
 		if (i >= cache->num_cache_entries) {
-			// This should never happen.
+			/* This should never happen. */
 			return ASSERT(false, "oldest page is not NULL");
 		}
 		if (!cache->cache[i].cp_read_pending) {
@@ -469,8 +477,10 @@ static int __must_check get_least_recent_page(struct page_cache *cache,
 			break;
 		}
 	}
-	// Now find the least recently used page that does not have a pending
-	// read.
+	/*
+	 * Now find the least recently used page that does not have a pending
+	 * read.
+	 */
 	for (i = 0; i < cache->num_cache_entries; i++) {
 		if (!cache->cache[i].cp_read_pending &&
 		    (READ_ONCE(cache->cache[i].cp_last_used) <=
@@ -488,9 +498,11 @@ int get_page_from_cache(struct page_cache *cache,
 			int probe_type,
 			struct cached_page **page_ptr)
 {
-	// ASSERTION: We are in a zone thread.
-	// ASSERTION: We holding a search_pending_counter or the
-	// readThreadsMutex.
+	/*
+	 * ASSERTION: We are in a zone thread.
+	 * ASSERTION: We holding a search_pending_counter or the
+	 * readThreadsMutex.
+	 */
 	enum cache_result_kind cache_result;
 	struct cached_page *page;
 	int result, queue_index = -1;
@@ -500,7 +512,7 @@ int get_page_from_cache(struct page_cache *cache,
 						"cannot get page with NULL cache");
 	}
 
-	// Get the cache page from the index
+	/* Get the cache page from the index */
 	result = get_page_no_stats(cache, physical_page, &queue_index, &page);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -525,7 +537,7 @@ int enqueue_read(struct page_cache *cache,
 {
 	int result;
 
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	uint16_t first = cache->read_queue_first;
 	uint16_t last = cache->read_queue_last;
 	uint16_t next = next_read_queue_position(last);
@@ -579,13 +591,13 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *physical_page,
 			      bool *invalid)
 {
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	uint16_t last_read = cache->read_queue_last_read;
 	unsigned int page_no;
 	uint16_t index_value;
 	bool is_invalid, queued;
 
-	// No items to dequeue
+	/* No items to dequeue */
 	if (last_read == cache->read_queue_last) {
 		return false;
 	}
@@ -596,15 +608,19 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	index_value = cache->index[page_no];
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 
-	// ALB-1429 ... need to check to see if its still queued before
-	// resetting
+	/*
+	 * ALB-1429 ... need to check to see if its still queued before
+	 * resetting
+	 */
 	if (is_invalid && queued) {
-		// invalidate cache index slot
+		/* invalidate cache index slot */
 		WRITE_ONCE(cache->index[page_no], cache->num_cache_entries);
 	}
 
-	// If a sync read has taken this page, set invalid to true so we don't
-	// overwrite, we simply just requeue requests.
+	/*
+	 * If a sync read has taken this page, set invalid to true so we don't
+	 * overwrite, we simply just requeue requests.
+	 */
 	if (!queued) {
 		is_invalid = true;
 	}
@@ -623,12 +639,12 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 /**********************************************************************/
 void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 {
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	uint16_t last_read = cache->read_queue_last_read;
 
 	cache->read_queue[queue_pos].reserved = false;
 
-	// Move the read_queue_first pointer along when we can
+	/* Move the read_queue_first pointer along when we can */
 	while ((cache->read_queue_first != last_read) &&
 	       (!cache->read_queue[cache->read_queue_first].reserved)) {
 		cache->read_queue_first =
@@ -642,7 +658,7 @@ int select_victim_in_cache(struct page_cache *cache,
 {
 	struct cached_page *page = NULL;
 	int result;
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if (cache == NULL) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cannot put page in NULL cache");
@@ -658,8 +674,10 @@ int select_victim_in_cache(struct page_cache *cache,
 		return result;
 	}
 
-	// If the page is currently being pointed to by the page map, clear
-	// it from the page map, and update cache stats
+	/*
+	 * If the page is currently being pointed to by the page map, clear
+	 * it from the page map, and update cache stats
+	 */
 	if (page->cp_physical_page != cache->num_index_entries) {
 		cache->counters.evictions++;
 		WRITE_ONCE(cache->index[page->cp_physical_page],
@@ -682,7 +700,7 @@ int put_page_in_cache(struct page_cache *cache,
 	uint16_t value;
 	int result;
 
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if (cache == NULL) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cannot complete page in NULL cache");
@@ -703,7 +721,7 @@ int put_page_in_cache(struct page_cache *cache,
 
 	page->cp_physical_page = physical_page;
 
-	// Figure out the index into the cache array using pointer arithmetic
+	/* Figure out the index into the cache array using pointer arithmetic */
 	value = page - cache->cache;
 	result = ASSERT((value < cache->num_cache_entries),
 			"cache index is valid");
@@ -723,7 +741,7 @@ int put_page_in_cache(struct page_cache *cache,
 	 */
 	smp_wmb();
 
-	// Point the page map to the new page. Will clear queued flag
+	/* Point the page map to the new page. Will clear queued flag */
 	WRITE_ONCE(cache->index[physical_page], value);
 
 	return UDS_SUCCESS;
@@ -735,7 +753,7 @@ void cancel_page_in_cache(struct page_cache *cache,
 			  struct cached_page *page)
 {
 	int result;
-	// We hold the readThreadsMutex.
+	/* We hold the readThreadsMutex. */
 	if (cache == NULL) {
 		uds_log_warning("cannot cancel page in NULL cache");
 		return;
@@ -755,7 +773,7 @@ void cancel_page_in_cache(struct page_cache *cache,
 	clear_cache_page(cache, page);
 	page->cp_read_pending = false;
 
-	// Clear the page map for the new page. Will clear queued flag
+	/* Clear the page map for the new page. Will clear queued flag */
 	WRITE_ONCE(cache->index[physical_page], cache->num_cache_entries);
 }
 

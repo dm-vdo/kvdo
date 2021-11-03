@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-2.1+
+/* SPDX-License-Identifier: LGPL-2.1+ */
 /*
  * MurmurHash3 was written by Austin Appleby, and is placed in the public
  * domain. The author hereby disclaims copyright to this source code.
@@ -37,7 +37,7 @@ static __always_inline void putblock64(uint64_t *p, int i, uint64_t value)
 #endif
 }
 
-// Finalization mix - force all bits of a hash block to avalanche
+/* Finalization mix - force all bits of a hash block to avalanche */
 
 static __always_inline uint64_t fmix64(uint64_t k)
 {
@@ -62,7 +62,7 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 	const uint64_t c1 = 0x87c37b91114253d5LLU;
 	const uint64_t c2 = 0x4cf5ad432745937fLLU;
 
-	// body
+	/* body */
 
 	const uint64_t *blocks = (const uint64_t *)(data);
 
@@ -91,7 +91,7 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 		h2 = h2 * 5 + 0x38495ab5;
 	}
 
-	// tail
+	/* tail */
 
 	{
 		const uint8_t *tail = (const uint8_t *)(data + nblocks * 16);
@@ -158,7 +158,7 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 			break;
 		};
 	}
-	// finalization
+	/* finalization */
 
 	h1 ^= len;
 	h2 ^= len;

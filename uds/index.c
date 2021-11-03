@@ -69,7 +69,7 @@ static uint64_t triage_index_request(struct uds_index *index,
 	lookup_volume_index_name(index->volume_index, &request->chunk_name,
 				 &triage);
 	if (!triage.in_sampled_chapter) {
-		// Not indexed or not a hook.
+		/* Not indexed or not a hook. */
 		return UINT64_MAX;
 	}
 
@@ -78,11 +78,13 @@ static uint64_t triage_index_request(struct uds_index *index,
 		return UINT64_MAX;
 	}
 
-	// XXX Optimize for a common case by remembering the chapter from the
-	// most recent barrier message and skipping this chapter if is it the
-	// same.
+	/*
+	 * XXX Optimize for a common case by remembering the chapter from the
+	 * most recent barrier message and skipping this chapter if is it the
+	 * same.
+	 */
 
-	// Return the sparse chapter number to trigger the barrier messages.
+	/* Return the sparse chapter number to trigger the barrier messages. */
 	return triage.virtual_chapter;
 }
 
@@ -125,19 +127,23 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 					       struct uds_request *request)
 {
 	uint64_t sparse_virtual_chapter;
-	// Do nothing unless this is a single-zone sparse index.
+	/* Do nothing unless this is a single-zone sparse index. */
 	if ((zone->index->zone_count > 1) ||
 	    !is_sparse(zone->index->volume->geometry)) {
 		return UDS_SUCCESS;
 	}
 
-	// Check if the index request is for a sampled name in a sparse
-	// chapter.
+	/*
+	 * Check if the index request is for a sampled name in a sparse
+	 * chapter.
+	 */
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
 	if (sparse_virtual_chapter == UINT64_MAX) {
-		// Not indexed, not a hook, or in a chapter that is still
-		// dense, which means there should be no change to the sparse
-		// chapter index cache.
+		/*
+		 * Not indexed, not a hook, or in a chapter that is still
+		 * dense, which means there should be no change to the sparse
+		 * chapter index cache.
+		 */
 		return UDS_SUCCESS;
 	}
 
@@ -162,11 +168,13 @@ static void triage_request(struct uds_request *request)
 {
 	struct uds_index *index = request->index;
 
-	// Check if the name is a hook in the index pointing at a sparse
-	// chapter.
+	/*
+	 * Check if the name is a hook in the index pointing at a sparse
+	 * chapter.
+	 */
 	uint64_t sparse_virtual_chapter = triage_index_request(index, request);
 	if (sparse_virtual_chapter != UINT64_MAX) {
-		// Generate and place a barrier request on every zone queue.
+		/* Generate and place a barrier request on every zone queue. */
 		enqueue_barrier_messages(index, sparse_virtual_chapter);
 	}
 
@@ -209,7 +217,7 @@ static void execute_zone_request(struct uds_request *request)
 
 	result = dispatch_index_request(index, request);
 	if (result == UDS_QUEUED) {
-		// Take the request off the pipeline.
+		/* Take the request off the pipeline. */
 		return;
 	}
 
@@ -238,7 +246,7 @@ static int initialize_index_queues(struct uds_index *index,
 		}
 	}
 
-	// The triage queue is only needed for sparse multi-zone indexes.
+	/* The triage queue is only needed for sparse multi-zone indexes. */
 	if ((index->zone_count > 1) && is_sparse(geometry)) {
 		int result = make_uds_request_queue("triageW", &triage_request,
 						    &index->triage_queue);
@@ -279,7 +287,7 @@ static int load_index(struct uds_index *index)
 /**********************************************************************/
 static int rebuild_index(struct uds_index *index)
 {
-	// Find the volume chapter boundaries
+	/* Find the volume chapter boundaries */
 	int result;
 	unsigned int i;
 	uint64_t lowest_vcn, highest_vcn;
@@ -308,7 +316,7 @@ static int rebuild_index(struct uds_index *index)
 		index->oldest_virtual_chapter = lowest_vcn;
 		if (index->newest_virtual_chapter ==
 		    (index->oldest_virtual_chapter + num_chapters)) {
-			// skip the chapter shadowed by the open chapter
+			/* skip the chapter shadowed by the open chapter */
 			index->oldest_virtual_chapter++;
 		}
 	}
@@ -476,7 +484,7 @@ int make_index(struct configuration *config,
 		case UDS_SUCCESS:
 			break;
 		case -ENOMEM:
-			// We should not try a rebuild for this error.
+			/* We should not try a rebuild for this error. */
 			uds_log_error_strerror(result,
 					       "index could not be loaded");
 			break;
@@ -506,8 +514,10 @@ int make_index(struct configuration *config,
 	if (index->load_context != NULL) {
 		uds_lock_mutex(&index->load_context->mutex);
 		index->load_context->status = INDEX_READY;
-		// If we get here, suspend is meaningless, but notify any
-		// thread trying to suspend us so it doesn't hang.
+		/*
+		 * If we get here, suspend is meaningless, but notify any
+		 * thread trying to suspend us so it doesn't hang.
+		 */
 		uds_broadcast_cond(&index->load_context->cond);
 		uds_unlock_mutex(&index->load_context->mutex);
 	}
@@ -644,13 +654,17 @@ static int search_index_zone(struct index_zone *zone,
 			return UDS_SUCCESS;
 		}
 	} else {
-		// The record wasn't in the volume index, so check whether the
-		// name is in a cached sparse chapter.
+		/*
+		 * The record wasn't in the volume index, so check whether the
+		 * name is in a cached sparse chapter.
+		 */
 		if (!is_volume_index_sample(zone->index->volume_index,
 					    &request->chunk_name) &&
 		    is_sparse(zone->index->volume->geometry)) {
-			// Passing UINT64_MAX triggers a search of the entire
-			// sparse cache.
+			/*
+			 * Passing UINT64_MAX triggers a search of the entire
+			 * sparse cache.
+			 */
 			result = search_sparse_cache_in_zone(zone, request,
 							     UINT64_MAX,
 							     &found);
@@ -665,8 +679,10 @@ static int search_index_zone(struct index_zone *zone,
 
 		if (request->type == UDS_QUERY) {
 			if (!found || !request->update) {
-				// This is a query without update or for a new
-				// record, so we're done.
+				/*
+				 * This is a query without update or for a new
+				 * record, so we're done.
+				 */
 				return UDS_SUCCESS;
 			}
 		}
@@ -693,11 +709,13 @@ static int search_index_zone(struct index_zone *zone,
 	}
 
 	if (!found || (request->type == UDS_UPDATE)) {
-		// This is a new record or we're updating an existing record.
+		/* This is a new record or we're updating an existing record. */
 		metadata = &request->new_metadata;
 	} else {
-		// This is a duplicate, so move the record to the open chapter
-		// (for LRU).
+		/*
+		 * This is a duplicate, so move the record to the open chapter
+		 * (for LRU).
+		 */
 		metadata = &request->old_metadata;
 	}
 	return put_record_in_zone(zone, request, metadata);
@@ -715,14 +733,18 @@ static int remove_from_index_zone(struct index_zone *zone,
 	}
 
 	if (!record.is_found) {
-		// The name does not exist in volume index, so there is nothing
-		// to remove.
+		/*
+		 * The name does not exist in volume index, so there is nothing
+		 * to remove.
+		 */
 		return UDS_SUCCESS;
 	}
 
 	if (!record.is_collision) {
-		// Non-collision records are hints, so resolve the name in the
-		// chapter.
+		/*
+		 * Non-collision records are hints, so resolve the name in the
+		 * chapter.
+		 */
 		bool found;
 		int result = get_record_from_zone(zone, request, &found,
 						  record.virtual_chapter);
@@ -731,8 +753,10 @@ static int remove_from_index_zone(struct index_zone *zone,
 		}
 
 		if (!found) {
-			// The name does not exist in the chapter, so there is
-			// nothing to remove.
+			/*
+			 * The name does not exist in the chapter, so there is
+			 * nothing to remove.
+			 */
 			return UDS_SUCCESS;
 		}
 	}
@@ -749,8 +773,10 @@ static int remove_from_index_zone(struct index_zone *zone,
 		return result;
 	}
 
-	// If the record is in the open chapter, we must remove it or mark it
-	// deleted to avoid trouble if the record is added again later.
+	/*
+	 * If the record is in the open chapter, we must remove it or mark it
+	 * deleted to avoid trouble if the record is added again later.
+	 */
 	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
 		remove_from_open_chapter(zone->open_chapter,
@@ -774,9 +800,11 @@ int dispatch_index_request(struct uds_index *index,
 	struct index_zone *zone = get_request_zone(index, request);
 
 	if (!request->requeued) {
-		// Single-zone sparse indexes don't have a triage queue to
-		// generate cache barrier requests, so see if we need to
-		// synthesize a barrier.
+		/*
+		 * Single-zone sparse indexes don't have a triage queue to
+		 * generate cache barrier requests, so see if we need to
+		 * synthesize a barrier.
+		 */
 		int result =
 			simulate_index_zone_barrier_message(zone, request);
 		if (result != UDS_SUCCESS) {
@@ -879,8 +907,10 @@ static int replay_record(struct uds_index *index,
 	int result;
 	if (will_be_sparse_chapter &&
 	    !is_volume_index_sample(index->volume_index, name)) {
-		// This entry will be in a sparse chapter after the rebuild
-		// completes, and it is not a sample, so just skip over it.
+		/*
+		 * This entry will be in a sparse chapter after the rebuild
+		 * completes, and it is not a sample, so just skip over it.
+		 */
 		return UDS_SUCCESS;
 	}
 
@@ -978,7 +1008,7 @@ static bool check_for_suspend(struct uds_index *index)
 		return false;
 	}
 
-	// Notify that we are suspended and wait for the resume.
+	/* Notify that we are suspended and wait for the resume. */
 	index->load_context->status = INDEX_SUSPENDED;
 	uds_broadcast_cond(&index->load_context->cond);
 
@@ -1098,7 +1128,7 @@ int replay_volume(struct uds_index *index, uint64_t from_vcn)
 	}
 	index->volume->lookup_mode = old_lookup_mode;
 
-	// We also need to reap the chapter being replaced by the open chapter
+	/* We also need to reap the chapter being replaced by the open chapter */
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 
 	new_ipm_update = get_last_update(index->volume->index_page_map);
@@ -1117,8 +1147,10 @@ void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 {
 	uint64_t cw_allocated =
 		get_chapter_writer_memory_allocated(index->chapter_writer);
-	// We're accessing the volume index while not on a zone thread, but
-	// that's safe to do when acquiring statistics.
+	/*
+	 * We're accessing the volume index while not on a zone thread, but
+	 * that's safe to do when acquiring statistics.
+	 */
 	struct volume_index_stats dense_stats, sparse_stats;
 	get_volume_index_stats(index->volume_index, &dense_stats,
 			       &sparse_stats);
@@ -1151,14 +1183,18 @@ struct uds_request_queue *select_index_queue(struct uds_index *index,
 {
 	switch (next_stage) {
         case STAGE_TRIAGE:
-		// The triage queue is only needed for multi-zone sparse
-		// indexes and won't be allocated by the index if not needed,
-		// so simply check for NULL.
+		/*
+		 * The triage queue is only needed for multi-zone sparse
+		 * indexes and won't be allocated by the index if not needed,
+		 * so simply check for NULL.
+		 */
 		if (index->triage_queue != NULL) {
 			return index->triage_queue;
 		}
-		// Dense index or single zone, so route it directly to the zone
-		// queue.
+		/*
+		 * Dense index or single zone, so route it directly to the zone
+		 * queue.
+		 */
                 fallthrough;
 
         case STAGE_INDEX:

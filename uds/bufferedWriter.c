@@ -28,21 +28,21 @@
 
 
 struct buffered_writer {
-	// IO factory owning the block device
+	/* IO factory owning the block device */
 	struct io_factory *bw_factory;
-	// The dm_bufio_client to write to
+	/* The dm_bufio_client to write to */
 	struct dm_bufio_client *bw_client;
-	// The current dm_buffer
+	/* The current dm_buffer */
 	struct dm_buffer *bw_buffer;
-	// The number of blocks that can be written to
+	/* The number of blocks that can be written to */
 	sector_t bw_limit;
-	// Number of the current block
+	/* Number of the current block */
 	sector_t bw_block_number;
-	// Start of the buffer
+	/* Start of the buffer */
 	byte *bw_start;
-	// End of the data written to the buffer
+	/* End of the data written to the buffer */
 	byte *bw_pointer;
-	// Error code
+	/* Error code */
 	int bw_error;
 };
 

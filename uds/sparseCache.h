@@ -39,7 +39,7 @@
  **/
 struct sparse_cache;
 
-// Bare declaration to avoid include dependency loops.
+/* Bare declaration to avoid include dependency loops. */
 struct uds_index;
 
 /**

@@ -120,8 +120,10 @@ int update_index_page_map(struct index_page_map *map,
 	const struct geometry *geometry = map->geometry;
 	if ((virtual_chapter_number < map->last_update) ||
 	    (virtual_chapter_number > map->last_update + 1)) {
-		// if the last_update is 0, this is likely to be normal because
-		// we are replaying the volume
+		/*
+		 * if the last_update is 0, this is likely to be normal because
+		 * we are replaying the volume
+		 */
 		if (map->last_update != 0) {
 			uds_log_warning("unexpected index page map update, jumping from %llu to %llu",
 					(unsigned long long) map->last_update,
@@ -189,8 +191,10 @@ int find_index_page_number(const struct index_page_map *map,
 		}
 	}
 
-	// This should be a clear post-condition of the loop above, but just in
-	// case it's not obvious, the check is cheap.
+	/*
+	 * This should be a clear post-condition of the loop above, but just in
+	 * case it's not obvious, the check is cheap.
+	 */
 	result =
 		ASSERT((index_page_number < geometry->index_pages_per_chapter),
 		       "index page number too large");

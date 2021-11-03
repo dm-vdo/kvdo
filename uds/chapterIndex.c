@@ -45,8 +45,10 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 		return result;
 	}
 
-	// The delta index will rebalance delta lists when memory gets tight,
-	// so give the chapter index one extra page.
+	/*
+	 * The delta index will rebalance delta lists when memory gets tight,
+	 * so give the chapter index one extra page.
+	 */
 	memory_size = (geometry->index_pages_per_chapter + 1) *
 			geometry->bytes_per_page;
 	index->geometry = geometry;
@@ -173,11 +175,13 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		}
 		if ((first_list + *num_lists) ==
 		    geometry->delta_lists_per_chapter) {
-			// All lists are packed
+			/* All lists are packed */
 			break;
 		} else if (*num_lists == 0) {
-			// The next delta list does not fit on a page.  This
-			// delta list will be removed.
+			/*
+			 * The next delta list does not fit on a page.  This
+			 * delta list will be removed.
+			 */
 		} else if (last_page) {
 			/*
 			 * This is the last page and there are lists left
@@ -188,7 +192,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 			 * that already fits and has any entries.
 			 */
 		} else {
-			// This page is done
+			/* This page is done */
 			break;
 		}
 		if (removals == 0) {
@@ -264,7 +268,7 @@ int validate_chapter_index_page(const struct delta_index_page *chapter_index_pag
 	const struct delta_index *delta_index = &chapter_index_page->delta_index;
 	unsigned int first = chapter_index_page->lowest_list_number;
 	unsigned int last = chapter_index_page->highest_list_number;
-	// We walk every delta list from start to finish.
+	/* We walk every delta list from start to finish. */
 	unsigned int list_number;
 	for (list_number = first; list_number <= last; list_number++) {
 		struct delta_index_entry entry;
@@ -279,9 +283,11 @@ int validate_chapter_index_page(const struct delta_index_page *chapter_index_pag
 			result = next_delta_index_entry(&entry);
 			if (result != UDS_SUCCESS) {
 				if (result == UDS_CORRUPT_DATA) {
-					// A random bit stream is highly likely
-					// to arrive here when we go past the
-					// end of the delta list
+					/*
+					 * A random bit stream is highly likely
+					 * to arrive here when we go past the
+					 * end of the delta list
+					 */
 					return UDS_CORRUPT_COMPONENT;
 				}
 				return result;
@@ -289,13 +295,17 @@ int validate_chapter_index_page(const struct delta_index_page *chapter_index_pag
 			if (entry.at_end) {
 				break;
 			}
-			// Also make sure that the record page field contains a
-			// plausible value
+			/*
+			 * Also make sure that the record page field contains a
+			 * plausible value
+			 */
 			if (get_delta_entry_value(&entry) >=
 			    geometry->record_pages_per_chapter) {
-				// Do not log this as an error.  It happens in
-				// normal operation when we are doing a rebuild
-				// but haven't written the entire volume once.
+				/*
+				 * Do not log this as an error.  It happens in
+				 * normal operation when we are doing a rebuild
+				 * but haven't written the entire volume once.
+				 */
 				return UDS_CORRUPT_COMPONENT;
 			}
 		}

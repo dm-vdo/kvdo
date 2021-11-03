@@ -57,4 +57,4 @@ uint64_t generate_primary_nonce(const void *data, size_t len);
 uint64_t
 generate_secondary_nonce(uint64_t nonce, const void *data, size_t len);
 
-#endif // NONCE_H
+#endif /* NONCE_H */

@@ -47,14 +47,14 @@ enum io_access_mode {
  **/
 struct index_state {
 	struct index_layout *layout;
-	unsigned int zone_count;           // number of index zones to use
+	unsigned int zone_count;           /* number of index zones to use */
 	unsigned int load_zones;
 	unsigned int load_slot;
 	unsigned int save_slot;
-	unsigned int count;                // count of registered entries
-					   // (<= length)
-	unsigned int length;               // total span of array allocation
-	struct index_component *entries[]; // array of index component entries
+	unsigned int count;                /* count of registered entries */
+					   /* (<= length) */
+	unsigned int length;               /* total span of array allocation */
+	struct index_component *entries[]; /* array of index component entries */
 };
 
 /**
@@ -191,4 +191,4 @@ open_state_buffered_writer(struct index_state *state,
 			   unsigned int zone,
 			   struct buffered_writer **writer_ptr);
 
-#endif // INDEX_STATE_H
+#endif /* INDEX_STATE_H */

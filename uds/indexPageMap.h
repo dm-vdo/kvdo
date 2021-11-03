@@ -151,4 +151,4 @@ uint64_t compute_index_page_map_save_size(const struct geometry *geometry);
  **/
 size_t __must_check index_page_map_size(const struct geometry *geometry);
 
-#endif // INDEX_PAGE_MAP_H
+#endif /* INDEX_PAGE_MAP_H */

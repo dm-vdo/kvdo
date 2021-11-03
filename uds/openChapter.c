@@ -53,10 +53,12 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 				    struct open_chapter_index *index,
 				    struct uds_chunk_record *collated_records)
 {
-	// Find a record to replace any deleted records, and fill the chapter
-	// if it was closed early. The last record in any filled zone is
-	// guaranteed to not have been deleted in this chapter, so use one of
-	// those.
+	/*
+	 * Find a record to replace any deleted records, and fill the chapter
+	 * if it was closed early. The last record in any filled zone is
+	 * guaranteed to not have been deleted in this chapter, so use one of
+	 * those.
+	 */
 	struct open_chapter_zone *fill_chapter_zone = NULL;
 	struct uds_chunk_record *fill_record = NULL;
 	unsigned int z, pages_per_chapter, records_per_page, page;
@@ -94,12 +96,14 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		for (i = 0; i < records_per_page;
 		     i++, records_added++, zone = (zone + 1) % zone_count) {
 			struct uds_chunk_record *next_record;
-			// The record arrays are 1-based.
+			/* The record arrays are 1-based. */
 			unsigned int record_number =
 				1 + (records_added / zone_count);
 
-			// If the zone has been exhausted, or the record was
-			// deleted, add the fill record to the chapter.
+			/*
+			 * If the zone has been exhausted, or the record was
+			 * deleted, add the fill record to the chapter.
+			 */
 			if (record_number > chapter_zones[zone]->size ||
 			    chapter_zones[zone]
 				    ->slots[record_number]
@@ -146,21 +150,27 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 {
 	int result;
 
-	// Empty the delta chapter index, and prepare it for the new virtual
-	// chapter.
+	/*
+	 * Empty the delta chapter index, and prepare it for the new virtual
+	 * chapter.
+	 */
 	empty_open_chapter_index(chapter_index, virtual_chapter_number);
 
-	// Map each non-deleted record name to its record page number in the
-	// delta chapter index.
+	/*
+	 * Map each non-deleted record name to its record page number in the
+	 * delta chapter index.
+	 */
 	result = fill_delta_chapter_index(chapter_zones, zone_count,
 					  chapter_index, collated_records);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// Pass the populated chapter index and the records to the volume,
-	// which will generate and write the index and record pages for the
-	// chapter.
+	/*
+	 * Pass the populated chapter index and the records to the volume,
+	 * which will generate and write the index and record pages for the
+	 * chapter.
+	 */
 	return write_chapter(volume, chapter_index, collated_records);
 }
 
@@ -187,7 +197,7 @@ int save_open_chapters(struct uds_index *index, struct buffered_writer *writer)
 			open_chapter_size(index->zones[i]->open_chapter);
 	}
 
-	// Store the record count in little-endian order.
+	/* Store the record count in little-endian order. */
 	put_unaligned_le32(total_records, total_record_data);
 
 	result = write_to_buffered_writer(writer, total_record_data,
@@ -196,7 +206,7 @@ int save_open_chapters(struct uds_index *index, struct buffered_writer *writer)
 		return result;
 	}
 
-	// Only write out the records that have been added and not deleted.
+	/* Only write out the records that have been added and not deleted. */
 	record_index = 1;
 	while (records_added < total_records) {
 		unsigned int i;
@@ -285,7 +295,7 @@ static int load_version20(struct uds_index *index,
 	byte num_records_data[sizeof(uint32_t)];
 	struct uds_chunk_record record;
 
-	// Keep track of which zones cannot accept any more records.
+	/* Keep track of which zones cannot accept any more records. */
 	bool full_flags[MAX_ZONES] = {
 		false,
 	};
@@ -297,7 +307,7 @@ static int load_version20(struct uds_index *index,
 	}
 	num_records = get_unaligned_le32(num_records_data);
 
-	// Assign records to the correct zones.
+	/* Assign records to the correct zones. */
 	for (records = 0; records < num_records; records++) {
 		unsigned int zone = 0;
 		result = read_from_buffered_reader(reader, &record,
@@ -307,14 +317,18 @@ static int load_version20(struct uds_index *index,
 		}
 
 		if (index->zone_count > 1) {
-			// A read-only index has no volume index, but it also
-			// has only one zone.
+			/*
+			 * A read-only index has no volume index, but it also
+			 * has only one zone.
+			 */
 			zone = get_volume_index_zone(index->volume_index,
 						     &record.name);
 		}
-		// Add records until the open chapter zone almost runs out of
-		// space. The chapter can't be closed here, so don't add the
-		// last record.
+		/*
+		 * Add records until the open chapter zone almost runs out of
+		 * space. The chapter can't be closed here, so don't add the
+		 * last record.
+		 */
 		if (!full_flags[zone]) {
 			unsigned int remaining;
 			result = put_open_chapter(index->zones[zone]->open_chapter,
@@ -335,14 +349,14 @@ static int load_version20(struct uds_index *index,
 int load_open_chapters(struct uds_index *index, struct buffered_reader *reader)
 {
 	const byte *version = NULL;
-	// Read and check the magic number.
+	/* Read and check the magic number. */
 	int result = verify_buffered_data(reader, OPEN_CHAPTER_MAGIC,
 					  OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	// Read and check the version.
+	/* Read and check the version. */
 	result = read_version(reader, &version);
 	if (result != UDS_SUCCESS) {
 		return result;

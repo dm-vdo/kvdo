@@ -139,7 +139,7 @@ enum { MAGIC_SIZE = 8 };
 static const char MAGIC_DI_START[] = "DI-00002";
 
 struct di_header {
-	char magic[MAGIC_SIZE]; // MAGIC_DI_START
+	char magic[MAGIC_SIZE]; /* MAGIC_DI_START */
 	uint32_t zone_number;
 	uint32_t num_zones;
 	uint32_t first_list;
@@ -148,9 +148,9 @@ struct di_header {
 	uint64_t collision_count;
 };
 
-//**********************************************************************
-//  Methods for dealing with mutable delta list headers
-//**********************************************************************
+/**********************************************************************/
+/*  Methods for dealing with mutable delta list headers */
+/**********************************************************************/
 
 /**
  * Move the start of the delta list bit stream without moving the end.
@@ -177,22 +177,26 @@ static INLINE void move_delta_list_end(struct delta_list *delta_list,
 	delta_list->size += increment;
 }
 
-//**********************************************************************
-//  Methods for dealing with immutable delta list headers packed
-//**********************************************************************
+/**********************************************************************/
+/*  Methods for dealing with immutable delta list headers packed */
+/**********************************************************************/
 
-// Header data used for immutable delta index pages.  These data are
-// followed by the delta list offset table.
+/*
+ * Header data used for immutable delta index pages.  These data are
+ * followed by the delta list offset table.
+ */
 struct delta_page_header {
-	uint64_t nonce;                   // Externally-defined nonce
-	uint64_t virtual_chapter_number;  // The virtual chapter number
-	uint16_t first_list;              // Index of the first delta list on
-	                                  // the page
-	uint16_t num_lists;               // Number of delta lists on the page
+	uint64_t nonce;                   /* Externally-defined nonce */
+	uint64_t virtual_chapter_number;  /* The virtual chapter number */
+	uint16_t first_list;              /* Index of the first delta list on */
+	                                  /* the page */
+	uint16_t num_lists;               /* Number of delta lists on the page */
 } __packed;
 
-// Immutable delta lists are packed into pages containing a header that
-// encodes the delta list information into 19 bits per list (64KB bit offset)
+/*
+ * Immutable delta lists are packed into pages containing a header that
+ * encodes the delta list information into 19 bits per list (64KB bit offset)
+ */
 
 enum { IMMUTABLE_HEADER_SIZE = 19 };
 
@@ -242,9 +246,9 @@ static INLINE void set_immutable_start(byte *memory,
 		  IMMUTABLE_HEADER_SIZE);
 }
 
-//**********************************************************************
-//  Methods for dealing with Delta List Entries
-//**********************************************************************
+/**********************************************************************/
+/*  Methods for dealing with Delta List Entries */
+/**********************************************************************/
 
 /**
  * Decode a delta index entry delta value. The delta_index_entry basically
@@ -284,12 +288,14 @@ static INLINE void decode_delta(struct delta_index_entry *delta_entry)
 	delta_entry->delta = delta;
 	delta_entry->key += delta;
 
-	// Check for a collision, a delta of zero not at the start of the list.
+	/* Check for a collision, a delta of zero not at the start of the list. */
 	if (unlikely((delta == 0) && (delta_entry->offset > 0))) {
 		delta_entry->is_collision = true;
-		// The small duplication of this math in the two arms of this
-		// if statement makes a tiny but measurable difference in
-		// performance.
+		/*
+		 * The small duplication of this math in the two arms of this
+		 * if statement makes a tiny but measurable difference in
+		 * performance.
+		 */
 		delta_entry->entry_bits =
 			delta_entry->value_bits + key_bits + COLLISION_BITS;
 	} else {
@@ -312,15 +318,17 @@ static void delete_bits(const struct delta_index_entry *delta_entry, int size)
 	bool before_flag;
 	struct delta_list *delta_list = delta_entry->delta_list;
 	byte *memory = delta_entry->delta_zone->memory;
-	// Compute how many bits are retained before and after the deleted bits
+	/* Compute how many bits are retained before and after the deleted bits */
 	uint32_t total_size = get_delta_list_size(delta_list);
 	uint32_t before_size = delta_entry->offset;
 	uint32_t after_size = total_size - delta_entry->offset - size;
 
-	// Determine whether to add to the available space either before or
-	// after the delta list.  We prefer to move the least amount of data.
-	// If it is exactly the same, try to add to the smaller amount of free
-	// space.
+	/*
+	 * Determine whether to add to the available space either before or
+	 * after the delta list.  We prefer to move the least amount of data.
+	 * If it is exactly the same, try to add to the smaller amount of free
+	 * space.
+	 */
 	if (before_size < after_size) {
 		before_flag = true;
 	} else if (after_size < before_size) {
@@ -431,7 +439,7 @@ static int insert_bits(struct delta_index_entry *delta_entry, int size)
 	byte *memory;
 	struct delta_memory *delta_zone = delta_entry->delta_zone;
 	struct delta_list *delta_list = delta_entry->delta_list;
-	// Compute how many bits are in use before and after the inserted bits
+	/* Compute how many bits are in use before and after the inserted bits */
 	uint32_t total_size = get_delta_list_size(delta_list);
 	uint32_t before_size = delta_entry->offset;
 	uint32_t after_size = total_size - delta_entry->offset;
@@ -441,7 +449,7 @@ static int insert_bits(struct delta_index_entry *delta_entry, int size)
 		return UDS_OVERFLOW;
 	}
 
-	// Compute how many bits are available before and after the delta list
+	/* Compute how many bits are available before and after the delta list */
 	free_before = get_delta_list_start(&delta_list[0]) -
 			get_delta_list_end(&delta_list[-1]);
 	free_after = get_delta_list_start(&delta_list[1]) -
@@ -449,9 +457,11 @@ static int insert_bits(struct delta_index_entry *delta_entry, int size)
 
 	if (((unsigned int) size <= free_before) &&
 	    ((unsigned int) size <= free_after)) {
-		// We have enough space to use either before or after the list.
-		// Prefer to move the least amount of data.  If it is exactly
-		// the same, try to take from the larger amount of free space.
+		/*
+		 * We have enough space to use either before or after the list.
+		 * Prefer to move the least amount of data.  If it is exactly
+		 * the same, try to take from the larger amount of free space.
+		 */
 		if (before_size < after_size) {
 			before_flag = true;
 		} else if (after_size < before_size) {
@@ -460,15 +470,17 @@ static int insert_bits(struct delta_index_entry *delta_entry, int size)
 			before_flag = free_before > free_after;
 		}
 	} else if ((unsigned int) size <= free_before) {
-		// There is space before but not after
+		/* There is space before but not after */
 		before_flag = true;
 	} else if ((unsigned int) size <= free_after) {
-		// There is space after but not before
+		/* There is space after but not before */
 		before_flag = false;
 	} else {
-		// Neither of the surrounding spaces is large enough for this
-		// request, Extend and/or rebalance the delta list memory
-		// choosing to move the least amount of data.
+		/*
+		 * Neither of the surrounding spaces is large enough for this
+		 * request, Extend and/or rebalance the delta list memory
+		 * choosing to move the least amount of data.
+		 */
 		int result;
 		unsigned int growing_index = delta_entry->list_number + 1;
 		before_flag = before_size < after_size;
@@ -514,7 +526,7 @@ static INLINE size_t get_zone_memory_size(unsigned int num_zones,
 					  size_t memory_size)
 {
 	size_t zone_size = memory_size / num_zones;
-	// Round the size up so that each zone is a multiple of 64K in size.
+	/* Round the size up so that each zone is a multiple of 64K in size. */
 	enum { ALLOC_BOUNDARY = 64 * KILOBYTE };
 	return (zone_size + ALLOC_BOUNDARY - 1) & -ALLOC_BOUNDARY;
 }
@@ -573,9 +585,9 @@ static void set_delta(struct delta_index_entry *delta_entry, unsigned int delta)
 	delta_entry->entry_bits = delta_entry->value_bits + key_bits;
 }
 
-//**********************************************************************
-//  External functions declared in delta_index.h
-//**********************************************************************
+/**********************************************************************/
+/*  External functions declared in delta_index.h */
+/**********************************************************************/
 
 int initialize_delta_index(struct delta_index *delta_index,
 			   unsigned int num_zones,
@@ -652,26 +664,30 @@ static bool verify_delta_index_page(uint64_t nonce,
 				    size_t mem_size)
 {
 	unsigned int i;
-	// Verify the nonce.  A mismatch here happens in normal operation when
-	// we are doing a rebuild but haven't written the entire volume once.
+	/*
+	 * Verify the nonce.  A mismatch here happens in normal operation when
+	 * we are doing a rebuild but haven't written the entire volume once.
+	 */
 	if (nonce != expected_nonce) {
 		return false;
 	}
 
-	// Verify that the number of delta lists can fit in the page.
+	/* Verify that the number of delta lists can fit in the page. */
 	if (num_lists > (mem_size - sizeof(struct delta_page_header)) *
 				CHAR_BIT / IMMUTABLE_HEADER_SIZE) {
 		return false;
 	}
 
-	// Verify that the first delta list is immediately after the last delta
-	// list header.
+	/*
+	 * Verify that the first delta list is immediately after the last delta
+	 * list header.
+	 */
 	if (get_immutable_start(memory, 0) !=
 	    get_immutable_header_offset(num_lists + 1)) {
 		return false;
 	}
 
-	// Verify that the lists are in the correct order.
+	/* Verify that the lists are in the correct order. */
 	for (i = 0; i < num_lists; i++) {
 		if (get_immutable_start(memory, i) >
 		    get_immutable_start(memory, i + 1)) {
@@ -679,14 +695,16 @@ static bool verify_delta_index_page(uint64_t nonce,
 		}
 	}
 
-	// Verify that the last list ends on the page, and that there is room
-	// for the post-field guard bits.
+	/*
+	 * Verify that the last list ends on the page, and that there is room
+	 * for the post-field guard bits.
+	 */
 	if (get_immutable_start(memory, num_lists) >
 	    (mem_size - POST_FIELD_GUARD_BYTES) * CHAR_BIT) {
 		return false;
 	}
 
-	// Verify that the guard bytes are correctly set to all ones.
+	/* Verify that the guard bytes are correctly set to all ones. */
 	for (i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
 		byte guard_byte = memory[mem_size - POST_FIELD_GUARD_BYTES + i];
 		if (guard_byte != (byte) ~0) {
@@ -694,7 +712,7 @@ static bool verify_delta_index_page(uint64_t nonce,
 		}
 	}
 
-	// All verifications passed.
+	/* All verifications passed. */
 	return true;
 }
 
@@ -714,14 +732,14 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	// First assume that the header is little endian
+	/* First assume that the header is little endian */
 	nonce = get_unaligned_le64((const byte *) &header->nonce);
 	vcn = get_unaligned_le64((const byte *) &header->virtual_chapter_number);
 	first_list = get_unaligned_le16((const byte *) &header->first_list);
 	num_lists = get_unaligned_le16((const byte *) &header->num_lists);
 	if (!verify_delta_index_page(nonce, num_lists, expected_nonce, memory,
 				     mem_size)) {
-		// That failed, so try big endian
+		/* That failed, so try big endian */
 		nonce = get_unaligned_be64((const byte *) &header->nonce);
 		vcn = get_unaligned_be64((const byte *) &header->virtual_chapter_number);
 		first_list =
@@ -733,9 +751,11 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 					     expected_nonce,
 					     memory,
 					     mem_size)) {
-			// Also failed.  Do not log this as an error.  It
-			// happens in normal operation when we are doing a
-			// rebuild but haven't written the entire volume once.
+			/*
+			 * Also failed.  Do not log this as an error.  It
+			 * happens in normal operation when we are doing a
+			 * rebuild but haven't written the entire volume once.
+			 */
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -824,22 +844,24 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 		&delta_zone->delta_lists[first_list + 1];
 	max_lists = delta_index->num_lists - first_list;
 
-	// Compute how many lists will fit on the page
+	/* Compute how many lists will fit on the page */
 	num_bits = mem_size * CHAR_BIT;
-	// Subtract the size of the fixed header and 1 delta list offset
+	/* Subtract the size of the fixed header and 1 delta list offset */
 	num_bits -= get_immutable_header_offset(1);
-	// Subtract the guard bytes of memory so that allow us to freely read a
-	// short distance past the end of any byte we are interested in.
+	/*
+	 * Subtract the guard bytes of memory so that allow us to freely read a
+	 * short distance past the end of any byte we are interested in.
+	 */
 	num_bits -= POST_FIELD_GUARD_BYTES * CHAR_BIT;
 	if (num_bits < IMMUTABLE_HEADER_SIZE) {
-		// This page is too small to contain even one empty delta list
+		/* This page is too small to contain even one empty delta list */
 		return uds_log_error_strerror(UDS_OVERFLOW,
 					      "Chapter Index Page of %zu bytes is too small",
 					      mem_size);
 	}
 
 	while (n_lists < max_lists) {
-		// Each list requires 1 delta list offset and the list data
+		/* Each list requires 1 delta list offset and the list data */
 		int bits = IMMUTABLE_HEADER_SIZE +
 			   get_delta_list_size(&delta_lists[n_lists]);
 		if (bits > num_bits) {
@@ -850,7 +872,7 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 	}
 	*num_lists = n_lists;
 
-	// Construct the page header
+	/* Construct the page header */
 	header = (struct delta_page_header *) memory;
 	put_unaligned_le64(header_nonce, (byte *) &header->nonce);
 	put_unaligned_le64(virtual_chapter_number,
@@ -858,8 +880,10 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 	put_unaligned_le16(first_list, (byte *) &header->first_list);
 	put_unaligned_le16(n_lists, (byte *) &header->num_lists);
 
-	// Construct the delta list offset table, making sure that the memory
-	// page is large enough.
+	/*
+	 * Construct the delta list offset table, making sure that the memory
+	 * page is large enough.
+	 */
 	offset = get_immutable_header_offset(n_lists + 1);
 	set_immutable_start(memory, 0, offset);
 	for (i = 0; i < n_lists; i++) {
@@ -867,7 +891,7 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 		set_immutable_start(memory, i + 1, offset);
 	}
 
-	// Copy the delta list data onto the memory page
+	/* Copy the delta list data onto the memory page */
 	for (i = 0; i < n_lists; i++) {
 		struct delta_list *delta_list = &delta_lists[i];
 		move_bits(delta_zone->memory,
@@ -877,8 +901,10 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 			  get_delta_list_size(delta_list));
 	}
 
-	// Set all the bits in the guard bytes.  Do not use the bit field
-	// utilities.
+	/*
+	 * Set all the bits in the guard bytes.  Do not use the bit field
+	 * utilities.
+	 */
 	memset(memory + mem_size - POST_FIELD_GUARD_BYTES,
 	       ~0,
 	       POST_FIELD_GUARD_BYTES);
@@ -994,7 +1020,7 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 					      num_zones);
 	}
 
-	// Read the header from each file, and make sure we have a matching set
+	/* Read the header from each file, and make sure we have a matching set */
 	for (z = 0; z < num_zones; z++) {
 		struct di_header header;
 		int result =
@@ -1058,8 +1084,10 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 	delta_index->delta_zones[0].record_count = record_count;
 	delta_index->delta_zones[0].collision_count = collision_count;
 
-	// Read the delta list sizes from the files, and distribute each of
-	// them to proper zone
+	/*
+	 * Read the delta list sizes from the files, and distribute each of
+	 * them to proper zone
+	 */
 	for (z = 0; z < num_zones; z++) {
 		unsigned int i;
 		for (i = 0; i < num_lists[z]; i++) {
@@ -1085,7 +1113,7 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 		}
 	}
 
-	// Prepare each zone to start receiving the delta list data
+	/* Prepare each zone to start receiving the delta list data */
 	for (z = 0; z < delta_index->num_zones; z++) {
 		int result =
 			start_restoring_delta_memory(&delta_index->delta_zones[z]);
@@ -1114,8 +1142,10 @@ int restore_delta_list_to_delta_index(const struct delta_index *delta_index,
 				      const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
 	unsigned int zone_number;
-	// Make sure the data are intended for this delta list.  Do not
-	// log an error, as this may be valid data for another delta index.
+	/*
+	 * Make sure the data are intended for this delta list.  Do not
+	 * log an error, as this may be valid data for another delta index.
+	 */
 	if (dlsi->tag != delta_index->tag) {
 		return UDS_CORRUPT_COMPONENT;
 	}
@@ -1263,8 +1293,10 @@ int abort_saving_delta_index(const struct delta_index *delta_index,
 size_t compute_delta_index_save_bytes(unsigned int num_lists,
 				      size_t memory_size)
 {
-	// The exact amount of memory used depends upon the number of zones.
-	// Compute the maximum potential memory size.
+	/*
+	 * The exact amount of memory used depends upon the number of zones.
+	 * Compute the maximum potential memory size.
+	 */
 	size_t max_mem_size = memory_size;
 	unsigned int num_zones;
 	for (num_zones = 1; num_zones <= MAX_ZONES; num_zones++) {
@@ -1273,12 +1305,14 @@ size_t compute_delta_index_save_bytes(unsigned int num_lists,
 			max_mem_size = mem_size;
 		}
 	}
-	// Saving a delta index requires a header ...
+	/* Saving a delta index requires a header ... */
 	return (sizeof(struct di_header)
-		// ... plus a delta_list_save_info per delta list
-		// plus an extra byte per delta list ...
+		/*
+		 * ... plus a delta_list_save_info per delta list
+		 * plus an extra byte per delta list ...
+		 */
 		+ num_lists * (sizeof(struct delta_list_save_info) + 1)
-		// ... plus the delta list memory
+		/* ... plus the delta list memory */
 		+ max_mem_size);
 }
 
@@ -1352,14 +1386,18 @@ int start_delta_index_search(const struct delta_index *delta_index,
 	if (delta_index->is_mutable) {
 		delta_list = &delta_zone->delta_lists[list_number + 1];
 		if (!read_only) {
-			// Here is the lazy writing of the index for a
-			// checkpoint
+			/*
+			 * Here is the lazy writing of the index for a
+			 * checkpoint
+			 */
 			lazy_flush_delta_list(delta_zone, list_number);
 		}
 	} else {
 		unsigned int end_offset;
-		// Translate the immutable delta list header into a temporary
-		// full delta list header
+		/*
+		 * Translate the immutable delta list header into a temporary
+		 * full delta list header
+		 */
 		delta_list = &delta_entry->temp_delta_list;
 		delta_list->start_offset =
 			get_immutable_start(delta_zone->memory, list_number);
@@ -1377,8 +1415,10 @@ int start_delta_index_search(const struct delta_index *delta_index,
 		delta_entry->key = 0;
 		delta_entry->offset = 0;
 		if (key == 0) {
-			// This usually means we're about to walk the entire
-			// delta list, so get all of it into the CPU cache.
+			/*
+			 * This usually means we're about to walk the entire
+			 * delta list, so get all of it into the CPU cache.
+			 */
 			prefetch_delta_list(delta_zone, delta_list);
 		}
 	}
@@ -1420,8 +1460,10 @@ noinline int next_delta_index_entry(struct delta_index_entry *delta_entry)
 
 	next_offset = delta_entry->offset + delta_entry->entry_bits;
 	if (next_offset > size) {
-		// This is not an assertion because
-		// validate_chapter_index_page() wants to handle this error.
+		/*
+		 * This is not an assertion because
+		 * validate_chapter_index_page() wants to handle this error.
+		 */
 		uds_log_warning("Decoded past the end of the delta list");
 		return UDS_CORRUPT_DATA;
 	}
@@ -1579,8 +1621,10 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 	}
 
 	if (delta_entry->offset < delta_entry->delta_list->save_offset) {
-		// The saved entry offset is after the new entry and will no
-		// longer be valid, so replace it with the insertion point.
+		/*
+		 * The saved entry offset is after the new entry and will no
+		 * longer be valid, so replace it with the insertion point.
+		 */
 		result = remember_delta_index_offset(delta_entry);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -1588,8 +1632,10 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 	}
 
 	if (name != NULL) {
-		// We are inserting a collision entry which is placed after
-		// this entry
+		/*
+		 * We are inserting a collision entry which is placed after
+		 * this entry
+		 */
 		result = assert_not_at_end(delta_entry, UDS_BAD_STATE);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -1605,7 +1651,7 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 		set_collision(delta_entry);
 		result = insert_bits(delta_entry, delta_entry->entry_bits);
 	} else if (delta_entry->at_end) {
-		// We are inserting a new entry at the end of the delta list
+		/* We are inserting a new entry at the end of the delta list */
 		result = ASSERT((key >= delta_entry->key),
 				"key past end of list");
 		if (result != UDS_SUCCESS) {
@@ -1620,8 +1666,10 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 		int old_entry_size, additional_size;
 		struct delta_index_entry next_entry;
 		unsigned int next_value;
-		// We are inserting a new entry which requires the delta in the
-		// following entry to be updated.
+		/*
+		 * We are inserting a new entry which requires the delta in the
+		 * following entry to be updated.
+		 */
 		result = ASSERT((key < delta_entry->key),
 				"key precedes following entry");
 		if (result != UDS_SUCCESS) {
@@ -1641,8 +1689,10 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 		delta_entry->key = key;
 		set_delta(&next_entry, next_entry.key - key);
 		next_entry.offset += delta_entry->entry_bits;
-		// The 2 new entries are always bigger than the 1 entry we are
-		// replacing
+		/*
+		 * The 2 new entries are always bigger than the 1 entry we are
+		 * replacing
+		 */
 		additional_size = delta_entry->entry_bits +
 				      next_entry.entry_bits - old_entry_size;
 		result = insert_bits(delta_entry, additional_size);
@@ -1682,29 +1732,33 @@ int remove_delta_index_entry(struct delta_index_entry *delta_entry)
 	delta_zone = delta_entry->delta_zone;
 
 	if (delta_entry->is_collision) {
-		// This is a collision entry, so just remove it
+		/* This is a collision entry, so just remove it */
 		delete_bits(delta_entry, delta_entry->entry_bits);
 		next_entry.offset = delta_entry->offset;
 		delta_zone->collision_count -= 1;
 	} else if (next_entry.at_end) {
-		// This entry is at the end of the list, so just remove it
+		/* This entry is at the end of the list, so just remove it */
 		delete_bits(delta_entry, delta_entry->entry_bits);
 		next_entry.key -= delta_entry->delta;
 		next_entry.offset = delta_entry->offset;
 	} else {
-		// The delta in the next entry needs to be updated.
+		/* The delta in the next entry needs to be updated. */
 		unsigned int next_value = get_delta_entry_value(&next_entry);
 		int old_size = delta_entry->entry_bits + next_entry.entry_bits;
 		if (next_entry.is_collision) {
-			// The next record is a collision. It needs to be
-			// rewritten as a non-collision with a larger delta.
+			/*
+			 * The next record is a collision. It needs to be
+			 * rewritten as a non-collision with a larger delta.
+			 */
 			next_entry.is_collision = false;
 			delta_zone->collision_count -= 1;
 		}
 		set_delta(&next_entry, delta_entry->delta + next_entry.delta);
 		next_entry.offset = delta_entry->offset;
-		// The 1 new entry is always smaller than the 2 entries we are
-		// replacing
+		/*
+		 * The 1 new entry is always smaller than the 2 entries we are
+		 * replacing
+		 */
 		delete_bits(delta_entry, old_size - next_entry.entry_bits);
 		encode_entry(&next_entry, next_value, NULL);
 	}
@@ -1714,9 +1768,11 @@ int remove_delta_index_entry(struct delta_index_entry *delta_entry)
 
 	delta_list = delta_entry->delta_list;
 	if (delta_entry->offset < delta_list->save_offset) {
-		// The saved entry offset is after the entry we just removed
-		// and it will no longer be valid.  We must force the next
-		// search to start at the beginning.
+		/*
+		 * The saved entry offset is after the entry we just removed
+		 * and it will no longer be valid.  We must force the next
+		 * search to start at the beginning.
+		 */
 		delta_list->save_key = 0;
 		delta_list->save_offset = 0;
 	}
@@ -1811,22 +1867,24 @@ unsigned int get_delta_index_page_count(unsigned int num_entries,
 					unsigned int num_payload_bits,
 					size_t bytes_per_page)
 {
-	// Compute the number of bits needed for all the entries
+	/* Compute the number of bits needed for all the entries */
 	unsigned int bits_per_page;
 	size_t bits_per_index =
 		get_delta_memory_size(num_entries, mean_delta,
 				      num_payload_bits);
-	// Compute the number of bits needed for a single delta list
+	/* Compute the number of bits needed for a single delta list */
 	unsigned int bits_per_delta_list = bits_per_index / num_lists;
-	// Adjust the bits per index, adding the immutable delta list headers
+	/* Adjust the bits per index, adding the immutable delta list headers */
 	bits_per_index += num_lists * IMMUTABLE_HEADER_SIZE;
-	// Compute the number of usable bits on an immutable index page
+	/* Compute the number of usable bits on an immutable index page */
 	bits_per_page =
 		(bytes_per_page - sizeof(struct delta_page_header)) * CHAR_BIT;
-	// Adjust the bits per page, taking away one immutable delta list header
-	// and one delta list representing internal fragmentation
+	/*
+	 * Adjust the bits per page, taking away one immutable delta list header
+	 * and one delta list representing internal fragmentation
+	 */
 	bits_per_page -= IMMUTABLE_HEADER_SIZE + bits_per_delta_list;
-	// Now compute the number of pages needed
+	/* Now compute the number of pages needed */
 	return (bits_per_index + bits_per_page - 1) / bits_per_page;
 }
 

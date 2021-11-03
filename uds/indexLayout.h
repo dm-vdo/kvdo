@@ -160,4 +160,4 @@ int __must_check setup_uds_index_save_slot(struct index_layout *layout,
 struct buffer *__must_check
 get_uds_index_state_buffer(struct index_layout *layout, unsigned int slot);
 
-#endif // INDEX_LAYOUT_H
+#endif /* INDEX_LAYOUT_H */

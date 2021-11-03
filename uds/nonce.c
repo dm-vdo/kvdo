@@ -42,8 +42,10 @@ void create_unique_nonce_data(byte *buffer)
 	uint32_t rand = random_in_range(1, (1 << 30) - 1);
 	size_t offset = 0;
 
-	// Fill NONCE_INFO_SIZE bytes with copies of the time and a
-	// pseudorandom number.
+	/*
+	 * Fill NONCE_INFO_SIZE bytes with copies of the time and a
+	 * pseudorandom number.
+	 */
 	memcpy(buffer + offset, &now, sizeof(now));
 	offset += sizeof(now);
 	memcpy(buffer + offset, &rand, sizeof(rand));

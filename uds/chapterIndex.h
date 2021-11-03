@@ -24,9 +24,10 @@
 #include "geometry.h"
 
 enum {
-	// The value returned as the record page number when an entry is not
-	// found
-	// in the chapter index.
+	/*
+	 * The value returned as the record page number when an entry is not
+	 * found in the chapter index.
+	 */
 	NO_CHAPTER_INDEX_ENTRY = -1
 };
 

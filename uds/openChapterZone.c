@@ -90,9 +90,11 @@ int make_open_chapter(const struct geometry *geometry,
 	}
 	capacity = geometry->records_per_chapter / zone_count;
 
-	// The slot count must be at least one greater than the capacity.
-	// Using a power of two slot count guarantees that hash insertion
-	// will never fail if the hash table is not full.
+	/*
+	 * The slot count must be at least one greater than the capacity.
+	 * Using a power of two slot count guarantees that hash insertion
+	 * will never fail if the hash table is not full.
+	 */
 	slot_count = next_power_of_two(capacity *
 				       geometry->open_chapter_load_ratio);
 	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
@@ -153,32 +155,40 @@ probe_chapter_slots(struct open_chapter_zone *open_chapter,
 		probe_slot = first_slot + probe;
 		record_number = open_chapter->slots[probe_slot].record_number;
 
-		// If the hash slot is empty, we've reached the end of a chain
-		// without finding the record and should terminate the search.
+		/*
+		 * If the hash slot is empty, we've reached the end of a chain
+		 * without finding the record and should terminate the search.
+		 */
 		if (record_number == 0) {
 			record = NULL;
 			break;
 		}
 
-		// If the name of the record referenced by the slot matches and
-		// has not been deleted, then we've found the requested name.
+		/*
+		 * If the name of the record referenced by the slot matches and
+		 * has not been deleted, then we've found the requested name.
+		 */
 		record = &open_chapter->records[record_number];
 		if ((memcmp(&record->name, name, UDS_CHUNK_NAME_SIZE) == 0) &&
 		    !open_chapter->slots[record_number].record_deleted) {
 			break;
 		}
 
-		// Quadratic probing: advance the probe by 1, 2, 3, etc. and
-		// try again. This performs better than linear probing and
-		// works best for 2^N slots.
+		/*
+		 * Quadratic probing: advance the probe by 1, 2, 3, etc. and
+		 * try again. This performs better than linear probing and
+		 * works best for 2^N slots.
+		 */
 		probe += probe_attempts;
 		if (probe >= slots) {
 			probe = probe % slots;
 		}
 	}
 
-	// These NULL checks will be optimized away in callers who don't care
-	// about the values when this function is inlined.
+	/*
+	 * These NULL checks will be optimized away in callers who don't care
+	 * about the values when this function is inlined.
+	 */
 	if (slot_ptr != NULL) {
 		*slot_ptr = probe_slot;
 	}
@@ -252,8 +262,10 @@ void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 		return;
 	}
 
-	// Set the deleted flag on the record_number in the slot array so
-	// search won't find it and close won't index it.
+	/*
+	 * Set the deleted flag on the record_number in the slot array so
+	 * search won't find it and close won't index it.
+	 */
 	open_chapter->slots[record_number].record_deleted = true;
 	open_chapter->deleted += 1;
 	*removed = true;

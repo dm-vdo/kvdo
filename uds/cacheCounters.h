@@ -71,7 +71,7 @@ struct cache_counts_by_page_type {
  * All the counters used for an entry cache.
  **/
 struct cache_counters {
-	// counters for the page cache
+	/* counters for the page cache */
 	/** Hit/miss counts for the first attempt per request */
 	struct cache_counts_by_page_type first_time;
 	/** Hit/miss counts when a second (or later) attempt is needed */
@@ -82,7 +82,7 @@ struct cache_counters {
 	/** Number of cache entry invalidations due to chapter expiration */
 	uint64_t expirations;
 
-	// counters for the sparse chapter index cache
+	/* counters for the sparse chapter index cache  */
 	/** Hit/miss counts for the sparse cache chapter probes */
 	struct cache_counts_by_kind sparse_chapters;
 	/** Hit/miss counts for the sparce cache name searches */

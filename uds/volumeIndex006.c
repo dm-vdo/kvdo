@@ -47,16 +47,16 @@
  */
 
 struct volume_index_zone {
-	struct mutex hook_mutex; // Protects the sampled index in this zone
+	struct mutex hook_mutex; /* Protects the sampled index in this zone */
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 struct volume_index6 {
-	struct volume_index common;	  // Common volume index methods
-	unsigned int sparse_sample_rate;  // The sparse sample rate
-	unsigned int num_zones;           // The number of zones
-	struct volume_index *vi_non_hook; // The non-hook index
-	struct volume_index *vi_hook;     // Hook index == sample index
-	struct volume_index_zone *zones;  // The zones
+	struct volume_index common;	  /* Common volume index methods */
+	unsigned int sparse_sample_rate;  /* The sparse sample rate */
+	unsigned int num_zones;           /* The number of zones */
+	struct volume_index *vi_non_hook; /* The non-hook index */
+	struct volume_index *vi_hook;     /* Hook index == sample index */
+	struct volume_index_zone *zones;  /* The zones */
 };
 
 /**
@@ -140,7 +140,7 @@ enum { MAGIC_SIZE = 8 };
 static const char MAGIC_START[] = "MI6-0001";
 
 struct vi006_data {
-	char magic[MAGIC_SIZE]; // MAGIC_START
+	char magic[MAGIC_SIZE]; /* MAGIC_START */
 	unsigned int sparse_sample_rate;
 };
 
@@ -488,8 +488,10 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 	set_volume_index_zone_open_chapter(vi6->vi_non_hook, zone_number,
 					   virtual_chapter);
 
-	// We need to prevent a lookup_volume_index_name() happening while we
-	// are changing the open chapter number
+	/*
+	 * We need to prevent a lookup_volume_index_name() happening while we
+	 * are changing the open chapter number
+	 */
 	uds_lock_mutex(mutex);
 	set_volume_index_zone_open_chapter(vi6->vi_hook, zone_number,
 					   virtual_chapter);
@@ -638,8 +640,10 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 		uds_lock_mutex(mutex);
 		result = get_volume_index_record(vi6->vi_hook, name, record);
 		uds_unlock_mutex(mutex);
-		// Remember the mutex so that other operations on the
-		// volume_index_record can use it
+		/*
+		 * Remember the mutex so that other operations on the
+		 * volume_index_record can use it
+		 */
 		record->mutex = mutex;
 	} else {
 		result = get_volume_index_record(vi6->vi_non_hook, name,
@@ -688,10 +692,10 @@ static void get_volume_index_stats_006(const struct volume_index *volume_index,
 
 /**********************************************************************/
 struct split_config {
-	struct configuration hook_config; // Describe hook part of the index
+	struct configuration hook_config; /* Describe hook part of the index */
 	struct geometry hook_geometry;
-	struct configuration non_hook_config; // Describe non-hook part of the
-					      // index
+	struct configuration non_hook_config; /* Describe non-hook part of the */
+					      /* index */
 	struct geometry non_hook_geometry;
 };
 
@@ -715,7 +719,7 @@ static int split_configuration006(const struct configuration *config,
 		return result;
 	}
 
-	// Start with copies of the base configuration
+	/* Start with copies of the base configuration */
 	split->hook_config = *config;
 	split->hook_geometry = *config->geometry;
 	split->hook_config.geometry = &split->hook_geometry;
@@ -729,11 +733,11 @@ static int split_configuration006(const struct configuration *config,
 	num_dense_chapters = num_chapters - num_sparse_chapters;
 	sample_records = config->geometry->records_per_chapter / sample_rate;
 
-	// Adjust the number of records indexed for each chapter
+	/* Adjust the number of records indexed for each chapter */
 	split->hook_geometry.records_per_chapter = sample_records;
 	split->non_hook_geometry.records_per_chapter -= sample_records;
 
-	// Adjust the number of chapters indexed
+	/* Adjust the number of chapters indexed */
 	split->hook_geometry.sparse_chapters_per_volume = 0;
 	split->non_hook_geometry.sparse_chapters_per_volume = 0;
 	split->non_hook_geometry.chapters_per_volume = num_dense_chapters;
@@ -760,8 +764,10 @@ int compute_volume_index_save_bytes006(const struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	// Saving a volume index 006 needs a header plus the hook index plus
-	// the non-hook index
+	/*
+	 * Saving a volume index 006 needs a header plus the hook index plus
+	 * the non-hook index
+	 */
 	*num_bytes = sizeof(struct vi006_data) + hook_bytes + non_hook_bytes;
 	return UDS_SUCCESS;
 }

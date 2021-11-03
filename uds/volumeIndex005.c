@@ -54,36 +54,36 @@
  */
 
 struct volume_index_zone {
-	uint64_t virtual_chapter_low;   // The lowest virtual chapter indexed
-	uint64_t virtual_chapter_high;  // The highest virtual chapter indexed
-	long num_early_flushes;         // The number of early flushes
+	uint64_t virtual_chapter_low;   /* The lowest virtual chapter indexed */
+	uint64_t virtual_chapter_high;  /* The highest virtual chapter indexed */
+	long num_early_flushes;         /* The number of early flushes */
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 struct volume_index5 {
-	struct volume_index common;     // Common volume index methods
-	struct delta_index delta_index; // The delta index
-	uint64_t *flush_chapters;       // The first chapter to be flushed
-	struct volume_index_zone *zones; // The Zones
-	uint64_t volume_nonce;          // The volume nonce
-	uint64_t chapter_zone_bits;     // Expected size of a chapter
-				        // (per zone)
-	uint64_t max_zone_bits;         // Maximum size index (per zone)
-	unsigned int address_bits;      // Number of bits in address mask
-	unsigned int address_mask;      // Mask to get address within delta
-				        // list
-	unsigned int chapter_bits;      // Number of bits in chapter number
-	unsigned int chapter_mask;      // Largest storable chapter number
-	unsigned int num_chapters;      // Number of chapters used
-	unsigned int num_delta_lists; // The number of delta lists
-	unsigned int num_zones; // The number of zones
+	struct volume_index common;     /* Common volume index methods */
+	struct delta_index delta_index; /* The delta index */
+	uint64_t *flush_chapters;       /* The first chapter to be flushed */
+	struct volume_index_zone *zones; /* The Zones */
+	uint64_t volume_nonce;          /* The volume nonce */
+	uint64_t chapter_zone_bits;     /* Expected size of a chapter */
+				        /* (per zone) */
+	uint64_t max_zone_bits;         /* Maximum size index (per zone) */
+	unsigned int address_bits;      /* Number of bits in address mask */
+	unsigned int address_mask;      /* Mask to get address within delta */
+				        /* list */
+	unsigned int chapter_bits;      /* Number of bits in chapter number */
+	unsigned int chapter_mask;      /* Largest storable chapter number */
+	unsigned int num_chapters;      /* Number of chapters used */
+	unsigned int num_delta_lists; /* The number of delta lists */
+	unsigned int num_zones; /* The number of zones */
 };
 
 struct chapter_range {
-	unsigned int chapter_start;  // The first chapter
-	unsigned int chapter_count;  // The number of chapters
+	unsigned int chapter_start;  /* The first chapter */
+	unsigned int chapter_count;  /* The number of chapters */
 };
 
-// Constants for the magic byte of a volume_index_record
+/* Constants for the magic byte of a volume_index_record */
 static const byte volume_index_record_magic = 0xAA;
 static const byte bad_magic = 0;
 
@@ -281,7 +281,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 		return result;
 	}
 
-	// We probably found the record we want, but we need to keep going
+	/* We probably found the record we want, but we need to keep going */
 	other_record = *record;
 	if (!other_record.delta_entry.at_end &&
 	    (key == other_record.delta_entry.key)) {
@@ -305,8 +305,10 @@ static int get_volume_index_entry(struct volume_index_record *record,
 			if (memcmp(collision_name,
 				   record->name,
 				   UDS_CHUNK_NAME_SIZE) == 0) {
-				// This collision record is the one we are
-				// looking for
+				/*
+				 * This collision record is the one we are
+				 * looking for
+				 */
 				*record = other_record;
 				break;
 			}
@@ -359,7 +361,7 @@ enum { MAGIC_SIZE = 8 };
 static const char MAGIC_START[] = "MI5-0005";
 
 struct vi005_data {
-	char magic[MAGIC_SIZE]; // MAGIC_START
+	char magic[MAGIC_SIZE]; /* MAGIC_START */
 	uint64_t volume_nonce;
 	uint64_t virtual_chapter_low;
 	uint64_t virtual_chapter_high;
@@ -790,7 +792,7 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 				   unsigned int zone_number,
 				   uint64_t virtual_chapter)
 {
-	// Get the range of delta lists belonging to this zone
+	/* Get the range of delta lists belonging to this zone */
 	unsigned int first_list =
 		get_delta_index_zone_first_list(&vi5->delta_index, zone_number);
 	unsigned int num_lists =
@@ -799,19 +801,25 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 
 	if (virtual_chapter > vi5->chapter_mask) {
 		unsigned int i;
-		// The virtual chapter number is large enough so that we can
-		// use the normal LRU mechanism without an unsigned underflow.
+		/*
+		 * The virtual chapter number is large enough so that we can
+		 * use the normal LRU mechanism without an unsigned underflow.
+		 */
 		virtual_chapter -= vi5->chapter_mask + 1;
-		// Eliminate the newest chapters by renumbering them to become
-		// the oldest chapters
+		/*
+		 * Eliminate the newest chapters by renumbering them to become
+		 * the oldest chapters
+		 */
 		for (i = first_list; i <= last_list; i++) {
 			if (virtual_chapter < vi5->flush_chapters[i]) {
 				vi5->flush_chapters[i] = virtual_chapter;
 			}
 		}
 	} else {
-		// Underflow will prevent the fast path.  Do it the slow and
-		// painful way.
+		/*
+		 * Underflow will prevent the fast path.  Do it the slow and
+		 * painful way.
+		 */
 		struct volume_index_zone *volume_index_zone =
 			&vi5->zones[zone_number];
 		unsigned int i;
@@ -856,9 +864,11 @@ set_volume_index_zone_open_chapter_005(struct volume_index *volume_index,
 		container_of(volume_index, struct volume_index5, common);
 	struct volume_index_zone *volume_index_zone =
 		&vi5->zones[zone_number];
-	// Take care here to avoid underflow of an unsigned value.  Note that
-	// this is the smallest valid virtual low.  We may or may not actually
-	// use this value.
+	/*
+	 * Take care here to avoid underflow of an unsigned value.  Note that
+	 * this is the smallest valid virtual low.  We may or may not actually
+	 * use this value.
+	 */
 	uint64_t new_virtual_low =
 		(virtual_chapter >= vi5->num_chapters ?
 			 virtual_chapter - vi5->num_chapters + 1 :
@@ -875,33 +885,37 @@ set_volume_index_zone_open_chapter_005(struct volume_index *volume_index,
 		volume_index_zone->virtual_chapter_low = virtual_chapter;
 		volume_index_zone->virtual_chapter_high = virtual_chapter;
 	} else if (virtual_chapter <= volume_index_zone->virtual_chapter_high) {
-		// Moving backwards and the new range overlaps the old range.
-		// Note that moving to the same open chapter counts as
-		// backwards, as we need to remove the entries in the open
-		// chapter.
+		/*
+		 * Moving backwards and the new range overlaps the old range.
+		 * Note that moving to the same open chapter counts as
+		 * backwards, as we need to remove the entries in the open
+		 * chapter.
+		 */
 		remove_newest_chapters(vi5, zone_number, virtual_chapter);
 		volume_index_zone->virtual_chapter_high = virtual_chapter;
 	} else if (new_virtual_low < volume_index_zone->virtual_chapter_low) {
-		// Moving forwards and we can keep all the old chapters
+		/* Moving forwards and we can keep all the old chapters */
 		volume_index_zone->virtual_chapter_high = virtual_chapter;
 	} else if (new_virtual_low <= volume_index_zone->virtual_chapter_high) {
-		// Moving forwards and we can keep some old chapters
+		/* Moving forwards and we can keep some old chapters */
 		volume_index_zone->virtual_chapter_low = new_virtual_low;
 		volume_index_zone->virtual_chapter_high = virtual_chapter;
 	} else {
-		// Moving forwards and the new range is totally after the old
-		// range
+		/*
+		 * Moving forwards and the new range is totally after the old
+		 * range
+		 */
 		volume_index_zone->virtual_chapter_low = virtual_chapter;
 		volume_index_zone->virtual_chapter_high = virtual_chapter;
 	}
-	// Check to see if the zone data has grown to be too large
+	/* Check to see if the zone data has grown to be too large */
 	if (volume_index_zone->virtual_chapter_low <
 	    volume_index_zone->virtual_chapter_high) {
 		uint64_t used_bits =
 			get_delta_index_zone_dlist_bits_used(&vi5->delta_index,
 							     zone_number);
 		if (used_bits > vi5->max_zone_bits) {
-			// Expire enough chapters to free the desired space
+			/* Expire enough chapters to free the desired space */
 			uint64_t expire_count =
 				1 + (used_bits - vi5->max_zone_bits) /
 					    vi5->chapter_zone_bits;
@@ -959,8 +973,10 @@ set_volume_index_open_chapter_005(struct volume_index *volume_index,
 		container_of(volume_index, struct volume_index5, common);
 	unsigned int z;
 	for (z = 0; z < vi5->num_zones; z++) {
-		// In normal operation, we advance forward one chapter at a
-		// time. Log all abnormal changes.
+		/*
+		 * In normal operation, we advance forward one chapter at a
+		 * time. Log all abnormal changes.
+		 */
 		struct volume_index_zone *volume_index_zone = &vi5->zones[z];
 		bool log_move = virtual_chapter !=
 				volume_index_zone->virtual_chapter_high + 1;
@@ -1252,7 +1268,7 @@ int remove_volume_index_record(struct volume_index_record *record)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	// Mark the record so that it cannot be used again
+	/* Mark the record so that it cannot be used again */
 	record->magic = bad_magic;
 	if (unlikely(record->mutex != NULL)) {
 		uds_lock_mutex(record->mutex);
@@ -1373,14 +1389,14 @@ static bool is_volume_index_sample_005(const struct volume_index *volume_index
 
 /**********************************************************************/
 struct parameters005 {
-	unsigned int address_bits;     // Number of bits in address mask
-	unsigned int chapter_bits;     // Number of bits in chapter number
-	unsigned int mean_delta;       // The mean delta
-	unsigned long num_delta_lists; // The number of delta lists
-	unsigned long num_chapters;    // Number of chapters used
-	size_t num_bits_per_chapter;   // Number of bits per chapter
-	size_t memory_size;            // Number of bytes of delta list memory
-	size_t target_free_size;       // Number of free bytes we desire
+	unsigned int address_bits;     /* Number of bits in address mask */
+	unsigned int chapter_bits;     /* Number of bits in chapter number */
+	unsigned int mean_delta;       /* The mean delta */
+	unsigned long num_delta_lists; /* The number of delta lists */
+	unsigned long num_chapters;    /* Number of chapters used */
+	size_t num_bits_per_chapter;   /* Number of bits per chapter */
+	size_t memory_size;            /* Number of bytes of delta list memory */
+	size_t target_free_size;       /* Number of free bytes we desire */
 };
 
 /**********************************************************************/
@@ -1479,15 +1495,15 @@ compute_volume_index_parameters005(const struct configuration *config,
 	chapters_in_volume_index = rounded_chapters + invalid_chapters;
 	entries_in_volume_index =
 		records_per_chapter * chapters_in_volume_index;
-	// Compute the mean delta
+	/* Compute the mean delta */
 	address_span =
 		(uint64_t) params->num_delta_lists << params->address_bits;
 	params->mean_delta = address_span / entries_in_volume_index;
-	// Project how large we expect a chapter to be
+	/* Project how large we expect a chapter to be */
 	params->num_bits_per_chapter =
 		get_delta_memory_size(records_per_chapter, params->mean_delta,
 				      params->chapter_bits);
-	// Project how large we expect the index to be
+	/* Project how large we expect the index to be */
 	num_bits_per_index =
 		params->num_bits_per_chapter * chapters_in_volume_index;
 	expected_index_size = num_bits_per_index / CHAR_BIT;
@@ -1498,7 +1514,7 @@ compute_volume_index_parameters005(const struct configuration *config,
 	 * VolumeIndex_p1 to tune this setting.
 	 */
 	params->memory_size = expected_index_size * 106 / 100;
-	// Set the target free size to 5% of the expected index size
+	/* Set the target free size to 5% of the expected index size */
 	params->target_free_size = expected_index_size / 20;
 	return UDS_SUCCESS;
 }
@@ -1512,8 +1528,10 @@ int compute_volume_index_save_bytes005(const struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	// Saving a volume index 005 needs a header plus one uint64_t per delta
-	// list plus the delta index.
+	/*
+	 * Saving a volume index 005 needs a header plus one uint64_t per delta
+	 * list plus the delta index.
+	 */
 	*num_bytes = (sizeof(struct vi005_data) +
 		      params.num_delta_lists * sizeof(uint64_t) +
 		      compute_delta_index_save_bytes(params.num_delta_lists,
@@ -1592,8 +1610,10 @@ int make_volume_index005(const struct configuration *config,
 				params.target_free_size * CHAR_BIT) / num_zones);
 	}
 
-	// Initialize the chapter flush ranges to be empty.  This depends upon
-	// allocate returning zeroed memory.
+	/*
+	 * Initialize the chapter flush ranges to be empty.  This depends upon
+	 * allocate returning zeroed memory.
+	 */
 	if (result == UDS_SUCCESS) {
 		result = UDS_ALLOCATE(params.num_delta_lists,
 				      uint64_t,
@@ -1601,8 +1621,10 @@ int make_volume_index005(const struct configuration *config,
 				      &vi5->flush_chapters);
 	}
 
-	// Initialize the virtual chapter ranges to start at zero.  This
-	// depends upon allocate returning zeroed memory.
+	/*
+	 * Initialize the virtual chapter ranges to start at zero.  This
+	 * depends upon allocate returning zeroed memory.
+	 */
 	if (result == UDS_SUCCESS) {
 		result = UDS_ALLOCATE(num_zones,
 				      struct volume_index_zone,

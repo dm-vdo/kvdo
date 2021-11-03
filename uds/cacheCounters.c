@@ -68,7 +68,7 @@ void increment_cache_counter(struct cache_counters *counters,
 		kind_counts = &counters->retried.record_page;
 		break;
 	default:
-		// Never used but the compiler hasn't figured that out.
+		/* Never used but the compiler hasn't figured that out. */
 		return;
 	}
 
@@ -83,10 +83,12 @@ void increment_cache_counter(struct cache_counters *counters,
 		my_counter = &kind_counts->hits;
 		break;
 	default:
-		// Never used but the compiler hasn't figured that out.
+		/* Never used but the compiler hasn't figured that out. */
 		return;
 	}
-	// XXX Vile case makes many assumptions.  Counters should be declared
-	// atomic.
+	/*
+	 * XXX Vile case makes many assumptions.  Counters should be declared
+	 * atomic.
+	 */
 	atomic64_inc((atomic64_t *) my_counter);
 }

@@ -85,9 +85,11 @@ int chunk_data_to_hex(const struct uds_chunk_data *chunk_data,
 /**********************************************************************/
 unsigned int compute_bits(unsigned int max_value)
 {
-	// __builtin_clz() counts leading (high-order) zero bits, so if
-	// we ever need this to be fast, under GCC we can do:
-	// return ((max_value == 0) ? 0 : (32 - __builtin_clz(max_value)));
+	/*
+	 * __builtin_clz() counts leading (high-order) zero bits, so if
+	 * we ever need this to be fast, under GCC we can do:
+	 * return ((max_value == 0) ? 0 : (32 - __builtin_clz(max_value)));
+	 */
 
 	unsigned int bits = 0;
 	while (max_value > 0) {

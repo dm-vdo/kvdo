@@ -28,21 +28,21 @@
  * and possibly an open chapter region.
  **/
 
-static const uint64_t REGION_MAGIC = 0x416c6252676e3031; // 'AlbRgn01'
+static const uint64_t REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
 
 struct region_header {
-	uint64_t magic;         // REGION_MAGIC
-	uint64_t region_blocks; // size of whole region
-	uint16_t type;          // RH_TYPE_...
-	uint16_t version;       // 1
-	uint16_t num_regions;   // number of layouts in the table
-	uint16_t payload;       // extra data beyond region table
+	uint64_t magic;         /* REGION_MAGIC */
+	uint64_t region_blocks; /* size of whole region */
+	uint16_t type;          /* RH_TYPE_... */
+	uint16_t version;       /* 1 */
+	uint16_t num_regions;   /* number of layouts in the table */
+	uint16_t payload;       /* extra data beyond region table */
 };
 
 struct layout_region {
 	uint64_t start_block;
 	uint64_t num_blocks;
-	uint32_t checksum; // only used for save regions
+	uint32_t checksum; /* only used for save regions */
 	uint16_t kind;
 	uint16_t instance;
 };
@@ -52,4 +52,4 @@ struct region_table {
 	struct layout_region regions[];
 };
 
-#endif // LAYOUT_REGION_H
+#endif /* LAYOUT_REGION_H */

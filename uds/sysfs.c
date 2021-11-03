@@ -35,11 +35,12 @@
 #endif
 
 static struct {
-	struct kobject kobj; // /sys/uds
-	struct kobject parameter_kobj; // /sys/uds/parameter
-	// These flags are used to ensure a clean shutdown
-	bool flag; // /sys/uds
-	bool parameter_flag; // /sys/uds/parameter
+	struct kobject kobj; /* /sys/uds */
+	struct kobject parameter_kobj; /* /sys/uds/parameter */
+	
+	/* These flags are used to ensure a clean shutdown */
+	bool flag; /* /sys/uds */
+	bool parameter_flag; /* /sys/uds/parameter */
 } object_root;
 
 /**********************************************************************/
@@ -58,15 +59,15 @@ static char *buffer_to_string(const char *buf, size_t length)
 	return string;
 }
 
-/**********************************************************************/
-// This is the code for a directory in the /sys/<module_name> tree that
-// contains no regular files (only subdirectories).
-/**********************************************************************/
+/*
+ * This is the code for a directory in the /sys/<module_name> tree that
+ * contains no regular files (only subdirectories).		
+ */
 
 /**********************************************************************/
 static void empty_release(struct kobject *kobj)
 {
-	// Many of our sysfs share this release function that does nothing.
+	/* Many of our sysfs share this release function that does nothing. */
 }
 
 /**********************************************************************/
@@ -101,11 +102,10 @@ static struct kobj_type empty_object_type = {
 };
 
 
-/**********************************************************************/
-// This is the code for the /sys/<module_name>/parameter directory.
-//
-// <dir>/log_level                 UDS_LOG_LEVEL
-//
+/*
+ * This is the code for the /sys/<module_name>/parameter directory.
+ * <dir>/log_level                 UDS_LOG_LEVEL
+ */
 /**********************************************************************/
 
 struct parameter_attribute {

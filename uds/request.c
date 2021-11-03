@@ -47,7 +47,7 @@ int uds_start_chunk_operation(struct uds_request *request)
 		return -EINVAL;
 	}
 
-	// Reset all internal fields before processing.
+	/* Reset all internal fields before processing. */
 	internal_size = sizeof(struct uds_request)
 		- offsetof(struct uds_request, zone_number);
 	memset(&request->zone_number, 0, internal_size);
@@ -221,11 +221,11 @@ void update_request_context_stats(struct uds_request *request)
 void enter_callback_stage(struct uds_request *request)
 {
 	if (request->status != UDS_SUCCESS) {
-		// All request errors are considered unrecoverable
+		/* All request errors are considered unrecoverable */
 		disable_index_session(request->session);
 	}
 
 	request->status = uds_map_to_system_error(request->status);
-	// Handle asynchronous client callbacks in the designated thread.
+	/* Handle asynchronous client callbacks in the designated thread. */
 	enqueue_request(request, STAGE_CALLBACK);
 }

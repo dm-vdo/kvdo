@@ -113,7 +113,7 @@ static void move_bits_down(const byte *s_memory,
 	int count;
 	uint64_t field;
 
-	// Start by moving one field that ends on a destination int boundary.
+	/* Start by moving one field that ends on a destination int boundary. */
 	count = (MAX_BIG_FIELD_BITS -
 		 ((destination + MAX_BIG_FIELD_BITS) % UINT32_BIT));
 	field = get_big_field(s_memory, source, count);
@@ -122,8 +122,10 @@ static void move_bits_down(const byte *s_memory,
 	destination += count;
 	size -= count;
 
-	// Now do the main loop to copy 32 bit chunks that are int-aligned at
-	// the destination.
+	/*
+	 * Now do the main loop to copy 32 bit chunks that are int-aligned at
+	 * the destination.
+	 */
 	offset = source % UINT32_BIT;
 	src = s_memory + (source - offset) / CHAR_BIT;
 	dest = d_memory + destination / CHAR_BIT;
@@ -136,7 +138,7 @@ static void move_bits_down(const byte *s_memory,
 		size -= UINT32_BIT;
 	}
 
-	// Finish up by moving any remaining bits.
+	/* Finish up by moving any remaining bits. */
 	if (size > 0) {
 		field = get_big_field(s_memory, source, size);
 		set_big_field(field, d_memory, destination, size);
@@ -165,7 +167,7 @@ static void move_bits_up(const byte *s_memory,
 	int count;
 	uint64_t field;
 
-	// Start by moving one field that begins on a destination int boundary.
+	/* Start by moving one field that begins on a destination int boundary. */
 	count = (destination + size) % UINT32_BIT;
 	if (count > 0) {
 		size -= count;
@@ -173,8 +175,10 @@ static void move_bits_up(const byte *s_memory,
 		set_big_field(field, d_memory, destination + size, count);
 	}
 
-	// Now do the main loop to copy 32 bit chunks that are int-aligned at
-	// the destination.
+	/*
+	 * Now do the main loop to copy 32 bit chunks that are int-aligned at
+	 * the destination.
+	 */
 	offset = (source + size) % UINT32_BIT;
 	src = s_memory + (source + size - offset) / CHAR_BIT;
 	dest = d_memory + (destination + size) / CHAR_BIT;
@@ -185,7 +189,7 @@ static void move_bits_up(const byte *s_memory,
 		put_unaligned_le32(get_unaligned_le64(src) >> offset, dest);
 	}
 
-	// Finish up by moving any remaining bits.
+	/* Finish up by moving any remaining bits. */
 	if (size > 0) {
 		field = get_big_field(s_memory, source, size);
 		set_big_field(field, d_memory, destination, size);
@@ -201,7 +205,7 @@ void move_bits(const byte *s_memory,
 {
 	uint64_t field;
 
-	// A small move doesn't require special handling.
+	/* A small move doesn't require special handling. */
 	if (size <= MAX_BIG_FIELD_BITS) {
 		if (size > 0) {
 			field = get_big_field(s_memory, source, size);

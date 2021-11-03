@@ -84,4 +84,4 @@ int __must_check verify_buffered_data(struct buffered_reader *reader,
 				      const void *value,
 				      size_t length);
 
-#endif // BUFFERED_READER_H
+#endif /* BUFFERED_READER_H */

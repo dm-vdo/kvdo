@@ -26,11 +26,11 @@
 #include "numeric.h"
 #include "uds.h"
 
-// How various portions of a hash are apportioned.  Size dependent.
+/* How various portions of a hash are apportioned.  Size dependent. */
 enum {
-	VOLUME_INDEX_BYTES_OFFSET = 0, // size 8
-	CHAPTER_INDEX_BYTES_OFFSET = 8, // size 6
-	SAMPLE_BYTES_OFFSET = 14, // size 2
+	VOLUME_INDEX_BYTES_OFFSET = 0, /* size 8 */
+	CHAPTER_INDEX_BYTES_OFFSET = 8, /* size 6 */
+	SAMPLE_BYTES_OFFSET = 14, /* size 2 */
 	VOLUME_INDEX_BYTES_COUNT = 8,
 	CHAPTER_INDEX_BYTES_COUNT = 6,
 	SAMPLE_BYTES_COUNT = 2,
@@ -46,7 +46,7 @@ enum {
 static INLINE uint64_t
 extract_chapter_index_bytes(const struct uds_chunk_name *name)
 {
-	// Get the high order 16 bits, then the low order 32 bits
+	/* Get the high order 16 bits, then the low order 32 bits */
 	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
 	uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
 	bytes |= get_unaligned_be32(chapter_bits + 2);
@@ -176,7 +176,7 @@ unsigned int __must_check compute_bits(unsigned int max_value);
 static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
 					   uint64_t value)
 {
-	// Store the high order bytes, then the low-order bytes
+	/* Store the high order bytes, then the low-order bytes */
 	put_unaligned_be16((uint16_t)(value >> 32),
 			   &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
 	put_unaligned_be32((uint32_t) value,
