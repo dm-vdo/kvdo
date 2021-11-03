@@ -85,6 +85,8 @@ STRIP[0]="no"
 BUILT_MODULE_NAME[1]="kvdo"
 BUILT_MODULE_LOCATION[1]="vdo"
 DEST_MODULE_LOCATION[1]="/kernel/drivers/block/"
+BUILD_DEPENDS[1]=LZ4_COMPRESS
+BUILD_DEPENDS[1]=LZ4_DECOMPRESS
 STRIP[1]="no"
 EOF
 
@@ -96,5 +98,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue Nov 02 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.0.0-1
+* Wed Nov 03 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.0.0-1
 - See https://github.com/dm-vdo/kvdo.git
