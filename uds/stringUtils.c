@@ -26,32 +26,6 @@
 #include "uds.h"
 
 /**********************************************************************/
-int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
-{
-	va_list args;
-	int result;
-	int count;
-	if (strp == NULL) {
-		return UDS_INVALID_ARGUMENT;
-	}
-	// We want the memory allocation to use our own UDS_ALLOCATE/UDS_FREE
-	// wrappers.
-	va_start(args, fmt);
-	count = vsnprintf(NULL, 0, fmt, args) + 1;
-	va_end(args);
-	result = UDS_ALLOCATE(count, char, what, strp);
-	if (result == UDS_SUCCESS) {
-		va_start(args, fmt);
-		vsnprintf(*strp, count, fmt, args);
-		va_end(args);
-	}
-	if ((result != UDS_SUCCESS) && (what != NULL)) {
-		uds_log_error("cannot allocate %s", what);
-	}
-	return result;
-}
-
-/**********************************************************************/
 int uds_wrap_vsnprintf(const char *what,
 		       char *buf,
 		       size_t buf_size,
@@ -127,32 +101,3 @@ char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 	return pos;
 }
 
-/**********************************************************************/
-int uds_string_to_signed_int(const char *nptr, int *num)
-{
-	long value;
-	int result = uds_string_to_signed_long(nptr, &value);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	if ((value < INT_MIN) || (value > INT_MAX)) {
-		return ERANGE;
-	}
-	*num = (int) value;
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int uds_string_to_unsigned_int(const char *nptr, unsigned int *num)
-{
-	unsigned long value;
-	int result = uds_string_to_unsigned_long(nptr, &value);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	if (value > UINT_MAX) {
-		return ERANGE;
-	}
-	*num = (unsigned int) value;
-	return UDS_SUCCESS;
-}

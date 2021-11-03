@@ -39,21 +39,6 @@ static INLINE const char *uds_bool_to_string(bool value)
 }
 
 /**
- * Allocate a string built according to format (our version of asprintf).
- *
- * @param [in]  what    A description of what is being allocated, for error
- *                      logging; if NULL doesn't log anything.
- * @param [out] strp    The pointer in which to store the allocated string.
- * @param [in]  fmt     The sprintf format parameter.
- *
- * @return UDS_SUCCESS, or the appropriately translated asprintf error
- **/
-int __must_check uds_alloc_sprintf(const char *what,
-				   char **strp,
-				   const char *fmt, ...)
-	__printf(3, 4);
-
-/**
  * Write a printf-style string into a fixed-size buffer, returning
  * errors if it would not fit. (our version of snprintf)
  *
@@ -134,70 +119,5 @@ char *uds_v_append_to_buffer(char *buffer, char *buf_end, const char *fmt,
 			     va_list args)
 	__printf(3, 0);
 
-/**
- * Our version of strtok_r, since some platforma apparently don't define it.
- *
- * @param str           On first call, the string to tokenize. On subsequent
- *                      calls, NULL.
- * @param delims        The set of delimiter characters.
- * @param state_ptr     The address of a variable which holds the state of
- *                      the tokenization between calls to uds_next_token.
- *
- * @return the next token if any, or NULL
- **/
-char *uds_next_token(char *str, const char *delims, char **state_ptr);
-
-/**
- * Parse a string representing a decimal uint64_t.
- *
- * @param str           The string.
- * @param num           Where to put the number.
- *
- * @return UDS_SUCCESS or the error UDS_INVALID_ARGUMENT if the string
- *         is not in the correct format.
- **/
-int __must_check uds_parse_uint64(const char *str, uint64_t *num);
-
-/**
- * Attempt to convert a string to an integer (base 10)
- *
- * @param nptr  Pointer to string to convert
- * @param num   The resulting integer
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check uds_string_to_signed_int(const char *nptr, int *num);
-
-/**
- * Attempt to convert a string to a long integer (base 10)
- *
- * @param nptr  Pointer to string to convert
- * @param num   The resulting long integer
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check uds_string_to_signed_long(const char *nptr, long *num);
-
-/**
- * Attempt to convert a string to an unsigned integer (base 10).
- *
- * @param nptr  Pointer to string to convert
- * @param num   The resulting unsigned integer
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check
-uds_string_to_unsigned_int(const char *nptr, unsigned int *num);
-
-/**
- * Attempt to convert a string to an unsigned long integer (base 10).
- *
- * @param nptr  Pointer to string to convert
- * @param num   The resulting long unsigned integer
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check
-uds_string_to_unsigned_long(const char *nptr, unsigned long *num);
 
 #endif /* STRING_UTILS_H */
