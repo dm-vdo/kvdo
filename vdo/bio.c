@@ -194,14 +194,8 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      physical_block_number_t pbn)
 {
 	int bvec_count, result;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	struct page *page;
 	int bytes_added;
-#else
-	int len = VDO_BLOCK_SIZE;
-	int offset = offset_in_page(data);
-	unsigned int i;
-#endif /* >= 5.1.0 */
 
 	bio_reset(bio); /* Memsets most of the bio to reset most fields. */
 	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
@@ -222,8 +216,6 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		return result;
 	}
 
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	/*
 	 * bio_add_page() can take any contiguous buffer on any number of 
 	 * pages and add it in one shot. 
@@ -238,32 +230,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 					      "Could only add %i bytes to bio",
 					      bytes_added);
 	}
-#else
-	/* On pre-5.1 kernels, we have to add one page at a time to the bio. */
-	for (i = 0; (i < bvec_count) && (len > 0); i++) {
-		unsigned int bytes = PAGE_SIZE - offset;
-		struct page *page;
-		int bytes_added;
 
-		if (bytes > len) {
-			bytes = len;
-		}
-
-		page = is_vmalloc_addr(data) ? vmalloc_to_page(data) :
-					       virt_to_page(data);
-		bytes_added = bio_add_page(bio, page, bytes, offset);
-
-		if (bytes_added != bytes) {
-			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
-						      "Could only add %i bytes to bio",
-						      bytes_added);
-		}
-
-		data += bytes;
-		len -= bytes;
-		offset = 0;
-	}
-#endif /* >= 5.1.0 */
 	return VDO_SUCCESS;
 }
 

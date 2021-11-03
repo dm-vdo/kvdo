@@ -518,11 +518,7 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 		/* Update the device, and send it on down... */
 		bio_set_dev(bio, get_vdo_backing_device(vdo));
 		atomic64_inc(&vdo->stats.flush_out);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-		generic_make_request(bio);
-#else
 		submit_bio_noacct(bio);
-#endif
 	}
 
 
