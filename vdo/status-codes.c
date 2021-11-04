@@ -22,7 +22,7 @@
 
 #include "errors.h"
 #include "permassert.h"
-#include "threadOnce.h"
+#include "uds-threads.h"
 
 const struct error_info vdo_status_list[] = {
 	{ "VDO_NOT_IMPLEMENTED", "Not implemented" },
@@ -68,7 +68,7 @@ const struct error_info vdo_status_list[] = {
 	{ "VDO_CANT_ADD_SYSFS_NODE", "Failed to add sysfs node" },
 };
 
-static once_state_t vdo_status_codes_registered = ONCE_STATE_INITIALIZER;
+static atomic_t vdo_status_codes_registered = ATOMIC_INIT(0);
 static int status_code_registration_result;
 
 /**********************************************************************/

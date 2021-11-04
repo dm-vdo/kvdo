@@ -20,16 +20,16 @@
 #ifndef UDS_THREADS_H
 #define UDS_THREADS_H
 
-#include "compiler.h"
-#include "errors.h"
-#include "threadOnce.h"
-#include "timeUtils.h"
-
+#include <linux/atomic.h>
 #include <linux/delay.h>
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
 #include "eventCount.h"
+
+#include "compiler.h"
+#include "errors.h"
+#include "timeUtils.h"
 
 struct cond_var {
 	struct event_count *event_count;
@@ -76,6 +76,21 @@ unsigned int uds_get_num_cores(void);
  **/
 pid_t __must_check uds_get_thread_id(void);
 
+
+/**
+ * Thread safe once only initialization.
+ *
+ * @param once_state     pointer to object to record that initialization
+ *                       has been performed
+ * @param init_function  called if once_state does not indicate
+ *                       initialization has been performed
+ *
+ * @note Generally the following declaration of once_state is performed in
+ *       at file scope:
+ *
+ *       static atomic_t once_state = ATOMIC_INIT(0);
+ **/
+void perform_once(atomic_t *once_state, void (*init_function) (void));
 
 /**
  * Wait for termination of another thread.

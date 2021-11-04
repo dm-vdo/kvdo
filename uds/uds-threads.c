@@ -17,6 +17,8 @@
  * 02110-1301, USA. 
  */
 
+#include "uds-threads.h"
+
 #include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
@@ -24,11 +26,10 @@
 #include "errors.h"
 #include "memoryAlloc.h"
 #include "logger.h"
-#include "uds-threads.h"
 
 static struct hlist_head kernel_thread_list;
 static struct mutex kernel_thread_mutex;
-static once_state_t kernel_thread_once;
+static atomic_t kernel_thread_once = ATOMIC_INIT(0);
 
 struct thread {
 	void (*thread_func)(void *thread_data);
@@ -37,6 +38,32 @@ struct thread {
 	struct task_struct *thread_task;
 	struct completion thread_done;
 };
+
+enum {
+	ONCE_NOT_DONE = 0,
+	ONCE_IN_PROGRESS = 1,
+	ONCE_COMPLETE = 2,
+};
+
+/**********************************************************************/
+void perform_once(atomic_t *once, void (*function)(void))
+{
+	for (;;) {
+		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
+		case ONCE_NOT_DONE:
+			function();
+			atomic_set_release(once, ONCE_COMPLETE);
+			return;
+		case ONCE_IN_PROGRESS:
+			uds_yield_scheduler();
+			break;
+		case ONCE_COMPLETE:
+			return;
+		default:
+			return;
+		}
+	}
+}
 
 /**********************************************************************/
 static void kernel_thread_init(void)
@@ -115,6 +142,7 @@ int uds_create_thread(void (*thread_func)(void *),
 	*new_thread = kt;
 	return UDS_SUCCESS;
 }
+
 /**********************************************************************/
 int uds_join_threads(struct thread *kt)
 {

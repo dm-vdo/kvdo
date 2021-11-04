@@ -26,9 +26,9 @@
 #include "memoryAlloc.h"
 #include "sysfs.h"
 #include "threadDevice.h"
-#include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
+#include "uds-threads.h"
 
 /**********************************************************************/
 static int __init dedupe_init(void)

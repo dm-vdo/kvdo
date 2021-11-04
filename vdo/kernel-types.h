@@ -22,6 +22,8 @@
 
 #include "types.h"
 
+#include <linux/version.h>
+
 /**
  * A count of compressed fragments
  **/
