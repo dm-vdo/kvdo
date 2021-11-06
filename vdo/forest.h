@@ -34,63 +34,20 @@
 typedef int vdo_entry_callback(physical_block_number_t pbn,
 			       struct vdo_completion *completion);
 
-/**
- * Get the tree page for a given height and page index.
- *
- * @param forest      The forest which holds the page
- * @param root_index  The index of the tree that holds the page
- * @param height      The height of the desired page
- * @param page_index  The index of the desired page
- *
- * @return The requested page
- **/
 struct tree_page * __must_check
 get_vdo_tree_page_by_index(struct forest *forest,
 			   root_count_t root_index,
 			   height_t height,
 			   page_number_t page_index);
 
-/**
- * Make a collection of trees for a block_map, expanding the existing forest if
- * there is one.
- *
- * @param map      The block map
- * @param entries  The number of entries the block map will hold
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check make_vdo_forest(struct block_map *map, block_count_t entries);
 
-/**
- * Free a forest and all of the segments it contains.
- *
- * @param forest  The forest to free
- **/
 void free_vdo_forest(struct forest *forest);
 
-/**
- * Abandon the unused next forest from a block_map.
- *
- * @param map  The block map
- **/
 void abandon_vdo_forest(struct block_map *map);
 
-/**
- * Replace a block_map's forest with the already-prepared larger forest.
- *
- * @param map  The block map
- **/
 void replace_vdo_forest(struct block_map *map);
 
-/**
- * Walk the entire forest of a block map.
- *
- * @param map       The block map to traverse
- * @param callback  A function to call with the pbn of each allocated node in
- *                  the forest
- * @param parent    The completion to notify on each traversed PBN, and when
- *                  the traversal is complete
- **/
 void traverse_vdo_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent);

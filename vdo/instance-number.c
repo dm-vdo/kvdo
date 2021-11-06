@@ -94,7 +94,6 @@ static int grow_bit_array(void)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
 static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 {
 	unsigned int instance;
@@ -133,7 +132,13 @@ static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Allocate an instance number.
+ *
+ * @param [out] instance_ptr  An integer to hold the allocated instance number
+ *
+ * @result  UDS_SUCCESS or an error code
+ **/
 int allocate_vdo_instance(unsigned int *instance_ptr)
 {
 	int result;
@@ -145,7 +150,11 @@ int allocate_vdo_instance(unsigned int *instance_ptr)
 	return result;
 }
 
-/**********************************************************************/
+/**
+ * Release an instance number previously allocated.
+ *
+ * @param instance  The instance number to release
+ **/
 void release_vdo_instance(unsigned int instance)
 {
 	mutex_lock(&instance_number_lock);
@@ -165,13 +174,17 @@ void release_vdo_instance(unsigned int instance)
 	mutex_unlock(&instance_number_lock);
 }
 
-/**********************************************************************/
+/**
+ * Initialize the instance-number tracking data structures.
+ **/
 void initialize_vdo_instance_number_tracking(void)
 {
 	mutex_init(&instance_number_lock);
 }
 
-/**********************************************************************/
+/**
+ * Free up the instance-number tracking data structures.
+ **/
 void clean_up_vdo_instance_number_tracking(void)
 {
 	ASSERT_LOG_ONLY(instance_count == 0,

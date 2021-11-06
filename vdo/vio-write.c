@@ -660,7 +660,12 @@ static void compress_data_vio_callback(struct vdo_completion *completion)
 					pack_compressed_data);
 }
 
-/**********************************************************************/
+/**
+ * Continue a write by attempting to compress the data. This is a re-entry
+ * point to vio_write used by hash locks.
+ *
+ * @param data_vio   The data_vio to be compressed
+ **/
 void launch_compress_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_duplicate,
@@ -718,7 +723,13 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
 }
 
-/**********************************************************************/
+/**
+ * Continue a write by deduplicating a write data_vio against a verified
+ * existing block containing the data. This is a re-entry point to vio_write
+ * used by hash locks.
+ *
+ * @param data_vio   The data_vio to be deduplicated
+ **/
 void launch_deduplicate_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
@@ -1124,7 +1135,13 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 				VIO_WRITE_LOCK, continue_write_after_allocation);
 }
 
-/**********************************************************************/
+/**
+ * Start the asynchronous processing of a data_vio for a write request which has
+ * acquired a lock on its logical block by joining the current flush generation
+ * and then attempting to allocate a physical block.
+ *
+ * @param data_vio  The data_vio doing the write
+ **/
 void launch_write_data_vio(struct data_vio *data_vio)
 {
 	int result;
@@ -1147,7 +1164,11 @@ void launch_write_data_vio(struct data_vio *data_vio)
 				get_vdo_logical_zone_thread_id(data_vio->logical.zone));
 }
 
-/**********************************************************************/
+/**
+ * Clean up a data_vio which has finished processing a write.
+ *
+ * @param data_vio  The data_vio to clean up
+ **/
 void cleanup_write_data_vio(struct data_vio *data_vio)
 {
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_START);

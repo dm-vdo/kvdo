@@ -20,12 +20,7 @@
 #ifndef COMMON_COMPILER_H
 #define COMMON_COMPILER_H
 
-#include <linux/version.h>
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,9,0)
 #include <asm/rwonce.h>
-#endif /* >=5.9.0 */
-
 #include <linux/compiler.h>
 
 

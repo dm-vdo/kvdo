@@ -23,14 +23,6 @@
 #include "completion.h"
 #include "types.h"
 
-/**
- * Launch an action on a VDO thread and wait for it to complete.
- *
- * @param vdo        The vdo
- * @param action     The callback to launch
- * @param thread_id  The thread on which to run the action
- * @param parent     The parent of the sync completion (may be NULL)
- **/
 int perform_synchronous_vdo_action(struct vdo *vdo,
 				   vdo_action * action,
 				   thread_id_t thread_id,

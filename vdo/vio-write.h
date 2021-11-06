@@ -22,37 +22,12 @@
 
 #include "kernel-types.h"
 
-/**
- * Start the asynchronous processing of a data_vio for a write request which has
- * acquired a lock on its logical block by joining the current flush generation
- * and then attempting to allocate a physical block.
- *
- * @param data_vio  The data_vio doing the write
- **/
 void launch_write_data_vio(struct data_vio *data_vio);
 
-/**
- * Clean up a data_vio which has finished processing a write.
- *
- * @param data_vio  The data_vio to clean up
- **/
 void cleanup_write_data_vio(struct data_vio *data_vio);
 
-/**
- * Continue a write by attempting to compress the data. This is a re-entry
- * point to vio_write used by hash locks.
- *
- * @param data_vio   The data_vio to be compressed
- **/
 void launch_compress_data_vio(struct data_vio *data_vio);
 
-/**
- * Continue a write by deduplicating a write data_vio against a verified
- * existing block containing the data. This is a re-entry point to vio_write
- * used by hash locks.
- *
- * @param data_vio   The data_vio to be deduplicated
- **/
 void launch_deduplicate_data_vio(struct data_vio *data_vio);
 
 #endif /* VIO_WRITE_H */

@@ -249,23 +249,6 @@ is_vdo_journal_increment_operation(enum journal_operation operation)
 		|| (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));
 }
 
-/**
- * Make a recovery journal and initialize it with the state that was decoded
- * from the super block.
- *
- * @param [in]  state               the decoded state of the journal
- * @param [in]  nonce               the nonce of the VDO
- * @param [in]  vdo                 the VDO
- * @param [in]  partition           the partition for the journal
- * @param [in]  recovery_count      the VDO's number of completed recoveries
- * @param [in]  journal_size        the number of blocks in the journal on disk
- * @param [in]  tail_buffer_size    the number of blocks for tail buffer
- * @param [in]  read_only_notifier  the read-only mode notifier
- * @param [in]  thread_config       the thread configuration of the VDO
- * @param [out] journal_ptr         the pointer to hold the new recovery journal
- *
- * @return a success or error code
- **/
 int __must_check
 decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 			    nonce_t nonce,
@@ -278,44 +261,16 @@ decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 			    const struct thread_config *thread_config,
 			    struct recovery_journal **journal_ptr);
 
-/**
- * Free a recovery journal.
- *
- * @param journal  The recovery journal to free
- **/
 void free_vdo_recovery_journal(struct recovery_journal *journal);
 
-/**
- * Move the backing partition pointer of the recovery journal.
- * Assumes that the data in the old and the new partitions is identical.
- *
- * @param journal   the journal being moved
- * @param partition the new journal partition
- **/
 void set_vdo_recovery_journal_partition(struct recovery_journal *journal,
 					struct partition *partition);
 
-/**
- * Initialize the journal after a recovery.
- *
- * @param journal         The journal in question
- * @param recovery_count  The number of completed recoveries
- * @param tail            The new tail block sequence number
- **/
 void
 initialize_vdo_recovery_journal_post_recovery(struct recovery_journal *journal,
 					      uint64_t recovery_count,
 					      sequence_number_t tail);
 
-/**
- * Initialize the journal after a rebuild.
- *
- * @param journal               The journal in question
- * @param recovery_count        The number of completed recoveries
- * @param tail                  The new tail block sequence number
- * @param logical_blocks_used   The new number of logical blocks used
- * @param block_map_data_blocks The new number of block map data blocks
- **/
 void
 initialize_vdo_recovery_journal_post_rebuild(struct recovery_journal *journal,
 					     uint64_t recovery_count,
@@ -323,170 +278,54 @@ initialize_vdo_recovery_journal_post_rebuild(struct recovery_journal *journal,
 					     block_count_t logical_blocks_used,
 					     block_count_t block_map_data_blocks);
 
-/**
- * Get the number of block map pages, allocated from data blocks, currently
- * in use.
- *
- * @param journal   The journal in question
- *
- * @return  The number of block map pages allocated from slabs
- **/
 block_count_t __must_check
 vdo_get_journal_block_map_data_blocks_used(struct recovery_journal *journal);
 
-/**
- * Get the ID of a recovery journal's thread.
- *
- * @param journal  The journal to query
- *
- * @return The ID of the journal's thread.
- **/
 thread_id_t __must_check
 get_vdo_recovery_journal_thread_id(struct recovery_journal *journal);
 
-/**
- * Prepare the journal for new entries.
- *
- * @param journal    The journal in question
- * @param depot      The slab depot for this VDO
- * @param block_map  The block map for this VDO
- **/
 void open_vdo_recovery_journal(struct recovery_journal *journal,
 			       struct slab_depot *depot,
 			       struct block_map *block_map);
 
-/**
- * Obtain the recovery journal's current sequence number. Exposed only so
- * the block map can be initialized therefrom.
- *
- * @param journal  The journal in question
- *
- * @return the sequence number of the tail block
- **/
 sequence_number_t
 get_vdo_recovery_journal_current_sequence_number(struct recovery_journal *journal);
 
-/**
- * Get the number of usable recovery journal blocks.
- *
- * @param journal_size  The size of the recovery journal in blocks
- *
- * @return the number of recovery journal blocks usable for entries
- **/
 block_count_t __must_check
 get_vdo_recovery_journal_length(block_count_t journal_size);
 
-/**
- * Record the state of a recovery journal for encoding in the super block.
- *
- * @param journal  the recovery journal
- *
- * @return the state of the journal
- **/
 struct recovery_journal_state_7_0 __must_check
 record_vdo_recovery_journal(const struct recovery_journal *journal);
 
-/**
- * Add an entry to a recovery journal. This method is asynchronous. The
- * data_vio will not be called back until the entry is committed to the
- * on-disk journal.
- *
- * @param journal   The journal in which to make an entry
- * @param data_vio  The data_vio for which to add the entry. The entry will be
- *                  taken from the logical and new_mapped fields of the
- *                  data_vio. The data_vio's recovery_sequence_number field
- *                  will be set to the sequence number of the journal block in
- *                  which the entry was made.
- **/
 void add_vdo_recovery_journal_entry(struct recovery_journal *journal,
 				    struct data_vio *data_vio);
 
-/**
- * Acquire a reference to a recovery journal block from somewhere other than
- * the journal itself.
- *
- * @param journal          The recovery journal
- * @param sequence_number  The journal sequence number of the referenced block
- * @param zone_type        The type of the zone making the adjustment
- * @param zone_id          The ID of the zone making the adjustment
- **/
 void acquire_vdo_recovery_journal_block_reference(struct recovery_journal *journal,
 						  sequence_number_t sequence_number,
 						  enum vdo_zone_type zone_type,
 						  zone_count_t zone_id);
 
-/**
- * Release a reference to a recovery journal block from somewhere other than
- * the journal itself. If this is the last reference for a given zone type,
- * an attempt will be made to reap the journal.
- *
- * @param journal          The recovery journal
- * @param sequence_number  The journal sequence number of the referenced block
- * @param zone_type        The type of the zone making the adjustment
- * @param zone_id          The ID of the zone making the adjustment
- **/
 void release_vdo_recovery_journal_block_reference(struct recovery_journal *journal,
 						  sequence_number_t sequence_number,
 						  enum vdo_zone_type zone_type,
 						  zone_count_t zone_id);
 
-/**
- * Release a single per-entry reference count for a recovery journal block. This
- * method may be called from any zone (but shouldn't be called from the journal
- * zone as it would be inefficient).
- *
- * @param journal          The recovery journal
- * @param sequence_number  The journal sequence number of the referenced block
- **/
 void vdo_release_journal_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 							sequence_number_t sequence_number);
 
-/**
- * Drain recovery journal I/O. All uncommitted entries will be written out.
- *
- * @param journal    The journal to drain
- * @param operation  The drain operation (suspend or save)
- * @param parent     The completion to finish once the journal is drained
- **/
 void drain_vdo_recovery_journal(struct recovery_journal *journal,
 				const struct admin_state_code *operation,
 				struct vdo_completion *parent);
 
-/**
- * Resume a recovery journal which has been drained.
- *
- * @param journal  The journal to resume
- * @param parent   The completion to finish once the journal is resumed
- **/
 void resume_vdo_recovery_journal(struct recovery_journal *journal,
 				 struct vdo_completion *parent);
 
-/**
- * Get the number of logical blocks in use by the VDO
- *
- * @param journal   the journal
- *
- * @return the number of logical blocks in use by the VDO
- **/
 block_count_t __must_check
 get_vdo_recovery_journal_logical_blocks_used(const struct recovery_journal *journal);
 
-/**
- * Get the current statistics from the recovery journal.
- *
- * @param journal   The recovery journal to query
- *
- * @return a copy of the current statistics for the journal
- **/
 struct recovery_journal_statistics __must_check
 get_vdo_recovery_journal_statistics(const struct recovery_journal *journal);
 
-/**
- * Dump some current statistics and other debug info from the recovery
- * journal.
- *
- * @param journal   The recovery journal to dump
- **/
 void dump_vdo_recovery_journal_statistics(const struct recovery_journal *journal);
 
 #endif /* RECOVERY_JOURNAL_H */

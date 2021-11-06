@@ -22,13 +22,20 @@
 #include "physical-zone.h"
 #include "types.h"
 
-/**********************************************************************/
 static struct pbn_lock *return_pbn_lock(struct reference_operation operation)
 {
 	return (struct pbn_lock *) operation.context;
 }
 
-/**********************************************************************/
+/**
+ * Set up a reference_operation for which we already have the lock.
+ *
+ * @param type       The type of operation
+ * @param pbn        The PBN of the block on which to operate
+ * @param state      The mapping state of the block on which to operate
+ * @param lock       The pbn_lock to associate with the operation
+ * @param operation  The reference_operation to set up
+ **/
 void
 set_up_vdo_reference_operation_with_lock(enum journal_operation type,
 					 physical_block_number_t pbn,
@@ -45,7 +52,6 @@ set_up_vdo_reference_operation_with_lock(enum journal_operation type,
 	};
 }
 
-/**********************************************************************/
 static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.context == NULL)
@@ -54,7 +60,17 @@ static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 							 operation.pbn));
 }
 
-/**********************************************************************/
+/**
+ * Set up a reference_operation for which we will need to look up the lock
+ *later.
+ *
+ * @param type       The type of operation
+ * @param pbn        The PBN of the block on which to operate
+ * @param state      The mapping state of the block on which to operate
+ * @param zone       The physical_zone from which the pbn_lock can be retrieved
+ *                   when needed
+ * @param operation  The reference_operation to set up
+ **/
 void
 set_up_vdo_reference_operation_with_zone(enum journal_operation type,
 					 physical_block_number_t pbn,

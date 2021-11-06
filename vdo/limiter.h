@@ -45,20 +45,8 @@ struct limiter {
 	struct vdo_completion *completion;
 };
 
-/**
- * Initialize a limiter structure
- *
- * @param limiter  The limiter
- * @param limit    The limit to the number of active resources
- **/
 void initialize_limiter(struct limiter *limiter, uint32_t limit);
 
-/**
- * Release resources, making them available for other uses
- *
- * @param limiter  The limiter
- * @param count    The number of resources to release
- **/
 void limiter_release_many(struct limiter *limiter, uint32_t count);
 
 /**
@@ -71,22 +59,9 @@ static inline void limiter_release(struct limiter *limiter)
 	limiter_release_many(limiter, 1);
 }
 
-/**
- * Wait asynchronously for there to be no active resources.
- *
- * @param limiter     The limiter
- * @param completion  The completion to notify when the limiter is idle
- **/
 void drain_vdo_limiter(struct limiter *limiter,
 		       struct vdo_completion *completion);
 
-/**
- * Prepare to start using one resource, waiting if there are too many resources
- * already in use. After returning from this routine, the caller may use the
- * resource, and must call limiter_release after freeing the resource.
- *
- * @param limiter  The limiter
- **/
 void limiter_wait_for_one_free(struct limiter *limiter);
 
 #endif /* LIMITER_H */

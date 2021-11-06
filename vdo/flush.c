@@ -123,7 +123,13 @@ static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 	return container_of(waiter, struct vdo_flush, waiter);
 }
 
-/**********************************************************************/
+/**
+ * Make a flusher for a vdo.
+ *
+ * @param vdo  The vdo which owns the flusher
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_flusher(struct vdo *vdo)
 {
 	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
@@ -145,7 +151,11 @@ int make_vdo_flusher(struct vdo *vdo)
 			    &vdo->flusher->spare_flush);
 }
 
-/**********************************************************************/
+/**
+ * Free a flusher.
+ *
+ * @param flusher  The flusher to free
+ **/
 void free_vdo_flusher(struct flusher *flusher)
 {
 	if (flusher == NULL) {
@@ -156,7 +166,13 @@ void free_vdo_flusher(struct flusher *flusher)
 	UDS_FREE(flusher);
 }
 
-/**********************************************************************/
+/**
+ * Get the ID of the thread on which flusher functions should be called.
+ *
+ * @param flusher  The flusher to query
+ *
+ * @return The ID of the thread which handles the flusher
+ **/
 thread_id_t get_vdo_flusher_thread_id(struct flusher *flusher)
 {
 	return flusher->thread_id;
@@ -321,7 +337,11 @@ static void check_for_drain_complete(struct flusher *flusher)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Attempt to complete any flushes which might have finished.
+ *
+ * @param flusher  The flusher
+ **/
 void complete_vdo_flushes(struct flusher *flusher)
 {
 	sequence_number_t oldest_active_generation = UINT64_MAX;
@@ -357,7 +377,11 @@ void complete_vdo_flushes(struct flusher *flusher)
 	check_for_drain_complete(flusher);
 }
 
-/**********************************************************************/
+/**
+ * Dump the flusher, in a thread-unsafe fashion.
+ *
+ * @param flusher  The flusher
+ **/
 void dump_vdo_flusher(const struct flusher *flusher)
 {
 	uds_log_info("struct flusher");
@@ -387,7 +411,6 @@ static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
 }
 
-/**********************************************************************/
 static void launch_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
@@ -401,7 +424,14 @@ static void launch_flush(struct vdo_flush *flush)
 					     VDO_REQ_Q_FLUSH_PRIORITY);
 }
 
-/**********************************************************************/
+/**
+ * Function called to start processing a flush request. It is called when we
+ * receive an empty flush bio from the block layer, and before acknowledging a
+ * non-empty bio with the FUA flag set.
+ *
+ * @param vdo  The vdo
+ * @param bio  The bio containing an empty flush request
+ **/
 void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 {
 	/*
@@ -585,7 +615,13 @@ static void initiate_drain(struct admin_state *state)
 	check_for_drain_complete(container_of(state, struct flusher, state));
 }
 
-/**********************************************************************/
+/**
+ * Drain the flusher by preventing any more VIOs from entering the flusher and
+ * then flushing. The flusher will be left in the suspended state.
+ *
+ * @param flusher     The flusher to drain
+ * @param completion  The completion to finish when the flusher has drained
+ **/
 void drain_vdo_flusher(struct flusher *flusher,
 		       struct vdo_completion *completion)
 {
@@ -596,7 +632,12 @@ void drain_vdo_flusher(struct flusher *flusher,
 			   initiate_drain);
 }
 
-/**********************************************************************/
+/**
+ * Resume a flusher which has been suspended.
+ *
+ * @param flusher  The flusher to resume
+ * @param parent   The completion to finish when the flusher has resumed
+ **/
 void resume_vdo_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);

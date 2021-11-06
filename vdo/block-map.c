@@ -158,7 +158,14 @@ initialize_block_map_zone(struct block_map *map,
 				   &zone->page_cache);
 }
 
-/**********************************************************************/
+/**
+ * Get the portion of the block map for a given logical zone.
+ *
+ * @param map          The map
+ * @param zone_number  The number of the zone
+ *
+ * @return The requested block map zone
+ **/
 struct block_map_zone *vdo_get_block_map_zone(struct block_map *map,
 					      zone_count_t zone_number)
 {
@@ -241,7 +248,11 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 	free_vdo_page_cache(UDS_FORGET(zone->page_cache));
 }
 
-/**********************************************************************/
+/**
+ * Free a block map.
+ *
+ * @param map  The block map to free
+ **/
 void free_vdo_block_map(struct block_map *map)
 {
 	zone_count_t zone;
@@ -261,7 +272,23 @@ void free_vdo_block_map(struct block_map *map)
 	UDS_FREE(map);
 }
 
-/**********************************************************************/
+/**
+ * Make a block map and configure it with the state read from the super block.
+ *
+ * @param [in]  state               The block map state from the super block
+ * @param [in]  logical_blocks      The number of logical blocks for the VDO
+ * @param [in]  thread_config       The thread configuration of the VDO
+ * @param [in]  vdo                 The vdo
+ * @param [in]  read_only_notifier  The read only mode context
+ * @param [in]  journal             The recovery journal (may be NULL)
+ * @param [in]  nonce               The nonce to distinguish initialized pages
+ * @param [in]  cache_size          The block map cache size, in pages
+ * @param [in]  maximum_age         The number of journal blocks before a
+ *                                  dirtied page
+ * @param [out] map_ptr             The pointer to hold the new block map
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int decode_vdo_block_map(struct block_map_state_2_0 state,
 			 block_count_t logical_blocks,
 			 const struct thread_config *thread_config,
@@ -341,7 +368,13 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Record the state of a block map for encoding in a super block.
+ *
+ * @param map  The block map to encode
+ *
+ * @return The state of the block map
+ **/
 struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
 {
 	struct block_map_state_2_0 state = {
@@ -358,7 +391,13 @@ struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
 	return state;
 }
 
-/**********************************************************************/
+/**
+ * Obtain any necessary state from the recovery journal that is needed for
+ * normal block map operation.
+ *
+ * @param map      The map in question
+ * @param journal  The journal to initialize from
+ **/
 void initialize_vdo_block_map_from_journal(struct block_map *map,
 					   struct recovery_journal *journal)
 {
@@ -376,7 +415,14 @@ void initialize_vdo_block_map_from_journal(struct block_map *map,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Compute the logical zone on which the entry for a data_vio
+ * resides
+ *
+ * @param data_vio  The data_vio
+ *
+ * @return The logical zone number for the data_vio
+ **/
 zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 {
 	struct block_map *map = get_vdo_from_data_vio(data_vio)->block_map;
@@ -389,7 +435,14 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 	return (tree_lock->root_index % map->zone_count);
 }
 
-/**********************************************************************/
+/**
+ * Compute the block map slot in which the block map entry for a data_vio
+ * resides, and cache that number in the data_vio.
+ *
+ * @param data_vio  The data_vio
+ * @param callback  The function to call once the slot has been found
+ * @param thread_id The thread on which to run the callback
+ **/
 void vdo_find_block_map_slot(struct data_vio *data_vio,
 			     vdo_action *callback,
 			     thread_id_t thread_id)
@@ -409,13 +462,26 @@ void vdo_find_block_map_slot(struct data_vio *data_vio,
 	vdo_lookup_block_map_pbn(data_vio);
 }
 
-/**********************************************************************/
+/**
+ * Get number of block map entries.
+ *
+ * @param map  The block map
+ *
+ * @return The number of entries stored in the map
+ **/
 block_count_t vdo_get_number_of_block_map_entries(const struct block_map *map)
 {
 	return map->entry_count;
 }
 
-/**********************************************************************/
+/**
+ * Notify the block map that the recovery journal has finished a new block.
+ * This method must be called from the journal zone thread.
+ *
+ * @param map                    The block map
+ * @param recovery_block_number  The sequence number of the finished recovery
+ *                               journal block
+ **/
 void advance_vdo_block_map_era(struct block_map *map,
 			       sequence_number_t recovery_block_number)
 {
@@ -427,7 +493,12 @@ void advance_vdo_block_map_era(struct block_map *map,
 	schedule_vdo_default_action(map->action_manager);
 }
 
-/**********************************************************************/
+/**
+ * Check whether a zone of the block map has drained, and if so, send a
+ * notification thereof.
+ *
+ * @param zone  The zone to check
+ **/
 void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (is_vdo_state_draining(&zone->state) &&
@@ -470,7 +541,13 @@ drain_zone(void *context, zone_count_t zone_number,
 			   initiate_drain);
 }
 
-/**********************************************************************/
+/**
+ * Quiesce all block map I/O, possibly writing out all dirty metadata.
+ *
+ * @param map        The block map to drain
+ * @param operation  The type of drain to perform
+ * @param parent     The completion to notify when the drain is complete
+ **/
 void drain_vdo_block_map(struct block_map *map,
 			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent)
@@ -493,7 +570,12 @@ static void resume_block_map_zone(void *context,
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
-/**********************************************************************/
+/**
+ * Resume I/O for a quiescent block map.
+ *
+ * @param map     The block map to resume
+ * @param parent  The completion to notify when the resume is complete
+ **/
 void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
@@ -504,7 +586,14 @@ void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 			       parent);
 }
 
-/**********************************************************************/
+/**
+ * Prepare to grow the block map by allocating an expanded collection of trees.
+ *
+ * @param map                 The block map to grow
+ * @param new_logical_blocks  The new logical size of the VDO
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int vdo_prepare_to_grow_block_map(struct block_map *map,
 				  block_count_t new_logical_blocks)
 {
@@ -524,7 +613,14 @@ int vdo_prepare_to_grow_block_map(struct block_map *map,
 	return make_vdo_forest(map, new_logical_blocks);
 }
 
-/**********************************************************************/
+/**
+ * Get the logical size to which this block map is prepared to grow.
+ *
+ * @param map  The block map
+ *
+ * @return The new number of entries the block map will be grown to or 0 if
+ *         the block map is not prepared to grow
+ **/
 block_count_t vdo_get_new_entry_count(struct block_map *map)
 {
 	return map->next_entry_count;
@@ -541,7 +637,13 @@ static void grow_forest(void *context, struct vdo_completion *completion)
 	complete_vdo_completion(completion);
 }
 
-/**********************************************************************/
+/**
+ * Grow a block map on which vdo_prepare_to_grow_block_map() has already been
+ *called.
+ *
+ * @param map     The block map to grow
+ * @param parent  The object to notify when the growth is complete
+ **/
 void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
@@ -552,7 +654,11 @@ void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 			       parent);
 }
 
-/**********************************************************************/
+/**
+ * Abandon any preparations which were made to grow this block map.
+ *
+ * @param map  The map which won't be grown
+ **/
 void vdo_abandon_block_map_growth(struct block_map *map)
 {
 	abandon_vdo_forest(map);
@@ -700,7 +806,17 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 	finish_processing_page(completion, result);
 }
 
-/**********************************************************************/
+/**
+ * Update an entry on a block map page.
+ *
+ * @param [in]     page           The page to update
+ * @param [in]     data_vio       The data_vio making the update
+ * @param [in]     pbn            The new PBN for the entry
+ * @param [in]     mapping_state  The new mapping state for the entry
+ * @param [in,out] recovery_lock  A reference to the current recovery sequence
+ *                                number lock held by the page. Will be updated
+ *                                if the lock changes to protect the new entry
+ **/
 void update_vdo_block_map_page(struct block_map_page *page,
 			       struct data_vio *data_vio,
 			       physical_block_number_t pbn,
@@ -781,7 +897,13 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 	finish_processing_page(completion, VDO_SUCCESS);
 }
 
-/**********************************************************************/
+/**
+ * Get the block number of the physical block containing the data for the
+ * specified logical block number. All blocks are mapped to physical block
+ * zero by default, which is conventionally the zero block.
+ *
+ * @param data_vio  The data_vio of the block to map
+ **/
 void vdo_get_mapped_block(struct data_vio *data_vio)
 {
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
@@ -798,13 +920,24 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 	setup_mapped_block(data_vio, false, get_mapping_from_fetched_page);
 }
 
-/**********************************************************************/
+/**
+ * Associate the logical block number for a block represented by a data_vio
+ * with the physical block number in its new_mapped field.
+ *
+ * @param data_vio  The data_vio of the block to map
+ **/
 void vdo_put_mapped_block(struct data_vio *data_vio)
 {
 	setup_mapped_block(data_vio, true, put_mapping_in_fetched_page);
 }
 
-/**********************************************************************/
+/**
+ * Get the stats for the block map page cache.
+ *
+ * @param map  The block map containing the cache
+ *
+ * @return The block map statistics
+ **/
 struct block_map_statistics get_vdo_block_map_statistics(struct block_map *map)
 {
 	zone_count_t zone = 0;

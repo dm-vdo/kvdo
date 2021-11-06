@@ -137,7 +137,15 @@ static void handle_growth_error(struct vdo_completion *completion)
 	grow_logical_callback(completion);
 }
 
-/**********************************************************************/
+/**
+ * Grow the logical size of the vdo. This method may only be called when the
+ * vdo has been suspended and must not be called from a base thread.
+ *
+ * @param vdo               	The vdo to grow
+ * @param new_logical_blocks	The size to which the vdo should be grown
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	int result;
@@ -172,7 +180,15 @@ int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Prepare to grow the logical size of vdo. This method may only be called
+ * while the vdo is running.
+ *
+ * @param vdo               	The vdo to prepare for growth
+ * @param new_logical_blocks	The size to which the vdo should be grown
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int prepare_vdo_to_grow_logical(struct vdo *vdo,
 				block_count_t new_logical_blocks)
 {

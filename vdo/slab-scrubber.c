@@ -63,7 +63,16 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 				 &scrubber->extent);
 }
 
-/**********************************************************************/
+/**
+ * Create a slab scrubber
+ *
+ * @param vdo                 The VDO
+ * @param slab_journal_size   The size of a slab journal in blocks
+ * @param read_only_notifier  The context for entering read-only mode
+ * @param scrubber_ptr        A pointer to hold the scrubber
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_slab_scrubber(struct vdo *vdo,
 			   block_count_t slab_journal_size,
 			   struct read_only_notifier *read_only_notifier,
@@ -104,7 +113,11 @@ static void free_extent_and_buffer(struct slab_scrubber *scrubber)
 	UDS_FREE(UDS_FORGET(scrubber->journal_data));
 }
 
-/**********************************************************************/
+/**
+ * Free a slab scrubber.
+ *
+ * @param scrubber  The scrubber to destroy
+ **/
 void free_vdo_slab_scrubber(struct slab_scrubber *scrubber)
 {
 	if (scrubber == NULL) {
@@ -135,7 +148,6 @@ static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 	return NULL;
 }
 
-/**********************************************************************/
 /**
  * Check whether a scrubber has slabs to scrub.
  *
@@ -148,13 +160,26 @@ static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
 	return (get_next_slab(scrubber) != NULL);
 }
 
-/**********************************************************************/
+/**
+ * Get the number of slabs that are unrecovered or being scrubbed.
+ *
+ * @param scrubber  The scrubber to query
+ *
+ * @return the number of slabs that are unrecovered or being scrubbed
+ **/
 slab_count_t get_scrubber_vdo_slab_count(const struct slab_scrubber *scrubber)
 {
 	return READ_ONCE(scrubber->slab_count);
 }
 
-/**********************************************************************/
+/**
+ * Register a slab with a scrubber.
+ *
+ * @param scrubber       The scrubber
+ * @param slab           The slab to scrub
+ * @param high_priority  <code>true</code> if the slab should be put on the
+ *                      high-priority queue
+ **/
 void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 				     struct vdo_slab *slab,
 				     bool high_priority)
@@ -220,7 +245,6 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	}
 }
 
-/**********************************************************************/
 static void scrub_next_slab(struct slab_scrubber *scrubber);
 
 /**
@@ -476,7 +500,14 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	start_vdo_slab_action(slab, VDO_ADMIN_STATE_SCRUBBING, completion);
 }
 
-/**********************************************************************/
+/**
+ * Scrub all the slabs which have been registered with a slab scrubber.
+ *
+ * @param scrubber       The scrubber
+ * @param parent         The object to notify when scrubbing is complete
+ * @param callback       The function to run when scrubbing is complete
+ * @param error_handler  The handler for scrubbing errors
+ **/
 void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 		     void *parent,
 		     vdo_action *callback,
@@ -498,7 +529,19 @@ void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 	scrub_next_slab(scrubber);
 }
 
-/**********************************************************************/
+/**
+ * Scrub any slabs which have been registered at high priority with a slab
+ * scrubber.
+ *
+ * @param scrubber            The scrubber
+ * @param scrub_at_least_one  <code>true</code> if one slab should always be
+ *                            scrubbed, even if there are no high-priority slabs
+ *                            (and there is at least one low priority slab)
+ * @param parent              The completion to notify when scrubbing is
+ *                            complete
+ * @param callback            The function to run when scrubbing is complete
+ * @param error_handler       The handler for scrubbing errors
+ **/
 void scrub_high_priority_vdo_slabs(struct slab_scrubber *scrubber,
 				   bool scrub_at_least_one,
 				   struct vdo_completion *parent,
@@ -516,7 +559,13 @@ void scrub_high_priority_vdo_slabs(struct slab_scrubber *scrubber,
 	scrub_vdo_slabs(scrubber, parent, callback, error_handler);
 }
 
-/**********************************************************************/
+/**
+ * Tell the scrubber to stop scrubbing after it finishes the slab it is
+ * currently working on.
+ *
+ * @param scrubber  The scrubber to stop
+ * @param parent    The completion to notify when scrubbing has stopped
+ **/
 void stop_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 			     struct vdo_completion *parent)
 {
@@ -530,7 +579,12 @@ void stop_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Tell the scrubber to resume scrubbing if it has been stopped.
+ *
+ * @param scrubber  The scrubber to resume
+ * @param parent    The object to notify once scrubbing has resumed
+ **/
 void resume_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 			       struct vdo_completion *parent)
 {
@@ -551,7 +605,15 @@ void resume_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 	complete_vdo_completion(parent);
 }
 
-/**********************************************************************/
+/**
+ * Wait for a clean slab.
+ *
+ * @param scrubber  The scrubber on which to wait
+ * @param waiter    The waiter
+ *
+ * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
+ *         slabs to scrub, and some other error otherwise
+ **/
 int enqueue_clean_vdo_slab_waiter(struct slab_scrubber *scrubber,
 				  struct waiter *waiter)
 {
@@ -566,7 +628,11 @@ int enqueue_clean_vdo_slab_waiter(struct slab_scrubber *scrubber,
 	return enqueue_waiter(&scrubber->waiters, waiter);
 }
 
-/**********************************************************************/
+/**
+ * Dump information about a slab scrubber to the log for debugging.
+ *
+ * @param scrubber   The scrubber to dump
+ **/
 void dump_vdo_slab_scrubber(const struct slab_scrubber *scrubber)
 {
 	uds_log_info("slab_scrubber slab_count %u waiters %zu %s%s",

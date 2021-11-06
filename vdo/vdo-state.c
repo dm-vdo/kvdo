@@ -22,7 +22,13 @@
 #include "permassert.h"
 
 
-/**********************************************************************/
+/**
+ * Return a user-visible string describing the current VDO state.
+ *
+ * @param state  The VDO state to describe
+ *
+ * @return A string constant describing the state
+ **/
 const char *describe_vdo_state(enum vdo_state state)
 {
 	/* These strings should all fit in the 15 chars of VDOStatistics.mode. */

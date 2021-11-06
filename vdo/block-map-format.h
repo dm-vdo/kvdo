@@ -68,59 +68,18 @@ vdo_compute_slot(logical_block_number_t lbn)
 	return (lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
-/**
- * Decode block map component state version 2.0 from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
 int __must_check
 decode_vdo_block_map_state_2_0(struct buffer *buffer,
 			       struct block_map_state_2_0 *state);
 
-/**
- * Get the size of the encoded state of a block map.
- *
- * @return The encoded size of the map's state
- **/
 size_t __must_check get_vdo_block_map_encoded_size(void);
 
-/**
- * Encode the state of a block map into a buffer.
- *
- * @param state   The block map state to encode
- * @param buffer  The buffer to encode into
- *
- * @return UDS_SUCCESS or an error
- **/
 int __must_check
 encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
 			       struct buffer *buffer);
 
-/**
- * Compute the number of pages required for a block map with the specified
- * parameters.
- *
- * @param entries   The number of block map entries
- *
- * @return The number of pages required
- **/
 page_count_t compute_vdo_block_map_page_count(block_count_t entries);
 
-/**
- * Compute the number of pages which must be allocated at each level in order
- * to grow the forest to a new number of entries.
- *
- * @param [in]  root_count       The number of roots
- * @param [in]  old_sizes        The current size of the forest at each level
- * @param [in]  entries          The new number of entries the block map must
- *                               address
- * @param [out] new_sizes        The new size of the forest at each level
- *
- * @return The total number of non-leaf pages required
- **/
 block_count_t __must_check
 vdo_compute_new_forest_pages(root_count_t root_count,
 			     struct boundary *old_sizes,

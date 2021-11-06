@@ -124,14 +124,6 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 		vdo_get_index_region_start(geometry);
 }
 
-/**
- * Synchronously read a geometry block from a block device.
- *
- * @param bdev       The block device containing the block to read
- * @param geometry   A volume_geometry to read into
- *
- * @return VDO_SUCCESS or an error code
- **/
 int __must_check
 vdo_read_geometry_block(struct block_device *bdev,
 			struct volume_geometry *geometry);

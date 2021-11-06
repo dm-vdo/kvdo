@@ -121,24 +121,8 @@ enum vdo_status_codes {
 
 extern const struct error_info vdo_status_list[];
 
-/**
- * Register the VDO status codes if needed.
- *
- * @return a success or error code
- **/
 int register_vdo_status_codes(void);
 
-/**
- * Given an error code, return a value we can return to the OS.  The
- * input error code may be a system-generated value (such as -EIO), an
- * errno macro used in our code (such as EIO), or a UDS or VDO status
- * code; the result must be something the rest of the OS can consume
- * (negative errno values such as -EIO, in the case of the kernel).
- *
- * @param error  the error code to convert
- *
- * @return a system error code value
- **/
 int vdo_map_to_system_error(int error);
 
 #endif /* STATUS_CODES_H */

@@ -122,42 +122,14 @@ run_vdo_completion_callback(struct vdo_completion *completion)
 	completion->callback(completion);
 }
 
-/**
- * Set the result of a completion. Older errors will not be masked.
- *
- * @param completion The completion whose result is to be set
- * @param result     The result to set
- **/
 void set_vdo_completion_result(struct vdo_completion *completion, int result);
 
-/**
- * Initialize a completion to a clean state, for reused completions.
- *
- * @param completion The completion to initialize
- * @param vdo        The VDO instance
- * @param type       The type of the completion
- **/
 void initialize_vdo_completion(struct vdo_completion *completion,
 			       struct vdo *vdo,
 			       enum vdo_completion_type type);
 
-/**
- * Reset a completion to a clean state, while keeping
- * the type, vdo and parent information.
- *
- * @param completion the completion to reset
- **/
 void reset_vdo_completion(struct vdo_completion *completion);
 
-/**
- * Invoke the callback of a completion. If called on the correct thread (i.e.
- * the one specified in the completion's callback_thread_id field), the
- * completion will be run immediately. Otherwise, the completion will be
- * enqueued on the correct callback thread.
- *
- * @param completion  The completion whose callback is to be invoked
- * @param priority    The priority at which to enqueue the completion
- **/
 void
 invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
 					     enum vdo_work_item_priority priority);
@@ -177,20 +149,8 @@ invoke_vdo_completion_callback(struct vdo_completion *completion)
 						     VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
-/**
- * Continue processing a completion by setting the current result and calling
- * invoke_vdo_completion_callback().
- *
- * @param completion  The completion to continue
- * @param result      The current result (will not mask older errors)
- **/
 void continue_vdo_completion(struct vdo_completion *completion, int result);
 
-/**
- * Complete a completion.
- *
- * @param completion  The completion to complete
- **/
 void complete_vdo_completion(struct vdo_completion *completion);
 
 /**
@@ -206,20 +166,8 @@ static inline void finish_vdo_completion(struct vdo_completion *completion,
 	complete_vdo_completion(completion);
 }
 
-/**
- * A callback to finish the parent of a completion.
- *
- * @param completion  The completion which has finished and whose parent should
- *                    be finished
- **/
 void finish_vdo_completion_parent_callback(struct vdo_completion *completion);
 
-/**
- * Error handler which preserves an error in the parent (if there is one),
- * and then resets the failing completion and calls its non-error callback.
- *
- * @param completion  The completion which failed
- **/
 void
 preserve_vdo_completion_error_and_continue(struct vdo_completion *completion);
 
@@ -234,14 +182,6 @@ void noop_vdo_completion_callback(struct vdo_completion *completion __always_unu
 {
 }
 
-/**
- * Assert that a completion is of the correct type
- *
- * @param actual    The actual completion type
- * @param expected  The expected completion type
- *
- * @return          VDO_SUCCESS or VDO_PARAMETER_MISMATCH
- **/
 int assert_vdo_completion_type(enum vdo_completion_type actual,
 			       enum vdo_completion_type expected);
 
@@ -381,13 +321,6 @@ prepare_vdo_completion_to_finish_parent(struct vdo_completion *completion,
 			       parent);
 }
 
-/**
- * A function to enqueue a vdo_completion to run on the thread specified by its
- * callback_thread_id field at the specified priority.
- *
- * @param completion  The completion to be enqueued
- * @param priority    The priority at which the work should be done
- **/
 void
 enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
 				     enum vdo_work_item_priority priority);

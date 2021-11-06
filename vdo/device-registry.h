@@ -30,33 +30,12 @@
  **/
 typedef bool vdo_filter_t(struct vdo *vdo, void *context);
 
-/**
- * Initialize the necessary structures for the device registry.
- **/
 void initialize_vdo_device_registry_once(void);
 
-/**
- * Register a VDO; it must not already be registered.
- *
- * @param vdo  The vdo to register
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check register_vdo(struct vdo *vdo);
 
-/**
- * Remove a vdo from the device registry.
- *
- * @param vdo  The vdo to remove
- **/
 void unregister_vdo(struct vdo *vdo);
 
-/**
- * Find and return the first (if any) vdo matching a given filter function.
- *
- * @param filter   The filter function to apply to vdos
- * @param context  A bit of context to provide the filter
- **/
 struct vdo * __must_check
 find_vdo_matching(vdo_filter_t *filter, void *context);
 

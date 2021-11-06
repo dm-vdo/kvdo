@@ -31,7 +31,15 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-/**********************************************************************/
+/**
+ * Construct a journal block.
+ *
+ * @param [in]  vdo        The vdo from which to construct vios
+ * @param [in]  journal    The journal to which the block will belong
+ * @param [out] block_ptr  A pointer to receive the new block
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_recovery_block(struct vdo *vdo,
 			    struct recovery_journal *journal,
 			    struct recovery_journal_block **block_ptr)
@@ -83,7 +91,11 @@ int make_vdo_recovery_block(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a tail block.
+ *
+ * @param block  The tail block to free
+ **/
 void free_vdo_recovery_block(struct recovery_journal_block *block)
 {
 	if (block == NULL) {
@@ -123,7 +135,11 @@ static void set_active_sector(struct recovery_journal_block *block,
 	block->sector->entry_count = 0;
 }
 
-/**********************************************************************/
+/**
+ * Initialize the next active recovery journal block.
+ *
+ * @param block  The journal block to initialize
+ **/
 void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
@@ -152,7 +168,17 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 	set_active_sector(block, get_vdo_journal_block_sector(header, 1));
 }
 
-/**********************************************************************/
+/**
+ * Enqueue a data_vio to asynchronously encode and commit its next recovery
+ * journal entry in this block. The data_vio will not be continued until the
+ * entry is committed to the on-disk journal. The caller is responsible for
+ * ensuring the block is not already full.
+ *
+ * @param block     The journal block in which to make an entry
+ * @param data_vio  The data_vio to enqueue
+ *
+ * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
+ **/
 int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
 				     struct data_vio *data_vio)
 {
@@ -258,7 +284,6 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static int __must_check
 get_recovery_block_pbn(struct recovery_journal_block *block,
 		       physical_block_number_t *pbn_ptr)
@@ -275,7 +300,13 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 	return result;
 }
 
-/**********************************************************************/
+/**
+ * Check whether a journal block can be committed.
+ *
+ * @param block  The journal block in question
+ *
+ * @return <code>true</code> if the block can be committed now
+ **/
 bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
 {
 	/*
@@ -288,7 +319,17 @@ bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
 		&& !vdo_is_read_only(block->journal->read_only_notifier));
 }
 
-/**********************************************************************/
+/**
+ * Attempt to commit a block. If the block is not the oldest block with
+ * uncommitted entries or if it is already being committed, nothing will be
+ * done.
+ *
+ * @param block          The block to write
+ * @param callback       The function to call when the write completes
+ * @param error_handler  The handler for flush or write errors
+ *
+ * @return VDO_SUCCESS, or an error if the write could not be launched
+ **/
 int commit_vdo_recovery_block(struct recovery_journal_block *block,
 			      vdo_action *callback,
 			      vdo_action *error_handler)
@@ -345,7 +386,11 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Dump the contents of the recovery block to the log.
+ *
+ * @param block  The block to dump
+ **/
 void dump_vdo_recovery_block(const struct recovery_journal_block *block)
 {
 	uds_log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",

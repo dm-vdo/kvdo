@@ -126,7 +126,24 @@ static int no_conclusion(void *context __always_unused)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Make an action manager.
+ *
+ * @param [in]  zones                The number of zones to which actions will
+ *                                   be applied
+ * @param [in]  get_zone_thread_id   A function to get the thread id associated
+ *                                   with a zone
+ * @param [in]  initiator_thread_id  The thread on which actions may initiated
+ * @param [in]  context              The object which holds the per-zone context
+ *                                   for the action
+ * @param [in]  scheduler            A function to schedule a next action after
+ *                                   an action concludes if there is no pending
+ *                                   action (may be NULL)
+ * @param [in]  vdo                  The vdo used to initialize completions
+ * @param [out] manager_ptr          A pointer to hold the new action manager
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int make_vdo_action_manager(zone_count_t zones,
 			    vdo_zone_thread_getter *get_zone_thread_id,
 			    thread_id_t initiator_thread_id,
@@ -162,14 +179,28 @@ int make_vdo_action_manager(zone_count_t zones,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Get the current operation an action manager is performing.
+ *
+ * @param manager  The manager to query
+ *
+ * @return The manager's current operation
+ **/
 const struct admin_state_code *
 get_current_vdo_manager_operation(struct action_manager *manager)
 {
 	return get_vdo_admin_state_code(&manager->state);
 }
 
-/**********************************************************************/
+/**
+ * Get the action-specific context for the operation an action manager is
+ * currently performing.
+ *
+ * @param manager  The manager to query
+ *
+ * @return The action-specific context for the manager's current action or
+ *         NULL if there is no context or no current action
+ **/
 void *get_current_vdo_action_context(struct action_manager *manager)
 {
 	return (manager->current_action->in_use ?
@@ -303,7 +334,14 @@ static void launch_current_action(struct action_manager *manager)
 	action->preamble(manager->context, &manager->completion);
 }
 
-/**********************************************************************/
+/**
+ * Attempt to schedule the default action. If the manager is not operating
+ * normally, the action will not be scheduled.
+ *
+ * @param manager  The action manager
+ *
+ * @return <code>true</code> if an action was scheduled.
+ **/
 bool schedule_vdo_default_action(struct action_manager *manager)
 {
 	/*
@@ -350,7 +388,25 @@ static void finish_action_callback(struct vdo_completion *completion)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Schedule an action to be applied to all zones. The action will be launched
+ * immediately if there is no current action, or as soon as the current action
+ * completes. If there is already a pending action, this action will not be
+ * scheduled, and, if it has a parent, that parent will be notified. At least
+ * one of the preamble, action, or conclusion must not be NULL.
+ *
+ * @param manager     The action manager to schedule the action on
+ * @param preamble    A method to be invoked on the initiator thread once this
+ *                    action is started but before applying to each zone; may
+ *                    be NULL
+ * @param action      The action to apply to each zone; may be NULL
+ * @param conclusion  A method to be invoked back on the initiator thread once
+ *                    the action has been applied to all zones; may be NULL
+ * @param parent      The object to notify once the action is complete or if
+ *                    the action can not be scheduled; may be NULL
+ *
+ * @return <code>true</code> if the action was scheduled
+ **/
 bool schedule_vdo_action(struct action_manager *manager,
 			 vdo_action_preamble *preamble,
 			 vdo_zone_action *action,
@@ -365,7 +421,27 @@ bool schedule_vdo_action(struct action_manager *manager,
 				      parent);
 }
 
-/**********************************************************************/
+/**
+ * Schedule an operation to be applied to all zones. The operation's action
+ * will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this
+ * operation will not be scheduled, and, if it has a parent, that parent will
+ * be notified. At least one of the preamble, action, or conclusion must not
+ * be NULL.
+ *
+ * @param manager     The action manager to schedule the action on
+ * @param operation   The operation this action will perform
+ * @param preamble    A method to be invoked on the initiator thread once this
+ *                    action is started but before applying to each zone; may
+ *                    be NULL
+ * @param action      The action to apply to each zone; may be NULL
+ * @param conclusion  A method to be invoked back on the initiator thread once
+ *                    the action has been applied to all zones; may be NULL
+ * @param parent      The object to notify once the action is complete or if
+ *                    the action can not be scheduled; may be NULL
+ *
+ * @return <code>true</code> if the action was scheduled
+ **/
 bool schedule_vdo_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
@@ -382,7 +458,29 @@ bool schedule_vdo_operation(struct action_manager *manager,
 						   parent);
 }
 
-/**********************************************************************/
+/**
+ * Schedule an operation to be applied to all zones. The operation's action
+ * will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this
+ * operation will not be scheduled, and, if it has a parent, that parent will
+ * be notified. At least one of the preamble, action, or conclusion must not
+ * be NULL.
+ *
+ * @param manager     The action manager to schedule the action on
+ * @param operation   The operation this action will perform
+ * @param preamble    A method to be invoked on the initiator thread once this
+ *                    action is started but before applying to each zone; may
+ *                    be NULL
+ * @param action      The action to apply to each zone; may be NULL
+ * @param conclusion  A method to be invoked back on the initiator thread once
+ *                    the action has been applied to all zones; may be NULL
+ * @param context     An action-specific context which may be retrieved via
+ *                    get_current_vdo_action_context(); may be NULL
+ * @param parent      The object to notify once the action is complete or if
+ *                    the action can not be scheduled; may be NULL
+ *
+ * @return <code>true</code> if the action was scheduled
+ **/
 bool
 schedule_vdo_operation_with_context(struct action_manager *manager,
 				    const struct admin_state_code *operation,

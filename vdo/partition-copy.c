@@ -80,7 +80,14 @@ static void free_copy_completion(struct copy_completion *copy)
 	UDS_FREE(copy);
 }
 
-/**********************************************************************/
+/**
+ * Make a copy completion.
+ *
+ * @param [in]  vdo             The VDO on which the partitions reside
+ * @param [out] completion_ptr  A pointer to hold the copy completion
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_copy_completion(struct vdo *vdo,
 			     struct vdo_completion **completion_ptr)
 {
@@ -118,7 +125,11 @@ int make_vdo_copy_completion(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a copy completion.
+ *
+ * @param completion  The completion to free
+ **/
 void free_vdo_copy_completion(struct vdo_completion *completion)
 {
 	if (completion == NULL) {
@@ -128,7 +139,6 @@ void free_vdo_copy_completion(struct vdo_completion *completion)
 	free_copy_completion(as_copy_completion(UDS_FORGET(completion)));
 }
 
-/**********************************************************************/
 static void copy_partition_stride(struct copy_completion *copy);
 
 /**
@@ -241,7 +251,14 @@ static int validate_partition_copy(struct partition *source,
 		      "target partition must not overlap source partition");
 }
 
-/**********************************************************************/
+/**
+ * Copy a partition.
+ *
+ * @param completion    The copy completion to use
+ * @param source        The partition to copy from
+ * @param target        The partition to copy to
+ * @param parent        The parent to finish when the copy is complete
+ **/
 void copy_vdo_partition(struct vdo_completion *completion,
 			struct partition *source,
 			struct partition *target,

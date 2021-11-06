@@ -910,7 +910,15 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 	add_synthesized_entries(completion);
 }
 
-/**********************************************************************/
+/**
+ * Replay recovery journal entries in the slab journals of slabs owned by a
+ * given block_allocator.
+ *
+ * @param allocator   The allocator whose slab journals are to be recovered
+ * @param completion  The completion to use for waiting on slab journal space
+ * @param context     The slab depot load context supplied by a recovery when
+ *                    it loads the depot
+ **/
 void vdo_replay_into_slab_journals(struct block_allocator *allocator,
 				   struct vdo_completion *completion,
 				   void *context)
@@ -1538,7 +1546,15 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	invoke_vdo_completion_callback(completion);
 }
 
-/**********************************************************************/
+/**
+ * Construct a recovery completion and launch it. Apply all valid journal block
+ * entries to all vdo structures. This function performs the offline portion of
+ * recovering a vdo from a crash.
+ *
+ * @param vdo     The vdo to recover
+ * @param parent  The completion to notify when the offline portion of the
+ *                recovery is complete
+ **/
 void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct recovery_completion *recovery;

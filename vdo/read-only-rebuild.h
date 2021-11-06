@@ -23,14 +23,6 @@
 #include "completion.h"
 #include "vdo.h"
 
-/**
- * Construct a read_only_rebuild_completion and launch it. Apply all valid
- * journal block entries to all vdo structures. Must be launched from logical
- * zone 0.
- *
- * @param vdo           The vdo to rebuild
- * @param parent        The completion to notify when the rebuild is complete
- **/
 void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif /* READ_ONLY_REBUILD_H */

@@ -23,13 +23,6 @@
 #include "slab-iterator.h"
 #include "types.h"
 
-/**
- * Begin erasing slab journals, one at a time.
- *
- * @param depot         The depot from which to erase
- * @param slabs         The slabs whose journals need erasing
- * @param parent        The object to notify when complete
- **/
 void erase_vdo_slab_journals(struct slab_depot *depot,
 			     struct slab_iterator slabs,
 			     struct vdo_completion *parent);

@@ -180,18 +180,6 @@ assert_vio_in_bio_zone(struct vio *vio)
 			expected);
 }
 
-/**
- * Create a vio.
- *
- * @param [in]  vdo        The vdo on which the vio will operate
- * @param [in]  vio_type   The type of vio to create
- * @param [in]  priority   The relative priority to assign to the vio
- * @param [in]  parent     The parent of the vio
- * @param [in]  data       The buffer
- * @param [out] vio_ptr    A pointer to hold the new vio
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check create_metadata_vio(struct vdo *vdo,
 				     enum vio_type vio_type,
 				     enum vio_priority priority,
@@ -199,25 +187,8 @@ int __must_check create_metadata_vio(struct vdo *vdo,
 				     char *data,
 				     struct vio **vio_ptr);
 
-/**
- * Destroy a vio.
- *
- * @param vio  The vio to destroy
- **/
 void free_vio(struct vio *vio);
 
-/**
- * Initialize a vio.
- *
- * @param vio       The vio to initialize
- * @param bio       The bio this vio should use for its I/O
- * @param vio_type  The vio type
- * @param priority  The relative priority of the vio
- * @param parent    The parent (the extent completion) to assign to the vio
- *                  completion
- * @param vdo       The vdo for this vio
- * @param data      The data buffer for this vio
- **/
 void initialize_vio(struct vio *vio,
 		    struct bio *bio,
 		    enum vio_type vio_type,
@@ -226,31 +197,10 @@ void initialize_vio(struct vio *vio,
 		    struct vdo *vdo,
 		    char *data);
 
-/**
- * The very last step in processing a vio. Set the vio's completion's callback
- * and error handler from the fields set in the vio itself on launch and then
- * actually complete the vio's completion.
- *
- * @param completion  The vio
- **/
 void vio_done_callback(struct vdo_completion *completion);
 
-/**
- * Get the description of a vio's operation.
- *
- * The output buffer must have size VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH.
- *
- * @param vio     The vio
- * @param buffer  The buffer to populate with the vio operation name.
- **/
 void get_vio_operation_description(const struct vio *vio, char *buffer);
 
-/**
- * Update per-vio error stats and log the error.
- *
- * @param vio     The vio which got an error
- * @param format  The format of the message to log (a printf style format)
- **/
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
@@ -357,15 +307,6 @@ static inline bool vio_requires_flush_after(const struct vio *vio)
 	return ((vio->operation & VIO_FLUSH_AFTER) == VIO_FLUSH_AFTER);
 }
 
-/**
- * Launch a metadata vio.
- *
- * @param vio            The vio to launch
- * @param physical       The physical block number to read or write
- * @param callback       The function to call when the vio completes its I/O
- * @param error_handler  The handler for write errors
- * @param operation      The operation to perform (read or write)
- **/
 void launch_metadata_vio(struct vio *vio,
 			 physical_block_number_t physical,
 			 vdo_action *callback,

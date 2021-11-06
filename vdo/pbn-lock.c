@@ -64,7 +64,13 @@ static inline bool has_lock_type(const struct pbn_lock *lock,
 	return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
 }
 
-/**********************************************************************/
+/**
+ * Check whether a pbn_lock is a read lock.
+ *
+ * @param lock  The lock to check
+ *
+ * @return <code>true</code> if the lock is a read lock
+ **/
 bool is_vdo_pbn_read_lock(const struct pbn_lock *lock)
 {
 	return has_lock_type(lock, VIO_READ_LOCK);
@@ -77,14 +83,24 @@ static inline void set_pbn_lock_type(struct pbn_lock *lock,
 	lock->implementation = &LOCK_IMPLEMENTATIONS[type];
 }
 
-/**********************************************************************/
+/**
+ * Initialize a pbn_lock.
+ *
+ * @param lock  The lock to initialize
+ * @param type  The type of the lock
+ **/
 void initialize_vdo_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
 {
 	lock->holder_count = 0;
 	set_pbn_lock_type(lock, type);
 }
 
-/**********************************************************************/
+/**
+ * Downgrade a PBN write lock to a PBN read lock. The lock holder count is
+ * cleared and the caller is responsible for setting the new count.
+ *
+ * @param lock  The PBN write lock to downgrade
+ **/
 void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock)
 {
 	ASSERT_LOG_ONLY(!is_vdo_pbn_read_lock(lock),
@@ -113,7 +129,16 @@ void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock)
 	set_pbn_lock_type(lock, VIO_READ_LOCK);
 }
 
-/**********************************************************************/
+/**
+ * Try to claim one of the available reference count increments on a read
+ * lock. Claims may be attempted from any thread. A claim is only valid until
+ * the PBN lock is released.
+ *
+ * @param lock  The PBN read lock from which to claim an increment
+ *
+ * @return <code>true</code> if the claim succeeded, guaranteeing one
+ *         increment can be made without overflowing the PBN's reference count
+ **/
 bool claim_vdo_pbn_lock_increment(struct pbn_lock *lock)
 {
 	/*
@@ -129,7 +154,11 @@ bool claim_vdo_pbn_lock_increment(struct pbn_lock *lock)
 	return (claim_number <= lock->increment_limit);
 }
 
-/**********************************************************************/
+/**
+ * Inform a PBN lock that it is responsible for a provisional reference.
+ *
+ * @param lock  The PBN lock
+ **/
 void assign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
 {
 	ASSERT_LOG_ONLY(!lock->has_provisional_reference,
@@ -137,13 +166,25 @@ void assign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
 	lock->has_provisional_reference = true;
 }
 
-/**********************************************************************/
+/**
+ * Inform a PBN lock that it is no longer responsible for a provisional
+ * reference.
+ *
+ * @param lock  The PBN lock
+ **/
 void unassign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
 {
 	lock->has_provisional_reference = false;
 }
 
-/**********************************************************************/
+/**
+ * If the lock is responsible for a provisional reference, release that
+ * reference. This method is called when the lock is released.
+ *
+ * @param lock        The lock
+ * @param locked_pbn  The PBN covered by the lock
+ * @param allocator   The block allocator from which to release the reference
+ **/
 void release_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock,
 						physical_block_number_t locked_pbn,
 						struct block_allocator *allocator)

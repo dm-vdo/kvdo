@@ -46,7 +46,9 @@ struct device_registry {
 
 static struct device_registry registry;
 
-/**********************************************************************/
+/**
+ * Initialize the necessary structures for the device registry.
+ **/
 void initialize_vdo_device_registry_once(void)
 {
 	INIT_LIST_HEAD(&registry.links);
@@ -84,7 +86,13 @@ filter_vdos_locked(vdo_filter_t *filter, void *context)
 	return NULL;
 }
 
-/**********************************************************************/
+/**
+ * Register a VDO; it must not already be registered.
+ *
+ * @param vdo  The vdo to register
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int register_vdo(struct vdo *vdo)
 {
 	int result;
@@ -101,7 +109,11 @@ int register_vdo(struct vdo *vdo)
 	return result;
 }
 
-/**********************************************************************/
+/**
+ * Remove a vdo from the device registry.
+ *
+ * @param vdo  The vdo to remove
+ **/
 void unregister_vdo(struct vdo *vdo)
 {
 	write_lock(&registry.lock);
@@ -112,7 +124,12 @@ void unregister_vdo(struct vdo *vdo)
 	write_unlock(&registry.lock);
 }
 
-/**********************************************************************/
+/**
+ * Find and return the first (if any) vdo matching a given filter function.
+ *
+ * @param filter   The filter function to apply to vdos
+ * @param context  A bit of context to provide the filter
+ **/
 struct vdo *find_vdo_matching(vdo_filter_t *filter, void *context)
 {
 	struct vdo *vdo;

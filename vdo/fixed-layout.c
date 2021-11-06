@@ -70,7 +70,16 @@ static const struct header LAYOUT_HEADER_3_0 = {
 					   /* (contains no partitions) */
 };
 
-/**********************************************************************/
+/**
+ * Make an unpartitioned fixed layout.
+ *
+ * @param [in]  total_blocks  The total size of the layout, in blocks
+ * @param [in]  start_offset  The block offset in the underlying layer at which
+ *                            the fixed layout begins
+ * @param [out] layout_ptr    The pointer to hold the resulting layout
+ *
+ * @return a success or error code
+ **/
 int make_vdo_fixed_layout(block_count_t total_blocks,
 			  physical_block_number_t start_offset,
 			  struct fixed_layout **layout_ptr)
@@ -91,7 +100,13 @@ int make_vdo_fixed_layout(block_count_t total_blocks,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a fixed layout.
+ *
+ * @param layout  The layout to free
+ *
+ * @note all partitions created by this layout become invalid pointers
+ **/
 void free_vdo_fixed_layout(struct fixed_layout *layout)
 {
 	if (layout == NULL) {
@@ -108,7 +123,13 @@ void free_vdo_fixed_layout(struct fixed_layout *layout)
 	UDS_FREE(layout);
 }
 
-/**********************************************************************/
+/**
+ * Get the total size of the layout in blocks.
+ *
+ * @param layout  The layout
+ *
+ * @return The size of the layout
+ **/
 block_count_t get_total_vdo_fixed_layout_size(const struct fixed_layout *layout)
 {
 	block_count_t size = get_vdo_fixed_layout_blocks_available(layout);
@@ -122,7 +143,15 @@ block_count_t get_total_vdo_fixed_layout_size(const struct fixed_layout *layout)
 	return size;
 }
 
-/**********************************************************************/
+/**
+ * Get a partition by id.
+ *
+ * @param layout         The layout from which to get a partition
+ * @param id             The id of the partition
+ * @param partition_ptr  A pointer to hold the partition
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int vdo_get_partition(struct fixed_layout *layout,
 		      enum partition_id id,
 		      struct partition **partition_ptr)
@@ -142,7 +171,15 @@ int vdo_get_partition(struct fixed_layout *layout,
 	return VDO_UNKNOWN_PARTITION;
 }
 
-/**********************************************************************/
+/**
+ * Translate a block number from the partition's view to the layer's
+ *
+ * @param partition               The partition to use for translation
+ * @param partition_block_number  The block number relative to the partition
+ * @param layer_block_number      The block number relative to the layer
+ *
+ * @return  VDO_SUCCESS or an error code
+ **/
 int vdo_translate_to_pbn(const struct partition *partition,
 			 physical_block_number_t partition_block_number,
 			 physical_block_number_t *layer_block_number)
@@ -167,7 +204,16 @@ int vdo_translate_to_pbn(const struct partition *partition,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Translate a block number from the layer's view to the partition's.
+ * This is the inverse of vdo_translate_to_pbn().
+ *
+ * @param partition               The partition to use for translation
+ * @param layer_block_number      The block number relative to the layer
+ * @param partition_block_number  The block number relative to the partition
+ *
+ * @return  VDO_SUCCESS or an error code
+ **/
 int vdo_translate_from_pbn(const struct partition *partition,
 			   physical_block_number_t layer_block_number,
 			   physical_block_number_t *partition_block_number_ptr)
@@ -192,7 +238,13 @@ int vdo_translate_from_pbn(const struct partition *partition,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Return the number of unallocated blocks available.
+ *
+ * @param layout        the fixed layout
+ *
+ * @return the number of blocks yet unallocated to partitions
+ **/
 block_count_t
 get_vdo_fixed_layout_blocks_available(const struct fixed_layout *layout)
 {
@@ -235,7 +287,22 @@ static int allocate_partition(struct fixed_layout *layout,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Create a new partition from the beginning or end of the unused space
+ * within a fixed layout.
+ *
+ * @param   layout           the fixed layout
+ * @param   id               the id of the partition to make
+ * @param   block_count      the number of blocks to carve out, if set
+ *                           to VDO_ALL_FREE_BLOCKS, all remaining blocks will
+ *                           be used
+ * @param   direction        whether to carve out from beginning or end
+ * @param   base             the number of the first block in the partition
+ *                           from the point of view of its users
+ *
+ * @return a success or error code, particularly
+ *      VDO_NO_SPACE if there are less than block_count blocks remaining
+ **/
 int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
 				    enum partition_id id,
 				    block_count_t block_count,
@@ -279,28 +346,53 @@ int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Return the size in blocks of a partition.
+ *
+ * @param partition       a partition of the fixed_layout
+ *
+ * @return the size of the partition in blocks
+ **/
 block_count_t
 get_vdo_fixed_layout_partition_size(const struct partition *partition)
 {
 	return partition->count;
 }
 
-/**********************************************************************/
+/**
+ * Get the first block of the partition in the layout.
+ *
+ * @param partition       a partition of the fixed_layout
+ *
+ * @return the partition's offset in blocks
+ **/
 physical_block_number_t
 get_vdo_fixed_layout_partition_offset(const struct partition *partition)
 {
 	return partition->offset;
 }
 
-/**********************************************************************/
+/**
+ * Get the number of the first block in the partition from the partition users
+ * point of view.
+ *
+ * @param partition  a partition of the fixed_layout
+ *
+ * @return the number of the first block in the partition
+ **/
 physical_block_number_t
 get_vdo_fixed_layout_partition_base(const struct partition *partition)
 {
 	return partition->base;
 }
 
-/**********************************************************************/
+/**
+ * Get the size of an encoded layout
+ *
+ * @param layout  The layout
+ *
+ * @return The encoded size of the layout
+ **/
 static inline size_t get_encoded_size(const struct fixed_layout *layout)
 {
 	return sizeof(struct layout_3_0) +
@@ -388,7 +480,14 @@ static int encode_layout_3_0(const struct fixed_layout *layout,
 	return put_byte(buffer, layout->num_partitions);
 }
 
-/**********************************************************************/
+/**
+ * Encode a layout into a buffer.
+ *
+ * @param layout  The layout to encode
+ * @param buffer  The buffer to encode into
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int encode_vdo_fixed_layout(const struct fixed_layout *layout,
 			    struct buffer *buffer)
 {
@@ -521,7 +620,14 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 		      "decoded size of fixed layout header must match structure");
 }
 
-/**********************************************************************/
+/**
+ * Decode a fixed layout from a buffer.
+ *
+ * @param [in]  buffer      The buffer from which to decode
+ * @param [out] layout_ptr  A pointer to hold the layout
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int decode_vdo_fixed_layout(struct buffer *buffer,
 			    struct fixed_layout **layout_ptr)
 {
@@ -570,7 +676,18 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Make a partitioned fixed layout for a VDO.
+ *
+ * @param [in]  physical_blocks   The number of physical blocks in the VDO
+ * @param [in]  starting_offset   The starting offset of the layout
+ * @param [in]  block_map_blocks  The size of the block map partition
+ * @param [in]  journal_blocks    The size of the journal partition
+ * @param [in]  summary_blocks    The size of the slab summary partition
+ * @param [out] layout_ptr        A pointer to hold the new fixed_layout
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 				      physical_block_number_t starting_offset,
 				      block_count_t block_map_blocks,

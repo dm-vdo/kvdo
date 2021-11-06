@@ -216,46 +216,15 @@ vio_launch_physical_zone_callback(struct allocating_vio *allocating_vio,
 	invoke_vdo_completion_callback(allocating_vio_as_completion(allocating_vio));
 }
 
-/**
- * Allocate a data block to an allocating_vio.
- *
- * @param allocating_vio   The allocating_vio which needs an allocation
- * @param selector         The allocation selector for deciding which physical
- *                         zone to allocate from
- * @param write_lock_type  The type of write lock to obtain on the block
- * @param callback         The function to call once the allocation is complete
- **/
 void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 			     struct allocation_selector *selector,
 			     enum pbn_lock_type write_lock_type,
 			     vdo_action *callback);
 
-/**
- * Release the PBN lock on the allocated block. If the reference to the locked
- * block is still provisional, it will be released as well.
- *
- * @param allocating_vio  The lock holder
- **/
 void vio_release_allocation_lock(struct allocating_vio *allocating_vio);
 
-/**
- * Reset an allocating_vio after it has done an allocation.
- *
- * @param allocating_vio  The allocating_vio
- **/
 void vio_reset_allocation(struct allocating_vio *allocating_vio);
 
-/**
- * Create a new allocating_vio for compressed writes.
- *
- * @param [in]  vdo                 The vdo
- * @param [in]  parent              The parent to assign to the allocating_vio's
- *                                  completion
- * @param [in]  data                The buffer
- * @param [out] allocating_vio_ptr  A pointer to hold new allocating_vio
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check
 create_compressed_write_vio(struct vdo *vdo,
 			    void *parent,

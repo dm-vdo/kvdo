@@ -39,27 +39,11 @@ struct allocation_selector {
 	zone_count_t last_physical_zone;
 };
 
-/**
- * Make a new allocation selector.
- *
- * @param [in]  physical_zone_count  The number of physical zones
- * @param [in]  thread_id            The ID of the thread using this selector
- * @param [out] selector_ptr         A pointer to receive the new selector
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check
 make_vdo_allocation_selector(zone_count_t physical_zone_count,
 			     thread_id_t thread_id,
 			     struct allocation_selector **selector_ptr);
 
-/**
- * Get number of the physical zone from which to allocate next.
- *
- * @param selector  The selector to query
- *
- * @return The number of the physical zone from which to allocate
- **/
 zone_count_t __must_check
 get_next_vdo_allocation_zone(struct allocation_selector *selector);
 

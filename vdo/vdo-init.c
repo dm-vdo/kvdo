@@ -38,7 +38,13 @@
 #include "vdo.h"
 #include "volume-geometry.h"
 
-/**********************************************************************/
+/**
+ * Get the device name associated with the vdo target
+ *
+ * @param target  The target device interface
+ *
+ * @return The block device name
+ **/
 const char *get_vdo_device_name(const struct dm_target *target)
 {
 	return dm_device_name(dm_table_get_md(target->table));
@@ -95,7 +101,16 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Perform the first steps in initializing a vdo as part of device creation.
+ *
+ * @param vdo       The vdo being initialized
+  * @param config    The configuration of the vdo being initialized
+ * @param instance  The device instantiation counter
+ * @param reason    A pointer to hold an error message on failure
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int initialize_vdo(struct vdo *vdo,
 		   struct device_config *config,
 		   unsigned int instance,

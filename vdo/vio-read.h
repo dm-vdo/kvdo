@@ -22,20 +22,8 @@
 
 #include "kernel-types.h"
 
-/**
- * Start the asynchronous processing of the data_vio for a read or
- * read-modify-write request which has acquired a lock on its logical block.
- * The first step is to perform a block map lookup.
- *
- * @param data_vio  The data_vio doing the read
- **/
 void launch_read_data_vio(struct data_vio *data_vio);
 
-/**
- * Clean up a data_vio which has finished processing a read.
- *
- * @param data_vio  The data_vio to clean up
- **/
 void cleanup_read_data_vio(struct data_vio *data_vio);
 
 #endif /* VIO_READ_H */

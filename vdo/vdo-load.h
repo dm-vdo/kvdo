@@ -22,22 +22,8 @@
 
 #include "kernel-types.h"
 
-/**
- * Load a vdo for normal operation. This method must not be called from a base
- * thread.
- *
- * @param vdo  The vdo to load
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check load_vdo(struct vdo *vdo);
 
-/**
- * Perpare a vdo for loading by reading structures off disk. This method does
- * not alter the on-disk state. It should be called from the vdo constructor,
- * whereas perform_vdo_load() will be called during pre-resume if the vdo has
- * not been resumed before.
- **/
 int __must_check
 prepare_to_load_vdo(struct vdo *vdo);
 

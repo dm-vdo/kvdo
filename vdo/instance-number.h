@@ -20,30 +20,12 @@
 #ifndef INSTANCE_NUMBER_H
 #define INSTANCE_NUMBER_H
 
-/**
- * Allocate an instance number.
- *
- * @param [out] instance_ptr  An integer to hold the allocated instance number
- *
- * @result  UDS_SUCCESS or an error code
- **/
 int allocate_vdo_instance(unsigned int *instance_ptr);
 
-/**
- * Release an instance number previously allocated.
- *
- * @param instance  The instance number to release
- **/
 void release_vdo_instance(unsigned int instance);
 
-/**
- * Initialize the instance-number tracking data structures.
- **/
 void initialize_vdo_instance_number_tracking(void);
 
-/**
- * Free up the instance-number tracking data structures.
- **/
 void clean_up_vdo_instance_number_tracking(void);
 
 #endif /* INSTANCE_NUMBER_H */

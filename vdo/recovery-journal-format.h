@@ -40,45 +40,16 @@ struct recovery_journal_state_7_0 {
 
 extern const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0;
 
-/**
- * Get the size of the encoded state of a recovery journal.
- *
- * @return the encoded size of the journal's state
- **/
 size_t __must_check get_vdo_recovery_journal_encoded_size(void);
 
-/**
- * Encode the state of a recovery journal.
- *
- * @param state   the recovery journal state
- * @param buffer  the buffer to encode into
- *
- * @return VDO_SUCCESS or an error code
- **/
 int __must_check
 encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 				      struct buffer *buffer);
 
-/**
- * Decode the state of a recovery journal saved in a buffer.
- *
- * @param buffer  the buffer containing the saved state
- * @param state   a pointer to a recovery journal state to hold the result of a
- *                succesful decode
- *
- * @return VDO_SUCCESS or an error code
- **/
 int __must_check
 decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
 				      struct recovery_journal_state_7_0 *state);
 
-/**
- * Get the name of a journal operation.
- *
- * @param operation  The operation to name
- *
- * @return The name of the operation
- **/
 const char * __must_check
 get_vdo_journal_operation_name(enum journal_operation operation);
 

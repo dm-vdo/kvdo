@@ -45,7 +45,13 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 	.size = SUPER_BLOCK_FIXED_SIZE - VDO_ENCODED_HEADER_SIZE,
 };
 
-/**********************************************************************/
+/**
+ * Initialize a super block codec.
+ *
+ * @param codec  The codec to initialize
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 {
 	int result = make_buffer(MAX_COMPONENT_DATA_SIZE,
@@ -71,7 +77,11 @@ int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 			   &codec->block_buffer);
 }
 
-/**********************************************************************/
+/**
+ * Free resources in a super block codec.
+ *
+ * @param codec  The codec to clean up
+ **/
 void destroy_vdo_super_block_codec(struct super_block_codec *codec)
 {
 	free_buffer(UDS_FORGET(codec->block_buffer));
@@ -79,7 +89,13 @@ void destroy_vdo_super_block_codec(struct super_block_codec *codec)
 	UDS_FREE(codec->encoded_super_block);
 }
 
-/**********************************************************************/
+/**
+ * Encode a super block into its on-disk representation.
+ *
+ * @param codec  The super block codec
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int encode_vdo_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
@@ -120,7 +136,13 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Decode a super block from its on-disk representation.
+ *
+ * @param codec  The super block to decode
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int decode_vdo_super_block(struct super_block_codec *codec)
 {
 	struct header header;

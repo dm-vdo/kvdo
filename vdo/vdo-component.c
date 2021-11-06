@@ -64,7 +64,11 @@ struct packed_vdo_component_41_0 {
 	__le64 nonce;
 } __packed;
 
-/**********************************************************************/
+/**
+ * Get the size of the encoded state of the vdo itself.
+ *
+ * @return the encoded size of the vdo's state
+ **/
 size_t get_vdo_component_encoded_size(void)
 {
 	return (sizeof(struct packed_version_number)
@@ -113,7 +117,14 @@ pack_vdo_component(const struct vdo_component component)
 	};
 }
 
-/**********************************************************************/
+/**
+ * Encode the component data for the vdo itself.
+ *
+ * @param component  The component structure
+ * @param buffer     The buffer in which to encode the vdo
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int encode_vdo_component(struct vdo_component component, struct buffer *buffer)
 {
 	int result;
@@ -193,7 +204,16 @@ decode_vdo_component_41_0(struct buffer *buffer,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Decode the component data for the vdo itself from the component data buffer
+ * in the super block.
+ *
+ * @param buffer     The buffer being decoded
+ * @param component  The component structure in which to store
+ *                   the result of a successful decode
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int decode_vdo_component(struct buffer *buffer,
 			 struct vdo_component *component)
 {
@@ -213,7 +233,17 @@ int decode_vdo_component(struct buffer *buffer,
 	return decode_vdo_component_41_0(buffer, component);
 }
 
-/**********************************************************************/
+/**
+ * Validate constraints on a VDO config.
+ *
+ * @param config                The VDO config
+ * @param physical_block_count  The minimum block count of the underlying
+ *                              storage
+ * @param logical_block_count   The expected logical size of the VDO, or 0 if
+ *                              the logical size may be unspecified
+ *
+ * @return a success or error code
+ **/
 int validate_vdo_config(const struct vdo_config *config,
 			block_count_t physical_block_count,
 			block_count_t logical_block_count)

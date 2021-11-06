@@ -74,101 +74,24 @@ typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
  **/
 typedef uint32_t pointer_key_hasher(const void *key);
 
-/**
- * Allocate and initialize a pointer_map.
- *
- * @param [in]  initial_capacity  The number of entries the map should
- *                                initially be capable of holding (zero tells
- *                                the map to use its own small default)
- * @param [in]  initial_load      The load factor of the map, expressed as an
- *                                integer percentage (typically in the range
- *                                50 to 90, with zero telling the map to use
- *                                its own default)
- * @param [in]  comparator        The function to use to compare the referents
- *                                of two pointer keys for equality
- * @param [in]  hasher            The function to use obtain the hash code
- *                                associated with each pointer key
- * @param [out] map_ptr           A pointer to hold the new pointer_map
- *
- * @return UDS_SUCCESS or an error code
- **/
 int __must_check make_pointer_map(size_t initial_capacity,
 				  unsigned int initial_load,
 				  pointer_key_comparator comparator,
 				  pointer_key_hasher hasher,
 				  struct pointer_map **map_ptr);
 
-/**
- * Free a pointer_map. NOTE: The map does not own the pointer keys and values
- * stored in the map and they are not freed by this call.
- *
- * @param map  The pointer_map to free
- **/
 void free_pointer_map(struct pointer_map *map);
 
-/**
- * Get the number of entries stored in a pointer_map.
- *
- * @param map  The pointer_map to query
- *
- * @return the number of entries in the map
- **/
 size_t pointer_map_size(const struct pointer_map *map);
 
-/**
- * Retrieve the value associated with a given key from the pointer_map.
- *
- * @param map  The pointer_map to query
- * @param key  The key to look up (may be <code>NULL</code> if the
- *             comparator and hasher functions support it)
- *
- * @return the value associated with the given key, or <code>NULL</code>
- *         if the key is not mapped to any value
- **/
 void *pointer_map_get(struct pointer_map *map, const void *key);
 
-/**
- * Try to associate a value (a pointer) with an integer in a pointer_map.
- * If the map already contains a mapping for the provided key, the old value is
- * only replaced with the specified value if update is true. In either case
- * the old value is returned. If the map does not already contain a value for
- * the specified key, the new value is added regardless of the value of update.
- *
- * If the value stored in the map is updated, then the key stored in the map
- * will also be updated with the key provided by this call. The old key will
- * not be returned due to the memory managment assumptions described in the
- * interface header comment.
- *
- * @param [in]  map            The pointer_map to attempt to modify
- * @param [in]  key            The key with which to associate the new value
- *                             (may be <code>NULL</code> if the comparator and
- *                             hasher functions support it)
- * @param [in]  new_value      The value to be associated with the key
- * @param [in]  update         Whether to overwrite an existing value
- * @param [out] old_value_ptr  A pointer in which to store either the old value
- *                             (if the key was already mapped) or
- *                             <code>NULL</code> if the map did not contain the
- *                             key; <code>NULL</code> may be provided if the
- *                             caller does not need to know the old value
- *
- * @return UDS_SUCCESS or an error code
- **/
 int __must_check pointer_map_put(struct pointer_map *map,
 				 const void *key,
 				 void *new_value,
 				 bool update,
 				 void **old_value_ptr);
 
-/**
- * Remove the mapping for a given key from the pointer_map.
- *
- * @param map  The pointer_map from which to remove the mapping
- * @param key  The key whose mapping is to be removed (may be <code>NULL</code>
- *             if the comparator and hasher functions support it)
- *
- * @return the value that was associated with the key, or
- *         <code>NULL</code> if it was not mapped
- **/
 void *pointer_map_remove(struct pointer_map *map, const void *key);
 
 #endif /* POINTER_MAP_H */

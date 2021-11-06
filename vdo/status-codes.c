@@ -71,7 +71,6 @@ const struct error_info vdo_status_list[] = {
 static atomic_t vdo_status_codes_registered = ATOMIC_INIT(0);
 static int status_code_registration_result;
 
-/**********************************************************************/
 static void do_status_code_registration(void)
 {
 	int result;
@@ -99,14 +98,28 @@ static void do_status_code_registration(void)
 		(result == UDS_SUCCESS) ? VDO_SUCCESS : result;
 }
 
-/**********************************************************************/
+/**
+ * Register the VDO status codes if needed.
+ *
+ * @return a success or error code
+ **/
 int register_vdo_status_codes(void)
 {
 	perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
 }
 
-/**********************************************************************/
+/**
+ * Given an error code, return a value we can return to the OS.  The
+ * input error code may be a system-generated value (such as -EIO), an
+ * errno macro used in our code (such as EIO), or a UDS or VDO status
+ * code; the result must be something the rest of the OS can consume
+ * (negative errno values such as -EIO, in the case of the kernel).
+ *
+ * @param error  the error code to convert
+ *
+ * @return a system error code value
+ **/
 int vdo_map_to_system_error(int error)
 {
 	char error_name[80], error_message[ERRBUF_SIZE];

@@ -220,7 +220,17 @@ static void free_output_bin(struct output_bin *bin)
 	UDS_FREE(bin);
 }
 
-/**********************************************************************/
+/**
+ * Make a new block packer.
+ *
+ * @param [in]  vdo               The vdo to which this packer belongs
+ * @param [in]  input_bin_count   The number of partial bins to keep in memory
+ * @param [in]  output_bin_count  The number of compressed blocks that can be
+ *                                written concurrently
+ * @param [out] packer_ptr        A pointer to hold the new packer
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_packer(struct vdo *vdo,
 		    block_count_t input_bin_count,
 		    block_count_t output_bin_count,
@@ -290,7 +300,11 @@ int make_vdo_packer(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a block packer.
+ *
+ * @param packer  The packer to free
+ **/
 void free_vdo_packer(struct packer *packer)
 {
 	struct input_bin *input;
@@ -327,7 +341,13 @@ static inline struct packer *get_packer_from_data_vio(struct data_vio *data_vio)
 	return get_vdo_from_data_vio(data_vio)->packer;
 }
 
-/**********************************************************************/
+/**
+ * Check whether the compressed data in a data_vio will fit in a packer bin.
+ *
+ * @param data_vio  The data_vio
+ *
+ * @return <code>true</code> if the data_vio will fit in a bin
+ **/
 bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
@@ -335,7 +355,13 @@ bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 	return (data_vio->compression.size < packer->bin_data_size);
 }
 
-/**********************************************************************/
+/**
+ * Get the current statistics from the packer.
+ *
+ * @param packer  The packer to query
+ *
+ * @return a copy of the current statistics for the packer
+ **/
 struct packer_statistics get_vdo_packer_statistics(const struct packer *packer)
 {
 	const struct packer_statistics *stats = &packer->statistics;
@@ -885,7 +911,11 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 	return fullest_bin;
 }
 
-/**********************************************************************/
+/**
+ * Attempt to rewrite the data in this data_vio as part of a compressed block.
+ *
+ * @param data_vio  The data_vio to pack
+ **/
 void vdo_attempt_packing(struct data_vio *data_vio)
 {
 	int result;
@@ -967,7 +997,15 @@ static void write_all_non_empty_bins(struct packer *packer)
 	write_pending_batches(packer);
 }
 
-/**********************************************************************/
+/**
+ * Request that the packer flush asynchronously. All bins with at least two
+ * compressed data blocks will be written out, and any solitary pending VIOs
+ * will be released from the packer. While flushing is in progress, any VIOs
+ * submitted to vdo_attempt_packing() will be continued immediately without
+ * attempting to pack them.
+ *
+ * @param packer  The packer to flush
+ **/
 void flush_vdo_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -1007,7 +1045,13 @@ static void remove_from_vdo_packer(struct data_vio *data_vio)
 	check_for_drain_complete(packer);
 }
 
-/**********************************************************************/
+/**
+ * Remove a lock holder from the packer.
+ *
+ * @param completion  The data_vio which needs a lock held by a data_vio in the
+ *                    packer. The data_vio's compression.lock_holder field will
+ *                    point to the data_vio to remove.
+ **/
 void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -1020,7 +1064,13 @@ void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 	remove_from_vdo_packer(lock_holder);
 }
 
-/**********************************************************************/
+/**
+ * Increment the flush generation in the packer. This will also cause the
+ * packer to flush so that any VIOs from previous generations will exit the
+ * packer.
+ *
+ * @param packer  The packer
+ **/
 void increment_vdo_packer_flush_generation(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -1041,7 +1091,13 @@ static void initiate_drain(struct admin_state *state)
 	check_for_drain_complete(packer);
 }
 
-/**********************************************************************/
+/**
+ * Drain the packer by preventing any more VIOs from entering the packer and
+ * then flushing.
+ *
+ * @param packer      The packer to drain
+ * @param completion  The completion to finish when the packer has drained
+ **/
 void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -1049,7 +1105,12 @@ void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
 			   completion, initiate_drain);
 }
 
-/**********************************************************************/
+/**
+ * Resume a packer which has been suspended.
+ *
+ * @param packer  The packer to resume
+ * @param parent  The completion to finish when the packer has resumed
+ **/
 void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -1057,7 +1118,6 @@ void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
 }
 
 
-/**********************************************************************/
 static void dump_input_bin(const struct input_bin *bin, bool canceled)
 {
 	if (bin->slots_used == 0) {
@@ -1076,7 +1136,6 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 	 */
 }
 
-/**********************************************************************/
 static void dump_output_bin(const struct output_bin *bin)
 {
 	size_t count = count_waiters(&bin->outgoing);
@@ -1098,7 +1157,11 @@ static void dump_output_bin(const struct output_bin *bin)
 	/* XXX dump writer vio? */
 }
 
-/**********************************************************************/
+/**
+ * Dump the packer, in a thread-unsafe fashion.
+ *
+ * @param packer  The packer
+ **/
 void dump_vdo_packer(const struct packer *packer)
 {
 	struct input_bin *input;

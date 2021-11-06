@@ -121,7 +121,12 @@ static void prioritize_slab(struct vdo_slab *slab)
 			       &slab->allocq_entry);
 }
 
-/**********************************************************************/
+/**
+ * Register a slab with the allocator, ready for use.
+ *
+ * @param allocator  The allocator to use
+ * @param slab       The slab in question
+ **/
 void register_vdo_slab_with_allocator(struct block_allocator *allocator,
 				      struct vdo_slab *slab)
 {
@@ -277,7 +282,20 @@ static int allocate_components(struct block_allocator *allocator,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Create a block allocator.
+ *
+ * @param [in]  depot               The slab depot for this allocator
+ * @param [in]  zone_number         The physical zone number for this allocator
+ * @param [in]  thread_id           The thread ID for this allocator's zone
+ * @param [in]  nonce               The nonce of the VDO
+ * @param [in]  vio_pool_size       The size of the VIO pool
+ * @param [in]  vdo                 The VDO
+ * @param [in]  read_only_notifier  The context for entering read-only mode
+ * @param [out] allocator_ptr       A pointer to hold the allocator
+ *
+ * @return A success or error code
+ **/
 int make_vdo_block_allocator(struct slab_depot *depot,
 			     zone_count_t zone_number,
 			     thread_id_t thread_id,
@@ -313,7 +331,11 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Destroy a block allocator.
+ *
+ * @param allocator  The allocator to destroy
+ **/
 void free_vdo_block_allocator(struct block_allocator *allocator)
 {
 	if (allocator == NULL) {
@@ -341,20 +363,37 @@ get_data_block_count(const struct block_allocator *allocator)
 		allocator->depot->slab_config.data_blocks);
 }
 
-/**********************************************************************/
+/**
+ * Get the number of allocated blocks, which is the total number of
+ * blocks in all slabs that have a non-zero reference count.
+ *
+ * @param allocator  The block allocator
+ *
+ * @return The number of blocks with a non-zero reference count
+ **/
 block_count_t get_vdo_allocated_blocks(const struct block_allocator *allocator)
 {
 	return READ_ONCE(allocator->allocated_blocks);
 }
 
-/**********************************************************************/
+/**
+ * Get the number of unrecovered slabs.
+ *
+ * @param allocator  The block allocator
+ *
+ * @return The number of slabs that are unrecovered
+ **/
 block_count_t
 get_vdo_unrecovered_slab_count(const struct block_allocator *allocator)
 {
 	return get_scrubber_vdo_slab_count(allocator->slab_scrubber);
 }
 
-/**********************************************************************/
+/**
+ * Queue a slab for allocation or scrubbing.
+ *
+ * @param slab  The slab to queue
+ **/
 void queue_vdo_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
@@ -398,7 +437,15 @@ void queue_vdo_slab(struct vdo_slab *slab)
 	prioritize_slab(slab);
 }
 
-/**********************************************************************/
+/**
+ * Update the block allocator to reflect an increment or decrement of the free
+ * block count in a slab. This adjusts the allocated block count and
+ * reprioritizes the slab when appropriate.
+ *
+ * @param slab       The slab whose free block count changed
+ * @param increment  True if the free block count went up by one,
+ *                   false if it went down by one
+ **/
 void adjust_vdo_free_block_count(struct vdo_slab *slab, bool increment)
 {
 	struct block_allocator *allocator = slab->allocator;
@@ -461,7 +508,19 @@ static int allocate_slab_block(struct vdo_slab *slab,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Allocate a physical block.
+ *
+ * The block allocated will have a provisional reference and the reference
+ * must be either confirmed with a subsequent increment or vacated with a
+ * subsequent decrement of the reference count.
+ *
+ * @param [in]  allocator         The block allocator
+ * @param [out] block_number_ptr  A pointer to receive the allocated block
+ *                                number
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
 int allocate_vdo_block(struct block_allocator *allocator,
 		       physical_block_number_t *block_number_ptr)
 {
@@ -492,7 +551,13 @@ int allocate_vdo_block(struct block_allocator *allocator,
 	return allocate_slab_block(allocator->open_slab, block_number_ptr);
 }
 
-/**********************************************************************/
+/**
+ * Release an unused provisional reference.
+ *
+ * @param allocator  The block allocator
+ * @param pbn        The block to dereference
+ * @param why        Why the block was referenced (for logging)
+ **/
 void release_vdo_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why)
@@ -702,7 +767,11 @@ static void initiate_load(struct admin_state *state)
 	apply_to_slabs(allocator, finish_loading_allocator);
 }
 
-/**********************************************************************/
+/**
+ * Load the state of an allocator from disk.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void load_vdo_block_allocator(void *context,
 			      zone_count_t zone_number,
 			      struct vdo_completion *parent)
@@ -716,7 +785,13 @@ void load_vdo_block_allocator(void *context,
 		initiate_load);
 }
 
-/**********************************************************************/
+/**
+ * Inform a block allocator that its slab journals have been recovered from the
+ * recovery journal.
+ *
+ * @param allocator  The allocator to inform
+ * @param result     The result of the recovery operation
+ **/
 void notify_vdo_slab_journals_are_recovered(struct block_allocator *allocator,
 					    int result)
 {
@@ -790,7 +865,11 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Prepare the block allocator to come online and start allocating blocks.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void prepare_vdo_block_allocator_to_allocate(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent)
@@ -811,7 +890,11 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 				      finish_vdo_completion_parent_callback);
 }
 
-/**********************************************************************/
+/**
+ * Register the new slabs belonging to this allocator.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void register_new_vdo_slabs_for_allocator(void *context,
 					  zone_count_t zone_number,
 					  struct vdo_completion *parent)
@@ -887,7 +970,13 @@ static void initiate_drain(struct admin_state *state)
 	do_drain_step(&allocator->completion);
 }
 
-/**********************************************************************/
+/**
+ * Drain all allocator I/O. Depending upon the type of drain, some or all
+ * dirty metadata may be written to disk. The type of drain will be determined
+ * from the state of the allocator's depot.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void drain_vdo_block_allocator(void *context,
 			       zone_count_t zone_number,
 			       struct vdo_completion *parent)
@@ -953,7 +1042,11 @@ static void initiate_resume(struct admin_state *state)
 	do_resume_step(&allocator->completion);
 }
 
-/**********************************************************************/
+/**
+ * Resume a quiescent allocator.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void resume_vdo_block_allocator(void *context,
 				zone_count_t zone_number,
 				struct vdo_completion *parent)
@@ -966,7 +1059,12 @@ void resume_vdo_block_allocator(void *context,
 			   initiate_resume);
 }
 
-/**********************************************************************/
+/**
+ * Request a commit of all dirty tail blocks which are locking a given recovery
+ * journal block.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void release_vdo_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent)
@@ -984,28 +1082,50 @@ void release_vdo_tail_block_locks(void *context,
 	complete_vdo_completion(parent);
 }
 
-/**********************************************************************/
+/**
+ * Get the slab summary zone for an allocator.
+ *
+ * @param allocator  The allocator
+ *
+ * @return The slab_summary_zone for that allocator
+ **/
 struct slab_summary_zone *
 get_vdo_slab_summary_zone(const struct block_allocator *allocator)
 {
 	return allocator->summary;
 }
 
-/**********************************************************************/
+/**
+ * Acquire a VIO from a block allocator's VIO pool (asynchronous).
+ *
+ * @param allocator  The allocator from which to get a VIO
+ * @param waiter     The object requesting the VIO
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int acquire_vdo_block_allocator_vio(struct block_allocator *allocator,
 				    struct waiter *waiter)
 {
 	return acquire_vio_from_pool(allocator->vio_pool, waiter);
 }
 
-/**********************************************************************/
+/**
+ * Return a VIO to a block allocator's VIO pool
+ *
+ * @param allocator  The block allocator which owns the VIO
+ * @param entry      The VIO being returned
+ **/
 void return_vdo_block_allocator_vio(struct block_allocator *allocator,
 				    struct vio_pool_entry *entry)
 {
 	return_vio_to_pool(allocator->vio_pool, entry);
 }
 
-/**********************************************************************/
+/**
+ * Initiate scrubbing all unrecovered slabs.
+ *
+ * <p>Implements vdo_zone_action.
+ **/
 void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent)
@@ -1019,21 +1139,39 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 	complete_vdo_completion(parent);
 }
 
-/**********************************************************************/
+/**
+ * Queue a waiter for a clean slab.
+ *
+ * @param allocator  The allocator to wait on
+ * @param waiter     The waiter
+ *
+ * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
+ *         slabs to scrub, and some other error otherwise
+ **/
 int enqueue_for_clean_vdo_slab(struct block_allocator *allocator,
 			       struct waiter *waiter)
 {
 	return enqueue_clean_vdo_slab_waiter(allocator->slab_scrubber, waiter);
 }
 
-/**********************************************************************/
+/**
+ * Increase the scrubbing priority of a slab.
+ *
+ * @param slab  The slab
+ **/
 void increase_vdo_slab_scrubbing_priority(struct vdo_slab *slab)
 {
 	vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
 }
 
 
-/**********************************************************************/
+/**
+ * Get the statistics for this allocator.
+ *
+ * @param allocator  The allocator to query
+ *
+ * @return A copy of the current statistics for the allocator
+ **/
 struct block_allocator_statistics
 get_vdo_block_allocator_statistics(const struct block_allocator *allocator)
 {
@@ -1046,7 +1184,13 @@ get_vdo_block_allocator_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**********************************************************************/
+/**
+ * Get the aggregated slab journal statistics for the slabs in this allocator.
+ *
+ * @param allocator  The allocator to query
+ *
+ * @return A copy of the current statistics for the allocator
+ **/
 struct slab_journal_statistics
 get_vdo_slab_journal_statistics(const struct block_allocator *allocator)
 {
@@ -1061,7 +1205,13 @@ get_vdo_slab_journal_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**********************************************************************/
+/**
+ * Get the cumulative ref_counts statistics for the slabs in this allocator.
+ *
+ * @param allocator  The allocator to query
+ *
+ * @return A copy of the current statistics for the allocator
+ **/
 struct ref_counts_statistics
 get_vdo_ref_counts_statistics(const struct block_allocator *allocator)
 {
@@ -1072,7 +1222,11 @@ get_vdo_ref_counts_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**********************************************************************/
+/**
+ * Dump information about a block allocator to the log for debugging.
+ *
+ * @param allocator  The allocator to dump
+ **/
 void dump_vdo_block_allocator(const struct block_allocator *allocator)
 {
 	unsigned int pause_counter = 0;

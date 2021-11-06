@@ -41,38 +41,12 @@ struct super_block_codec {
 	byte *encoded_super_block;
 };
 
-/**
- * Initialize a super block codec.
- *
- * @param codec  The codec to initialize
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check initialize_vdo_super_block_codec(struct super_block_codec *codec);
 
-/**
- * Free resources in a super block codec.
- *
- * @param codec  The codec to clean up
- **/
 void destroy_vdo_super_block_codec(struct super_block_codec *codec);
 
-/**
- * Encode a super block into its on-disk representation.
- *
- * @param codec  The super block codec
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check encode_vdo_super_block(struct super_block_codec *codec);
 
-/**
- * Decode a super block from its on-disk representation.
- *
- * @param codec  The super block to decode
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check decode_vdo_super_block(struct super_block_codec *codec);
 
 #endif /* SUPER_BLOCK_CODEC_H */

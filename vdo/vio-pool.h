@@ -57,18 +57,6 @@ typedef int vio_constructor(struct vdo *vdo,
 			    void *buffer,
 			    struct vio **vio_ptr);
 
-/**
- * Create a new vio pool.
- *
- * @param [in]  vdo          the vdo
- * @param [in]  pool_size    the number of vios in the pool
- * @param [in]  thread_id    the ID of the thread using this pool
- * @param [in]  constructor  the constructor for vios in the pool
- * @param [in]  context      the context that each entry will have
- * @param [out] pool_ptr     the resulting pool
- *
- * @return a success or error code
- **/
 int __must_check make_vio_pool(struct vdo *vdo,
 			       size_t pool_size,
 			       thread_id_t thread_id,
@@ -76,36 +64,12 @@ int __must_check make_vio_pool(struct vdo *vdo,
 			       void *context,
 			       struct vio_pool **pool_ptr);
 
-/**
- * Destroy a vio pool
- *
- * @param pool  the pool to free
- **/
 void free_vio_pool(struct vio_pool *pool);
 
-/**
- * Check whether an vio pool has outstanding entries.
- *
- * @return <code>true</code> if the pool is busy
- **/
 bool __must_check is_vio_pool_busy(struct vio_pool *pool);
 
-/**
- * Acquire a vio and buffer from the pool (asynchronous).
- *
- * @param pool    the vio pool
- * @param waiter  object that is requesting a vio
- *
- * @return VDO_SUCCESS or an error
- **/
 int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
 
-/**
- * Return a vio and its buffer to the pool.
- *
- * @param pool   the vio pool
- * @param entry  a vio pool entry
- **/
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
 
 /**

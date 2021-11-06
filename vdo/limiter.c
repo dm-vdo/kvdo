@@ -21,7 +21,12 @@
 
 #include <linux/sched.h>
 
-/**********************************************************************/
+/**
+ * Initialize a limiter structure
+ *
+ * @param limiter  The limiter
+ * @param limit    The limit to the number of active resources
+ **/
 void initialize_limiter(struct limiter *limiter, uint32_t limit)
 {
 	limiter->active = 0;
@@ -31,7 +36,12 @@ void initialize_limiter(struct limiter *limiter, uint32_t limit)
 	spin_lock_init(&limiter->lock);
 }
 
-/**********************************************************************/
+/**
+ * Release resources, making them available for other uses
+ *
+ * @param limiter  The limiter
+ * @param count    The number of resources to release
+ **/
 void limiter_release_many(struct limiter *limiter, uint32_t count)
 {
 	struct vdo_completion *completion = NULL;
@@ -60,7 +70,12 @@ void limiter_release_many(struct limiter *limiter, uint32_t count)
 	complete_vdo_completion(completion);
 }
 
-/**********************************************************************/
+/**
+ * Wait asynchronously for there to be no active resources.
+ *
+ * @param limiter     The limiter
+ * @param completion  The completion to notify when the limiter is idle
+ **/
 void drain_vdo_limiter(struct limiter *limiter,
 		       struct vdo_completion *completion)
 {
@@ -104,7 +119,13 @@ static bool take_permit_locked(struct limiter *limiter)
 	return true;
 }
 
-/**********************************************************************/
+/**
+ * Prepare to start using one resource, waiting if there are too many resources
+ * already in use. After returning from this routine, the caller may use the
+ * resource, and must call limiter_release after freeing the resource.
+ *
+ * @param limiter  The limiter
+ **/
 void limiter_wait_for_one_free(struct limiter *limiter)
 {
 	spin_lock(&limiter->lock);

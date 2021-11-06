@@ -33,7 +33,14 @@
 #include "slab-summary.h"
 #include "vdo.h"
 
-/**********************************************************************/
+/**
+ * Obtain a pointer to a slab_journal structure from a pointer to the
+ * dirty list entry field within it.
+ *
+ * @param entry  The list entry to convert
+ *
+ * @return The entry as a slab_journal
+ **/
 struct slab_journal *vdo_slab_journal_from_dirty_entry(struct list_head *entry)
 {
 	if (entry == NULL) {
@@ -113,7 +120,13 @@ static inline bool __must_check is_reaping(struct slab_journal *journal)
 	return (journal->head != journal->unreapable);
 }
 
-/**********************************************************************/
+/**
+ * Check whether a slab journal is active.
+ *
+ * @param journal  The slab journal to check
+ *
+ * @return <code>true</code> if the journal is active
+ **/
 bool is_vdo_slab_journal_active(struct slab_journal *journal)
 {
 	return (must_make_entries_to_flush(journal) || is_reaping(journal) ||
@@ -166,12 +179,20 @@ static bool __must_check block_is_full(struct slab_journal *journal)
 			(journal->entries_per_block == count));
 }
 
-/**********************************************************************/
 static void add_entries(struct slab_journal *journal);
 static void update_tail_block_location(struct slab_journal *journal);
 static void release_journal_locks(struct waiter *waiter, void *context);
 
-/**********************************************************************/
+/**
+ * Create a slab journal.
+ *
+ * @param [in]  allocator         The block allocator which owns this journal
+ * @param [in]  slab              The parent slab of the journal
+ * @param [in]  recovery_journal  The recovery journal of the VDO
+ * @param [out] journal_ptr       The pointer to hold the new slab journal
+ *
+ * @return VDO_SUCCESS or error code
+ **/
 int make_vdo_slab_journal(struct block_allocator *allocator,
 			  struct vdo_slab *slab,
 			  struct recovery_journal *recovery_journal,
@@ -236,7 +257,11 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a slab journal.
+ *
+ * @param journal  The slab journal to free
+ **/
 void free_vdo_slab_journal(struct slab_journal *journal)
 {
 	if (journal == NULL) {
@@ -247,7 +272,14 @@ void free_vdo_slab_journal(struct slab_journal *journal)
 	UDS_FREE(journal);
 }
 
-/**********************************************************************/
+/**
+ * Check whether a slab journal is blank, meaning it has never had any entries
+ * recorded in it.
+ *
+ * @param journal  The journal to query
+ *
+ * @return <code>true</code> if the slab journal has never been modified
+ **/
 bool is_vdo_slab_journal_blank(const struct slab_journal *journal)
 {
 	return ((journal != NULL) && (journal->tail == 1) &&
@@ -295,7 +327,6 @@ static void mark_slab_journal_dirty(struct slab_journal *journal,
 	list_move_tail(&journal->dirty_entry, entry->next);
 }
 
-/**********************************************************************/
 static void mark_slab_journal_clean(struct slab_journal *journal)
 {
 	journal->recovery_lock = 0;
@@ -311,7 +342,11 @@ static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 	continue_data_vio(waiter_as_data_vio(waiter), VDO_READ_ONLY);
 }
 
-/**********************************************************************/
+/**
+ * Abort any VIOs waiting to make slab journal entries.
+ *
+ * @param journal  The journal to abort
+ **/
 void abort_vdo_slab_journal_waiters(struct slab_journal *journal)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
@@ -351,7 +386,6 @@ static void finish_reaping(struct slab_journal *journal)
 	check_if_vdo_slab_drained(journal->slab);
 }
 
-/**********************************************************************/
 static void reap_slab_journal(struct slab_journal *journal);
 
 /**
@@ -585,7 +619,11 @@ static void update_tail_block_location(struct slab_journal *journal)
 				      free_block_count);
 }
 
-/**********************************************************************/
+/**
+ * Reopen a slab journal by emptying it and then adding any pending entries.
+ *
+ * @param journal  The journal to reopen
+ **/
 void reopen_vdo_slab_journal(struct slab_journal *journal)
 {
 	sequence_number_t block;
@@ -605,7 +643,6 @@ void reopen_vdo_slab_journal(struct slab_journal *journal)
 	add_entries(journal);
 }
 
-/**********************************************************************/
 static sequence_number_t
 get_committing_sequence_number(const struct vio_pool_entry *entry)
 {
@@ -727,7 +764,6 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	add_entries(journal);
 }
 
-/**********************************************************************/
 /**
  * Commit the tail block of the slab journal.
  *
@@ -857,7 +893,18 @@ static void add_entry(struct slab_journal *journal,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Attempt to replay a recovery journal entry into a slab journal.
+ *
+ * @param journal         The slab journal to use
+ * @param pbn             The PBN for the entry
+ * @param operation       The type of entry to add
+ * @param recovery_point  The recovery journal point corresponding to this entry
+ * @param parent          The completion to notify when there is space to add
+ *                        the entry if the entry could not be added immediately
+ *
+ * @return <code>true</code> if the entry was added immediately
+ **/
 bool attempt_replay_into_vdo_slab_journal(struct slab_journal *journal,
 					  physical_block_number_t pbn,
 					  enum journal_operation operation,
@@ -934,7 +981,13 @@ static bool requires_reaping(const struct slab_journal *journal)
 	return (journal_length >= journal->blocking_threshold);
 }
 
-/**********************************************************************/
+/**
+ * Check to see if the journal should be scrubbed.
+ *
+ * @param journal  The slab journal
+ *
+ * @return <code>true</code> if the journal requires scrubbing
+ **/
 bool vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal)
 {
 	block_count_t journal_length = (journal->tail - journal->head);
@@ -1167,7 +1220,12 @@ static void add_entries(struct slab_journal *journal)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Add an entry to a slab journal.
+ *
+ * @param journal   The slab journal to use
+ * @param data_vio  The data_vio for which to add the entry
+ **/
 void add_vdo_slab_journal_entry(struct slab_journal *journal,
 				struct data_vio *data_vio)
 {
@@ -1196,7 +1254,14 @@ void add_vdo_slab_journal_entry(struct slab_journal *journal,
 	add_entries(journal);
 }
 
-/**********************************************************************/
+/**
+ * Adjust the reference count for a slab journal block. Note that when the
+ * adjustment is negative, the slab journal will be reaped.
+ *
+ * @param journal          The slab journal
+ * @param sequence_number  The journal sequence number of the referenced block
+ * @param adjustment       Amount to adjust the reference counter
+ **/
 void adjust_vdo_slab_journal_block_reference(struct slab_journal *journal,
 					     sequence_number_t sequence_number,
 					     int adjustment)
@@ -1227,7 +1292,17 @@ void adjust_vdo_slab_journal_block_reference(struct slab_journal *journal,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Request the slab journal to release the recovery journal lock it may hold on
+ * a specified recovery journal block.
+ *
+ * @param journal        The slab journal
+ * @param recovery_lock  The sequence number of the recovery journal block
+ *                       whose locks should be released
+ *
+ * @return <code>true</code> if the journal does hold a lock on the specified
+ *         block (which it will release)
+ **/
 bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 				       sequence_number_t recovery_lock)
 {
@@ -1247,7 +1322,12 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 	return true;
 }
 
-/**********************************************************************/
+/**
+ * Drain slab journal I/O. Depending upon the type of drain (as recorded in
+ * the journal's slab), any dirty journal blocks may be written out.
+ *
+ * @param journal  The journal to drain
+ **/
 void drain_vdo_slab_journal(struct slab_journal *journal)
 {
 	const struct admin_state_code *code
@@ -1366,7 +1446,11 @@ static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 				 finish_decoding_journal);
 }
 
-/**********************************************************************/
+/**
+ * Decode the slab journal by reading its tail.
+ *
+ * @param journal  The journal to decode
+ **/
 void decode_vdo_slab_journal(struct slab_journal *journal)
 {
 	struct vdo_slab *slab = journal->slab;
@@ -1402,7 +1486,11 @@ void decode_vdo_slab_journal(struct slab_journal *journal)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Dump the slab journal.
+ *
+ * @param journal       The slab journal to dump
+ **/
 void dump_vdo_slab_journal(const struct slab_journal *journal)
 {
 	uds_log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",

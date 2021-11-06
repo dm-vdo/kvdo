@@ -23,7 +23,18 @@
 #include "permassert.h"
 #include "status-codes.h"
 
-/**********************************************************************/
+/**
+ * Check whether a version matches an expected version. Logs an error
+ * describing a mismatch.
+ *
+ * @param expected_version  The expected version
+ * @param actual_version    The version being validated
+ * @param component_name    The name of the component or the calling function
+ *                          (for error logging)
+ *
+ * @return VDO_SUCCESS             if the versions are the same
+ *         VDO_UNSUPPORTED_VERSION if the versions don't match
+ **/
 int validate_vdo_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
@@ -40,7 +51,22 @@ int validate_vdo_version(struct version_number expected_version,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Check whether a header matches expectations. Logs an error describing the
+ * first mismatch found.
+ *
+ * @param expected_header  The expected header
+ * @param actual_header    The header being validated
+ * @param exact_size       If true, the size fields of the two headers must be
+ *                         the same, otherwise it is required that
+ *                         actual_header.size >= expected_header.size
+ * @param component_name   The name of the component or the calling function
+ *                         (for error logging)
+ *
+ * @return VDO_SUCCESS             if the header meets expectations
+ *         VDO_INCORRECT_COMPONENT if the component ids don't match
+ *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
+ **/
 int validate_vdo_header(const struct header *expected_header,
 			const struct header *actual_header,
 			bool exact_size,
@@ -74,7 +100,14 @@ int validate_vdo_header(const struct header *expected_header,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Encode a header into a buffer.
+ *
+ * @param header  The header to encode
+ * @param buffer  The buffer in which to encode the header
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int encode_vdo_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
@@ -96,7 +129,14 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 	return put_uint64_le_into_buffer(buffer, header->size);
 }
 
-/**********************************************************************/
+/**
+ * Encode a version number into a buffer.
+ *
+ * @param version  The version to encode
+ * @param buffer   The buffer in which to encode the version
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int encode_vdo_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
@@ -105,7 +145,14 @@ int encode_vdo_version_number(struct version_number version,
 	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
-/**********************************************************************/
+/**
+ * Decode a header from a buffer.
+ *
+ * @param [in]  buffer  The buffer from which to decode the header
+ * @param [out] header  The header to decode
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int decode_vdo_header(struct buffer *buffer, struct header *header)
 {
 	enum component_id id;
@@ -136,7 +183,14 @@ int decode_vdo_header(struct buffer *buffer, struct header *header)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Decode a version number from a buffer.
+ *
+ * @param buffer   The buffer from which to decode the version
+ * @param version  The version structure to decode into
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int decode_vdo_version_number(struct buffer *buffer,
 			      struct version_number *version)
 {

@@ -29,7 +29,6 @@
 #include "status-codes.h"
 #include "types.h"
 
-/**********************************************************************/
 static int allocate_thread_config(zone_count_t logical_zone_count,
 				  zone_count_t physical_zone_count,
 				  zone_count_t hash_zone_count,
@@ -90,7 +89,6 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static void assign_thread_ids(struct thread_config *config,
 			      thread_id_t thread_ids[],
 			      zone_count_t count)
@@ -102,7 +100,17 @@ static void assign_thread_ids(struct thread_config *config,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Make a thread configuration. If the logical, physical, and hash zone counts
+ * are all 0, a single thread will be shared by all three plus the packer and
+ * recovery journal. Otherwise, there must be at least one of each type, and
+ * each will have its own thread, as will the packer and recovery journal.
+ *
+ * @param [in]  counts      The counts of each type of thread
+ * @param [out] config_ptr  A pointer to hold the new thread configuration
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_thread_config(struct thread_count_config counts,
 			   struct thread_config **config_ptr)
 {
@@ -167,7 +175,11 @@ int make_vdo_thread_config(struct thread_count_config counts,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Destroy a thread configuration.
+ *
+ * @param config  The thread configuration to destroy
+ **/
 void free_vdo_thread_config(struct thread_config *config)
 {
 	if (config == NULL) {
@@ -181,7 +193,6 @@ void free_vdo_thread_config(struct thread_config *config)
 	UDS_FREE(config);
 }
 
-/**********************************************************************/
 static bool get_zone_thread_name(const thread_id_t thread_ids[],
 				 zone_count_t count,
 				 thread_id_t id,
@@ -200,7 +211,17 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
 	return false;
 }
 
-/**********************************************************************/
+/**
+ * Format the name of the worker thread desired to support a given
+ * work queue. The physical layer may add a prefix identifying the
+ * product; the output from this function should just identify the
+ * thread.
+ *
+ * @param thread_config  The thread configuration
+ * @param thread_id      The thread id
+ * @param buffer         Where to put the formatted name
+ * @param buffer_length  Size of the output buffer
+ **/
 void vdo_get_thread_name(const struct thread_config *thread_config,
 			 thread_id_t thread_id,
 			 char *buffer,

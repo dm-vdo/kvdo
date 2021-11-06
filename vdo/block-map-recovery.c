@@ -520,7 +520,15 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Recover the block map (normal rebuild).
+ *
+ * @param vdo              The vdo
+ * @param entry_count      The number of journal entries
+ * @param journal_entries  An array of journal entries to process
+ * @param parent           The completion to notify when the rebuild
+ *                         is complete
+ **/
 void recover_vdo_block_map(struct vdo *vdo,
 			   block_count_t entry_count,
 			   struct numbered_block_mapping *journal_entries,

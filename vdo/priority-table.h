@@ -46,74 +46,22 @@
 
 struct priority_table;
 
-/**
- * Allocate and initialize a new priority_table.
- *
- * @param [in]  max_priority  The maximum priority value for table entries
- * @param [out] table_ptr     A pointer to hold the new table
- *
- * @return VDO_SUCCESS or an error code
- **/
 int __must_check make_priority_table(unsigned int max_priority,
 				     struct priority_table **table_ptr);
 
-/**
- * Free a priority_table. NOTE: The table does not own the entries stored in
- * it and they are not freed by this call.
- *
- * @param table  The table to free
- **/
 void free_priority_table(struct priority_table *table);
 
-/**
- * Add a new entry to the priority table, appending it to the queue for
- * entries with the specified priority.
- *
- * @param table     The table in which to store the entry
- * @param priority  The priority of the entry
- * @param entry     The list_head embedded in the entry to store in the table
- *                  (the caller must have initialized it)
- **/
 void priority_table_enqueue(struct priority_table *table, unsigned int priority,
 			    struct list_head *entry);
 
-/**
- * Reset a priority table, leaving it in the same empty state as when newly
- * constructed. NOTE: The table does not own the entries stored in it and they
- * are not freed (or even unlinked from each other) by this call.
- *
- * @param table  The table to reset
- **/
 void reset_priority_table(struct priority_table *table);
 
-/**
- * Find the highest-priority entry in the table, remove it from the table, and
- * return it. If there are multiple entries with the same priority, the one
- * that has been in the table with that priority the longest will be returned.
- *
- * @param table  The priority table from which to remove an entry
- *
- * @return the dequeued entry, or NULL if the table is currently empty
- **/
 struct list_head * __must_check
 priority_table_dequeue(struct priority_table *table);
 
-/**
- * Remove a specified entry from its priority table.
- *
- * @param table   The table from which to remove the entry
- * @param entry   The entry to remove from the table
- **/
 void priority_table_remove(struct priority_table *table,
 			   struct list_head *entry);
 
-/**
- * Return whether the priority table is empty.
- *
- * @param table   The table to check
- *
- * @return <code>true</code> if the table is empty
- **/
 bool __must_check is_priority_table_empty(struct priority_table *table);
 
 #endif /* PRIORITY_TABLE_H */

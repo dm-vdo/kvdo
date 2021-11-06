@@ -83,36 +83,10 @@ is_exact_vdo_recovery_journal_block(const struct recovery_journal *journal,
 		&& is_valid_vdo_recovery_journal_block(journal, header));
 }
 
-/**
- * Load the journal data off the disk.
- *
- * @param [in]  journal           The recovery journal to load
- * @param [in]  parent            The completion to notify when the load is
- *                                complete
- * @param [out] journal_data_ptr  A pointer to the journal data buffer (it is
- *                                the caller's responsibility to free this
- *                                buffer)
- **/
 void load_vdo_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr);
 
-/**
- * Find the tail and the head of the journal by searching for the highest
- * sequence number in a block with a valid nonce, and the highest head value
- * among the blocks with valid nonces.
- *
- * @param [in]  journal                The recovery journal
- * @param [in]  journal_data           The journal data read from disk
- * @param [out] tail_ptr               A pointer to return the tail found, or if
- *                                     no higher block is found, the value
- *                                     currently in the journal
- * @param [out] block_map_head_ptr     A pointer to return the block map head
- * @param [out] slab_journal_head_ptr  An optional pointer to return the slab
- *                                     journal head
- *
- * @return  <code>True</code> if there were valid journal blocks
- **/
 bool
 find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 					char *journal_data,
@@ -120,14 +94,6 @@ find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 					sequence_number_t *block_map_head_ptr,
 					sequence_number_t *slab_journal_head_ptr);
 
-/**
- * Validate a recovery journal entry.
- *
- * @param vdo    The vdo
- * @param entry  The entry to validate
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check
 validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry);

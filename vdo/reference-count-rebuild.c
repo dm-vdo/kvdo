@@ -485,7 +485,16 @@ static int process_entry(physical_block_number_t pbn,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Rebuild the reference counts from the block map (read-only rebuild).
+ *
+ * @param [in]  vdo                    The vdo
+ * @param [in]  parent                 The completion to notify when the
+ *                                     rebuild is complete
+ * @param [out] logical_blocks_used    A pointer to hold the logical blocks used
+ * @param [out] block_map_data_blocks  A pointer to hold the number of block map
+ *                                     data blocks
+ **/
 void rebuild_vdo_reference_counts(struct vdo *vdo,
 				  struct vdo_completion *parent,
 				  block_count_t *logical_blocks_used,

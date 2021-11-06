@@ -45,7 +45,17 @@ struct dirty_lists {
 	struct list_head lists[];
 };
 
-/**********************************************************************/
+/**
+ * Construct a new set of dirty lists.
+ *
+ * @param [in]  maximum_age      The age at which an element will be expired
+ * @param [in]  callback         The function to call when a set of elements
+ *                               have expired
+ * @param [in]  context          The context for the callback
+ * @param [out] dirty_lists_ptr  A pointer to hold the new dirty_lists structure
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_dirty_lists(block_count_t maximum_age,
 			 vdo_dirty_callback *callback,
 			 void *context,
@@ -73,7 +83,12 @@ int make_vdo_dirty_lists(block_count_t maximum_age,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Set the current period. This function should only be called once.
+ *
+ * @param dirty_lists  The dirty_lists
+ * @param period       The current period
+ **/
 void set_vdo_dirty_lists_current_period(struct dirty_lists *dirty_lists,
 					sequence_number_t period)
 {
@@ -138,7 +153,16 @@ static void write_expired_elements(struct dirty_lists *dirty_lists)
 			"no expired elements remain");
 }
 
-/**********************************************************************/
+/**
+ * Add an element to the dirty lists.
+ *
+ * @param dirty_lists  The dirty_lists structure receiving the element
+ * @param entry        The list entry of the element to add
+ * @param old_period   The period in which the element was previous dirtied,
+ *                     or 0 if it was not dirty
+ * @param new_period   The period in which the element has now been dirtied,
+ *                     or 0 if it does not hold a lock
+ **/
 void add_to_vdo_dirty_lists(struct dirty_lists *dirty_lists,
 			    struct list_head *entry,
 			    sequence_number_t old_period,
@@ -161,7 +185,13 @@ void add_to_vdo_dirty_lists(struct dirty_lists *dirty_lists,
 	write_expired_elements(dirty_lists);
 }
 
-/**********************************************************************/
+/**
+ * Advance the current period. If the current period is greater than the number
+ * of lists, expire the oldest lists.
+ *
+ * @param dirty_lists  The dirty_lists to advance
+ * @param period       The new current period
+ **/
 void advance_vdo_dirty_lists_period(struct dirty_lists *dirty_lists,
 				    sequence_number_t period)
 {
@@ -169,7 +199,12 @@ void advance_vdo_dirty_lists_period(struct dirty_lists *dirty_lists,
 	write_expired_elements(dirty_lists);
 }
 
-/**********************************************************************/
+/**
+ * Flush all dirty lists. This will cause the period to be advanced past the
+ * current period.
+ *
+ * @param dirty_lists  The dirty_lists to flush
+ **/
 void flush_vdo_dirty_lists(struct dirty_lists *dirty_lists)
 {
 	while (dirty_lists->oldest_period < dirty_lists->next_period) {

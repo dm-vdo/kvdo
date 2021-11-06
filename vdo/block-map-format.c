@@ -118,13 +118,24 @@ int decode_vdo_block_map_state_2_0(struct buffer *buffer,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Get the size of the encoded state of a block map.
+ *
+ * @return The encoded size of the map's state
+ **/
 size_t get_vdo_block_map_encoded_size(void)
 {
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
 }
 
-/**********************************************************************/
+/**
+ * Encode the state of a block map into a buffer.
+ *
+ * @param state   The block map state to encode
+ * @param buffer  The buffer to encode into
+ *
+ * @return UDS_SUCCESS or an error
+ **/
 int encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
 				   struct buffer *buffer)
 {
@@ -162,13 +173,31 @@ int encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
 		      "encoded block map component size must match header size");
 }
 
-/**********************************************************************/
+/**
+ * Compute the number of pages required for a block map with the specified
+ * parameters.
+ *
+ * @param entries   The number of block map entries
+ *
+ * @return The number of pages required
+ **/
 page_count_t compute_vdo_block_map_page_count(block_count_t entries)
 {
 	return compute_bucket_count(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
-/**********************************************************************/
+/**
+ * Compute the number of pages which must be allocated at each level in order
+ * to grow the forest to a new number of entries.
+ *
+ * @param [in]  root_count       The number of roots
+ * @param [in]  old_sizes        The current size of the forest at each level
+ * @param [in]  entries          The new number of entries the block map must
+ *                               address
+ * @param [out] new_sizes        The new size of the forest at each level
+ *
+ * @return The total number of non-leaf pages required
+ **/
 block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 					   struct boundary *old_sizes,
 					   block_count_t entries,

@@ -33,7 +33,14 @@ enum {
 	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS),
 };
 
-/**********************************************************************/
+/**
+ * Initializes/resets a compressed block header.
+ *
+ * @param header        the header
+ *
+ * When done, the version number is set to the current version, and all
+ * fragments are empty.
+ **/
 void reset_vdo_compressed_block_header(struct compressed_block_header *header)
 {
 	/*
@@ -55,7 +62,19 @@ get_compressed_fragment_size(const struct compressed_block_header *header,
 	return __le16_to_cpu(header->sizes[slot]);
 }
 
-/**********************************************************************/
+/**
+ * Get a reference to a compressed fragment from a compression block.
+ *
+ * @param [in]  mapping_state    the mapping state for the look up
+ * @param [in]  buffer           buffer that contains compressed data
+ * @param [in]  block_size       size of a data block
+ * @param [out] fragment_offset  the offset of the fragment within a
+ *                               compressed block
+ * @param [out] fragment_size    the size of the fragment
+ *
+ * @return If a valid compressed fragment is found, VDO_SUCCESS;
+ *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
+ **/
 int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      char *buffer,
 				      block_size_t block_size,
@@ -101,7 +120,17 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Copy a fragment into the compressed block.
+ *
+ * @param block      the compressed block
+ * @param fragment   the number of the fragment
+ * @param offset     the byte offset of the fragment in the data area
+ * @param data       a pointer to the compressed data
+ * @param size       the size of the data
+ *
+ * @note no bounds checking -- the data better fit without smashing other stuff
+ **/
 void put_vdo_compressed_block_fragment(struct compressed_block *block,
 				       unsigned int fragment,
 				       uint16_t offset,

@@ -125,32 +125,11 @@ get_vdo_block_map_page_pbn(const struct block_map_page *page)
 	return __le64_to_cpu(page->header.pbn);
 }
 
-/**
- * Format a block map page in memory.
- *
- * @param buffer       The buffer which holds the page
- * @param nonce        The VDO nonce
- * @param pbn          The absolute PBN of the page
- * @param initialized  Whether the page should be marked as initialized
- *
- * @return the buffer pointer, as a block map page (for convenience)
- **/
 struct block_map_page *format_vdo_block_map_page(void *buffer,
 						 nonce_t nonce,
 						 physical_block_number_t pbn,
 						 bool initialized);
 
-/**
- * Check whether a newly read page is valid, upgrading its in-memory format if
- * possible and necessary. If the page is valid, clear fields which are not
- * meaningful on disk.
- *
- * @param page   The page to validate
- * @param nonce  The VDO nonce
- * @param pbn    The expected absolute PBN of the page
- *
- * @return The validity of the page
- **/
 enum block_map_page_validity __must_check
 validate_vdo_block_map_page(struct block_map_page *page,
 			     nonce_t nonce,

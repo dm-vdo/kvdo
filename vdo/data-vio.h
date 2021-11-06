@@ -566,36 +566,13 @@ static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 	return (get_data_vio_allocation(data_vio) != VDO_ZERO_BLOCK);
 }
 
-/**
- * (Re)initialize a data_vio to have a new logical block number, keeping the
- * same parent and other state. This method must be called before using a
- * data_vio.
- *
- * @param data_vio   The data_vio to initialize
- * @param lbn        The logical block number of the data_vio
- * @param operation  The operation this data_vio will perform
- * @param callback   The function to call once the vio has completed its
- *                   operation
- **/
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
 		      enum vio_operation operation,
 		      vdo_action *callback);
 
-/**
- * Complete the processing of a data_vio.
- *
- * @param completion The completion of the vio to complete
- **/
 void complete_data_vio(struct vdo_completion *completion);
 
-/**
- * Finish processing a data_vio, possibly due to an error. This function will
- * set any error, and then initiate data_vio clean up.
- *
- * @param data_vio  The data_vio to abort
- * @param result    The result of processing the data_vio
- **/
 void finish_data_vio(struct data_vio *data_vio, int result);
 
 /**
@@ -610,13 +587,6 @@ static inline void continue_data_vio(struct data_vio *data_vio, int result)
 	continue_vdo_completion(data_vio_as_completion(data_vio), result);
 }
 
-/**
- * Get the name of the last asynchronous operation performed on a data_vio.
- *
- * @param data_vio  The data_vio in question
- *
- * @return The name of the last operation performed on the data_vio
- **/
 const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio);
 
 /**
@@ -1105,55 +1075,18 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 						     BIO_ACK_Q_ACK_PRIORITY);
 }
 
-/**
- * Check whether the advice received from UDS is a valid data location,
- * and if it is, accept it as the location of a potential duplicate of the
- * data_vio.
- *
- * @param data_vio The data_vio that queried UDS
- * @param advice   A potential location of the data, or NULL for no advice
- **/
 void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
 				    const struct data_location *advice);
 
-/**
- * Set the location of the duplicate block for a data_vio, updating the
- * is_duplicate and duplicate fields from a zoned_pbn.
- *
- * @param data_vio The data_vio to modify
- * @param source   The location of the duplicate
- **/
 void set_data_vio_duplicate_location(struct data_vio *data_vio,
 				     const struct zoned_pbn source);
 
-/**
- * Clear a data_vio's mapped block location, setting it to be unmapped. This
- * indicates the block map entry for the logical block is either unmapped or
- * corrupted.
- *
- * @param data_vio The data_vio whose mapped block location is to be reset
- **/
 void clear_data_vio_mapped_location(struct data_vio *data_vio);
 
-/**
- * Set a data_vio's mapped field to the physical location recorded in the block
- * map for the logical block in the vio.
- *
- * @param data_vio The data_vio whose field is to be set
- * @param pbn      The physical block number to set
- * @param state    The mapping state to set
- *
- * @return VDO_SUCCESS or an error code if the mapping is unusable
- **/
 int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state);
 
-/**
- * Release the lock on the logical block, if any, that a data_vio has acquired.
- *
- * @param data_vio The data_vio releasing its logical block lock
- **/
 void vdo_release_logical_block_lock(struct data_vio *data_vio);
 
 /**
@@ -1195,19 +1128,8 @@ void vdo_update_dedupe_index(struct data_vio *data_vio);
  **/
 void vdo_apply_partial_write(struct data_vio *data_vio);
 
-/**
- * Acknowledge the user_bio from a data_vio. Note that the data_vio may still
- * have processing to do.
- *
- * @param data_vio  The data_vio to acknowledge
- **/
 void acknowledge_data_vio(struct data_vio *data_vio);
 
-/**
- * A function to compress the data in a data_vio.
- *
- * @param data_vio  The data_vio to compress
- **/
 void compress_data_vio(struct data_vio *data_vio);
 
 /**

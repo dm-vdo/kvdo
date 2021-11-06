@@ -236,7 +236,16 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 	return result;
 }
 
-/**********************************************************************/
+/**
+ * Resume a suspended vdo (technically preresume because resume can't fail).
+ *
+ * @param vdo          The vdo being resumed
+ * @param config       The device config derived from the table with which the
+ *                     vdo is being resumed
+ * @param device_name  The vdo device name (for logging)
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int preresume_vdo(struct vdo *vdo,
 		  struct device_config *config,
 		  const char *device_name)

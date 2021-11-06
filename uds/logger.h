@@ -22,7 +22,6 @@
 
 #include <linux/module.h>
 #include <linux/ratelimit.h>
-#include <linux/version.h>
 
 #define UDS_LOG_EMERG 0 /* system is unusable */
 #define UDS_LOG_ALERT 1 /* action must be taken immediately */

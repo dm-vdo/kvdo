@@ -23,38 +23,9 @@
 #include "kernel-types.h"
 #include "types.h"
 
-/**
- * Make the completion for an asynchronous resize.
- *
- * @param vdo                	The vdo
- * @param new_physical_blocks 	The new physical size in blocks
- * @param completion_ptr      	A pointer to hold the completion
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-make_resize_vdo_completion(struct vdo *vdo,
-			   block_count_t new_physical_blocks,
-			   struct vdo_completion **completion_ptr);
-
-/**
- * Grow the physical size of the vdo. This method may only be called when the
- * vdo has been suspended and must not be called from a base thread.
- *
- * @param vdo                	The vdo to resize
- * @param new_physical_blocks	The new physical size in blocks
- *
- * @return VDO_SUCCESS or an error
- **/
 int perform_vdo_grow_physical(struct vdo *vdo,
 			      block_count_t new_physical_blocks);
 
-/**
- * Prepare to resize the vdo, allocating memory as needed.
- *
- * @param vdo                	The vdo
- * @param new_physical_blocks	The new physical size in blocks
- **/
 int __must_check
 prepare_vdo_to_grow_physical(struct vdo *vdo,
 			     block_count_t new_physical_blocks);

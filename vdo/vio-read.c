@@ -109,7 +109,13 @@ static void read_block_mapping(struct vdo_completion *completion)
 	vdo_get_mapped_block(data_vio);
 }
 
-/**********************************************************************/
+/**
+ * Start the asynchronous processing of the data_vio for a read or
+ * read-modify-write request which has acquired a lock on its logical block.
+ * The first step is to perform a block map lookup.
+ *
+ * @param data_vio  The data_vio doing the read
+ **/
 void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_data_vio_in_logical_zone(data_vio);

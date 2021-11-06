@@ -22,7 +22,14 @@
 #include "journal-point.h"
 #include "types.h"
 
-/**********************************************************************/
+/**
+ * Decode a slab journal entry.
+ *
+ * @param block         The journal block holding the entry
+ * @param entry_count   The number of the entry
+ *
+ * @return The decoded entry
+ **/
 struct slab_journal_entry
 decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
 			      journal_entry_count_t entry_count)

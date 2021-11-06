@@ -23,7 +23,15 @@
 
 #include "status-codes.h"
 
-/**********************************************************************/
+/**
+ * Add a waiter to the tail end of a wait queue. The waiter must not already
+ * be waiting in a queue.
+ *
+ * @param queue     The queue to which to add the waiter
+ * @param waiter    The waiter to add to the queue
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 {
 	int result = ASSERT((waiter->next_waiter == NULL),
@@ -52,7 +60,14 @@ int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Transfer all waiters from one wait queue to a second queue, emptying the
+ * first queue.
+ *
+ * @param from_queue  The queue containing the waiters to move
+ * @param to_queue    The queue that will receive the waiters from the
+ *                    first queue
+ **/
 void transfer_all_waiters(struct wait_queue *from_queue,
 			  struct wait_queue *to_queue)
 {
@@ -79,7 +94,17 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 	initialize_wait_queue(from_queue);
 }
 
-/**********************************************************************/
+/**
+ * Notify all the entries waiting in a queue to continue execution by invoking
+ * a callback function on each of them in turn. The queue is copied and
+ * emptied before invoking any callbacks, and only the waiters that were in
+ * the queue at the start of the call will be notified.
+ *
+ * @param queue     The wait queue containing the waiters to notify
+ * @param callback  The function to call to notify each waiter, or NULL
+ *                  to invoke the callback field registered in each waiter
+ * @param context   The context to pass to the callback function
+ **/
 void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 			void *context)
 {
@@ -99,7 +124,14 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Return the waiter that is at the head end of a wait queue.
+ *
+ * @param queue  The queue from which to get the first waiter
+ *
+ * @return The first (oldest) waiter in the queue, or <code>NULL</code> if
+ *         the queue is empty
+ **/
 struct waiter *get_first_waiter(const struct wait_queue *queue)
 {
 	struct waiter *last_waiter = queue->last_waiter;
@@ -116,7 +148,17 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
 	return last_waiter->next_waiter;
 }
 
-/**********************************************************************/
+/**
+ * Remove all waiters that match based on the specified matching method and
+ * append them to a wait_queue.
+ *
+ * @param queue          The wait queue to process
+ * @param match_method   The method to determine matching
+ * @param match_context  Contextual info for the match method
+ * @param matched_queue  A wait_queue to store matches
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int dequeue_matching_waiters(struct wait_queue *queue,
 			     waiter_match *match_method,
 			     void *match_context,
@@ -148,7 +190,16 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Remove the first waiter from the head end of a wait queue. The caller will
+ * be responsible for waking the waiter by invoking the correct callback
+ * function to resume its execution.
+ *
+ * @param queue  The wait queue from which to remove the first entry
+ *
+ * @return The first (oldest) waiter in the queue, or <code>NULL</code> if
+ *         the queue is empty
+ **/
 struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
@@ -178,7 +229,17 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 	return first_waiter;
 }
 
-/**********************************************************************/
+/**
+ * Notify the next entry waiting in a queue to continue execution by invoking
+ * a callback function on it after removing it from the queue.
+ *
+ * @param queue     The wait queue containing the waiter to notify
+ * @param callback  The function to call to notify the waiter, or NULL
+ *                  to invoke the callback field registered in the waiter
+ * @param context   The context to pass to the callback function
+ *
+ * @return <code>true</code> if there was a waiter in the queue
+ **/
 bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
 			void *context)
 {
@@ -195,7 +256,14 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
 	return true;
 }
 
-/**********************************************************************/
+/**
+ * Get the waiter after this one, for debug iteration.
+ *
+ * @param queue   The wait queue
+ * @param waiter  A waiter
+ *
+ * @return the next waiter, or NULL
+ **/
 const struct waiter *get_next_waiter(const struct wait_queue *queue,
 				     const struct waiter *waiter)
 {

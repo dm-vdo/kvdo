@@ -26,7 +26,21 @@
 #include "constants.h"
 #include "types.h"
 
-/**********************************************************************/
+/**
+ * Compare blocks of memory for equality.
+ *
+ * This assumes the blocks are likely to be large; it's not well
+ * optimized for comparing just a few bytes.  This is desirable
+ * because the Linux kernel memcmp() routine on x86 is not well
+ * optimized for large blocks, and the performance penalty turns out
+ * to be significant if you're doing lots of 4KB comparisons.
+ *
+ * @param pointer_argument1  first data block
+ * @param pointer_argument2  second data block
+ * @param length             length of the data block
+ *
+ * @return true iff the two blocks are equal
+ **/
 bool
 memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 {
@@ -58,7 +72,13 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 	return true;
 }
 
-/**********************************************************************/
+/**
+ * Check whether a data block is all zeros.
+ *
+ * @param block  The block to check
+ *
+ * @return true is all zeroes, false otherwise
+ **/
 bool is_zero_block(char *block)
 {
 	unsigned int word_count = VDO_BLOCK_SIZE / sizeof(uint64_t);

@@ -238,7 +238,14 @@ static void suspend_callback(struct vdo_completion *completion)
 	finish_vdo_draining_with_result(admin_state, completion->result);
 }
 
-/**********************************************************************/
+/**
+ * Ensure that the vdo has no outstanding I/O and will issue none until it is
+ * resumed.
+ *
+ * @param vdo   The vdo to suspend
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int suspend_vdo(struct vdo *vdo)
 {
 	const char *device_name;

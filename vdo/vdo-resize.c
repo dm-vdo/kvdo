@@ -149,7 +149,15 @@ static void handle_growth_error(struct vdo_completion *completion)
 	grow_physical_callback(completion);
 }
 
-/**********************************************************************/
+/**
+ * Grow the physical size of the vdo. This method may only be called when the
+ * vdo has been suspended and must not be called from a base thread.
+ *
+ * @param vdo                	The vdo to resize
+ * @param new_physical_blocks	The new physical size in blocks
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int perform_vdo_grow_physical(struct vdo *vdo,
 			      block_count_t new_physical_blocks)
 {
@@ -232,7 +240,12 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	complete_vdo_completion(completion->parent);
 }
 
-/**********************************************************************/
+/**
+ * Prepare to resize the vdo, allocating memory as needed.
+ *
+ * @param vdo                	The vdo
+ * @param new_physical_blocks	The new physical size in blocks
+ **/
 int prepare_vdo_to_grow_physical(struct vdo *vdo,
 				 block_count_t new_physical_blocks)
 {

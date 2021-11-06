@@ -327,7 +327,14 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 					      VDO_CHECKSUM_MISMATCH);
 }
 
-/**********************************************************************/
+/**
+ * Synchronously read a geometry block from a block device.
+ *
+ * @param bdev       The block device containing the block to read
+ * @param geometry   A volume_geometry to read into
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int vdo_read_geometry_block(struct block_device *bdev,
 			    struct volume_geometry *geometry)
 {

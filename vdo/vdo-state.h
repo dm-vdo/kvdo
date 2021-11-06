@@ -41,13 +41,6 @@ enum vdo_state {
 };
 
 
-/**
- * Return a user-visible string describing the current VDO state.
- *
- * @param state  The VDO state to describe
- *
- * @return A string constant describing the state
- **/
 const char * __must_check describe_vdo_state(enum vdo_state state);
 
 #endif /* VDO_STATE_H */

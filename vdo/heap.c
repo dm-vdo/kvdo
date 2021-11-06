@@ -26,7 +26,19 @@
 
 #include "status-codes.h"
 
-/**********************************************************************/
+/**
+ * Initialize an binary heap by wrapping it around an array of elements.
+ *
+ * The heap will not own the array it wraps. Use build_heap() subsequently to
+ * arrange any elements contained in the array into a valid heap.
+ *
+ * @param heap          The heap to initialize
+ * @param comparator    The function to use to compare two heap elements
+ * @param swapper       The function to use to swap two heap elements
+ * @param array         The array of elements (not modified by this call)
+ * @param capacity      The maximum number of elements which fit in the array
+ * @param element_size   The size of every array element, in bytes
+ **/
 void initialize_heap(struct heap *heap, heap_comparator *comparator,
 		     heap_swapper *swapper, void *array, size_t capacity,
 		     size_t element_size)
@@ -46,7 +58,6 @@ void initialize_heap(struct heap *heap, heap_comparator *comparator,
 	}
 }
 
-/**********************************************************************/
 static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 {
 	/* Keep sifting until the sub-heap rooted at top_node has no children. */
@@ -99,7 +110,16 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 	 */
 }
 
-/**********************************************************************/
+/**
+ * Build a max-heap in place in an array (heapify it) by re-ordering the
+ * elements to establish the heap invariant. Before calling this function,
+ * first copy the elements to be arranged into a heap into the array that was
+ * passed to initialize_heap(). This operation has O(N) time complexity in the
+ * number of elements in the array.
+ *
+ * @param heap   The heap to build
+ * @param count  The number of elements in the array to build into a heap
+ **/
 void build_heap(struct heap *heap, size_t count)
 {
 	size_t size, last_parent, last_node, top_node;
@@ -136,7 +156,17 @@ void build_heap(struct heap *heap, size_t count)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Remove the largest element from the top of the heap and restore the heap
+ * invariant on the remaining elements. This operation has O(log2(N)) time
+ * complexity.
+ *
+ * @param [in]  heap         The heap to modify
+ * @param [out] element_ptr  A pointer to receive the largest element (may be
+ *                           NULL if the caller just wishes to discard it)
+ *
+ * @return <code>false</code> if the heap was empty, so no element was removed
+ **/
 bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 {
 	size_t root_node, last_node;
@@ -201,7 +231,21 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node,
 	return last_node;
 }
 
-/**********************************************************************/
+/**
+ * Sort the elements contained in a heap.
+ *
+ * This function re-orders the elements contained in the heap to a sorted
+ * array in-place by repeatedly popping the maximum element off the heap and
+ * moving it to the spot vacated at the end of the heap array. When the
+ * function returns, the heap will be empty and the array will contain the
+ * elements in sorted order, from heap minimum to heap maximum. The sort is
+ * unstable--relative ordering of equal keys is not preserved. This operation
+ * has O(N*log2(N)) time complexity.
+ *
+ * @param heap  The heap containing the elements to sort
+ *
+ * @return the number of elements that were sorted
+ **/
 size_t sort_heap(struct heap *heap)
 {
 	size_t root_node, last_node, count;
@@ -230,7 +274,14 @@ size_t sort_heap(struct heap *heap)
 	return count;
 }
 
-/**********************************************************************/
+/**
+ * Gets the next sorted heap element and returns a pointer to it, in O(log2(N))
+ * time.
+ *
+ * @param heap  The heap to sort one more step
+ *
+ * @return a pointer to the element sorted, or NULL if already fully sorted.
+ **/
 void *sort_next_heap_element(struct heap *heap)
 {
 	size_t root_node, last_node;

@@ -36,21 +36,8 @@ int __must_check
 make_vdo_copy_completion(struct vdo *vdo,
 			 struct vdo_completion **completion_ptr);
 
-/**
- * Free a copy completion.
- *
- * @param completion  The completion to free
- **/
 void free_vdo_copy_completion(struct vdo_completion *completion);
 
-/**
- * Copy a partition.
- *
- * @param completion    The copy completion to use
- * @param source        The partition to copy from
- * @param target        The partition to copy to
- * @param parent        The parent to finish when the copy is complete
- **/
 void copy_vdo_partition(struct vdo_completion *completion,
 			struct partition *source,
 			struct partition *target,

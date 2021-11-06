@@ -84,7 +84,16 @@ struct cursors {
 	struct cursor cursors[];
 };
 
-/**********************************************************************/
+/**
+ * Get the tree page for a given height and page index.
+ *
+ * @param forest      The forest which holds the page
+ * @param root_index  The index of the tree that holds the page
+ * @param height      The height of the desired page
+ * @param page_index  The index of the desired page
+ *
+ * @return The requested page
+ **/
 struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
 					     root_count_t root_index,
 					     height_t height,
@@ -108,7 +117,6 @@ struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
 	return NULL;
 }
 
-/**********************************************************************/
 static int make_segment(struct forest *old_forest,
 			block_count_t new_pages,
 			struct boundary *new_boundary,
@@ -211,7 +219,6 @@ static int make_segment(struct forest *old_forest,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static void deforest(struct forest *forest, size_t first_page_segment)
 {
 	root_count_t root;
@@ -236,7 +243,15 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 	UDS_FREE(forest);
 }
 
-/**********************************************************************/
+/**
+ * Make a collection of trees for a block_map, expanding the existing forest if
+ * there is one.
+ *
+ * @param map      The block map
+ * @param entries  The number of entries the block map will hold
+ *
+ * @return VDO_SUCCESS or an error
+ **/
 int make_vdo_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *forest, *old_forest = map->forest;
@@ -275,7 +290,11 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Free a forest and all of the segments it contains.
+ *
+ * @param forest  The forest to free
+ **/
 void free_vdo_forest(struct forest *forest)
 {
 	if (forest == NULL) {
@@ -285,7 +304,11 @@ void free_vdo_forest(struct forest *forest)
 	deforest(forest, 0);
 }
 
-/**********************************************************************/
+/**
+ * Abandon the unused next forest from a block_map.
+ *
+ * @param map  The block map
+ **/
 void abandon_vdo_forest(struct block_map *map)
 {
 	struct forest *forest = map->next_forest;
@@ -298,7 +321,11 @@ void abandon_vdo_forest(struct block_map *map)
 	map->next_entry_count = 0;
 }
 
-/**********************************************************************/
+/**
+ * Replace a block_map's forest with the already-prepared larger forest.
+ *
+ * @param map  The block map
+ **/
 void replace_vdo_forest(struct block_map *map)
 {
 	if (map->next_forest != NULL) {
@@ -334,7 +361,6 @@ static void finish_cursor(struct cursor *cursor)
 	finish_vdo_completion(parent, VDO_SUCCESS);
 }
 
-/**********************************************************************/
 static void traverse(struct cursor *cursor);
 
 /**
@@ -527,7 +553,15 @@ static struct boundary compute_boundary(struct block_map *map,
 	return boundary;
 }
 
-/**********************************************************************/
+/**
+ * Walk the entire forest of a block map.
+ *
+ * @param map       The block map to traverse
+ * @param callback  A function to call with the pbn of each allocated node in
+ *                  the forest
+ * @param parent    The completion to notify on each traversed PBN, and when
+ *                  the traversal is complete
+ **/
 void traverse_vdo_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent)

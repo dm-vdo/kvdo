@@ -21,7 +21,6 @@
 #include <linux/mm.h>
 #include <linux/sched/mm.h>
 #include <linux/slab.h>
-#include <linux/version.h>
 #include <linux/vmalloc.h>
 
 #include "compiler.h"
@@ -287,14 +286,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			 * possible that more retries will succeed.
 			 */
 			for (;;) {
-/* XXX Take out when all Fedora lab machines have upgraded to 5.8+. ALB-3032. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
-#else
-				p = __vmalloc(size,
-					      gfp_flags | __GFP_NOWARN,
-					      PAGE_KERNEL);
-#endif
 				/*
 				 * Try again unless we succeeded or more than 1
 				 * second has elapsed.
@@ -311,11 +303,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 				 * Try one more time, logging a failure for
 				 * this call.
 				 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 				p = __vmalloc(size, gfp_flags);
-#else
-				p = __vmalloc(size, gfp_flags, PAGE_KERNEL);
-#endif
 			}
 			if (p == NULL) {
 				UDS_FREE(block);

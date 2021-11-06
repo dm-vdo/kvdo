@@ -58,39 +58,13 @@ struct vdo_component_states {
 	struct fixed_layout *layout;
 };
 
-/**
- * Clean up any allocations in a vdo_component_states.
- *
- * @param states  The component states to destroy
- **/
 void destroy_vdo_component_states(struct vdo_component_states *states);
 
-/**
- * Decode the payload of a super block.
- *
- * @param buffer                    The buffer containing the encoded super
- *                                  block contents
- * @param expected_release_version  The required release version
- * @param states                    A pointer to hold the decoded states
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check
 decode_vdo_component_states(struct buffer *buffer,
 			    release_version_number_t expected_release_version,
 			    struct vdo_component_states *states);
 
-/**
- * Validate the decoded super block configuration.
- *
- * @param states          The state decoded from the super block
- * @param geometry_nonce  The nonce from the geometry block
- * @param physical_size   The minimum block count of the underlying storage
- * @param logical_size    The expected logical size of the VDO, or 0 if the
- *                        logical size may be unspecified
- *
- * @return VDO_SUCCESS or an error if the configuration is invalid
- **/
 int __must_check
 validate_vdo_component_states(struct vdo_component_states *states,
 			      nonce_t geometry_nonce,
@@ -106,12 +80,6 @@ validate_vdo_component_states(struct vdo_component_states *states,
 int __must_check
 encode_vdo(struct buffer *buffer, struct vdo_component_states *states);
 
-/**
- * Encode the state of all vdo components for writing in the super block.
- *
- * @param buffer  The buffer to encode into
- * @param states  The states to encode
- **/
 int encode_vdo_component_states(struct buffer *buffer,
 				const struct vdo_component_states *states);
 
