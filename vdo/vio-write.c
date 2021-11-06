@@ -247,6 +247,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 			 data_vio->logical.lbn + 1,
 			 operation,
 			 data_vio_as_vio(data_vio)->callback);
+	completion->requeue = true;
 	invoke_vdo_completion_callback_with_priority(completion,
 						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
