@@ -88,7 +88,14 @@ static noinline void clean_data_vio(struct data_vio *data_vio,
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
-/**********************************************************************/
+/**
+ * Return a batch of data_vio objects to the pool.
+ *
+ * <p>Implements batch_processor_callback.
+ *
+ * @param batch    The batch processor
+ * @param closure  The kernal layer
+ **/
 void return_data_vio_batch_to_pool(struct batch_processor *batch,
 				   void *closure)
 {
@@ -281,7 +288,18 @@ static void read_bio_callback(struct bio *bio)
 	complete_read(data_vio);
 }
 
-/**********************************************************************/
+/**
+ * Fetch the data for a block from storage. The fetched data will be
+ * uncompressed when the callback is called, and the result of the read
+ * operation will be stored in the read_block's status field. On success,
+ * the data will be in the read_block's data pointer.
+ *
+ * @param data_vio       The data_vio to read a block in for
+ * @param location       The physical block number to read from
+ * @param mapping_state  The mapping state of the block to read
+ * @param priority       The priority of this read
+ * @param callback       The function to call when the read is done
+ **/
 void vdo_read_block(struct data_vio *data_vio,
 		    physical_block_number_t location,
 		    enum block_mapping_state mapping_state,
@@ -442,7 +460,14 @@ static void vdo_complete_partial_read(struct vdo_completion *completion)
 	vdo_complete_data_vio(completion);
 }
 
-/**********************************************************************/
+/**
+ * Initialize a newly acquiered data_vio based on an incoming bio and initiate
+ * processing of the request.
+ *
+ * @param vdo       The vdo
+ * @param data_vio  The data_vio which will process the bio
+ * @param bio       The incoming bio to be processed
+ **/
 void launch_data_vio(struct vdo *vdo,
 		     struct data_vio *data_vio,
 		     struct bio *bio)
@@ -531,7 +556,14 @@ void vdo_update_dedupe_index(struct data_vio *data_vio)
 	update_vdo_dedupe_advice(data_vio);
 }
 
-/**********************************************************************/
+/**
+ * Get the state needed to generate UDS metadata from the data_vio
+ * associated with a dedupe_context.
+ *
+ * @param context  The dedupe_context
+ *
+ * @return the advice to store in the UDS index
+ **/
 struct data_location vdo_get_dedupe_advice(const struct dedupe_context *context)
 {
 	struct data_vio *data_vio = container_of(context,
@@ -543,7 +575,14 @@ struct data_location vdo_get_dedupe_advice(const struct dedupe_context *context)
 	};
 }
 
-/**********************************************************************/
+/**
+ * Set the result of a dedupe query for the data_vio associated with a
+ * dedupe_context.
+ *
+ * @param context  The context receiving advice
+ * @param advice   A data location at which the chunk named in the context
+ *                 might be stored (will be NULL if no advice was found)
+ **/
 void vdo_set_dedupe_advice(struct dedupe_context *context,
 			   const struct data_location *advice)
 {

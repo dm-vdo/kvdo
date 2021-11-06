@@ -25,20 +25,8 @@
 
 #include "kernel-types.h"
 
-/**
- * Copy the bio data to a char array.
- *
- * @param bio       The bio to copy the data from
- * @param data_ptr  The local array to copy the data to
- **/
 void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr);
 
-/**
- * Copy a char array to the bio data.
- *
- * @param bio       The bio to copy the data to
- * @param data_ptr  The local array to copy the data from
- **/
 void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr);
 
 /**
@@ -65,71 +53,20 @@ static inline void vdo_complete_bio(struct bio *bio, int error)
 	bio_endio(bio);
 }
 
-/**
- * Frees up a bio structure
- *
- * @param bio    The bio to free
- **/
 void vdo_free_bio(struct bio *bio);
 
-/**
- * Count the statistics for the bios.  This is used for calls into VDO and
- * for calls out of VDO.
- *
- * @param bio_stats  Statistics structure to update
- * @param bio        The bio
- **/
 void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
 
-/**
- * Does all the appropriate accounting for bio completions
- *
- * @param bio  the bio to count
- **/
 void vdo_count_completed_bios(struct bio *bio);
 
-/**
- * Completes a bio relating to a vio, causing the completion callback to be
- * invoked.
- *
- * This is used as the bi_end_io function for most of the bios created within
- * VDO and submitted to the storage device. Exceptions are the flush code and
- * the read-block code, both of which need to regain control in the kernel
- * layer after the I/O is completed.
- *
- * @param bio   The bio to complete
- **/
 void vdo_complete_async_bio(struct bio *bio);
 
-/**
- * Set bio properties for a VDO read or write.
- *
- * @param bio       The bio to reset
- * @param vio       The vio to which the bio belongs (may be NULL)
- * @param callback  The callback the bio should call when IO finishes
- * @param bi_opf    The operation and flags for the bio
- * @param pbn       The physical block number to write to
- **/
 void vdo_set_bio_properties(struct bio *bio,
 			    struct vio *vio,
 			    bio_end_io_t callback,
 			    unsigned int bi_opf,
 			    physical_block_number_t pbn);
 
-/**
- * Reset a bio wholly, preparing it to perform an IO. May only be used on a
- * VDO-allocated bio, as it assumes the bio wraps a 4k buffer that is 4k
- * aligned.
- *
- * @param bio       The bio to reset
- * @param data      The data the bio should wrap
- * @param vio       The vio to which this bio belongs (may be NULL)
- * @param callback  The callback the bio should call when IO finishes
- * @param bi_opf    The operation and flags for the bio
- * @param pbn       The physical block number to write to
- *
- * @return VDO_SUCCESS or an error
- **/
 int vdo_reset_bio_with_buffer(struct bio *bio,
 			      char *data,
 			      struct vio *vio,
@@ -137,14 +74,6 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      unsigned int bi_opf,
 			      physical_block_number_t pbn);
 
-/**
- * Create a new bio structure, which is guaranteed to be able to wrap any
- * contiguous buffer for IO.
- *
- * @param [out] bio_ptr  A pointer to hold new bio
- *
- * @return VDO_SUCCESS or an error
- **/
 int vdo_create_bio(struct bio **bio_ptr);
 
 #endif /* BIO_H */

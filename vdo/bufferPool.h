@@ -28,24 +28,6 @@ typedef int buffer_allocate_function(void **data_ptr);
 typedef void buffer_free_function(void *data);
 typedef void buffer_dump_function(void *data);
 
-/**
- * Creates a generic pool of buffer data. The elements in the pool are
- * allocated up front and placed on a free list, which manages the
- * reuse of the individual buffers in the pool.
- *
- * @param [in]  pool_name          Name of the pool
- * @param [in]  size               The number of elements to create for this
- *                                 pool
- * @param [in]  allocate_function  The function to call to create the actual
- *                                 data for each element
- * @param [in]  free_function      The function to call to free the actual
- *                                 data for each element
- * @param [in]  dump_function      The function to call to dump the actual
- *                                 data for each element into the log
- * @param [out] pool_ptr           A pointer to hold the pool that was created
- *
- * @return a success or error code
- */
 int __must_check make_buffer_pool(const char *pool_name,
 				  unsigned int size,
 				  buffer_allocate_function *allocate_function,
@@ -53,49 +35,15 @@ int __must_check make_buffer_pool(const char *pool_name,
 				  buffer_dump_function *dump_function,
 				  struct buffer_pool **pool_ptr);
 
-/**
- * Free a buffer pool. This will free all the elements of the pool as well.
- *
- * @param [in]  pool   The pool to free
- **/
 void free_buffer_pool(struct buffer_pool *pool);
 
-/**
- * Dump a buffer pool to the log.
- *
- * @param [in] pool           The buffer pool to allocate from
- * @param [in] dump_elements  True for complete output, or false for a
- *                            one-line summary
- **/
 void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements);
 
-/**
- * Acquires a free buffer from the free list of the pool and
- * returns it's associated data.
- *
- * @param [in]  pool       The buffer pool to allocate from
- * @param [out] data_ptr   A pointer to hold the buffer data
- *
- * @return a success or error code
- */
 int __must_check
 alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr);
 
-/**
- * Returns a buffer to the free list of a pool
- *
- * @param [in] pool   The buffer pool to return the buffer to
- * @param [in] data   The buffer data to return
- */
 void free_buffer_to_pool(struct buffer_pool *pool, void *data);
 
-/**
- * Returns a set of buffers to the free list of a pool
- *
- * @param [in] pool   The buffer pool to return the buffer to
- * @param [in] data   The buffer data to return
- * @param [in] count  Number of entries in the data array
- */
 void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count);
 
 /**

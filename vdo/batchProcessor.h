@@ -44,59 +44,19 @@ struct batch_processor;
 typedef void (*batch_processor_callback)(struct batch_processor *batch,
 					 void *closure);
 
-/**
- * Creates a batch-processor control structure.
- *
- * @param [in]  vdo        The vdo, used to enqueue work items
- * @param [in]  callback   A function to process the accumulated objects
- * @param [in]  closure    A private data pointer for use by the callback
- * @param [out] batch_ptr  Where to store the pointer to the new object
- *
- * @return UDS_SUCCESS or an error code
- **/
 int make_batch_processor(struct vdo *vdo,
 			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr);
 
-/**
- * Adds an object to the processing queue.
- *
- * If the callback function is not currently running or scheduled to be run,
- * it gets queued up to run.
- *
- * @param [in] batch  The batch-processor data
- * @param [in] item   The handle on the new object to add
- **/
 void add_to_batch_processor(struct batch_processor *batch,
 			    struct vdo_work_item *item);
 
-/**
- * Fetches the next object in the processing queue.
- *
- * @param [in]  batch  The batch-processor data
- *
- * @return An object pointer or NULL
- **/
 struct vdo_work_item * __must_check
 next_batch_item(struct batch_processor *batch);
 
-/**
- * Free the batch-processor data.
- *
- * @param [in]  batch  The batch-processor data
- **/
 void free_batch_processor(struct batch_processor *batch);
 
-/**
- * Yield control to the scheduler if the kernel has indicated that
- * other work needs to run on the current processor.
- *
- * The data structure is needed so that the spin lock can be
- * (conditionally) released and re-acquired.
- *
- * @param [in]  batch  The batch-processor data
- **/
 void cond_resched_batch_processor(struct batch_processor *batch);
 
 #endif /* BATCHPROCESSOR_H */

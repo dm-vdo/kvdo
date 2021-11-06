@@ -217,7 +217,12 @@ static uint64_t get_dedupe_index_timeout(uint64_t start_jiffies)
 		   jiffies + vdo_dedupe_index_min_timer_jiffies);
 }
 
-/**********************************************************************/
+/**
+ * Set the interval from submission until switching to fast path and
+ * skipping UDS.
+ *
+ * @param value  The number of milliseconds
+ **/
 void set_vdo_dedupe_index_timeout_interval(unsigned int value)
 {
 	uint64_t alb_jiffies;
@@ -237,7 +242,12 @@ void set_vdo_dedupe_index_timeout_interval(unsigned int value)
 	vdo_dedupe_index_timeout_jiffies = alb_jiffies;
 }
 
-/**********************************************************************/
+/**
+ * Set the minimum time interval between timer invocations to check for
+ * requests waiting for UDS that should now time out.
+ *
+ * @param value  The number of milliseconds
+ **/
 void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 {
 	uint64_t min_jiffies;
@@ -347,7 +357,13 @@ static void start_index_operation(struct vdo_work_item *item)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Get the dedupe timeout count.
+ *
+ * @param index  The dedupe index
+ *
+ * @return The number of dedupe timeouts noted
+ **/
 uint64_t get_vdo_dedupe_index_timeout_count(struct dedupe_index *index)
 {
 	return atomic64_read(&index->timeout_reporter.value);
@@ -480,7 +496,12 @@ static void timeout_index_operations(struct timer_list *t)
 	report_dedupe_timeouts(&index->timeout_reporter, timed_out);
 }
 
-/**********************************************************************/
+/**
+ * Enqueue operation for submission to the index.
+ *
+ * @param data_vio   The data_vio requesting the operation
+ * @param operation  The index operation to perform
+ **/
 void enqueue_vdo_index_operation(struct data_vio *data_vio,
 				 enum uds_request_type operation)
 {
@@ -701,7 +722,13 @@ static void set_target_state(struct dedupe_index *index,
 	}
 }
 
-/**********************************************************************/
+/**
+ * Wait until the dedupe index has completed all its outstanding I/O.
+ * May be called from any thread,
+ *
+ * @param index      The dedupe index
+ * @param save_flag  True if we should save the index
+ **/
 void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	enum index_state state;
@@ -721,7 +748,13 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Resume a suspended dedupe index. May be called from any thread.
+ *
+ * @param index   The dedupe index
+ * @param dedupe  Whether dedupe should be on or off.
+ * @param create  Whether to create the index or not.
+ **/
 void resume_vdo_dedupe_index(struct dedupe_index *index,
 			     bool dedupe,
 			     bool create)
@@ -750,7 +783,11 @@ void resume_vdo_dedupe_index(struct dedupe_index *index,
 	spin_unlock(&index->state_lock);
 }
 
-/**********************************************************************/
+/**
+ * Do the dedupe section of dmsetup message vdo0 0 dump ...
+ *
+ * @param index       The dedupe index
+ **/
 void dump_vdo_dedupe_index(struct dedupe_index *index)
 {
 	const char *state, *target;
@@ -768,7 +805,11 @@ void dump_vdo_dedupe_index(struct dedupe_index *index)
 	}
 }
 
-/**********************************************************************/
+/**
+ * Finish the dedupe index.
+ *
+ * @param index  The dedupe index
+ **/
 void finish_vdo_dedupe_index(struct dedupe_index *index)
 {
 	if (index == NULL) {
@@ -780,7 +821,11 @@ void finish_vdo_dedupe_index(struct dedupe_index *index)
 	finish_work_queue(index->uds_queue);
 }
 
-/**********************************************************************/
+/**
+ * Free the dedupe index
+ *
+ * @param index  The dedupe index
+ **/
 void free_vdo_dedupe_index(struct dedupe_index *index)
 {
 	if (index == NULL) {
@@ -801,7 +846,13 @@ void free_vdo_dedupe_index(struct dedupe_index *index)
 	kobject_put(&index->dedupe_directory);
 }
 
-/**********************************************************************/
+/**
+ * Get the name of the deduplication state
+ *
+ * @param index  The dedupe index
+ *
+ * @return the dedupe state name
+ **/
 const char *get_vdo_dedupe_index_state_name(struct dedupe_index *index)
 {
 	const char *state;
@@ -813,7 +864,12 @@ const char *get_vdo_dedupe_index_state_name(struct dedupe_index *index)
 	return state;
 }
 
-/**********************************************************************/
+/**
+ * Get the index statistics
+ *
+ * @param index  The dedupe index
+ * @param stats  The index statistics
+ **/
 void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 				     struct index_statistics *stats)
 {
@@ -847,7 +903,14 @@ void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 }
 
 
-/**********************************************************************/
+/**
+ * Process a dmsetup message directed to the index.
+ *
+ * @param index  The dedupe index
+ * @param name   The message name
+ *
+ * @return 0 or an error code
+ **/
 int message_vdo_dedupe_index(struct dedupe_index *index, const char *name)
 {
 	if (strcasecmp(name, "index-close") == 0) {
@@ -866,14 +929,27 @@ int message_vdo_dedupe_index(struct dedupe_index *index, const char *name)
 	return -EINVAL;
 }
 
-/**********************************************************************/
+/**
+ * Add the sysfs nodes for the dedupe index.
+ *
+ * @param index        The dedupe index
+ * @param parent  The kobject to attach the sysfs nodes to
+ *
+ * @return 0 or an error code
+ **/
 int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
 			       struct kobject *parent)
 {
 	return kobject_add(&index->dedupe_directory, parent, "dedupe");
 }
 
-/**********************************************************************/
+/**
+ * Start the dedupe index.
+ *
+ * @param index        The dedupe index
+ * @param create_flag  If true, create a new index without first attempting
+ *                     to load an existing index
+ **/
 void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
@@ -959,7 +1035,15 @@ static void finish_uds_queue(void *ptr __always_unused)
 	uds_unregister_allocating_thread();
 }
 
-/**********************************************************************/
+/**
+ * Make a dedupe index
+ *
+ * @param index_ptr           dedupe index returned here
+ * @param vdo                 the vdo to which the index will belong
+ * @param thread_name_prefix  The per-device prefix to use in thread names
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
 int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 			  struct vdo *vdo,
 			  const char *thread_name_prefix)

@@ -64,14 +64,12 @@ enum {
 	DEFAULT_DUMP_FLAGS = (FLAG_SHOW_QUEUES | FLAG_SHOW_VDO_STATUS)
 };
 
-/**********************************************************************/
 static inline bool is_arg_string(const char *arg, const char *this_option)
 {
 	/* device-mapper convention seems to be case-independent options */
 	return strncasecmp(arg, this_option, strlen(this_option)) == 0;
 }
 
-/**********************************************************************/
 static void do_dump(struct vdo *vdo,
 		    unsigned int dump_options_requested,
 		    const char *why)
@@ -116,7 +114,6 @@ static void do_dump(struct vdo *vdo,
 	uds_log_info("end of %s dump", UDS_LOGGING_MODULE_NAME);
 }
 
-/**********************************************************************/
 static int parse_dump_options(unsigned int argc,
 			      char *const *argv,
 			      unsigned int *dump_options_requested_ptr)
@@ -169,7 +166,15 @@ static int parse_dump_options(unsigned int argc,
 	return 0;
 }
 
-/**********************************************************************/
+/**
+ * Dump internal state and/or statistics to the kernel log, as specified by
+ * zero or more string arguments.
+ *
+ * @param vdo   The vdo
+ * @param argc  Number of arguments
+ * @param argv  The argument list
+ * @param why   Reason for doing the dump
+ **/
 int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,
 	     char *const *argv,
@@ -186,7 +191,13 @@ int vdo_dump(struct vdo *vdo,
 	return 0;
 }
 
-/**********************************************************************/
+/**
+ * Dump lots of internal state and statistics to the kernel log. Identical to
+ * "dump all", without each caller needing to set up the argument list.
+ *
+ * @param vdo  The vdo
+ * @param why  Reason for doing the dump
+ **/
 void vdo_dump_all(struct vdo *vdo, const char *why)
 {
 	do_dump(vdo, ~0, why);
@@ -261,7 +272,13 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	*p_flag = '\0';
 }
 
-/**********************************************************************/
+/**
+ * Dump out a data_vio.
+ *
+ * <p>Implements buffer_dump_function.
+ *
+ * @param data  The data_vio to dump
+ **/
 void dump_data_vio(void *data)
 {
 	struct data_vio *data_vio = (struct data_vio *) data;

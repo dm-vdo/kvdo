@@ -22,36 +22,13 @@
 
 #include "kernel-types.h"
 
-/**
- * Dump internal state and/or statistics to the kernel log, as specified by
- * zero or more string arguments.
- *
- * @param vdo   The vdo
- * @param argc  Number of arguments
- * @param argv  The argument list
- * @param why   Reason for doing the dump
- **/
 int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,
 	     char *const *argv,
 	     const char *why);
 
-/**
- * Dump lots of internal state and statistics to the kernel log. Identical to
- * "dump all", without each caller needing to set up the argument list.
- *
- * @param vdo  The vdo
- * @param why  Reason for doing the dump
- **/
 void vdo_dump_all(struct vdo *vdo, const char *why);
 
-/**
- * Dump out a data_vio.
- *
- * <p>Implements buffer_dump_function.
- *
- * @param data  The data_vio to dump
- **/
 void dump_data_vio(void *data);
 
 #endif /* DUMP_H */

@@ -130,7 +130,6 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	return DM_MAPIO_SUBMITTED;
 }
 
-/**********************************************************************/
 static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
@@ -170,7 +169,6 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
-/**********************************************************************/
 static int vdo_iterate_devices(struct dm_target *ti,
 			       iterate_devices_callout_fn fn,
 			       void *data)
@@ -190,7 +188,6 @@ static int vdo_iterate_devices(struct dm_target *ti,
  *    <compression state> <used physical blocks> <total physical blocks>
  */
 
-/**********************************************************************/
 static void vdo_status(struct dm_target *ti,
 		       status_type_t status_type,
 		       unsigned int status_flags,
@@ -349,7 +346,6 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 	return result;
 }
 
-/**********************************************************************/
 static int vdo_message(struct dm_target *ti,
 		       unsigned int argc,
 		       char **argv,
@@ -502,7 +498,6 @@ static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
 	return (strcmp(device_name, (const char *) context) == 0);
 }
 
-/**********************************************************************/
 static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
 	int result = VDO_SUCCESS;
@@ -572,7 +567,6 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	return result;
 }
 
-/**********************************************************************/
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
@@ -612,7 +606,6 @@ static void vdo_dtr(struct dm_target *ti)
 	ti->private = NULL;
 }
 
-/**********************************************************************/
 static void vdo_presuspend(struct dm_target *ti)
 {
 	get_vdo_for_target(ti)->suspend_type
@@ -621,7 +614,6 @@ static void vdo_presuspend(struct dm_target *ti)
 		   : VDO_ADMIN_STATE_SAVING);
 }
 
-/**********************************************************************/
 static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
@@ -632,7 +624,6 @@ static void vdo_postsuspend(struct dm_target *ti)
 	uds_unregister_thread_device_id();
 }
 
-/**********************************************************************/
 static int vdo_preresume(struct dm_target *ti)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
@@ -676,7 +667,6 @@ static int vdo_preresume(struct dm_target *ti)
 	return vdo_map_to_system_error(result);
 }
 
-/**********************************************************************/
 static void vdo_resume(struct dm_target *ti)
 {
 	struct registered_thread instance_thread;
@@ -713,7 +703,6 @@ static struct target_type vdo_target_bio = {
 
 static bool dm_registered;
 
-/**********************************************************************/
 static void vdo_destroy(void)
 {
 	uds_log_debug("in %s", __func__);
@@ -727,7 +716,6 @@ static void vdo_destroy(void)
 	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
 
-/**********************************************************************/
 static int __init vdo_init(void)
 {
 	int result = 0;
@@ -756,7 +744,6 @@ static int __init vdo_init(void)
 	return result;
 }
 
-/**********************************************************************/
 static void __exit vdo_exit(void)
 {
 	vdo_destroy();

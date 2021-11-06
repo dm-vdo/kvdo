@@ -25,14 +25,12 @@
 #include "logger.h"
 #include "vdo-init.h"
 
-/**********************************************************************/
 static int vdo_log_level_show(char *buf,
 			      const struct kernel_param *kp)
 {
 	return sprintf(buf, "%s\n", uds_log_priority_to_string(get_uds_log_level()));
 }
 
-/**********************************************************************/
 static int vdo_log_level_store(const char *buf,
 			       const struct kernel_param *kp)
 {
@@ -54,7 +52,6 @@ static int vdo_log_level_store(const char *buf,
 }
 
 
-/**********************************************************************/
 static int vdo_dedupe_timeout_interval_store(const char *buf,
 					     const struct kernel_param *kp)
 {
@@ -67,7 +64,6 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 	return 0;
 }
 
-/**********************************************************************/
 static int vdo_min_dedupe_timer_interval_store(const char *buf,
 					       const struct kernel_param *kp)
 {
