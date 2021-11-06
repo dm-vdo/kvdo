@@ -22,13 +22,6 @@
 
 #include "types.h"
 
-/**
- * Write vdo statistics to a buffer
- *
- * @param vdo     the vdo
- * @param buf     pointer to the buffer
- * @param maxlen  the maximum length of the buffer
- */
 int write_vdo_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
 
 #endif  /* MESSAGE_STATS_H */
