@@ -155,7 +155,7 @@ int encode_vdo_version_number(struct version_number version,
  **/
 int decode_vdo_header(struct buffer *buffer, struct header *header)
 {
-	enum component_id id;
+	uint32_t id;
 	uint64_t size;
 	struct version_number version;
 

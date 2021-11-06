@@ -23,8 +23,11 @@
 #include "compiler.h"
 
 /**
- * The current operating mode of the VDO. These are persistent on disk
- * so the values must not change.
+ * The current operating mode of the VDO.
+ * 
+ * These values are stored on disk, so keep this ordering!
+ *
+ * FIXME: these should maybe be #defines.
  **/
 enum vdo_state {
 	VDO_DIRTY = 0,

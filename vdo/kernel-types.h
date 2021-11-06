@@ -60,15 +60,23 @@ typedef uint16_t vio_count_t;
 /**
  * The type of request a vio is performing
  **/
+enum vio_operation_bits {
+	__VIO_READ,
+	__VIO_WRITE,
+	__VIO_FLUSH_BEFORE,
+	__VIO_FLUSH_AFTER,
+};
+
 enum vio_operation {
-	VIO_UNSPECIFIED_OPERATION = 0,
-	VIO_READ = 1,
-	VIO_WRITE = 2,
-	VIO_READ_MODIFY_WRITE = VIO_READ | VIO_WRITE,
-	VIO_READ_WRITE_MASK = VIO_READ_MODIFY_WRITE,
-	VIO_FLUSH_BEFORE = 4,
-	VIO_FLUSH_AFTER = 8,
+	VIO_UNSPECIFIED_OPERATION,
+	VIO_READ = (1 << __VIO_READ),
+	VIO_WRITE = (1 << __VIO_WRITE),
+	VIO_FLUSH_BEFORE = (1 << __VIO_FLUSH_BEFORE),
+	VIO_FLUSH_AFTER = (1 << __VIO_FLUSH_AFTER),
 } __packed;
+
+#define VIO_READ_MODIFY_WRITE (VIO_READ | VIO_WRITE)
+#define VIO_READ_WRITE_MASK VIO_READ_MODIFY_WRITE
 
 /**
  * vio types for statistics and instrumentation.

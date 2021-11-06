@@ -113,6 +113,10 @@ typedef uint8_t zone_count_t;
 /**
  * The current operation on a physical block (from the point of view of the
  * recovery journal, slab journals, and reference counts.
+ *
+ * These enum values are stored on disk, so preserve their values!
+ *
+ * FIXME: these maybe need to be #defines.
  **/
 enum journal_operation {
 	VDO_JOURNAL_DATA_DECREMENT = 0,

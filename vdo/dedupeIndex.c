@@ -40,20 +40,20 @@ struct uds_attribute {
 /* These are the values in the atomic dedupe_context.request_state field */
 enum {
 	/* The uds_request object is not in use. */
-	UR_IDLE = 0,
+	UR_IDLE,
 	/* The uds_request object is in use, and VDO is waiting for the result. */
-	UR_BUSY = 1,
+	UR_BUSY,
 	/* The uds_request object is in use, but has timed out. */
-	UR_TIMED_OUT = 2,
+	UR_TIMED_OUT,
 };
 
 enum index_state {
 	/* The UDS index is closed */
-	IS_CLOSED = 0,
+	IS_CLOSED,
 	/* The UDS index session is opening or closing */
-	IS_CHANGING = 1,
+	IS_CHANGING,
 	/* The UDS index is open. */
-	IS_OPENED = 2,
+	IS_OPENED,
 };
 
 /* Data managing the reporting of UDS timeouts */

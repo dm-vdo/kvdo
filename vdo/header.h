@@ -54,20 +54,18 @@ struct packed_version_number {
 /**
  * The registry of component ids for use in headers
  **/
-enum component_id {
-	VDO_SUPER_BLOCK = 0,
-	VDO_FIXED_LAYOUT = 1,
-	VDO_RECOVERY_JOURNAL = 2,
-	VDO_SLAB_DEPOT = 3,
-	VDO_BLOCK_MAP = 4,
-	VDO_GEOMETRY_BLOCK = 5,
-};
+#define VDO_SUPER_BLOCK 0
+#define VDO_FIXED_LAYOUT 1
+#define VDO_RECOVERY_JOURNAL 2
+#define VDO_SLAB_DEPOT 3
+#define VDO_BLOCK_MAP 4
+#define VDO_GEOMETRY_BLOCK 5
 
 /**
  * The header for versioned data stored on disk.
  **/
 struct header {
-	enum component_id id; /* The component this is a header for */
+	uint32_t id; /* The component this is a header for */
 	struct version_number version; /* The version of the data format */
 	size_t size; /* The size of the data following this header */
 } __packed;

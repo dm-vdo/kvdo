@@ -132,7 +132,7 @@
  * The steps taken cleaning up a VIO, in the order they are performed.
  **/
 enum data_vio_cleanup_stage {
-	VIO_CLEANUP_START = 0,
+	VIO_CLEANUP_START,
 	VIO_RELEASE_ALLOCATED = VIO_CLEANUP_START,
 	VIO_RELEASE_RECOVERY_LOCKS,
 	VIO_RELEASE_HASH_LOCK,

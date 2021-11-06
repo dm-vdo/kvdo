@@ -29,7 +29,7 @@
 
 enum hash_lock_state {
 	/** State for locks that are not in use or are being initialized. */
-	VDO_HASH_LOCK_INITIALIZING = 0,
+	VDO_HASH_LOCK_INITIALIZING,
 
 	/* This is the sequence of states typically used on the non-dedupe path. */
 	VDO_HASH_LOCK_QUERYING,

@@ -42,7 +42,7 @@
  * the logical zones, and then the physical zones.
  **/
 enum lock_counter_state {
-	LOCK_COUNTER_STATE_NOT_NOTIFYING = 0,
+	LOCK_COUNTER_STATE_NOT_NOTIFYING,
 	LOCK_COUNTER_STATE_NOTIFYING,
 	LOCK_COUNTER_STATE_SUSPENDED,
 };

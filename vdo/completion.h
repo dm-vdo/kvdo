@@ -29,7 +29,7 @@
 
 enum vdo_completion_type {
 	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
-	VDO_UNSET_COMPLETION_TYPE = 0,
+	VDO_UNSET_COMPLETION_TYPE,
 
 	/*
 	 * Keep this block in sorted order. If you add or remove an entry, be 

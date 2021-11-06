@@ -35,7 +35,7 @@ enum {
  **/
 enum vdo_status_codes {
 	/** successful result */
-	VDO_SUCCESS = 0,
+	VDO_SUCCESS,
 	/** base of all VDO errors */
 	VDO_STATUS_CODE_BASE = VDO_BLOCK_START,
 	/** we haven't written this yet */

@@ -47,7 +47,7 @@
  * Codes for describing the last asynchronous operation performed on a vio.
  **/
 enum async_operation_number {
-	MIN_VIO_ASYNC_OPERATION_NUMBER = 0,
+	MIN_VIO_ASYNC_OPERATION_NUMBER,
 	VIO_ASYNC_OP_LAUNCH = MIN_VIO_ASYNC_OPERATION_NUMBER,
 	VIO_ASYNC_OP_ACKNOWLEDGE_WRITE,
 	VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK,

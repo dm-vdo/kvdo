@@ -51,7 +51,7 @@
  **/
 enum {
 	/** Notifications are allowed but not in progress */
-	MAY_NOTIFY = 0,
+	MAY_NOTIFY,
 	/** A notification is in progress */
 	NOTIFYING,
 	/** Notifications are not allowed */

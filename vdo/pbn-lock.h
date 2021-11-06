@@ -29,7 +29,7 @@
  * The type of a PBN lock.
  **/
 enum pbn_lock_type {
-	VIO_READ_LOCK = 0,
+	VIO_READ_LOCK,
 	VIO_WRITE_LOCK,
 	VIO_COMPRESSED_WRITE_LOCK,
 	VIO_BLOCK_MAP_WRITE_LOCK,

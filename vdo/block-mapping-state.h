@@ -27,6 +27,8 @@
  * used to distinguish unmapped or trimmed logical blocks (which are treated
  * as mapped to the zero block) from entries that have been mapped to a
  * physical block, including the zero block.
+ *
+ * FIXME: these should maybe be defines.
  **/
 enum block_mapping_state {
 	VDO_MAPPING_STATE_UNMAPPED = 0, /* Must be zero to be the default value */

@@ -29,7 +29,7 @@
  **/
 enum vio_compression_status {
 	/* A VIO which has not yet entered the compression path */
-	VIO_PRE_COMPRESSOR = 0,
+	VIO_PRE_COMPRESSOR,
 	/* A VIO which is in the compressor */
 	VIO_COMPRESSING,
 	/* A VIO which is blocked in the packer */

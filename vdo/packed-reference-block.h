@@ -32,8 +32,8 @@ typedef uint8_t vdo_refcount_t;
 /**
  * Special vdo_refcount_t values.
  **/
+#define EMPTY_REFERENCE_COUNT 0
 enum {
-	EMPTY_REFERENCE_COUNT = 0,
 	MAXIMUM_REFERENCE_COUNT = 254,
 	PROVISIONAL_REFERENCE_COUNT = 255,
 };
