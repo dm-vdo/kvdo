@@ -269,6 +269,7 @@ void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 	vdo_dedupe_index_min_timer_jiffies = min_jiffies;
 }
 
+
 /**********************************************************************/
 static void finish_index_operation(struct uds_request *uds_request)
 {

@@ -58,6 +58,7 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
+	struct vio_tracer *vio_tracer;
 
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
