@@ -24,20 +24,24 @@
 #include "pbn-lock.h"
 #include "types.h"
 
+struct physical_zone {
+	/** Which physical zone this is */
+	zone_count_t zone_number;
+	/** The thread ID for this zone */
+	thread_id_t thread_id;
+	/** In progress operations keyed by PBN */
+	struct int_map *pbn_operations;
+	/** Pool of unused pbn_lock instances */
+	struct pbn_lock_pool *lock_pool;
+	/** The block allocator for this zone */
+	struct block_allocator *allocator;
+};
+
 int __must_check make_vdo_physical_zone(struct vdo *vdo,
 					zone_count_t zone_number,
 					struct physical_zone **zone_ptr);
 
 void free_vdo_physical_zone(struct physical_zone *zone);
-
-zone_count_t __must_check
-get_vdo_physical_zone_number(const struct physical_zone *zone);
-
-thread_id_t __must_check
-get_vdo_physical_zone_thread_id(const struct physical_zone *zone);
-
-struct block_allocator * __must_check
-get_vdo_physical_zone_block_allocator(const struct physical_zone *zone);
 
 struct pbn_lock * __must_check
 get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,

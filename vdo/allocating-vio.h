@@ -174,8 +174,7 @@ vdo_get_from_allocating_vio(struct allocating_vio *allocating_vio)
 static inline void
 assert_vio_in_physical_zone(struct allocating_vio *allocating_vio)
 {
-	thread_id_t expected =
-		get_vdo_physical_zone_thread_id(allocating_vio->zone);
+	thread_id_t expected = allocating_vio->zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -198,7 +197,7 @@ vio_set_physical_zone_callback(struct allocating_vio *allocating_vio,
 {
 	vdo_set_completion_callback(allocating_vio_as_completion(allocating_vio),
 				    callback,
-				    get_vdo_physical_zone_thread_id(allocating_vio->zone));
+				    allocating_vio->zone->thread_id);
 }
 
 /**

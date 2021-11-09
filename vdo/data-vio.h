@@ -311,8 +311,8 @@ struct data_vio {
 	uint32_t remaining_discard;
 
 	/*
-	 * Fields beyond this point will not be reset when a pooled data_vio 
-	 * is reused. 
+	 * Fields beyond this point will not be reset when a pooled data_vio
+	 * is reused.
 	 */
 
 	/* Dedupe */
@@ -616,8 +616,8 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 	thread_id_t expected = get_vdo_hash_zone_thread_id(data_vio->hash_zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 	/*
-	 * It's odd to use the LBN, but converting the chunk name to hex is a 
-	 * bit clunky for an inline, and the LBN better than nothing as an 
+	 * It's odd to use the LBN, but converting the chunk name to hex is a
+	 * bit clunky for an inline, and the LBN better than nothing as an
 	 * identifier.
 	 */
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -753,8 +753,7 @@ launch_data_vio_allocated_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		get_vdo_physical_zone_thread_id(data_vio->duplicate.zone);
+	thread_id_t expected = data_vio->duplicate.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -776,7 +775,7 @@ set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_vdo_physical_zone_thread_id(data_vio->duplicate.zone));
+				    data_vio->duplicate.zone->thread_id);
 }
 
 /**
@@ -801,8 +800,7 @@ launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		get_vdo_physical_zone_thread_id(data_vio->mapped.zone);
+	thread_id_t expected = data_vio->mapped.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -824,7 +822,7 @@ set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_vdo_physical_zone_thread_id(data_vio->mapped.zone));
+				    data_vio->mapped.zone->thread_id);
 }
 
 /**
@@ -835,8 +833,7 @@ set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone);
+	thread_id_t expected = data_vio->new_mapped.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -859,7 +856,7 @@ set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone));
+				    data_vio->new_mapped.zone->thread_id);
 }
 
 /**

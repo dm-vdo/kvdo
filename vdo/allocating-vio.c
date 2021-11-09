@@ -146,8 +146,7 @@ has_zones_to_try(struct allocating_vio *allocating_vio)
  **/
 static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 {
-	struct block_allocator *allocator =
-		get_vdo_physical_zone_block_allocator(allocating_vio->zone);
+	struct block_allocator *allocator = allocating_vio->zone->allocator;
 	struct waiter *waiter = allocating_vio_as_waiter(allocating_vio);
 	int result;
 
@@ -157,8 +156,8 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 		}
 
 		/*
-		 * No zone has known free blocks, so check them all again after 
-		 * waiting for scrubbing. 
+		 * No zone has known free blocks, so check them all again after
+		 * waiting for scrubbing.
 		 */
 		allocating_vio->wait_for_clean_slab = true;
 		allocating_vio->allocation_attempts = 1;
@@ -172,8 +171,8 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 
 	if ((result != VDO_NO_SPACE) || !has_zones_to_try(allocating_vio)) {
 		/*
-		 * Either there was an error, or we've tried everything and 
-		 * found nothing. 
+		 * Either there was an error, or we've tried everything and
+		 * found nothing.
 		 */
 		finish_allocation(allocating_vio, result);
 		return false;
@@ -196,7 +195,7 @@ static void try_next_zone(struct allocating_vio *allocating_vio)
 		return;
 	}
 
-	zone_number = get_vdo_physical_zone_number(allocating_vio->zone) + 1;
+	zone_number = allocating_vio->zone->zone_number + 1;
 	if (zone_number == vdo->thread_config->physical_zone_count) {
 		zone_number = 0;
 	}
@@ -216,8 +215,7 @@ static void allocate_block_in_zone(struct vdo_completion *completion)
 {
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
-	struct block_allocator *allocator =
-		get_vdo_physical_zone_block_allocator(allocating_vio->zone);
+	struct block_allocator *allocator = allocating_vio->zone->allocator;
 
 	assert_vio_in_physical_zone(allocating_vio);
 
@@ -321,8 +319,8 @@ int create_compressed_write_vio(struct vdo *vdo,
 	struct vio *vio;
 
 	/*
-	 * Compressed write vios should use direct allocation and not use the 
-	 * buffer pool, which is reserved for submissions from the linux block 
+	 * Compressed write vios should use direct allocation and not use the
+	 * buffer pool, which is reserved for submissions from the linux block
 	 * layer.
 	 */
 	int result = UDS_ALLOCATE(1, struct allocating_vio, __func__,

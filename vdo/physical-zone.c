@@ -37,23 +37,10 @@
 
 enum {
 	/*
-	 * Each user data_vio needs a PBN read lock and write lock, and each 
-	 * packer output bin has an allocating_vio that needs a PBN write lock. 
+	 * Each user data_vio needs a PBN read lock and write lock, and each
+	 * packer output bin has an allocating_vio that needs a PBN write lock.
 	 */
 	LOCK_POOL_CAPACITY = 2 * MAXIMUM_VDO_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
-};
-
-struct physical_zone {
-	/** Which physical zone this is */
-	zone_count_t zone_number;
-	/** The thread ID for this zone */
-	thread_id_t thread_id;
-	/** In progress operations keyed by PBN */
-	struct int_map *pbn_operations;
-	/** Pool of unused pbn_lock instances */
-	struct pbn_lock_pool *lock_pool;
-	/** The block allocator for this zone */
-	struct block_allocator *allocator;
 };
 
 /**
@@ -115,43 +102,6 @@ void free_vdo_physical_zone(struct physical_zone *zone)
 }
 
 /**
- * Get the zone number of a physical zone.
- *
- * @param zone  The zone
- *
- * @return The number of the zone
- **/
-zone_count_t get_vdo_physical_zone_number(const struct physical_zone *zone)
-{
-	return zone->zone_number;
-}
-
-/**
- * Get the ID of a physical zone's thread.
- *
- * @param zone  The zone
- *
- * @return The zone's thread ID
- **/
-thread_id_t get_vdo_physical_zone_thread_id(const struct physical_zone *zone)
-{
-	return zone->thread_id;
-}
-
-/**
- * Get the block allocator from a physical zone.
- *
- * @param zone  The zone
- *
- * @return The zone's allocator
- **/
-struct block_allocator *
-get_vdo_physical_zone_block_allocator(const struct physical_zone *zone)
-{
-	return zone->allocator;
-}
-
-/**
  * Get the lock on a PBN if one exists.
  *
  * @param zone  The physical zone responsible for the PBN
@@ -186,8 +136,8 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 				       struct pbn_lock **lock_ptr)
 {
 	/*
-	 * Borrow and prepare a lock from the pool so we don't have to do two 
-	 * int_map accesses in the common case of no lock contention. 
+	 * Borrow and prepare a lock from the pool so we don't have to do two
+	 * int_map accesses in the common case of no lock contention.
 	 */
 	struct pbn_lock *lock, *new_lock;
 	int result = borrow_vdo_pbn_lock_from_pool(zone->lock_pool, type,
@@ -247,8 +197,8 @@ void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 	lock->holder_count -= 1;
 	if (lock->holder_count > 0) {
 		/*
-		 * The lock was shared and is still referenced, so don't 
-		 * release it yet. 
+		 * The lock was shared and is still referenced, so don't
+		 * release it yet.
 		 */
 		return;
 	}
