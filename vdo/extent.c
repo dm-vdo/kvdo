@@ -51,7 +51,7 @@ int create_vdo_extent(struct vdo *vdo,
 		      struct vdo_extent **extent_ptr)
 {
 	struct vdo_extent *extent;
-	int result = ASSERT(is_vdo_metadata_vio_type(vio_type),
+	int result = ASSERT(vdo_is_metadata_vio_type(vio_type),
 			    "create_vdo_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -122,7 +122,7 @@ static void handle_vio_completion(struct vdo_completion *completion)
 		return;
 	}
 
-	finish_vdo_completion(vdo_extent_as_completion(extent),
+	vdo_finish_completion(vdo_extent_as_completion(extent),
 			      completion->result);
 }
 
@@ -144,7 +144,7 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 
 	reset_vdo_completion(&extent->completion);
 	if (count > extent->count) {
-		finish_vdo_completion(&extent->completion, VDO_OUT_OF_RANGE);
+		vdo_finish_completion(&extent->completion, VDO_OUT_OF_RANGE);
 		return;
 	}
 

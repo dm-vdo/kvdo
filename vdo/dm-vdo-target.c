@@ -87,7 +87,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	struct data_vio *data_vio;
 	struct vdo_work_queue *current_work_queue;
 	const struct admin_state_code *code
-		= get_vdo_admin_state_code(&vdo->admin_state);
+		= vdo_get_admin_state_code(&vdo->admin_state);
 
 	ASSERT_LOG_ONLY(code->normal,
 			"vdo should not receive bios while in state %s",
@@ -599,7 +599,7 @@ static void vdo_dtr(struct dm_target *ti)
 		 * to a config that isn't being destroyed. 
 		 */
 		vdo->device_config =
-			as_vdo_device_config(vdo->device_config_list.next);
+			vdo_as_device_config(vdo->device_config_list.next);
 	}
 
 	free_vdo_device_config(config);

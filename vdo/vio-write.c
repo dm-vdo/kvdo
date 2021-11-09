@@ -248,7 +248,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 			 operation,
 			 data_vio_as_vio(data_vio)->callback);
 	completion->requeue = true;
-	invoke_vdo_completion_callback_with_priority(completion,
+	vdo_invoke_completion_callback_with_priority(completion,
 						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
@@ -272,7 +272,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
-		    !vdo_is_or_will_be_read_only(get_vdo_from_data_vio(data_vio)->read_only_notifier) &&
+		    !vdo_is_or_will_be_read_only(vdo_get_from_data_vio(data_vio)->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
@@ -335,7 +335,7 @@ static bool abort_on_error(int result,
 
 	if ((result == VDO_READ_ONLY) || (action == READ_ONLY)) {
 		struct read_only_notifier *notifier =
-			get_vdo_from_data_vio(data_vio)->read_only_notifier;
+			vdo_get_from_data_vio(data_vio)->read_only_notifier;
 		if (!vdo_is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
 				uds_log_error_strerror(result,
@@ -443,7 +443,7 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 						 data_vio->new_mapped.state,
 						 lock,
 						 &data_vio->operation);
-	add_vdo_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
+	add_vdo_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -459,7 +459,7 @@ static void journal_decrement(struct data_vio *data_vio)
 						 data_vio->mapped.state,
 						 data_vio->mapped.zone,
 						 &data_vio->operation);
-	add_vdo_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
+	add_vdo_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -470,7 +470,7 @@ static void journal_decrement(struct data_vio *data_vio)
  **/
 static void update_reference_count(struct data_vio *data_vio)
 {
-	struct slab_depot *depot = get_vdo_from_data_vio(data_vio)->depot;
+	struct slab_depot *depot = vdo_get_from_data_vio(data_vio)->depot;
 	physical_block_number_t pbn = data_vio->operation.pbn;
 	int result =
 		ASSERT(vdo_is_physical_data_block(depot, pbn),
@@ -798,7 +798,7 @@ static void hash_data_vio(struct vdo_completion *completion)
 			&data_vio->chunk_name);
 
 	data_vio->hash_zone =
-		select_vdo_hash_zone(get_vdo_from_data_vio(data_vio),
+		select_vdo_hash_zone(vdo_get_from_data_vio(data_vio),
 				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio,
@@ -1147,7 +1147,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 {
 	int result;
 
-	if (vdo_is_read_only(get_vdo_from_data_vio(data_vio)->read_only_notifier)) {
+	if (vdo_is_read_only(vdo_get_from_data_vio(data_vio)->read_only_notifier)) {
 		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}

@@ -61,7 +61,7 @@ struct block_map_entry {
  * @return the location of the data mapped by the block map entry
  **/
 static inline struct data_location
-unpack_vdo_block_map_entry(const struct block_map_entry *entry)
+vdo_unpack_block_map_entry(const struct block_map_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
@@ -100,7 +100,7 @@ static inline bool vdo_is_valid_location(const struct data_location *location)
  * @note unrepresentable high bits of the unpacked PBN are silently truncated
  **/
 static inline struct block_map_entry
-pack_vdo_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
+vdo_pack_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
 {
 	return (struct block_map_entry) {
 		.mapping_state = (mapping_state & 0x0F),

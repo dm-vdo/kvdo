@@ -1118,7 +1118,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	int result;
 
 	struct data_vio *agent = as_data_vio(completion);
-	struct slab_depot *depot = get_vdo_from_data_vio(agent)->depot;
+	struct slab_depot *depot = vdo_get_from_data_vio(agent)->depot;
 	struct physical_zone *zone = agent->duplicate.zone;
 
 	assert_data_vio_in_duplicate_zone(agent);

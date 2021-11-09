@@ -209,7 +209,7 @@ static int make_segment(struct forest *old_forest,
 							      VDO_INVALID_PBN,
 							      true);
 				page->entries[0] =
-					pack_vdo_pbn(forest->map->root_origin + root,
+					vdo_pack_pbn(forest->map->root_origin + root,
 						     VDO_MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
@@ -358,7 +358,7 @@ static void finish_cursor(struct cursor *cursor)
 
 	UDS_FREE(cursors);
 
-	finish_vdo_completion(parent, VDO_SUCCESS);
+	vdo_finish_completion(parent, VDO_SUCCESS);
 }
 
 static void traverse(struct cursor *cursor);
@@ -415,7 +415,7 @@ static void traverse(struct cursor *cursor)
 				  .levels[height][level->page_index]);
 		struct block_map_page *page =
 			(struct block_map_page *) tree_page->page_buffer;
-		if (!is_vdo_block_map_page_initialized(page)) {
+		if (!vdo_is_block_map_page_initialized(page)) {
 			continue;
 		}
 
@@ -427,14 +427,14 @@ static void traverse(struct cursor *cursor)
 				 level->page_index) + level->slot;
 
 			struct data_location location =
-				unpack_vdo_block_map_entry(&page->entries[level->slot]);
+				vdo_unpack_block_map_entry(&page->entries[level->slot]);
 			if (!vdo_is_valid_location(&location)) {
 				/*
 				 * This entry is invalid, so remove it from the 
 				 * page. 
 				 */
 				page->entries[level->slot] =
-					pack_vdo_pbn(VDO_ZERO_BLOCK,
+					vdo_pack_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page,
 						    cursor->parent->zone);
@@ -451,7 +451,7 @@ static void traverse(struct cursor *cursor)
 			 */
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					pack_vdo_pbn(VDO_ZERO_BLOCK,
+					vdo_pack_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page,
 						    cursor->parent->zone);
@@ -464,7 +464,7 @@ static void traverse(struct cursor *cursor)
 								       cursor->parent->parent);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						pack_vdo_pbn(VDO_ZERO_BLOCK,
+						vdo_pack_pbn(VDO_ZERO_BLOCK,
 							     VDO_MAPPING_STATE_UNMAPPED);
 					vdo_write_tree_page(tree_page,
 							    cursor->parent->zone);
@@ -574,7 +574,7 @@ void traverse_vdo_forest(struct block_map *map,
 					   __func__,
 					   &cursors);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 

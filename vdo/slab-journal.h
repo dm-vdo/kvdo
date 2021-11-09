@@ -145,7 +145,7 @@ struct slab_journal {
  * @param sbn           The slab block number of the entry to encode
  * @param is_increment  The increment flag
  **/
-static inline void pack_vdo_slab_journal_entry(packed_slab_journal_entry *packed,
+static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed,
 					       slab_block_number sbn,
 					       bool is_increment)
 {
@@ -162,7 +162,7 @@ static inline void pack_vdo_slab_journal_entry(packed_slab_journal_entry *packed
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_vdo_slab_journal_block_header(
+unvdo_pack_slab_journal_block_header(
 	const struct packed_slab_journal_block_header *packed,
 	struct slab_journal_block_header *header)
 {
@@ -174,7 +174,7 @@ unpack_vdo_slab_journal_block_header(
 		.metadata_type = packed->metadata_type,
 		.has_block_map_increments = packed->has_block_map_increments,
 	};
-	unpack_vdo_journal_point(&packed->recovery_point,
+	unvdo_pack_journal_point(&packed->recovery_point,
 				 &header->recovery_point);
 }
 
@@ -230,7 +230,7 @@ vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal);
  * @return the offset corresponding to the sequence number
  **/
 static inline tail_block_offset_t __must_check
-get_vdo_slab_journal_block_offset(struct slab_journal *journal,
+vdo_get_slab_journal_block_offset(struct slab_journal *journal,
 				  sequence_number_t sequence)
 {
 	return (sequence % journal->size);

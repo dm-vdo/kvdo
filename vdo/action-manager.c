@@ -171,7 +171,7 @@ int make_vdo_action_manager(zone_count_t zones,
 	manager->actions[0].next = &manager->actions[1];
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
-	set_vdo_admin_state_code(&manager->state,
+	vdo_set_admin_state_code(&manager->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	initialize_vdo_completion(&manager->completion, vdo,
 				  VDO_ACTION_COMPLETION);
@@ -189,7 +189,7 @@ int make_vdo_action_manager(zone_count_t zones,
 const struct admin_state_code *
 get_current_vdo_manager_operation(struct action_manager *manager)
 {
-	return get_vdo_admin_state_code(&manager->state);
+	return vdo_get_admin_state_code(&manager->state);
 }
 
 /**
@@ -232,7 +232,7 @@ static thread_id_t get_acting_zone_thread_id(struct action_manager *manager)
  **/
 static void prepare_for_next_zone(struct action_manager *manager)
 {
-	prepare_vdo_completion_for_requeue(&manager->completion,
+	vdo_prepare_completion_for_requeue(&manager->completion,
 					   apply_to_zone,
 					   preserve_vdo_completion_error_and_continue,
 					   get_acting_zone_thread_id(manager),
@@ -247,7 +247,7 @@ static void prepare_for_next_zone(struct action_manager *manager)
  **/
 static void prepare_for_conclusion(struct action_manager *manager)
 {
-	prepare_vdo_completion_for_requeue(&manager->completion,
+	vdo_prepare_completion_for_requeue(&manager->completion,
 					   finish_action_callback,
 					   preserve_vdo_completion_error_and_continue,
 					   manager->initiator_thread_id,
@@ -324,7 +324,7 @@ static void launch_current_action(struct action_manager *manager)
 		prepare_for_conclusion(manager);
 	} else {
 		manager->acting_zone = 0;
-		prepare_vdo_completion_for_requeue(&manager->completion,
+		vdo_prepare_completion_for_requeue(&manager->completion,
 						   apply_to_zone,
 						   handle_preamble_error,
 						   get_acting_zone_thread_id(manager),
@@ -380,7 +380,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	result = action.conclusion(manager->context);
 	finish_vdo_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL) {
-		finish_vdo_completion(action.parent, result);
+		vdo_finish_completion(action.parent, result);
 	}
 
 	if (has_next_action) {
@@ -501,7 +501,7 @@ schedule_vdo_operation_with_context(struct action_manager *manager,
 		current_action = manager->current_action->next;
 	} else {
 		if (parent != NULL) {
-			finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
+			vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
 		}
 
 		return false;

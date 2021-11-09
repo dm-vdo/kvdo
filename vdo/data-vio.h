@@ -523,7 +523,7 @@ get_data_vio_new_advice(const struct data_vio *data_vio)
  *
  * @return The vdo to which a data_vio belongs
  **/
-static inline struct vdo *get_vdo_from_data_vio(struct data_vio *data_vio)
+static inline struct vdo *vdo_get_from_data_vio(struct data_vio *data_vio)
 {
 	return data_vio_as_completion(data_vio)->vdo;
 }
@@ -538,7 +538,7 @@ static inline struct vdo *get_vdo_from_data_vio(struct data_vio *data_vio)
 static inline const struct thread_config *
 get_thread_config_from_data_vio(struct data_vio *data_vio)
 {
-	return get_vdo_from_data_vio(data_vio)->thread_config;
+	return vdo_get_from_data_vio(data_vio)->thread_config;
 }
 
 /**
@@ -638,7 +638,7 @@ static inline void
 set_data_vio_hash_zone_callback(struct data_vio *data_vio,
 				vdo_action *callback)
 {
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    get_vdo_hash_zone_thread_id(data_vio->hash_zone));
 }
@@ -654,7 +654,7 @@ launch_data_vio_hash_zone_callback(struct data_vio *data_vio,
 				   vdo_action *callback)
 {
 	set_data_vio_hash_zone_callback(data_vio, callback);
-	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -686,7 +686,7 @@ static inline void
 set_data_vio_logical_callback(struct data_vio *data_vio,
 			      vdo_action *callback)
 {
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    get_vdo_logical_zone_thread_id(data_vio->logical.zone));
 }
@@ -702,7 +702,7 @@ launch_data_vio_logical_callback(struct data_vio *data_vio,
 				 vdo_action *callback)
 {
 	set_data_vio_logical_callback(data_vio, callback);
-	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -774,7 +774,7 @@ static inline void
 set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
 				     vdo_action *callback)
 {
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    get_vdo_physical_zone_thread_id(data_vio->duplicate.zone));
 }
@@ -791,7 +791,7 @@ launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
 					vdo_action *callback)
 {
 	set_data_vio_duplicate_zone_callback(data_vio, callback);
-	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -822,7 +822,7 @@ static inline void
 set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
 				  vdo_action *callback)
 {
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    get_vdo_physical_zone_thread_id(data_vio->mapped.zone));
 }
@@ -857,7 +857,7 @@ static inline void
 set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
 				      vdo_action *callback)
 {
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone));
 }
@@ -892,7 +892,7 @@ set_data_vio_journal_callback(struct data_vio *data_vio,
 {
 	thread_id_t journal_thread =
 		get_thread_config_from_data_vio(data_vio)->journal_thread;
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    journal_thread);
 }
@@ -908,7 +908,7 @@ launch_data_vio_journal_callback(struct data_vio *data_vio,
 				 vdo_action *callback)
 {
 	set_data_vio_journal_callback(data_vio, callback);
-	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -941,7 +941,7 @@ set_data_vio_packer_callback(struct data_vio *data_vio,
 {
 	thread_id_t packer_thread =
 		get_thread_config_from_data_vio(data_vio)->packer_thread;
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    packer_thread);
 }
@@ -957,7 +957,7 @@ launch_data_vio_packer_callback(struct data_vio *data_vio,
 				vdo_action *callback)
 {
 	set_data_vio_packer_callback(data_vio, callback);
-	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -990,7 +990,7 @@ set_data_vio_cpu_callback(struct data_vio *data_vio,
 {
 	thread_id_t cpu_thread =
 		get_thread_config_from_data_vio(data_vio)->cpu_thread;
-	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
 				    cpu_thread);
 }
@@ -1010,7 +1010,7 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
 	set_data_vio_cpu_callback(data_vio, callback);
-	invoke_vdo_completion_callback_with_priority(completion, priority);
+	vdo_invoke_completion_callback_with_priority(completion, priority);
 }
 
 /**
@@ -1027,7 +1027,7 @@ set_data_vio_bio_zone_callback(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	set_vdo_completion_callback(vio_as_completion(vio),
+	vdo_set_completion_callback(vio_as_completion(vio),
 				    callback,
 				    get_vio_bio_zone_thread_id(vio));
 }
@@ -1045,7 +1045,7 @@ launch_data_vio_bio_zone_callback(struct data_vio *data_vio,
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
 	set_data_vio_bio_zone_callback(data_vio, callback);
-	invoke_vdo_completion_callback_with_priority(completion,
+	vdo_invoke_completion_callback_with_priority(completion,
 						     BIO_Q_DATA_PRIORITY);
 }
 
@@ -1060,7 +1060,7 @@ static inline void
 launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 				 vdo_action *callback)
 {
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
 	if (!vdo_uses_bio_ack_queue(vdo)) {
@@ -1068,10 +1068,10 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 		return;
 	}
 
-	set_vdo_completion_callback(completion,
+	vdo_set_completion_callback(completion,
 				    callback,
 				    vdo->thread_config->bio_ack_thread);
-	invoke_vdo_completion_callback_with_priority(completion,
+	vdo_invoke_completion_callback_with_priority(completion,
 						     BIO_ACK_Q_ACK_PRIORITY);
 }
 

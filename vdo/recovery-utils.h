@@ -36,12 +36,12 @@
  * @return A pointer to a packed recovery journal blokck header.
  **/
 static inline struct packed_journal_header * __must_check
-get_vdo_recovery_journal_block_header(struct recovery_journal *journal,
+vdo_get_recovery_journal_block_header(struct recovery_journal *journal,
 				      char *journal_data,
 				      sequence_number_t sequence)
 {
 	off_t block_offset =
-		(get_vdo_recovery_journal_block_number(journal, sequence)
+		(vdo_get_recovery_journal_block_number(journal, sequence)
 		* VDO_BLOCK_SIZE);
 	return (struct packed_journal_header *) &journal_data[block_offset];
 }
@@ -57,7 +57,7 @@ get_vdo_recovery_journal_block_header(struct recovery_journal *journal,
  * @return <code>True</code> if the header is valid
  **/
 static inline bool __must_check
-is_valid_vdo_recovery_journal_block(const struct recovery_journal *journal,
+vdo_is_valid_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header)
 {
 	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL)
@@ -75,12 +75,12 @@ is_valid_vdo_recovery_journal_block(const struct recovery_journal *journal,
  * @return <code>True</code> if the block matches
  **/
 static inline bool __must_check
-is_exact_vdo_recovery_journal_block(const struct recovery_journal *journal,
+vdo_is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
 				    sequence_number_t sequence)
 {
 	return ((header->sequence_number == sequence)
-		&& is_valid_vdo_recovery_journal_block(journal, header));
+		&& vdo_is_valid_recovery_journal_block(journal, header));
 }
 
 void load_vdo_recovery_journal(struct recovery_journal *journal,

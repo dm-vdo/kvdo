@@ -227,13 +227,13 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 
 	/* This check can only be done from a base code thread. */
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
+		vdo_finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
 	/* This check should only be done from a base code thread. */
 	if (in_vdo_recovery_mode(vdo)) {
-		finish_vdo_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
+		vdo_finish_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
 		return;
 	}
 
@@ -262,7 +262,7 @@ int prepare_vdo_to_grow_physical(struct vdo *vdo,
 					     VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
 					     get_thread_id_for_phase,
 					     check_may_grow_physical,
-					     finish_vdo_completion_parent_callback);
+					     vdo_finish_completion_parent_callback);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

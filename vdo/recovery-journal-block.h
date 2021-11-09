@@ -85,7 +85,7 @@ vdo_recovery_block_from_list_entry(struct list_head *entry)
  * @return <code>true</code> if the block has any uncommitted entries
  **/
 static inline bool __must_check
-is_vdo_recovery_block_dirty(const struct recovery_journal_block *block)
+vdo_is_recovery_block_dirty(const struct recovery_journal_block *block)
 {
 	return (block->uncommitted_entry_count > 0);
 }
@@ -98,7 +98,7 @@ is_vdo_recovery_block_dirty(const struct recovery_journal_block *block)
  * @return <code>true</code> if the block has no entries
  **/
 static inline bool __must_check
-is_vdo_recovery_block_empty(const struct recovery_journal_block *block)
+vdo_is_recovery_block_empty(const struct recovery_journal_block *block)
 {
 	return (block->entry_count == 0);
 }
@@ -111,7 +111,7 @@ is_vdo_recovery_block_empty(const struct recovery_journal_block *block)
  * @return <code>true</code> if the block is full
  **/
 static inline bool __must_check
-is_vdo_recovery_block_full(const struct recovery_journal_block *block)
+vdo_is_recovery_block_full(const struct recovery_journal_block *block)
 {
 	return ((block == NULL)
 		|| (block->journal->entries_per_block == block->entry_count));

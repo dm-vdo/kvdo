@@ -254,7 +254,7 @@ int make_vdo_packer(struct vdo *vdo,
 	packer->output_bin_count = output_bin_count;
 	INIT_LIST_HEAD(&packer->input_bins);
 	INIT_LIST_HEAD(&packer->output_bins);
-	set_vdo_admin_state_code(&packer->state,
+	vdo_set_admin_state_code(&packer->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	result = make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
@@ -338,7 +338,7 @@ void free_vdo_packer(struct packer *packer)
  **/
 static inline struct packer *get_packer_from_data_vio(struct data_vio *data_vio)
 {
-	return get_vdo_from_data_vio(data_vio)->packer;
+	return vdo_get_from_data_vio(data_vio)->packer;
 }
 
 /**
@@ -413,7 +413,7 @@ static void continue_vio_without_packing(struct waiter *waiter,
  **/
 static void check_for_drain_complete(struct packer *packer)
 {
-	if (is_vdo_state_draining(&packer->state) &&
+	if (vdo_is_state_draining(&packer->state) &&
 	    (packer->canceled_bin->slots_used == 0) &&
 	    (packer->idle_output_bin_count == packer->output_bin_count)) {
 		finish_vdo_draining(&packer->state);
@@ -440,7 +440,7 @@ switch_to_packer_thread(struct vdo_completion *completion)
 	}
 
 	completion->callback_thread_id = thread_id;
-	invoke_vdo_completion_callback(completion);
+	vdo_invoke_completion_callback(completion);
 	return false;
 }
 
@@ -613,7 +613,7 @@ static void launch_compressed_write(struct packer *packer,
 {
 	struct vio *vio;
 
-	if (vdo_is_read_only(get_vdo_from_allocating_vio(bin->writer)->read_only_notifier)) {
+	if (vdo_is_read_only(vdo_get_from_allocating_vio(bin->writer)->read_only_notifier)) {
 		finish_output_bin(packer, bin);
 		return;
 	}
@@ -944,7 +944,7 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	 * If packing of this data_vio is disallowed for administrative 
 	 * reasons, give up before making any state changes. 
 	 */
-	if (!is_vdo_state_normal(&packer->state) ||
+	if (!vdo_is_state_normal(&packer->state) ||
 	    (data_vio->flush_generation < packer->flush_generation)) {
 		abort_packing(data_vio);
 		return;
@@ -1009,7 +1009,7 @@ static void write_all_non_empty_bins(struct packer *packer)
 void flush_vdo_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
-	if (is_vdo_state_normal(&packer->state)) {
+	if (vdo_is_state_normal(&packer->state)) {
 		write_all_non_empty_bins(packer);
 	}
 }
@@ -1114,7 +1114,7 @@ void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
 void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	finish_vdo_completion(parent, resume_vdo_if_quiescent(&packer->state));
+	vdo_finish_completion(parent, resume_vdo_if_quiescent(&packer->state));
 }
 
 

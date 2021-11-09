@@ -128,7 +128,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		struct hash_lock *lock = &zone->lock_array[i];
 
-		initialize_vdo_hash_lock(lock);
+		vdo_initialize_hash_lock(lock);
 		list_add_tail(&lock->pool_node, &zone->lock_pool);
 	}
 
@@ -199,7 +199,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 				     struct hash_lock *lock)
 {
 	memset(lock, 0, sizeof(*lock));
-	initialize_vdo_hash_lock(lock);
+	vdo_initialize_hash_lock(lock);
 	list_add_tail(&lock->pool_node, &zone->lock_pool);
 }
 

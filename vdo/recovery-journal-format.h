@@ -63,7 +63,7 @@ get_vdo_journal_operation_name(enum journal_operation operation);
  * @return <code>True</code> if the sector matches the block header
  **/
 static inline bool __must_check
-is_valid_vdo_recovery_journal_sector(const struct recovery_block_header *header,
+vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 				     const struct packed_journal_sector *sector)
 {
 	return ((header->check_byte == sector->check_byte)
@@ -81,7 +81,7 @@ is_valid_vdo_recovery_journal_sector(const struct recovery_block_header *header,
  *         number
  **/
 static inline physical_block_number_t __must_check
-compute_vdo_recovery_journal_block_number(block_count_t journal_size,
+vdo_compute_recovery_journal_block_number(block_count_t journal_size,
 					  sequence_number_t sequence_number)
 {
 	/*

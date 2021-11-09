@@ -143,7 +143,7 @@ static int initialize_zone(struct logical_zones *zones,
 						      zone_number);
 	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
-	set_vdo_admin_state_code(&zone->state,
+	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	return make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
@@ -240,7 +240,7 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
  **/
 static void check_for_drain_complete(struct logical_zone *zone)
 {
-	if (!is_vdo_state_draining(&zone->state) || zone->notifying
+	if (!vdo_is_state_draining(&zone->state) || zone->notifying
 	    || !list_empty(&zone->write_vios)) {
 		return;
 	}
@@ -294,7 +294,7 @@ static void resume_logical_zone(void *context, zone_count_t zone_number,
 {
 	struct logical_zone *zone = get_vdo_logical_zone(context, zone_number);
 
-	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
+	vdo_finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**
@@ -438,7 +438,7 @@ int acquire_vdo_flush_generation_lock(struct data_vio *data_vio)
 	struct logical_zone *zone = data_vio->logical.zone;
 
 	assert_on_zone_thread(zone, __func__);
-	if (!is_vdo_state_normal(&zone->state)) {
+	if (!vdo_is_state_normal(&zone->state)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
@@ -463,7 +463,7 @@ static void notify_flusher(struct vdo_completion *completion)
 	struct logical_zone *zone = as_logical_zone(completion);
 
 	complete_vdo_flushes(zone->zones->vdo->flusher);
-	launch_vdo_completion_callback(completion,
+	vdo_launch_completion_callback(completion,
 				       attempt_generation_complete_notification,
 				       zone->thread_id);
 }
@@ -487,7 +487,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 
 	zone->notifying = true;
 	zone->notification_generation = zone->oldest_active_generation;
-	launch_vdo_completion_callback(&zone->completion, notify_flusher,
+	vdo_launch_completion_callback(&zone->completion, notify_flusher,
 				       get_vdo_flusher_thread_id(zone->zones->vdo->flusher));
 }
 

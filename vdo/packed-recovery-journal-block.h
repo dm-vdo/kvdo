@@ -125,7 +125,7 @@ enum {
  * @return A packed recovery journal sector
  **/
 static inline struct packed_journal_sector * __must_check
-get_vdo_journal_block_sector(struct packed_journal_header *header,
+vdo_get_journal_block_sector(struct packed_journal_header *header,
 			     int sector_number)
 {
 	char *sector_data =
@@ -140,7 +140,7 @@ get_vdo_journal_block_sector(struct packed_journal_header *header,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-pack_vdo_recovery_block_header(const struct recovery_block_header *header,
+vdo_pack_recovery_block_header(const struct recovery_block_header *header,
 			       struct packed_journal_header *packed)
 {
 	*packed = (struct packed_journal_header) {
@@ -166,7 +166,7 @@ pack_vdo_recovery_block_header(const struct recovery_block_header *header,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_vdo_recovery_block_header(const struct packed_journal_header *packed,
+unvdo_pack_recovery_block_header(const struct packed_journal_header *packed,
 				 struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {

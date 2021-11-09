@@ -101,7 +101,7 @@ enum vio_type {
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_vdo_data_vio_type(enum vio_type type)
+static inline bool vdo_is_data_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_DATA);
 }
@@ -111,7 +111,7 @@ static inline bool is_vdo_data_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_vdo_compressed_write_vio_type(enum vio_type type)
+static inline bool vdo_is_compressed_write_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_COMPRESSED_BLOCK);
 }
@@ -121,11 +121,11 @@ static inline bool is_vdo_compressed_write_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_vdo_metadata_vio_type(enum vio_type type)
+static inline bool vdo_is_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!is_vdo_data_vio_type(type) &&
-		!is_vdo_compressed_write_vio_type(type));
+		!vdo_is_data_vio_type(type) &&
+		!vdo_is_compressed_write_vio_type(type));
 }
 
 enum vdo_work_item_priority {

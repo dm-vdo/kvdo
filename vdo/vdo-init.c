@@ -122,7 +122,7 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->starting_sector_offset = config->owning_target->begin;
 	vdo->instance = instance;
 	vdo->allocations_allowed = true;
-	set_vdo_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
+	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
 	mutex_init(&vdo->stats_mutex);
@@ -150,7 +150,7 @@ int initialize_vdo(struct vdo *vdo,
 		return result;
 	}
 
-	set_vdo_admin_state_code(&vdo->admin_state,
+	vdo_set_admin_state_code(&vdo->admin_state,
 				 VDO_ADMIN_STATE_INITIALIZED);
 	return result;
 }

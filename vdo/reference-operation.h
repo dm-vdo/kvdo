@@ -63,7 +63,7 @@ struct reference_operation {
  *         isn't one
  **/
 static inline struct pbn_lock * __must_check
-get_vdo_reference_operation_pbn_lock(struct reference_operation operation)
+vdo_get_reference_operation_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.lock_getter == NULL)
 			? NULL

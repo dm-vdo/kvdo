@@ -130,7 +130,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  *
  * @return The vdo to which the vio belongs
  **/
-static inline struct vdo *get_vdo_from_vio(struct vio *vio)
+static inline struct vdo *vdo_get_from_vio(struct vio *vio)
 {
 	return vio_as_completion(vio)->vdo;
 }
@@ -146,7 +146,7 @@ static inline void
 set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 {
 	vio->physical = pbn;
-	vio->bio_zone = get_vdo_bio_zone(get_vdo_from_vio(vio), pbn);
+	vio->bio_zone = get_vdo_bio_zone(vdo_get_from_vio(vio), pbn);
 }
 
 /**
@@ -159,7 +159,7 @@ set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 static inline thread_id_t __must_check
 get_vio_bio_zone_thread_id(struct vio *vio)
 {
-	return get_vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
+	return vdo_get_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
 }
 
 /**
@@ -211,7 +211,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
  **/
 static inline bool is_data_vio(struct vio *vio)
 {
-	return is_vdo_data_vio_type(vio->type);
+	return vdo_is_data_vio_type(vio->type);
 }
 
 /**
@@ -221,7 +221,7 @@ static inline bool is_data_vio(struct vio *vio)
  **/
 static inline bool is_compressed_write_vio(struct vio *vio)
 {
-	return is_vdo_compressed_write_vio_type(vio->type);
+	return vdo_is_compressed_write_vio_type(vio->type);
 }
 
 /**
@@ -231,7 +231,7 @@ static inline bool is_compressed_write_vio(struct vio *vio)
  **/
 static inline bool is_metadata_vio(struct vio *vio)
 {
-	return is_vdo_metadata_vio_type(vio->type);
+	return vdo_is_metadata_vio_type(vio->type);
 }
 
 /**
@@ -456,7 +456,7 @@ static inline void continue_vio(struct vio *vio, int result)
 		set_vdo_completion_result(vio_as_completion(vio), result);
 	}
 
-	enqueue_vdo_completion(completion);
+	vdo_enqueue_completion(completion);
 }
 
 #endif /* VIO_H */

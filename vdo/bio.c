@@ -157,7 +157,7 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
  **/
 static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &get_vdo_from_vio(vio)->stats;
+	struct atomic_statistics *stats = &vdo_get_from_vio(vio)->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out_completed, bio);
@@ -180,7 +180,7 @@ static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 void vdo_count_completed_bios(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
-	atomic64_inc(&get_vdo_from_vio(vio)->stats.bios_completed);
+	atomic64_inc(&vdo_get_from_vio(vio)->stats.bios_completed);
 	count_all_bios_completed(vio, bio);
 }
 
@@ -222,7 +222,7 @@ void vdo_set_bio_properties(struct bio *bio,
 	bio->bi_end_io = callback;
 	bio->bi_opf = bi_opf;
 	if ((vio != NULL) && (pbn != VDO_GEOMETRY_BLOCK_LOCATION)) {
-		pbn -= get_vdo_from_vio(vio)->geometry.bio_offset;
+		pbn -= vdo_get_from_vio(vio)->geometry.bio_offset;
 	}
 	bio->bi_iter.bi_sector = pbn * VDO_SECTORS_PER_BLOCK;
 }

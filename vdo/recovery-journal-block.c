@@ -150,7 +150,7 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 		.nonce = journal->nonce,
 		.recovery_count = journal->recovery_count,
 		.sequence_number = journal->tail,
-		.check_byte = compute_vdo_recovery_journal_check_byte(journal,
+		.check_byte = vdo_compute_recovery_journal_check_byte(journal,
 								      journal->tail),
 	};
 	struct packed_journal_header *header = get_block_header(block);
@@ -161,11 +161,11 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 	block->uncommitted_entry_count = 0;
 
 	block->block_number =
-		get_vdo_recovery_journal_block_number(journal, journal->tail);
+		vdo_get_recovery_journal_block_number(journal, journal->tail);
 
-	pack_vdo_recovery_block_header(&unpacked, header);
+	vdo_pack_recovery_block_header(&unpacked, header);
 
-	set_active_sector(block, get_vdo_journal_block_sector(header, 1));
+	set_active_sector(block, vdo_get_journal_block_sector(header, 1));
 }
 
 /**
@@ -261,9 +261,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			.operation = data_vio->operation.type,
 			.slot = lock->tree_slots[lock->height].block_map_slot,
 		};
-		*packed_entry = pack_vdo_recovery_journal_entry(&new_entry);
+		*packed_entry = vdo_pack_recovery_journal_entry(&new_entry);
 
-		if (is_vdo_journal_increment_operation(data_vio->operation.type)) {
+		if (vdo_is_journal_increment_operation(data_vio->operation.type)) {
 			data_vio->recovery_sequence_number =
 				block->sequence_number;
 		}

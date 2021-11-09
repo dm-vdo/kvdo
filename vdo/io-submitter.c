@@ -93,7 +93,7 @@ static const struct vdo_work_queue_type bio_queue_type = {
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &get_vdo_from_vio(vio)->stats;
+	struct atomic_statistics *stats = &vdo_get_from_vio(vio)->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out, bio);
@@ -129,7 +129,7 @@ static void assert_in_bio_zone(struct vio *vio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	struct vdo *vdo = get_vdo_from_vio(vio);
+	struct vdo *vdo = vdo_get_from_vio(vio);
 	assert_in_bio_zone(vio);
 	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
@@ -181,7 +181,7 @@ static void process_bio_map(struct vdo_work_item *item)
 static struct bio *get_bio_list(struct vio *vio)
 {
 	struct bio *bio;
-	struct io_submitter *submitter = get_vdo_from_vio(vio)->io_submitter;
+	struct io_submitter *submitter = vdo_get_from_vio(vio)->io_submitter;
 	struct bio_queue_data *bio_queue_data
 		= &(submitter->bio_queue_data[vio->bio_zone]);
 
@@ -326,7 +326,7 @@ static bool try_bio_map_merge(struct vio *vio)
 	bool merged = true;
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
-	struct vdo *vdo = get_vdo_from_vio(vio);
+	struct vdo *vdo = vdo_get_from_vio(vio);
 	struct bio_queue_data *bio_queue_data
 		= &vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
@@ -400,7 +400,7 @@ void submit_data_vio_io(struct data_vio *data_vio)
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
-	struct io_submitter *submitter = get_vdo_from_vio(vio)->io_submitter;
+	struct io_submitter *submitter = vdo_get_from_vio(vio)->io_submitter;
 
 	bio->bi_next = NULL;
 	setup_vio_work(vio, process_bio_map, priority);

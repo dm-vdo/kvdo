@@ -146,20 +146,20 @@ requires_enqueue(struct vdo_completion *completion)
  * @param priority    The priority at which to enqueue the completion
  **/
 void
-invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
+vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
 					     enum vdo_work_item_priority priority)
 {
 	if (requires_enqueue(completion)) {
-		enqueue_vdo_completion_with_priority(completion, priority);
+		vdo_enqueue_completion_with_priority(completion, priority);
 		return;
 	}
 
-	run_vdo_completion_callback(completion);
+	vdo_run_completion_callback(completion);
 }
 
 /**
  * Continue processing a completion by setting the current result and calling
- * invoke_vdo_completion_callback().
+ * vdo_invoke_completion_callback().
  *
  * @param completion  The completion to continue
  * @param result      The current result (will not mask older errors)
@@ -167,7 +167,7 @@ invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
 void continue_vdo_completion(struct vdo_completion *completion, int result)
 {
 	set_vdo_completion_result(completion, result);
-	invoke_vdo_completion_callback(completion);
+	vdo_invoke_completion_callback(completion);
 }
 
 /**
@@ -180,7 +180,7 @@ void complete_vdo_completion(struct vdo_completion *completion)
 	assert_incomplete(completion);
 	completion->complete = true;
 	if (completion->callback != NULL) {
-		invoke_vdo_completion_callback(completion);
+		vdo_invoke_completion_callback(completion);
 	}
 }
 
@@ -190,9 +190,9 @@ void complete_vdo_completion(struct vdo_completion *completion)
  * @param completion  The completion which has finished and whose parent should
  *                    be finished
  **/
-void finish_vdo_completion_parent_callback(struct vdo_completion *completion)
+void vdo_finish_completion_parent_callback(struct vdo_completion *completion)
 {
-	finish_vdo_completion((struct vdo_completion *) completion->parent,
+	vdo_finish_completion((struct vdo_completion *) completion->parent,
 			      completion->result);
 }
 
@@ -210,7 +210,7 @@ preserve_vdo_completion_error_and_continue(struct vdo_completion *completion)
 	}
 
 	reset_vdo_completion(completion);
-	invoke_vdo_completion_callback(completion);
+	vdo_invoke_completion_callback(completion);
 }
 
 /**
@@ -264,7 +264,7 @@ int assert_vdo_completion_type(enum vdo_completion_type actual,
 
 static void vdo_enqueued_work(struct vdo_work_item *work_item)
 {
-	run_vdo_completion_callback(container_of(work_item,
+	vdo_run_completion_callback(container_of(work_item,
 				    struct vdo_completion,
 				    work_item));
 }
@@ -276,7 +276,7 @@ static void vdo_enqueued_work(struct vdo_work_item *work_item)
  * @param completion  The completion to be enqueued
  * @param priority    The priority at which the work should be done
  **/
-void enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
+void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 					  enum vdo_work_item_priority priority)
 {
 	struct vdo *vdo = completion->vdo;

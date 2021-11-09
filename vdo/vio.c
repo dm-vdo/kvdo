@@ -58,7 +58,7 @@ int create_metadata_vio(struct vdo *vdo,
 	 */
 	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
-	result = ASSERT(is_vdo_metadata_vio_type(vio_type),
+	result = ASSERT(vdo_is_metadata_vio_type(vio_type),
 			"%d is a metadata type",
 			vio_type);
 	if (result != VDO_SUCCESS) {

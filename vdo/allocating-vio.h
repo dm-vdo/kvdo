@@ -160,9 +160,9 @@ waiter_as_allocating_vio(struct waiter *waiter)
  * @return The vdo to which an allocating_vio belongs
  **/
 static inline struct vdo *
-get_vdo_from_allocating_vio(struct allocating_vio *allocating_vio)
+vdo_get_from_allocating_vio(struct allocating_vio *allocating_vio)
 {
-	return get_vdo_from_vio(allocating_vio_as_vio(allocating_vio));
+	return vdo_get_from_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**
@@ -196,7 +196,7 @@ static inline void
 vio_set_physical_zone_callback(struct allocating_vio *allocating_vio,
 			       vdo_action *callback)
 {
-	set_vdo_completion_callback(allocating_vio_as_completion(allocating_vio),
+	vdo_set_completion_callback(allocating_vio_as_completion(allocating_vio),
 				    callback,
 				    get_vdo_physical_zone_thread_id(allocating_vio->zone));
 }
@@ -213,7 +213,7 @@ vio_launch_physical_zone_callback(struct allocating_vio *allocating_vio,
 				  vdo_action *callback)
 {
 	vio_set_physical_zone_callback(allocating_vio, callback);
-	invoke_vdo_completion_callback(allocating_vio_as_completion(allocating_vio));
+	vdo_invoke_completion_callback(allocating_vio_as_completion(allocating_vio));
 }
 
 void vio_allocate_data_block(struct allocating_vio *allocating_vio,

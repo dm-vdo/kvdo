@@ -64,7 +64,7 @@ struct slab_summary_entry {
  *         slab_summary on disk
  **/
 static inline block_count_t __must_check
-get_vdo_slab_summary_zone_size(block_size_t block_size)
+vdo_get_slab_summary_zone_size(block_size_t block_size)
 {
 	slab_count_t entries_per_block =
 		block_size / sizeof(struct slab_summary_entry);
@@ -80,9 +80,9 @@ get_vdo_slab_summary_zone_size(block_size_t block_size)
  * @return the blocks required to store the slab_summary on disk
  **/
 static inline block_count_t __must_check
-get_vdo_slab_summary_size(block_size_t block_size)
+vdo_get_slab_summary_size(block_size_t block_size)
 {
-	return get_vdo_slab_summary_zone_size(block_size) * MAX_VDO_PHYSICAL_ZONES;
+	return vdo_get_slab_summary_zone_size(block_size) * MAX_VDO_PHYSICAL_ZONES;
 }
 
 /**
@@ -93,7 +93,7 @@ get_vdo_slab_summary_size(block_size_t block_size)
  * @return The hint shift
  **/
 static inline uint8_t __must_check
-get_vdo_slab_summary_hint_shift(unsigned int slab_size_shift)
+vdo_get_slab_summary_hint_shift(unsigned int slab_size_shift)
 {
 	return ((slab_size_shift > VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) ?
 		(slab_size_shift - VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) : 0);

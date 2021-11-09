@@ -146,7 +146,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio) ||
 	    vio_requires_flush_after(data_vio_as_vio(data_vio)) ||
-	    !get_vdo_compressing(get_vdo_from_data_vio(data_vio))) {
+	    !get_vdo_compressing(vdo_get_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write
 		 * probably won't either, so don't try compressing it. Also, if
@@ -194,7 +194,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
 	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
-	    !get_vdo_compressing(get_vdo_from_data_vio(data_vio)) ||
+	    !get_vdo_compressing(vdo_get_from_data_vio(data_vio)) ||
 	    get_vio_compression_state(data_vio).may_not_compress) {
 		/*
 		 * If the data in this VIO doesn't compress, or compression is 

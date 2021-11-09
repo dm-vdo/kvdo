@@ -55,7 +55,7 @@ struct packed_journal_point {
  * @param entries_per_block  the number of entries in one full block
  **/
 static inline void
-advance_vdo_journal_point(struct journal_point *point,
+vdo_advance_journal_point(struct journal_point *point,
 			  journal_entry_count_t entries_per_block)
 {
 	point->entry_count++;
@@ -73,7 +73,7 @@ advance_vdo_journal_point(struct journal_point *point,
  * @return <code>true</code> if the journal point is valid
  **/
 static inline bool
-is_valid_vdo_journal_point(const struct journal_point *point)
+vdo_is_valid_journal_point(const struct journal_point *point)
 {
 	return ((point != NULL) && (point->sequence_number > 0));
 }
@@ -87,7 +87,7 @@ is_valid_vdo_journal_point(const struct journal_point *point)
  *
  * @return <code>true</code> if the first point precedes the second point.
  **/
-static inline bool before_vdo_journal_point(const struct journal_point *first,
+static inline bool vdo_before_journal_point(const struct journal_point *first,
 					    const struct journal_point *second)
 {
 	return ((first->sequence_number < second->sequence_number) ||
@@ -105,7 +105,7 @@ static inline bool before_vdo_journal_point(const struct journal_point *first,
  *         position of an entry the journal
  **/
 static inline bool
-are_equivalent_vdo_journal_points(const struct journal_point *first,
+vdo_are_equivalent_journal_points(const struct journal_point *first,
 				  const struct journal_point *second)
 {
 	return ((first->sequence_number == second->sequence_number) &&
@@ -119,7 +119,7 @@ are_equivalent_vdo_journal_points(const struct journal_point *first,
  * @param unpacked  The unpacked input point
  * @param packed    The packed output point
  **/
-static inline void pack_vdo_journal_point(const struct journal_point *unpacked,
+static inline void vdo_pack_journal_point(const struct journal_point *unpacked,
 					  struct packed_journal_point *packed)
 {
 	packed->encoded_point = __cpu_to_le64((unpacked->sequence_number << 16)
@@ -134,7 +134,7 @@ static inline void pack_vdo_journal_point(const struct journal_point *unpacked,
  * @param unpacked  The unpacked output point
  **/
 static inline void
-unpack_vdo_journal_point(const struct packed_journal_point *packed,
+unvdo_pack_journal_point(const struct packed_journal_point *packed,
 			 struct journal_point *unpacked)
 {
 	uint64_t native = __le64_to_cpu(packed->encoded_point);

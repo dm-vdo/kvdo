@@ -236,13 +236,13 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 	int state;
 
 	if (notifier == NULL) {
-		finish_vdo_completion(parent, VDO_SUCCESS);
+		vdo_finish_completion(parent, VDO_SUCCESS);
 		return;
 	}
 
 	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
@@ -294,7 +294,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 
 	if (waiter != NULL) {
 		notifier->waiter = NULL;
-		finish_vdo_completion(waiter, completion->result);
+		vdo_finish_completion(waiter, completion->result);
 	}
 }
 
@@ -330,7 +330,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 
 	if (listener != NULL) {
 		/* We have a listener to notify */
-		prepare_vdo_completion(completion,
+		vdo_prepare_completion(completion,
 				       make_thread_read_only,
 				       make_thread_read_only,
 				       thread_id,
@@ -342,20 +342,20 @@ static void make_thread_read_only(struct vdo_completion *completion)
 	/* We're done with this thread */
 	if (++thread_id >= notifier->thread_config->base_thread_count) {
 		/* There are no more threads */
-		prepare_vdo_completion(completion,
+		vdo_prepare_completion(completion,
 				       finish_entering_read_only_mode,
 				       finish_entering_read_only_mode,
 				       notifier->thread_config->admin_thread,
 				       NULL);
 	} else {
-		prepare_vdo_completion(completion,
+		vdo_prepare_completion(completion,
 				       make_thread_read_only,
 				       make_thread_read_only,
 				       thread_id,
 				       NULL);
 	}
 
-	invoke_vdo_completion_callback(completion);
+	vdo_invoke_completion_callback(completion);
 }
 
 /**
@@ -378,7 +378,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 
 	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
@@ -483,7 +483,7 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 	}
 
 	/* Initiate a notification starting on the lowest numbered thread. */
-	launch_vdo_completion_callback(&notifier->completion,
+	vdo_launch_completion_callback(&notifier->completion,
 				       make_thread_read_only, 0);
 }
 

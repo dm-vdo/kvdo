@@ -44,7 +44,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 
 	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
-	finish_vdo_completion(parent, result);
+	vdo_finish_completion(parent, result);
 }
 
 /**
@@ -65,7 +65,7 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE, char,
 				  __func__, journal_data_ptr);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
@@ -73,14 +73,14 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 				   VIO_PRIORITY_METADATA, journal->size,
 				   *journal_data_ptr, &extent);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	prepare_vdo_completion(&extent->completion, finish_journal_load,
+	vdo_prepare_completion(&extent->completion, finish_journal_load,
 			       finish_journal_load, parent->callback_thread_id,
 			       parent);
-	read_vdo_metadata_extent(extent,
+	vdo_read_metadata_extent(extent,
 				 get_vdo_fixed_layout_partition_offset(journal->partition));
 }
 
@@ -100,10 +100,10 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 				    physical_block_number_t offset)
 {
 	physical_block_number_t expected_offset =
-		get_vdo_recovery_journal_block_number(journal,
+		vdo_get_recovery_journal_block_number(journal,
 						      header->sequence_number);
 	return ((expected_offset == offset)
-		&& is_valid_vdo_recovery_journal_block(journal, header));
+		&& vdo_is_valid_recovery_journal_block(journal, header));
 }
 
 /**
@@ -136,12 +136,12 @@ bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 
 	for (i = 0; i < journal->size; i++) {
 		struct packed_journal_header *packed_header =
-			get_vdo_recovery_journal_block_header(journal,
+			vdo_get_recovery_journal_block_header(journal,
 							      journal_data,
 							      i);
 		struct recovery_block_header header;
 
-		unpack_vdo_recovery_block_header(packed_header, &header);
+		unvdo_pack_recovery_block_header(packed_header, &header);
 
 		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
 			/*

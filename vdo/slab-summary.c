@@ -165,7 +165,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	summary_zone->summary = summary;
 	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
-	set_vdo_admin_state_code(&summary_zone->state,
+	vdo_set_admin_state_code(&summary_zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	/* Initialize each block. */
@@ -211,7 +211,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	uint8_t hint;
 	zone_count_t zone;
 	block_count_t blocks_per_zone =
-		get_vdo_slab_summary_zone_size(VDO_BLOCK_SIZE);
+		vdo_get_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
 	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,
 			    "block size must be a multiple of entry size");
@@ -238,7 +238,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 
 	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
-	summary->hint_shift = get_vdo_slab_summary_hint_shift(slab_size_shift);
+	summary->hint_shift = vdo_get_slab_summary_hint_shift(slab_size_shift);
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
@@ -349,7 +349,7 @@ vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone)
 static void
 check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
-	if (!is_vdo_state_draining(&summary_zone->state)
+	if (!vdo_is_state_draining(&summary_zone->state)
 	    || (summary_zone->write_count > 0)) {
 		return;
 	}
@@ -497,7 +497,7 @@ void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
 void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				  struct vdo_completion *parent)
 {
-	finish_vdo_completion(parent,
+	vdo_finish_completion(parent,
 			      resume_vdo_if_quiescent(&summary_zone->state));
 }
 
@@ -546,8 +546,8 @@ void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 
 	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
-	} else if (is_vdo_state_draining(&summary_zone->state)
-		   || is_vdo_state_quiescent(&summary_zone->state)) {
+	} else if (vdo_is_state_draining(&summary_zone->state)
+		   || vdo_is_state_quiescent(&summary_zone->state)) {
 		result = VDO_INVALID_ADMIN_STATE;
 	} else {
 		uint8_t hint = compute_fullness_hint(summary_zone->summary,
@@ -744,7 +744,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
 
 	/* Write the combined summary back out. */
 	extent->completion.callback = finish_combining_zones;
-	write_vdo_metadata_extent(extent, summary->origin);
+	vdo_write_metadata_extent(extent, summary->origin);
 }
 
 /**
@@ -785,17 +785,17 @@ void load_vdo_slab_summary(struct slab_summary *summary,
 
 	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
 	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
-		prepare_vdo_completion(&extent->completion,
+		vdo_prepare_completion(&extent->completion,
 				       finish_combining_zones,
 				       finish_combining_zones, 0, summary);
-		write_vdo_metadata_extent(extent, summary->origin);
+		vdo_write_metadata_extent(extent, summary->origin);
 		return;
 	}
 
 	summary->zones_to_combine = zones_to_combine;
-	prepare_vdo_completion(&extent->completion, finish_loading_summary,
+	vdo_prepare_completion(&extent->completion, finish_loading_summary,
 			       finish_combining_zones, 0, summary);
-	read_vdo_metadata_extent(extent, summary->origin);
+	vdo_read_metadata_extent(extent, summary->origin);
 }
 
 /**

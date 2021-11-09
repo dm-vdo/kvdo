@@ -74,7 +74,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow logical size of a read-only VDO");
-			finish_vdo_completion(reset_vdo_admin_sub_task(completion),
+			vdo_finish_completion(reset_vdo_admin_sub_task(completion),
 					      VDO_READ_ONLY);
 			return;
 		}

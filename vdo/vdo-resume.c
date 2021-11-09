@@ -112,7 +112,7 @@ static void write_super_block(struct vdo *vdo,
 
 	case VDO_REPLAYING:
 	default:
-		finish_vdo_completion(completion, UDS_BAD_STATE);
+		vdo_finish_completion(completion, UDS_BAD_STATE);
 	}
 }
 

@@ -102,7 +102,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 
 	UDS_FREE(UDS_FORGET(completion));
-	finish_vdo_completion(parent, result);
+	vdo_finish_completion(parent, result);
 }
 
 /**
@@ -159,7 +159,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 			"%s must be called on logical thread %u (not %u)",
 			__func__, rebuild->logical_thread_id,
 			vdo_get_callback_thread_id());
-	prepare_vdo_completion(&rebuild->completion, finish_rebuild,
+	vdo_prepare_completion(&rebuild->completion, finish_rebuild,
 			       finish_rebuild, rebuild->logical_thread_id,
 			       parent);
 
@@ -176,7 +176,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 static void flush_block_map_updates(struct vdo_completion *completion)
 {
 	uds_log_info("Flushing block map changes");
-	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
+	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
 	drain_vdo_block_map(as_rebuild_completion(completion->parent)->block_map,
 						  VDO_ADMIN_STATE_RECOVERING,
 						  completion);
@@ -205,12 +205,12 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 		return false;
 	}
 
-	prepare_vdo_completion(&rebuild->sub_task_completion,
+	vdo_prepare_completion(&rebuild->sub_task_completion,
 			       flush_block_map_updates,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       rebuild->admin_thread_id,
 			       &rebuild->completion);
-	invoke_vdo_completion_callback(&rebuild->sub_task_completion);
+	vdo_invoke_completion_callback(&rebuild->sub_task_completion);
 	return true;
 }
 
@@ -261,7 +261,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		return result;
 	}
 
-	if (!is_vdo_block_map_page_initialized(page)) {
+	if (!vdo_is_block_map_page_initialized(page)) {
 		return VDO_SUCCESS;
 	}
 
@@ -269,16 +269,16 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	 * Remove any bogus entries which exist beyond the end of the logical 
 	 * space. 
 	 */
-	if (get_vdo_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
+	if (vdo_get_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		slot_number_t slot;
 
 		for (slot = rebuild->last_slot.slot;
 		     slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 			struct data_location mapping =
-				unpack_vdo_block_map_entry(&page->entries[slot]);
+				vdo_unpack_block_map_entry(&page->entries[slot]);
 			if (vdo_is_mapped_location(&mapping)) {
 				page->entries[slot] =
-					pack_vdo_pbn(VDO_ZERO_BLOCK,
+					vdo_pack_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
 				request_vdo_page_write(completion);
 			}
@@ -290,10 +290,10 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		struct vdo_slab *slab;
 		int result;
 		struct data_location mapping =
-			unpack_vdo_block_map_entry(&page->entries[slot]);
+			vdo_unpack_block_map_entry(&page->entries[slot]);
 		if (!vdo_is_valid_location(&mapping)) {
 			/* This entry is invalid, so remove it from the page. */
-			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
+			page->entries[slot] = vdo_pack_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
@@ -313,7 +313,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			 * This is a nonsense mapping. Remove it from the map so 
 			 * we're at least consistent and mark the page dirty. 
 			 */
-			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
+			page->entries[slot] = vdo_pack_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
@@ -326,10 +326,10 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		if (result != VDO_SUCCESS) {
 			uds_log_error_strerror(result,
 					       "Could not adjust reference count for PBN %llu, slot %u mapped to PBN %llu",
-					       (unsigned long long) get_vdo_block_map_page_pbn(page),
+					       (unsigned long long) vdo_get_block_map_page_pbn(page),
 					       slot,
 					       (unsigned long long) mapping.pbn);
-			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
+			page->entries[slot] = vdo_pack_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 		}
@@ -507,7 +507,7 @@ void rebuild_vdo_reference_counts(struct vdo *vdo,
 					     block_map_data_blocks, parent,
 					     &rebuild);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
@@ -518,15 +518,15 @@ void rebuild_vdo_reference_counts(struct vdo *vdo,
 	result =
 		invalidate_vdo_page_cache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
 	/* First traverse the block map trees. */
 	*rebuild->block_map_data_blocks = 0;
 	completion = &rebuild->sub_task_completion;
-	prepare_vdo_completion(completion, rebuild_from_leaves,
-			       finish_vdo_completion_parent_callback,
+	vdo_prepare_completion(completion, rebuild_from_leaves,
+			       vdo_finish_completion_parent_callback,
 			       rebuild->logical_thread_id,
 			       &rebuild->completion);
 	traverse_vdo_forest(rebuild->block_map, process_entry, completion);

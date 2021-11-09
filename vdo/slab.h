@@ -114,7 +114,7 @@ zone_count_t __must_check get_vdo_slab_zone_number(struct vdo_slab *slab);
  *
  * @return <code>true</code> if the slab is unrecovered
  **/
-static inline bool is_unrecovered_vdo_slab(const struct vdo_slab *slab)
+static inline bool vdo_is_unrecovered_slab(const struct vdo_slab *slab)
 {
 	return (slab->status != VDO_SLAB_REBUILT);
 }
@@ -126,7 +126,7 @@ static inline bool is_unrecovered_vdo_slab(const struct vdo_slab *slab)
  *
  * @return <code>true</code> if the slab is replaying
  **/
-static inline bool is_replaying_vdo_slab(const struct vdo_slab *slab)
+static inline bool vdo_is_replaying_slab(const struct vdo_slab *slab)
 {
 	return (slab->status == VDO_SLAB_REPLAYING);
 }
@@ -138,7 +138,7 @@ static inline bool is_replaying_vdo_slab(const struct vdo_slab *slab)
  *
  * @return <code>true</code> if the slab is being rebuilt
  **/
-static inline bool is_vdo_slab_rebuilding(const struct vdo_slab *slab)
+static inline bool vdo_is_slab_rebuilding(const struct vdo_slab *slab)
 {
 	return (slab->status == VDO_SLAB_REBUILDING);
 }

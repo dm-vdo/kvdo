@@ -100,7 +100,7 @@ get_vdo_admin_state_name(const struct admin_state *state);
  * @return The current state
  **/
 static inline const struct admin_state_code * __must_check
-get_vdo_admin_state_code(const struct admin_state *state)
+vdo_get_admin_state_code(const struct admin_state *state)
 {
 	return READ_ONCE(state->current_state);
 }
@@ -114,7 +114,7 @@ get_vdo_admin_state_code(const struct admin_state *state)
  * @param code   The code to set
  **/
 static inline void
-set_vdo_admin_state_code(struct admin_state *state,
+vdo_set_admin_state_code(struct admin_state *state,
 			 const struct admin_state_code *code)
 {
 	WRITE_ONCE(state->current_state, code);
@@ -128,9 +128,9 @@ set_vdo_admin_state_code(struct admin_state *state,
  * @return <code>true</code> if the state is normal
  **/
 static inline bool __must_check
-is_vdo_state_normal(const struct admin_state *state)
+vdo_is_state_normal(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code(state)->normal;
+	return vdo_get_admin_state_code(state)->normal;
 }
 
 /**
@@ -141,9 +141,9 @@ is_vdo_state_normal(const struct admin_state *state)
  * @return <code>true</code> if the state is suspending
  **/
 static inline bool __must_check
-is_vdo_state_suspending(const struct admin_state *state)
+vdo_is_state_suspending(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SUSPENDING);
+	return (vdo_get_admin_state_code(state) == VDO_ADMIN_STATE_SUSPENDING);
 }
 
 /**
@@ -154,9 +154,9 @@ is_vdo_state_suspending(const struct admin_state *state)
  * @return <code>true</code> if the state is saving
  **/
 static inline bool __must_check
-is_vdo_state_saving(const struct admin_state *state)
+vdo_is_state_saving(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SAVING);
+	return (vdo_get_admin_state_code(state) == VDO_ADMIN_STATE_SAVING);
 }
 
 /**
@@ -167,9 +167,9 @@ is_vdo_state_saving(const struct admin_state *state)
  * @return <code>true</code> if the state is saved
  **/
 static inline bool __must_check
-is_vdo_state_saved(const struct admin_state *state)
+vdo_is_state_saved(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SAVED);
+	return (vdo_get_admin_state_code(state) == VDO_ADMIN_STATE_SAVED);
 }
 
 /**
@@ -180,9 +180,9 @@ is_vdo_state_saved(const struct admin_state *state)
  * @return <code>true</code> if the state is draining
  **/
 static inline bool __must_check
-is_vdo_state_draining(const struct admin_state *state)
+vdo_is_state_draining(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code(state)->draining;
+	return vdo_get_admin_state_code(state)->draining;
 }
 
 /**
@@ -193,9 +193,9 @@ is_vdo_state_draining(const struct admin_state *state)
  * @return <code>true</code> if the state is loading
  **/
 static inline bool __must_check
-is_vdo_state_loading(const struct admin_state *state)
+vdo_is_state_loading(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code(state)->loading;
+	return vdo_get_admin_state_code(state)->loading;
 }
 
 /**
@@ -206,9 +206,9 @@ is_vdo_state_loading(const struct admin_state *state)
  * @return <code>true</code> if the state is resumeing
  **/
 static inline bool __must_check
-is_vdo_state_resuming(const struct admin_state *state)
+vdo_is_state_resuming(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_RESUMING);
+	return (vdo_get_admin_state_code(state) == VDO_ADMIN_STATE_RESUMING);
 }
 
 /**
@@ -219,9 +219,9 @@ is_vdo_state_resuming(const struct admin_state *state)
  * @return <code>true</code> if the state is a clean load
  **/
 static inline bool __must_check
-is_vdo_state_clean_load(const struct admin_state *state)
+vdo_is_state_clean_load(const struct admin_state *state)
 {
-	const struct admin_state_code *code = get_vdo_admin_state_code(state);
+	const struct admin_state_code *code = vdo_get_admin_state_code(state);
 
 	return ((code == VDO_ADMIN_STATE_FORMATTING) ||
 		(code == VDO_ADMIN_STATE_LOADING));
@@ -235,9 +235,9 @@ is_vdo_state_clean_load(const struct admin_state *state)
  * @return <code>true</code> if the state is quiescing
  **/
 static inline bool __must_check
-is_vdo_state_quiescing(const struct admin_state *state)
+vdo_is_state_quiescing(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code(state)->quiescing;
+	return vdo_get_admin_state_code(state)->quiescing;
 }
 
 /**
@@ -248,9 +248,9 @@ is_vdo_state_quiescing(const struct admin_state *state)
  * @return <code>true</code> is the state is quiescent
  **/
 static inline bool __must_check
-is_vdo_state_quiescent(const struct admin_state *state)
+vdo_is_state_quiescent(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code(state)->quiescent;
+	return vdo_get_admin_state_code(state)->quiescent;
 }
 
 bool start_vdo_draining(struct admin_state *state,
@@ -302,7 +302,7 @@ bool finish_vdo_operation(struct admin_state *state, int result);
  * @param state  the admin_state
  * @param result the result to set; if there is no waiter, this is a no-op
  **/
-static inline void set_vdo_operation_result(struct admin_state *state,
+static inline void vdo_set_operation_result(struct admin_state *state,
 					    int result)
 {
 	if (state->waiter != NULL) {

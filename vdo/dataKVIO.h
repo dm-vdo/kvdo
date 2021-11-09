@@ -54,7 +54,7 @@ launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 			     vdo_work_function work,
 			     enum vdo_work_item_priority priority)
 {
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 
 	launch_vio(data_vio_as_vio(data_vio),
 		   work,

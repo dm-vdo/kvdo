@@ -109,7 +109,7 @@ static void write_super_block(struct vdo *vdo,
 
 	case VDO_REPLAYING:
 	default:
-		finish_vdo_completion(completion, UDS_BAD_STATE);
+		vdo_finish_completion(completion, UDS_BAD_STATE);
 		return;
 	}
 
@@ -185,25 +185,25 @@ static void suspend_callback(struct vdo_completion *completion)
 		}
 
 		drain_vdo_logical_zones(vdo->logical_zones,
-					get_vdo_admin_state_code(admin_state),
+					vdo_get_admin_state_code(admin_state),
 					reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
 		drain_vdo_block_map(vdo->block_map,
-				    get_vdo_admin_state_code(admin_state),
+				    vdo_get_admin_state_code(admin_state),
 				    reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
 		drain_vdo_recovery_journal(vdo->recovery_journal,
-					   get_vdo_admin_state_code(admin_state),
+					   vdo_get_admin_state_code(admin_state),
 					   reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
 		drain_vdo_slab_depot(vdo->depot,
-				     get_vdo_admin_state_code(admin_state),
+				     vdo_get_admin_state_code(admin_state),
 				     reset_vdo_admin_sub_task(completion));
 		return;
 
@@ -213,7 +213,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (is_vdo_state_suspending(admin_state) ||
+		if (vdo_is_state_suspending(admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
 			/*
 			 * If we didn't save the VDO or there was an error, 

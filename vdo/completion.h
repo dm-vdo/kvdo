@@ -111,7 +111,7 @@ struct vdo_completion {
  * callback thread.
  **/
 static inline void
-run_vdo_completion_callback(struct vdo_completion *completion)
+vdo_run_completion_callback(struct vdo_completion *completion)
 {
 	if ((completion->result != VDO_SUCCESS) &&
 	    (completion->error_handler != NULL)) {
@@ -131,7 +131,7 @@ void initialize_vdo_completion(struct vdo_completion *completion,
 void reset_vdo_completion(struct vdo_completion *completion);
 
 void
-invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
+vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
 					     enum vdo_work_item_priority priority);
 
 /**
@@ -143,9 +143,9 @@ invoke_vdo_completion_callback_with_priority(struct vdo_completion *completion,
  * @param completion  The completion whose callback is to be invoked
  **/
 static inline void
-invoke_vdo_completion_callback(struct vdo_completion *completion)
+vdo_invoke_completion_callback(struct vdo_completion *completion)
 {
-	invoke_vdo_completion_callback_with_priority(completion,
+	vdo_invoke_completion_callback_with_priority(completion,
 						     VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
@@ -159,14 +159,14 @@ void complete_vdo_completion(struct vdo_completion *completion);
  * @param completion The completion to finish
  * @param result     The result of the completion (will not mask older errors)
  **/
-static inline void finish_vdo_completion(struct vdo_completion *completion,
+static inline void vdo_finish_completion(struct vdo_completion *completion,
 					 int result)
 {
 	set_vdo_completion_result(completion, result);
 	complete_vdo_completion(completion);
 }
 
-void finish_vdo_completion_parent_callback(struct vdo_completion *completion);
+void vdo_finish_completion_parent_callback(struct vdo_completion *completion);
 
 void
 preserve_vdo_completion_error_and_continue(struct vdo_completion *completion);
@@ -178,7 +178,7 @@ preserve_vdo_completion_error_and_continue(struct vdo_completion *completion);
  * @param completion  The completion being called back
  **/
 static inline
-void noop_vdo_completion_callback(struct vdo_completion *completion __always_unused)
+void vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
 {
 }
 
@@ -193,7 +193,7 @@ int assert_vdo_completion_type(enum vdo_completion_type actual,
  * @param thread_id   The ID of the thread on which the callback should run
  **/
 static inline void
-set_vdo_completion_callback(struct vdo_completion *completion,
+vdo_set_completion_callback(struct vdo_completion *completion,
 			    vdo_action *callback,
 			    thread_id_t thread_id)
 {
@@ -209,12 +209,12 @@ set_vdo_completion_callback(struct vdo_completion *completion,
  * @param thread_id   The ID of the thread on which the callback should run
  **/
 static inline void
-launch_vdo_completion_callback(struct vdo_completion *completion,
+vdo_launch_completion_callback(struct vdo_completion *completion,
 			       vdo_action *callback,
 			       thread_id_t thread_id)
 {
-	set_vdo_completion_callback(completion, callback, thread_id);
-	invoke_vdo_completion_callback(completion);
+	vdo_set_completion_callback(completion, callback, thread_id);
+	vdo_invoke_completion_callback(completion);
 }
 
 /**
@@ -226,12 +226,12 @@ launch_vdo_completion_callback(struct vdo_completion *completion,
  * @param parent      The new parent of the completion
  **/
 static inline void
-set_vdo_completion_callback_with_parent(struct vdo_completion *completion,
+vdo_set_completion_callback_with_parent(struct vdo_completion *completion,
 					vdo_action *callback,
 					thread_id_t thread_id,
 					void *parent)
 {
-	set_vdo_completion_callback(completion, callback, thread_id);
+	vdo_set_completion_callback(completion, callback, thread_id);
 	completion->parent = parent;
 }
 
@@ -245,14 +245,14 @@ set_vdo_completion_callback_with_parent(struct vdo_completion *completion,
  * @param parent      The new parent of the completion
  **/
 static inline void
-launch_vdo_completion_callback_with_parent(struct vdo_completion *completion,
+vdo_launch_completion_callback_with_parent(struct vdo_completion *completion,
 					   vdo_action *callback,
 					   thread_id_t thread_id,
 					   void *parent)
 {
-	set_vdo_completion_callback_with_parent(completion, callback,
+	vdo_set_completion_callback_with_parent(completion, callback,
 						thread_id, parent);
-	invoke_vdo_completion_callback(completion);
+	vdo_invoke_completion_callback(completion);
 }
 
 /**
@@ -265,14 +265,14 @@ launch_vdo_completion_callback_with_parent(struct vdo_completion *completion,
  * @param thread_id      The ID of the thread on which the callback should run
  * @param parent         The new parent of the completion
  **/
-static inline void prepare_vdo_completion(struct vdo_completion *completion,
+static inline void vdo_prepare_completion(struct vdo_completion *completion,
 					  vdo_action *callback,
 					  vdo_action *error_handler,
 					  thread_id_t thread_id,
 					  void *parent)
 {
 	reset_vdo_completion(completion);
-	set_vdo_completion_callback_with_parent(completion, callback,
+	vdo_set_completion_callback_with_parent(completion, callback,
 						thread_id, parent);
 	completion->error_handler = error_handler;
 }
@@ -289,13 +289,13 @@ static inline void prepare_vdo_completion(struct vdo_completion *completion,
  * @param parent         The new parent of the completion
  **/
 static inline void
-prepare_vdo_completion_for_requeue(struct vdo_completion *completion,
+vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
 				   vdo_action *callback,
 				   vdo_action *error_handler,
 				   thread_id_t thread_id,
 				   void *parent)
 {
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       callback,
 			       error_handler,
 			       thread_id,
@@ -311,18 +311,18 @@ prepare_vdo_completion_for_requeue(struct vdo_completion *completion,
  * @param parent      The parent to complete
  **/
 static inline void
-prepare_vdo_completion_to_finish_parent(struct vdo_completion *completion,
+vdo_prepare_completion_to_finish_parent(struct vdo_completion *completion,
 					struct vdo_completion *parent)
 {
-	prepare_vdo_completion(completion,
-			       finish_vdo_completion_parent_callback,
-			       finish_vdo_completion_parent_callback,
+	vdo_prepare_completion(completion,
+			       vdo_finish_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       parent->callback_thread_id,
 			       parent);
 }
 
 void
-enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
+vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 				     enum vdo_work_item_priority priority);
 
 /**
@@ -331,9 +331,9 @@ enqueue_vdo_completion_with_priority(struct vdo_completion *completion,
  *
  * @param completion  The completion to be enqueued
  **/
-static inline void enqueue_vdo_completion(struct vdo_completion *completion)
+static inline void vdo_enqueue_completion(struct vdo_completion *completion)
 {
-	enqueue_vdo_completion_with_priority(completion,
+	vdo_enqueue_completion_with_priority(completion,
 					     VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 

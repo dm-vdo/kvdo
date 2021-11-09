@@ -52,7 +52,7 @@ struct block_map_page *format_vdo_block_map_page(void *buffer,
 	struct block_map_page *page = (struct block_map_page *) buffer;
 
 	memset(buffer, 0, VDO_BLOCK_SIZE);
-	page->version = pack_vdo_version_number(BLOCK_MAP_4_1);
+	page->version = vdo_pack_version_number(BLOCK_MAP_4_1);
 	page->header.nonce = __cpu_to_le64(nonce);
 	page->header.pbn = __cpu_to_le64(pbn);
 	page->header.initialized = initialized;
@@ -82,14 +82,14 @@ validate_vdo_block_map_page(struct block_map_page *page,
 	STATIC_ASSERT_SIZEOF(struct block_map_page_header,
 			     PAGE_HEADER_4_1_SIZE);
 
-	if (!are_same_vdo_version(BLOCK_MAP_4_1,
-				  unpack_vdo_version_number(page->version)) ||
-	    !is_vdo_block_map_page_initialized(page) ||
+	if (!vdo_are_same_version(BLOCK_MAP_4_1,
+				  unvdo_pack_version_number(page->version)) ||
+	    !vdo_is_block_map_page_initialized(page) ||
 	    (nonce != __le64_to_cpu(page->header.nonce))) {
 		return VDO_BLOCK_MAP_PAGE_INVALID;
 	}
 
-	if (pbn != get_vdo_block_map_page_pbn(page)) {
+	if (pbn != vdo_get_block_map_page_pbn(page)) {
 		return VDO_BLOCK_MAP_PAGE_BAD;
 	}
 

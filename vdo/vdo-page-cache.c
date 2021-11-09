@@ -351,7 +351,7 @@ static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
  **/
 static inline void assert_io_allowed(struct vdo_page_cache *cache)
 {
-	ASSERT_LOG_ONLY(!is_vdo_state_quiescent(&cache->zone->state),
+	ASSERT_LOG_ONLY(!vdo_is_state_quiescent(&cache->zone->state),
 			"VDO page cache may issue I/O");
 }
 
@@ -674,13 +674,13 @@ static void complete_with_page(struct page_info *info,
 				       get_page_state_name(info->state),
 				       vdo_page_comp->writable ? "present" :
 				       "valid");
-		finish_vdo_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
+		vdo_finish_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
 		return;
 	}
 
 	vdo_page_comp->info = info;
 	vdo_page_comp->ready = true;
-	finish_vdo_completion(&vdo_page_comp->completion, VDO_SUCCESS);
+	vdo_finish_completion(&vdo_page_comp->completion, VDO_SUCCESS);
 }
 
 /**
@@ -694,7 +694,7 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 	int *result = result_ptr;
 	struct vdo_page_completion *completion =
 		page_completion_from_waiter(waiter);
-	finish_vdo_completion(&completion->completion, *result);
+	vdo_finish_completion(&completion->completion, *result);
 }
 
 /**
@@ -826,7 +826,7 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 	};
 
 	initialize_vdo_completion(completion, cache->vdo, VDO_PAGE_COMPLETION);
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       callback,
 			       error_handler,
 			       cache->zone->thread_id,
@@ -1400,7 +1400,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 			reset_vdo_completion(completion);
 			completion->callback = page_is_written_out;
 			completion->error_handler = handle_page_write_error;
-			finish_vdo_completion(completion, VDO_READ_ONLY);
+			vdo_finish_completion(completion, VDO_READ_ONLY);
 			continue;
 		}
 		ADD_ONCE(info->cache->stats.pages_saved, 1);
@@ -1481,7 +1481,7 @@ static void load_page_for_completion(struct page_info *info,
 	int result = enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
 
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(&vdo_page_comp->completion, result);
+		vdo_finish_completion(&vdo_page_comp->completion, result);
 		return;
 	}
 
@@ -1516,7 +1516,7 @@ void get_vdo_page(struct vdo_completion *completion)
 
 	if (vdo_page_comp->writable &&
 	    vdo_is_read_only(cache->zone->read_only_notifier)) {
-		finish_vdo_completion(completion, VDO_READ_ONLY);
+		vdo_finish_completion(completion, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1538,7 +1538,7 @@ void get_vdo_page(struct vdo_completion *completion)
 			result = enqueue_waiter(&info->waiting,
 						&vdo_page_comp->waiter);
 			if (result != VDO_SUCCESS) {
-				finish_vdo_completion(&vdo_page_comp->completion,
+				vdo_finish_completion(&vdo_page_comp->completion,
 						      result);
 			}
 
@@ -1684,10 +1684,10 @@ void *get_vdo_page_completion_context(struct vdo_completion *completion)
 void drain_vdo_page_cache(struct vdo_page_cache *cache)
 {
 	assert_on_cache_thread(cache, __func__);
-	ASSERT_LOG_ONLY(is_vdo_state_draining(&cache->zone->state),
+	ASSERT_LOG_ONLY(vdo_is_state_draining(&cache->zone->state),
 			"drain_vdo_page_cache() called during block map drain");
 
-	if (!is_vdo_state_suspending(&cache->zone->state)) {
+	if (!vdo_is_state_suspending(&cache->zone->state)) {
 		flush_vdo_dirty_lists(cache->dirty_lists);
 		save_pages(cache);
 	}

@@ -162,7 +162,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 
 	UDS_FREE(as_block_map_recovery_completion(UDS_FORGET(completion)));
-	finish_vdo_completion(parent, result);
+	vdo_finish_completion(parent, result);
 }
 
 /**
@@ -229,7 +229,7 @@ make_vdo_recovery_completion(struct vdo *vdo,
 			__func__,
 			recovery->logical_thread_id,
 			vdo_get_callback_thread_id());
-	prepare_vdo_completion(&recovery->completion,
+	vdo_prepare_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
 			       recovery->logical_thread_id,
@@ -253,7 +253,7 @@ static void flush_block_map(struct vdo_completion *completion)
 			 recovery->admin_thread),
 			"flush_block_map() called on admin thread");
 
-	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
+	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
 	drain_vdo_block_map(recovery->block_map,
 			    VDO_ADMIN_STATE_RECOVERING,
 			    completion);
@@ -294,7 +294,7 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 		}
 		complete_vdo_completion(&recovery->completion);
 	} else {
-		launch_vdo_completion_callback_with_parent(&recovery->sub_task_completion,
+		vdo_launch_completion_callback_with_parent(&recovery->sub_task_completion,
 							   flush_block_map,
 							   recovery->admin_thread,
 							   &recovery->completion);
@@ -542,12 +542,12 @@ void recover_vdo_block_map(struct vdo *vdo,
 						  journal_entries, parent,
 						  &recovery);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
 	if (is_heap_empty(&recovery->replay_heap)) {
-		finish_vdo_completion(&recovery->completion, VDO_SUCCESS);
+		vdo_finish_completion(&recovery->completion, VDO_SUCCESS);
 		return;
 	}
 

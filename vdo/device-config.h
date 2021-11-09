@@ -73,7 +73,7 @@ struct device_config {
  *
  * @return The device_config wrapping the list entry
  **/
-static inline struct device_config *as_vdo_device_config(struct list_head *entry)
+static inline struct device_config *vdo_as_device_config(struct list_head *entry)
 {
 	if (entry == NULL) {
 		return NULL;

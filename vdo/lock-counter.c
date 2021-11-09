@@ -149,7 +149,7 @@ int make_vdo_lock_counter(struct vdo *vdo,
 
 	initialize_vdo_completion(&lock_counter->completion, vdo,
 				  VDO_LOCK_COUNTER_COMPLETION);
-	set_vdo_completion_callback_with_parent(&lock_counter->completion,
+	vdo_set_completion_callback_with_parent(&lock_counter->completion,
 						callback,
 						thread_id,
 						parent);
@@ -405,7 +405,7 @@ static void attempt_notification(struct lock_counter *counter)
 	}
 
 	reset_vdo_completion(&counter->completion);
-	invoke_vdo_completion_callback(&counter->completion);
+	vdo_invoke_completion_callback(&counter->completion);
 }
 
 /**

@@ -48,7 +48,7 @@ static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 	free_vdo_extent(UDS_FORGET(eraser->extent));
 	UDS_FREE(eraser->zero_buffer);
 	UDS_FREE(eraser);
-	finish_vdo_completion(parent, result);
+	vdo_finish_completion(parent, result);
 }
 
 /**
@@ -79,7 +79,7 @@ static void erase_next_slab_journal(struct vdo_completion *extent_completion)
 	}
 
 	slab = vdo_next_slab(&eraser->slabs);
-	write_vdo_metadata_extent(eraser->extent, slab->journal_origin);
+	vdo_write_metadata_extent(eraser->extent, slab->journal_origin);
 }
 
 /**
@@ -100,7 +100,7 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 	int result = UDS_ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
 
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
@@ -129,7 +129,7 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 	}
 
 	extent_completion = &eraser->extent->completion;
-	prepare_vdo_completion(extent_completion,
+	vdo_prepare_completion(extent_completion,
 			       erase_next_slab_journal,
 			       handle_erasing_error,
 			       vdo_get_callback_thread_id(),

@@ -39,7 +39,7 @@ int validate_vdo_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
 {
-	if (!are_same_vdo_version(expected_version, actual_version)) {
+	if (!vdo_are_same_version(expected_version, actual_version)) {
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s version mismatch, expected %d.%d, got %d.%d",
 					      component_name,
@@ -140,7 +140,7 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 int encode_vdo_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
-	struct packed_version_number packed = pack_vdo_version_number(version);
+	struct packed_version_number packed = vdo_pack_version_number(version);
 
 	return put_bytes(buffer, sizeof(packed), &packed);
 }
@@ -201,6 +201,6 @@ int decode_vdo_version_number(struct buffer *buffer,
 		return result;
 	}
 
-	*version = unpack_vdo_version_number(packed);
+	*version = unvdo_pack_version_number(packed);
 	return UDS_SUCCESS;
 }

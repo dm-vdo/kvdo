@@ -129,7 +129,7 @@ retry_allocate_block_in_zone(struct waiter *waiter,
 static inline bool
 has_zones_to_try(struct allocating_vio *allocating_vio)
 {
-	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
+	struct vdo *vdo = vdo_get_from_allocating_vio(allocating_vio);
 
 	return (allocating_vio->allocation_attempts <
 		vdo->thread_config->physical_zone_count);
@@ -190,7 +190,7 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 static void try_next_zone(struct allocating_vio *allocating_vio)
 {
 	zone_count_t zone_number;
-	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
+	struct vdo *vdo = vdo_get_from_allocating_vio(allocating_vio);
 
 	if (!should_try_next_zone(allocating_vio)) {
 		return;
@@ -249,7 +249,7 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 			     enum pbn_lock_type write_lock_type,
 			     vdo_action *callback)
 {
-	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
+	struct vdo *vdo = vdo_get_from_allocating_vio(allocating_vio);
 
 	allocating_vio->write_lock_type = write_lock_type;
 	allocating_vio->allocation_callback = callback;

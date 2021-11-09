@@ -166,7 +166,7 @@ static void complete_write_for_copy(struct vdo_completion *completion)
 	copy->current_index += get_stride_size(copy);
 	if (copy->current_index >= copy->ending_index) {
 		/* We're done. */
-		finish_vdo_completion(completion->parent, VDO_SUCCESS);
+		vdo_finish_completion(completion->parent, VDO_SUCCESS);
 		return;
 	}
 	copy_partition_stride(copy);
@@ -185,7 +185,7 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 	int result = vdo_translate_to_pbn(copy->target, copy->current_index,
 					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(completion->parent, result);
+		vdo_finish_completion(completion->parent, result);
 		return;
 	}
 
@@ -206,13 +206,13 @@ static void copy_partition_stride(struct copy_completion *copy)
 	int result = vdo_translate_to_pbn(copy->source, copy->current_index,
 					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(&copy->completion, result);
+		vdo_finish_completion(&copy->completion, result);
 		return;
 	}
 
-	prepare_vdo_completion(&copy->extent->completion,
+	vdo_prepare_completion(&copy->extent->completion,
 			       complete_read_for_copy,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       copy->completion.callback_thread_id,
 			       &copy->completion);
 	read_partial_vdo_metadata_extent(copy->extent, layer_start_block,
@@ -269,11 +269,11 @@ void copy_vdo_partition(struct vdo_completion *completion,
 	int result = validate_partition_copy(source, target);
 
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	prepare_vdo_completion_to_finish_parent(&copy->completion, parent);
+	vdo_prepare_completion_to_finish_parent(&copy->completion, parent);
 	copy->source = source;
 	copy->target = target;
 	copy->current_index = 0;

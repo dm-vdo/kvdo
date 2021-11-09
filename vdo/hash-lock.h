@@ -128,7 +128,7 @@ struct hash_lock {
  *
  * @param lock  The lock to initialize
  **/
-static inline void initialize_vdo_hash_lock(struct hash_lock *lock)
+static inline void vdo_initialize_hash_lock(struct hash_lock *lock)
 {
 	INIT_LIST_HEAD(&lock->pool_node);
 	INIT_LIST_HEAD(&lock->duplicate_ring);

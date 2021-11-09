@@ -545,7 +545,7 @@ uint8_t vdo_get_increment_limit(struct slab_depot *depot,
 {
 	struct vdo_slab *slab = get_vdo_slab(depot, pbn);
 
-	if ((slab == NULL) || is_unrecovered_vdo_slab(slab)) {
+	if ((slab == NULL) || vdo_is_unrecovered_slab(slab)) {
 		return 0;
 	}
 
@@ -829,7 +829,7 @@ void drain_vdo_slab_depot(struct slab_depot *depot,
 void resume_vdo_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	if (vdo_is_read_only(depot->vdo->read_only_notifier)) {
-		finish_vdo_completion(parent, VDO_READ_ONLY);
+		vdo_finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 

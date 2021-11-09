@@ -88,7 +88,7 @@ void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
  * @param start_block  The physical block number of the first block
  *                     in the extent
  **/
-static inline void read_vdo_metadata_extent(struct vdo_extent *extent,
+static inline void vdo_read_metadata_extent(struct vdo_extent *extent,
 					    physical_block_number_t start_block)
 {
 	read_partial_vdo_metadata_extent(extent, start_block, extent->count);
@@ -105,7 +105,7 @@ void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
  *                     extent
  **/
 
-static inline void write_vdo_metadata_extent(struct vdo_extent *extent,
+static inline void vdo_write_metadata_extent(struct vdo_extent *extent,
 					     physical_block_number_t start_block)
 {
 	write_partial_vdo_metadata_extent(extent, start_block, extent->count);

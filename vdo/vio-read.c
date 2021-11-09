@@ -80,7 +80,7 @@ static void read_block(struct vdo_completion *completion)
 			zero_fill_bio(data_vio->user_bio);
 		}
 
-		invoke_vdo_completion_callback(completion);
+		vdo_invoke_completion_callback(completion);
 		return;
 	}
 

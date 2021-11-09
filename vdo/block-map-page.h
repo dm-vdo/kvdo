@@ -87,7 +87,7 @@ enum block_map_page_validity {
  * @return <code>true</code> if the page has been initialized
  **/
 static inline bool __must_check
-is_vdo_block_map_page_initialized(const struct block_map_page *page)
+vdo_is_block_map_page_initialized(const struct block_map_page *page)
 {
 	return page->header.initialized;
 }
@@ -101,7 +101,7 @@ is_vdo_block_map_page_initialized(const struct block_map_page *page)
  * @return <code>true</code> if the initialized flag was modified
  **/
 static inline bool
-mark_vdo_block_map_page_initialized(struct block_map_page *page,
+vdo_mark_block_map_page_initialized(struct block_map_page *page,
 				    bool initialized)
 {
 	if (initialized == page->header.initialized) {
@@ -120,7 +120,7 @@ mark_vdo_block_map_page_initialized(struct block_map_page *page,
  * @return the page's physical block number
  **/
 static inline physical_block_number_t __must_check
-get_vdo_block_map_page_pbn(const struct block_map_page *page)
+vdo_get_block_map_page_pbn(const struct block_map_page *page)
 {
 	return __le64_to_cpu(page->header.pbn);
 }

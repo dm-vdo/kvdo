@@ -107,7 +107,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 	struct vdo_completion *parent = super_block->parent;
 
 	super_block->parent = NULL;
-	finish_vdo_completion(parent, completion->result);
+	vdo_finish_completion(parent, completion->result);
 }
 
 /**
@@ -146,18 +146,18 @@ void save_vdo_super_block(struct vdo_super_block *super_block,
 	int result;
 
 	if (super_block->unwriteable) {
-		finish_vdo_completion(parent, VDO_READ_ONLY);
+		vdo_finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
 	if (super_block->parent != NULL) {
-		finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
 	result = encode_vdo_super_block(&super_block->codec);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
@@ -183,7 +183,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_completion *parent = super_block->parent;
 
 	super_block->parent = NULL;
-	finish_vdo_completion(parent,
+	vdo_finish_completion(parent,
 			      decode_vdo_super_block(&super_block->codec));
 }
 
@@ -209,7 +209,7 @@ void load_vdo_super_block(struct vdo *vdo,
 
 	if (result != VDO_SUCCESS) {
 		free_vdo_super_block(super_block);
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 

@@ -209,14 +209,14 @@
  * @return The block number corresponding to the sequence number
  **/
 static inline physical_block_number_t __must_check
-get_vdo_recovery_journal_block_number(const struct recovery_journal *journal,
+vdo_get_recovery_journal_block_number(const struct recovery_journal *journal,
 				      sequence_number_t sequence)
 {
 	/*
 	 * Since journal size is a power of two, the block number modulus can 
 	 * just be extracted from the low-order bits of the sequence. 
 	 */
-	return compute_vdo_recovery_journal_block_number(journal->size, sequence);
+	return vdo_compute_recovery_journal_block_number(journal->size, sequence);
 }
 
 /**
@@ -228,7 +228,7 @@ get_vdo_recovery_journal_block_number(const struct recovery_journal *journal,
  * @return The check byte corresponding to the sequence number
  **/
 static inline uint8_t __must_check
-compute_vdo_recovery_journal_check_byte(const struct recovery_journal *journal,
+vdo_compute_recovery_journal_check_byte(const struct recovery_journal *journal,
 					sequence_number_t sequence)
 {
 	/* The check byte must change with each trip around the journal. */
@@ -243,7 +243,7 @@ compute_vdo_recovery_journal_check_byte(const struct recovery_journal *journal,
  * @return true if the type is an increment type
  **/
 static inline bool
-is_vdo_journal_increment_operation(enum journal_operation operation)
+vdo_is_journal_increment_operation(enum journal_operation operation)
 {
 	return ((operation == VDO_JOURNAL_DATA_INCREMENT)
 		|| (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));

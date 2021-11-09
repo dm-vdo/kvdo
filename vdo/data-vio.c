@@ -178,7 +178,7 @@ int make_data_vio_buffer_pool(uint32_t pool_size,
 static void initialize_lbn_lock(struct data_vio *data_vio,
 				logical_block_number_t lbn)
 {
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 	struct lbn_lock *lock = &data_vio->logical;
 
 	lock->lbn = lbn;
@@ -322,7 +322,7 @@ void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
 	 * work.
 	 */
 
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 	struct zoned_pbn duplicate =
 		vdo_validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
 	set_data_vio_duplicate_location(data_vio, duplicate);
@@ -371,7 +371,7 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 				 enum block_mapping_state state)
 {
 	struct physical_zone *zone;
-	int result = get_vdo_physical_zone(get_vdo_from_data_vio(data_vio),
+	int result = get_vdo_physical_zone(vdo_get_from_data_vio(data_vio),
 					   pbn, &zone);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -411,7 +411,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct lbn_lock *lock = &data_vio->logical;
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 	struct data_vio *lock_holder;
 	int result;
 
@@ -589,7 +589,7 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
  **/
 void acknowledge_data_vio(struct data_vio *data_vio)
 {
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 	struct bio *bio = data_vio->user_bio;
 	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
 

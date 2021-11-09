@@ -81,7 +81,7 @@ extern const physical_block_number_t VDO_INVALID_PBN;
  * @return The block_map_page of the tree_page
  **/
 static inline struct block_map_page * __must_check
-as_vdo_block_map_page(struct tree_page *tree_page)
+vdo_as_block_map_page(struct tree_page *tree_page)
 {
 	return (struct block_map_page *) tree_page->page_buffer;
 }

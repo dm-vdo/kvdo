@@ -673,7 +673,7 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state)
  **/
 const struct admin_state_code *get_vdo_admin_state(const struct vdo *vdo)
 {
-	return get_vdo_admin_state_code(&vdo->admin_state);
+	return vdo_get_admin_state_code(&vdo->admin_state);
 }
 
 /**
@@ -707,7 +707,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 	record_vdo(vdo);
 	result = encode_vdo_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 

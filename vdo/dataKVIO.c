@@ -130,7 +130,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
 
 	add_to_batch_processor(vdo->data_vio_releaser, &completion->work_item);
 }
@@ -525,7 +525,7 @@ void launch_data_vio(struct vdo *vdo,
 	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
 	       / VDO_SECTORS_PER_BLOCK);
 	prepare_data_vio(data_vio, lbn, operation, callback);
-	invoke_vdo_completion_callback_with_priority(data_vio_as_completion(data_vio),
+	vdo_invoke_completion_callback_with_priority(data_vio_as_completion(data_vio),
 						     VDO_REQ_Q_MAP_BIO_PRIORITY);
 }
 
@@ -539,21 +539,21 @@ void check_data_vio_for_duplication(struct data_vio *data_vio)
 			"discard not checked for duplication");
 
 	if (data_vio_has_allocation(data_vio)) {
-		post_vdo_dedupe_advice(data_vio);
+		vdo_post_dedupe_advice(data_vio);
 	} else {
 		/*
 		 * This block has not actually been written (presumably because 
 		 * we are full), so attempt to dedupe without posting bogus 
 		 * advice.
 		 */
-		query_vdo_dedupe_advice(data_vio);
+		vdo_query_dedupe_advice(data_vio);
 	}
 }
 
 /**********************************************************************/
 void vdo_update_dedupe_index(struct data_vio *data_vio)
 {
-	update_vdo_dedupe_advice(data_vio);
+	vdo_update_dedupe_advice(data_vio);
 }
 
 /**

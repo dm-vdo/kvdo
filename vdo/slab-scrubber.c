@@ -96,7 +96,7 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
 	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
 	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;
-	set_vdo_admin_state_code(&scrubber->admin_state,
+	vdo_set_admin_state_code(&scrubber->admin_state,
 				 VDO_ADMIN_STATE_SUSPENDED);
 	*scrubber_ptr = scrubber;
 	return VDO_SUCCESS;
@@ -357,14 +357,14 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	/* Find the boundaries of the useful part of the journal. */
 	sequence_number_t tail = journal->tail;
 	tail_block_offset_t end_index =
-		get_vdo_slab_journal_block_offset(journal, tail - 1);
+		vdo_get_slab_journal_block_offset(journal, tail - 1);
 	char *end_data = scrubber->journal_data + (end_index * VDO_BLOCK_SIZE);
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
 	sequence_number_t head = __le64_to_cpu(end_block->header.head);
 	tail_block_offset_t head_index =
-		get_vdo_slab_journal_block_offset(journal, head);
+		vdo_get_slab_journal_block_offset(journal, head);
 	block_count_t index = head_index;
 
 	struct journal_point ref_counts_point =
@@ -379,7 +379,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			(struct packed_slab_journal_block *) block_data;
 		struct slab_journal_block_header header;
 
-		unpack_vdo_slab_journal_block_header(&block->header, &header);
+		unvdo_pack_slab_journal_block_header(&block->header, &header);
 
 		if ((header.nonce != slab->allocator->nonce) ||
 		    (header.metadata_type != VDO_METADATA_SLAB_JOURNAL) ||
@@ -413,7 +413,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	 * At the end of rebuild, the ref_counts should be accurate to the end 
 	 * of the journal we just applied. 
 	 */
-	result = ASSERT(!before_vdo_journal_point(&last_entry_applied,
+	result = ASSERT(!vdo_before_journal_point(&last_entry_applied,
 						  &ref_counts_point),
 			"Refcounts are not more accurate than the slab journal");
 	if (result != VDO_SUCCESS) {
@@ -422,7 +422,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	/* Save out the rebuilt reference blocks. */
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       slab_scrubbed,
 			       handle_scrubber_error,
 			       completion->callback_thread_id,
@@ -448,12 +448,12 @@ static void start_scrubbing(struct vdo_completion *completion)
 		return;
 	}
 
-	prepare_vdo_completion(&scrubber->extent->completion,
+	vdo_prepare_completion(&scrubber->extent->completion,
 			       apply_journal_entries,
 			       handle_scrubber_error,
 			       completion->callback_thread_id,
 			       completion->parent);
-	read_vdo_metadata_extent(scrubber->extent, slab->journal_origin);
+	vdo_read_metadata_extent(scrubber->extent, slab->journal_origin);
 }
 
 /**
@@ -492,7 +492,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
 	completion = vdo_extent_as_completion(scrubber->extent);
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       start_scrubbing,
 			       handle_scrubber_error,
 			       scrubber->completion.callback_thread_id,
@@ -516,7 +516,7 @@ void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	resume_vdo_if_quiescent(&scrubber->admin_state);
-	prepare_vdo_completion(&scrubber->completion,
+	vdo_prepare_completion(&scrubber->completion,
 			       callback,
 			       error_handler,
 			       thread_id,
@@ -569,7 +569,7 @@ void scrub_high_priority_vdo_slabs(struct slab_scrubber *scrubber,
 void stop_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 			     struct vdo_completion *parent)
 {
-	if (is_vdo_state_quiescent(&scrubber->admin_state)) {
+	if (vdo_is_state_quiescent(&scrubber->admin_state)) {
 		complete_vdo_completion(parent);
 	} else {
 		start_vdo_draining(&scrubber->admin_state,
@@ -597,7 +597,7 @@ void resume_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
 
 	result = resume_vdo_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
@@ -621,7 +621,7 @@ int enqueue_clean_vdo_slab_waiter(struct slab_scrubber *scrubber,
 		return VDO_READ_ONLY;
 	}
 
-	if (is_vdo_state_quiescent(&scrubber->admin_state)) {
+	if (vdo_is_state_quiescent(&scrubber->admin_state)) {
 		return VDO_NO_SPACE;
 	}
 

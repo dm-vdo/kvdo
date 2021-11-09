@@ -171,7 +171,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 				   continue_waiter, &result);
 	}
 
-	if (!is_vdo_state_draining(&journal->state) || journal->reaping
+	if (!vdo_is_state_draining(&journal->state) || journal->reaping
 	    || has_block_waiters(journal)
 	    || has_waiters(&journal->increment_waiters)
 	    || has_waiters(&journal->decrement_waiters)
@@ -179,10 +179,10 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		return;
 	}
 
-	if (is_vdo_state_saving(&journal->state)) {
+	if (vdo_is_state_saving(&journal->state)) {
 		if (journal->active_block != NULL) {
 			ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
-					 || !is_vdo_recovery_block_dirty(journal->active_block)),
+					 || !vdo_is_recovery_block_dirty(journal->active_block)),
 					"journal being saved has clean active block");
 			recycle_journal_block(journal->active_block);
 		}
@@ -355,10 +355,10 @@ static void initialize_journal_state(struct recovery_journal *journal)
 	journal->block_map_reap_head = journal->tail;
 	journal->slab_journal_reap_head = journal->tail;
 	journal->block_map_head_block_number =
-		get_vdo_recovery_journal_block_number(journal,
+		vdo_get_recovery_journal_block_number(journal,
 						      journal->block_map_head);
 	journal->slab_journal_head_block_number =
-		get_vdo_recovery_journal_block_number(journal,
+		vdo_get_recovery_journal_block_number(journal,
 						      journal->slab_journal_head);
 }
 
@@ -396,7 +396,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 	 */
 	acknowledge_vdo_lock_unlock(journal->lock_counter);
 
-	if (is_vdo_state_quiescing(&journal->state)) {
+	if (vdo_is_state_quiescing(&journal->state)) {
 		/*
 		 * Don't start reaping when the journal is trying to quiesce.
 		 * Do check if this notification is the last thing the is
@@ -487,7 +487,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 	 * XXX: this is a hack until we make initial resume of a VDO a real 
 	 * resume 
 	 */
-	set_vdo_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
+	vdo_set_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
 
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	journal_length = get_vdo_recovery_journal_length(journal_size);
@@ -565,10 +565,10 @@ void free_vdo_recovery_journal(struct recovery_journal *journal)
 	 * state 
 	 *      which requires opening before use.
 	 */
-	if (!is_vdo_state_quiescent(&journal->state)) {
+	if (!vdo_is_state_quiescent(&journal->state)) {
 		ASSERT_LOG_ONLY(list_empty(&journal->active_tail_blocks),
 				"journal being freed has no active tail blocks");
-	} else if (!is_vdo_state_saved(&journal->state)
+	} else if (!vdo_is_state_saved(&journal->state)
 		   && !list_empty(&journal->active_tail_blocks)) {
 		uds_log_warning("journal being freed has uncommitted entries");
 	}
@@ -693,7 +693,7 @@ record_vdo_recovery_journal(const struct recovery_journal *journal)
 		.block_map_data_blocks = journal->block_map_data_blocks,
 	};
 
-	if (is_vdo_state_saved(&journal->state)) {
+	if (vdo_is_state_saved(&journal->state)) {
 		/*
 		 * If the journal is saved, we should start one past the active 
 		 * block (since the active block is not guaranteed to be empty). 
@@ -779,12 +779,12 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 		return false;
 	}
 
-	if (is_vdo_recovery_block_full(journal->active_block)
+	if (vdo_is_recovery_block_full(journal->active_block)
 	    && !advance_tail(journal)) {
 		return false;
 	}
 
-	if (!is_vdo_recovery_block_empty(journal->active_block)) {
+	if (!vdo_is_recovery_block_empty(journal->active_block)) {
 		return true;
 	}
 
@@ -912,7 +912,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		continue_data_vio(data_vio, result);
 	}
 
-	if (is_vdo_recovery_block_full(block)) {
+	if (vdo_is_recovery_block_full(block)) {
 		/*
 		 * The block is full, so we can write it anytime henceforth. If 
 		 * it is already committing, we'll queue it for writing when it 
@@ -1002,7 +1002,7 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	struct recovery_journal *journal = (struct recovery_journal *)context;
 	int result = (vdo_is_read_only(journal->read_only_notifier) ?
 			VDO_READ_ONLY : VDO_SUCCESS);
-	ASSERT_LOG_ONLY(before_vdo_journal_point(&journal->commit_point,
+	ASSERT_LOG_ONLY(vdo_before_journal_point(&journal->commit_point,
 						 &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
 			(unsigned long long) journal->commit_point.sequence_number,
@@ -1042,8 +1042,8 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 			notify_all_waiters(&block->entry_waiters,
 					   continue_committed_waiter,
 					   journal);
-		} else if (is_vdo_recovery_block_dirty(block)
-			   || !is_vdo_recovery_block_full(block)) {
+		} else if (vdo_is_recovery_block_dirty(block)
+			   || !vdo_is_recovery_block_full(block)) {
 			/*
 			 * Stop at partially-committed or partially-filled 
 			 * blocks. 
@@ -1070,8 +1070,8 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 		}
 
 		if (!vdo_is_read_only(journal->read_only_notifier)
-		    && (is_vdo_recovery_block_dirty(block)
-			|| !is_vdo_recovery_block_full(block))) {
+		    && (vdo_is_recovery_block_dirty(block)
+			|| !vdo_is_recovery_block_full(block))) {
 			/*
 			 * Don't recycle partially written or partially full 
 			 * blocks, except in read-only mode. 
@@ -1124,7 +1124,7 @@ static void complete_write(struct vdo_completion *completion)
 	 * Is this block now full? Reaping, and adding entries, might have 
 	 * already sent it off for rewriting; else, queue it for rewrite. 
 	 */
-	if (is_vdo_recovery_block_dirty(block) && is_vdo_recovery_block_full(block)) {
+	if (vdo_is_recovery_block_dirty(block) && vdo_is_recovery_block_full(block)) {
 		schedule_block_write(journal, block);
 	}
 
@@ -1222,7 +1222,7 @@ void add_vdo_recovery_journal_entry(struct recovery_journal *journal,
 	int result;
 
 	assert_on_journal_thread(journal, __func__);
-	if (!is_vdo_state_normal(&journal->state)) {
+	if (!vdo_is_state_normal(&journal->state)) {
 		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
@@ -1232,12 +1232,12 @@ void add_vdo_recovery_journal_entry(struct recovery_journal *journal,
 		return;
 	}
 
-	increment = is_vdo_journal_increment_operation(data_vio->operation.type);
+	increment = vdo_is_journal_increment_operation(data_vio->operation.type);
 	ASSERT_LOG_ONLY((!increment ||
 			 (data_vio->recovery_sequence_number == 0)),
 			"journal lock not held for increment");
 
-	advance_vdo_journal_point(&journal->append_point,
+	vdo_advance_journal_point(&journal->append_point,
 				  journal->entries_per_block);
 	result = enqueue_data_vio((increment ? &journal->increment_waiters
 				  : &journal->decrement_waiters),
@@ -1266,7 +1266,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	if (is_vdo_state_quiescent(&journal->state)) {
+	if (vdo_is_state_quiescent(&journal->state)) {
 		/* We are supposed to not do IO. Don't botch it by reaping. */
 		return;
 	}
@@ -1334,7 +1334,7 @@ void acquire_vdo_recovery_journal_block_reference(struct recovery_journal *journ
 	}
 
 	block_number =
-		get_vdo_recovery_journal_block_number(journal, sequence_number);
+		vdo_get_recovery_journal_block_number(journal, sequence_number);
 	acquire_vdo_lock_count_reference(journal->lock_counter, block_number,
 					 zone_type, zone_id);
 }
@@ -1361,7 +1361,7 @@ void release_vdo_recovery_journal_block_reference(struct recovery_journal *journ
 	}
 
 	block_number =
-		get_vdo_recovery_journal_block_number(journal, sequence_number);
+		vdo_get_recovery_journal_block_number(journal, sequence_number);
 	release_vdo_lock_count_reference(journal->lock_counter, block_number,
 					 zone_type, zone_id);
 }
@@ -1384,7 +1384,7 @@ void vdo_release_journal_per_entry_lock_from_other_zone(struct recovery_journal 
 	}
 
 	block_number =
-		get_vdo_recovery_journal_block_number(journal, sequence_number);
+		vdo_get_recovery_journal_block_number(journal, sequence_number);
 	release_vdo_journal_zone_reference_from_other_zone(journal->lock_counter,
 							   block_number);
 }
@@ -1428,11 +1428,11 @@ void resume_vdo_recovery_journal(struct recovery_journal *journal,
 	bool saved;
 
 	assert_on_journal_thread(journal, __func__);
-	saved = is_vdo_state_saved(&journal->state);
+	saved = vdo_is_state_saved(&journal->state);
 	set_vdo_completion_result(parent, resume_vdo_if_quiescent(&journal->state));
 
 	if (vdo_is_read_only(journal->read_only_notifier)) {
-		finish_vdo_completion(parent, VDO_READ_ONLY);
+		vdo_finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 

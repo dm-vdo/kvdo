@@ -57,7 +57,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
  *                  dedupe_context.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-static inline void post_vdo_dedupe_advice(struct data_vio *data_vio)
+static inline void vdo_post_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_vdo_index_operation(data_vio, UDS_POST);
 }
@@ -72,7 +72,7 @@ static inline void post_vdo_dedupe_advice(struct data_vio *data_vio)
  *                  the return status code of any asynchronous index
  *                  processing.
  **/
-static inline void query_vdo_dedupe_advice(struct data_vio *data_vio)
+static inline void vdo_query_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_vdo_index_operation(data_vio, UDS_QUERY);
 }
@@ -88,7 +88,7 @@ static inline void query_vdo_dedupe_advice(struct data_vio *data_vio)
  *                  the return status code of any asynchronous index
  *                  processing.
  **/
-static inline void update_vdo_dedupe_advice(struct data_vio *data_vio)
+static inline void vdo_update_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_vdo_index_operation(data_vio, UDS_UPDATE);
 }

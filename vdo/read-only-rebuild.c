@@ -144,7 +144,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 
 	set_vdo_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
 	free_rebuild_completion(UDS_FORGET(rebuild));
-	finish_vdo_completion(parent, result);
+	vdo_finish_completion(parent, result);
 }
 
 /**
@@ -194,7 +194,7 @@ abort_rebuild_on_error(int result,
 		return false;
 	}
 
-	finish_vdo_completion(&rebuild->completion, result);
+	vdo_finish_completion(&rebuild->completion, result);
 	return true;
 }
 
@@ -216,7 +216,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	}
 
 	uds_log_info("Saving rebuilt state");
-	prepare_vdo_completion_to_finish_parent(completion, &rebuild->completion);
+	vdo_prepare_completion_to_finish_parent(completion, &rebuild->completion);
 	drain_vdo_slab_depot(vdo->depot, VDO_ADMIN_STATE_REBUILDING, completion);
 }
 
@@ -239,9 +239,9 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 		return;
 	}
 
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       finish_reference_count_rebuild,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       vdo->thread_config->admin_thread,
 			       completion->parent);
 	rebuild_vdo_reference_counts(vdo,
@@ -267,7 +267,7 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
-			unpack_vdo_recovery_journal_entry(&sector->entries[i]);
+			unvdo_pack_recovery_journal_entry(&sector->entries[i]);
 		int result = validate_vdo_recovery_journal_entry(rebuild->vdo,
 								 &entry);
 		if (result != VDO_SUCCESS) {
@@ -278,12 +278,12 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 			continue;
 		}
 
-		if (is_vdo_journal_increment_operation(entry.operation)) {
+		if (vdo_is_journal_increment_operation(entry.operation)) {
 			rebuild->entries[rebuild->entry_count] =
 				(struct numbered_block_mapping) {
 					.block_map_slot = entry.slot,
 					.block_map_entry =
-						pack_vdo_pbn(entry.mapping.pbn,
+						vdo_pack_pbn(entry.mapping.pbn,
 							     entry.mapping.state),
 					.number = rebuild->entry_count,
 				};
@@ -326,16 +326,16 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 	for (i = first; i <= last; i++) {
 		struct packed_journal_header *packed_header =
-			get_vdo_recovery_journal_block_header(journal,
+			vdo_get_recovery_journal_block_header(journal,
 							      rebuild->journal_data,
 							      i);
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		uint8_t j;
 
-		unpack_vdo_recovery_block_header(packed_header, &header);
+		unvdo_pack_recovery_block_header(packed_header, &header);
 
-		if (!is_exact_vdo_recovery_journal_block(journal, &header, i)) {
+		if (!vdo_is_exact_recovery_journal_block(journal, &header, i)) {
 			/* This block is invalid, so skip it. */
 			continue;
 		}
@@ -350,7 +350,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			journal_entry_count_t sector_entries;
 
 			struct packed_journal_sector *sector =
-				get_vdo_journal_block_sector(packed_header, j);
+				vdo_get_journal_block_sector(packed_header, j);
 			/*
 			 * Stop when all entries counted in the header are 
 			 * applied or skipped. 
@@ -359,7 +359,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 				break;
 			}
 
-			if (!is_valid_vdo_recovery_journal_sector(&header, sector)) {
+			if (!vdo_is_valid_recovery_journal_sector(&header, sector)) {
 				block_entries -=
 					min(block_entries,
 					    (journal_entry_count_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
@@ -427,9 +427,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
 					true);
 
 	/* Play the recovery journal into the block map. */
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       launch_reference_count_rebuild,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
 	recover_vdo_block_map(vdo, rebuild->entry_count, rebuild->entries,
@@ -449,9 +449,9 @@ static void load_journal_callback(struct vdo_completion *completion)
 
 	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
 
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       apply_journal_entries,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
 	load_vdo_recovery_journal(vdo->recovery_journal, completion,
@@ -482,21 +482,21 @@ void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 
 	result = make_rebuild_completion(vdo, &rebuild);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
 	completion = &rebuild->completion;
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       finish_rebuild,
 			       abort_rebuild,
 			       parent->callback_thread_id,
 			       parent);
 
 	sub_task_completion = &rebuild->sub_task_completion;
-	prepare_vdo_completion(sub_task_completion,
+	vdo_prepare_completion(sub_task_completion,
 			       load_journal_callback,
-			       finish_vdo_completion_parent_callback,
+			       vdo_finish_completion_parent_callback,
 			       vdo_get_logical_zone_thread(vdo->thread_config, 0),
 			       completion);
 	load_vdo_slab_depot(vdo->depot,

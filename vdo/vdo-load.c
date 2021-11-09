@@ -255,7 +255,7 @@ static void load_callback(struct vdo_completion *completion)
 			 * may not even be readable, so don't bother trying to
 			 * load it.
 			 */
-			set_vdo_operation_result(&vdo->admin_state,
+			vdo_set_operation_result(&vdo->admin_state,
 						 VDO_READ_ONLY);
 			break;
 		}
@@ -302,7 +302,7 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_STATS:
-		finish_vdo_completion(reset_vdo_admin_sub_task(completion),
+		vdo_finish_completion(reset_vdo_admin_sub_task(completion),
 				      initialize_vdo_kobjects(vdo));
 		return;
 
@@ -366,7 +366,7 @@ static void handle_load_error(struct vdo_completion *completion)
 		uds_log_error_strerror(completion->result, "aborting load");
 
 		/* Preserve the error. */
-		set_vdo_operation_result(&vdo->admin_state,
+		vdo_set_operation_result(&vdo->admin_state,
 					 completion->result);
 		admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
 		load_callback(UDS_FORGET(completion));
@@ -377,7 +377,7 @@ static void handle_load_error(struct vdo_completion *completion)
 			       "Entering read-only mode due to load error");
 	admin_completion->phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
 	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
-	set_vdo_operation_result(&vdo->admin_state, VDO_READ_ONLY);
+	vdo_set_operation_result(&vdo->admin_state, VDO_READ_ONLY);
 	load_callback(completion);
 }
 
@@ -625,7 +625,7 @@ static void load_vdo_components(struct vdo_completion *completion)
 	prepare_vdo_admin_sub_task(vdo,
 				   finish_operation_callback,
 				   finish_operation_callback);
-	finish_vdo_completion(completion, decode_vdo(vdo));
+	vdo_finish_completion(completion, decode_vdo(vdo));
 }
 
 /**

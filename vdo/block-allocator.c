@@ -318,7 +318,7 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 	allocator->nonce = nonce;
 	allocator->read_only_notifier = read_only_notifier;
 	INIT_LIST_HEAD(&allocator->dirty_slab_journals);
-	set_vdo_admin_state_code(&allocator->state,
+	vdo_set_admin_state_code(&allocator->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	result = allocate_components(allocator, vdo, vio_pool_size);
@@ -414,7 +414,7 @@ void queue_vdo_slab(struct vdo_slab *slab)
 		return;
 	}
 
-	if (is_unrecovered_vdo_slab(slab)) {
+	if (vdo_is_unrecovered_slab(slab)) {
 		vdo_register_slab_for_scrubbing(allocator->slab_scrubber,
 						slab, false);
 		return;
@@ -670,7 +670,7 @@ static void handle_operation_error(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 
-	set_vdo_operation_result(&allocator->state, completion->result);
+	vdo_set_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
 }
 
@@ -687,7 +687,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 {
 	struct slab_iterator iterator;
 
-	prepare_vdo_completion(&allocator->completion,
+	vdo_prepare_completion(&allocator->completion,
 			       slab_action_callback,
 			       handle_operation_error,
 			       allocator->thread_id,
@@ -709,7 +709,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	iterator = get_slab_iterator(allocator);
 	while (vdo_has_next_slab(&iterator)) {
 		const struct admin_state_code *operation =
-			get_vdo_admin_state_code(&allocator->state);
+			vdo_get_admin_state_code(&allocator->state);
 		struct vdo_slab *slab = vdo_next_slab(&iterator);
 
 		list_del_init(&slab->allocq_entry);
@@ -729,7 +729,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 	const struct admin_state_code *operation =
-		get_vdo_admin_state_code(&allocator->state);
+		vdo_get_admin_state_code(&allocator->state);
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
@@ -750,10 +750,10 @@ static void initiate_load(struct admin_state *state)
 {
 	struct block_allocator *allocator =
 		container_of(state, struct block_allocator, state);
-	const struct admin_state_code *operation = get_vdo_admin_state_code(state);
+	const struct admin_state_code *operation = vdo_get_admin_state_code(state);
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD) {
-		prepare_vdo_completion(&allocator->completion,
+		vdo_prepare_completion(&allocator->completion,
 				       finish_loading_allocator,
 				       handle_operation_error,
 				       allocator->thread_id,
@@ -879,15 +879,15 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 	int result = prepare_vdo_slabs_for_allocation(allocator);
 
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
 	scrub_high_priority_vdo_slabs(allocator->slab_scrubber,
 				      is_priority_table_empty(allocator->prioritized_slabs),
 				      parent,
-				      finish_vdo_completion_parent_callback,
-				      finish_vdo_completion_parent_callback);
+				      vdo_finish_completion_parent_callback,
+				      vdo_finish_completion_parent_callback);
 }
 
 /**
@@ -923,7 +923,7 @@ static void do_drain_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 
-	prepare_vdo_completion_for_requeue(&allocator->completion,
+	vdo_prepare_completion_for_requeue(&allocator->completion,
 					   do_drain_step,
 					   handle_operation_error,
 					   allocator->thread_id,
@@ -940,7 +940,7 @@ static void do_drain_step(struct vdo_completion *completion)
 	case VDO_DRAIN_ALLOCATOR_STEP_SUMMARY:
 		drain_vdo_slab_summary_zone(
 			allocator->summary,
-			get_vdo_admin_state_code(&allocator->state),
+			vdo_get_admin_state_code(&allocator->state),
 			completion);
 		return;
 
@@ -1000,7 +1000,7 @@ static void do_resume_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 
-	prepare_vdo_completion_for_requeue(&allocator->completion,
+	vdo_prepare_completion_for_requeue(&allocator->completion,
 					   do_resume_step,
 					   handle_operation_error,
 					   allocator->thread_id,
@@ -1135,7 +1135,7 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 	scrub_vdo_slabs(allocator->slab_scrubber,
 			allocator->depot,
 			vdo_notify_zone_finished_scrubbing,
-			noop_vdo_completion_callback);
+			vdo_noop_completion_callback);
 	complete_vdo_completion(parent);
 }
 

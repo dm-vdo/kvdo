@@ -82,7 +82,7 @@ enum {
  *
  * @return <code>true</code> if the two versions are the same
  **/
-static inline bool are_same_vdo_version(struct version_number version_a,
+static inline bool vdo_are_same_version(struct version_number version_a,
 					struct version_number version_b)
 {
 	return ((version_a.major_version == version_b.major_version)
@@ -101,7 +101,7 @@ static inline bool are_same_vdo_version(struct version_number version_a,
  * @return <code>true</code> if the actual version is upgradable
  **/
 static inline bool
-is_upgradable_vdo_version(struct version_number expected_version,
+vdo_is_upgradable_version(struct version_number expected_version,
 			  struct version_number actual_version)
 {
 	return ((expected_version.major_version == actual_version.major_version)
@@ -137,7 +137,7 @@ int __must_check decode_vdo_version_number(struct buffer *buffer,
  * @return the platform-independent representation of the version
  **/
 static inline struct packed_version_number
-pack_vdo_version_number(struct version_number version)
+vdo_pack_version_number(struct version_number version)
 {
 	return (struct packed_version_number) {
 		.major_version = __cpu_to_le32(version.major_version),
@@ -153,7 +153,7 @@ pack_vdo_version_number(struct version_number version)
  * @return the platform-independent representation of the version
  **/
 static inline struct version_number
-unpack_vdo_version_number(struct packed_version_number version)
+unvdo_pack_version_number(struct packed_version_number version)
 {
 	return (struct version_number) {
 		.major_version = __le32_to_cpu(version.major_version),

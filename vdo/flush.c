@@ -140,7 +140,7 @@ int make_vdo_flusher(struct vdo *vdo)
 
 	vdo->flusher->vdo = vdo;
 	vdo->flusher->thread_id = vdo->thread_config->packer_thread;
-	set_vdo_admin_state_code(&vdo->flusher->state,
+	vdo_set_admin_state_code(&vdo->flusher->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	initialize_vdo_completion(&vdo->flusher->completion, vdo,
 				  VDO_FLUSH_NOTIFICATION_COMPLETION);
@@ -227,7 +227,7 @@ static void flush_packer_callback(struct vdo_completion *completion)
 	struct flusher *flusher = as_flusher(completion);
 
 	increment_vdo_packer_flush_generation(flusher->vdo->packer);
-	launch_vdo_completion_callback(completion, finish_notification,
+	vdo_launch_completion_callback(completion, finish_notification,
 				       flusher->thread_id);
 }
 
@@ -248,7 +248,7 @@ static void increment_generation(struct vdo_completion *completion)
 	flusher->logical_zone_to_notify =
 		get_next_vdo_logical_zone(flusher->logical_zone_to_notify);
 	if (flusher->logical_zone_to_notify == NULL) {
-		launch_vdo_completion_callback(completion,
+		vdo_launch_completion_callback(completion,
 					       flush_packer_callback,
 					       flusher->thread_id);
 		return;
@@ -256,7 +256,7 @@ static void increment_generation(struct vdo_completion *completion)
 
 	thread_id =
 		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
-	launch_vdo_completion_callback(completion,
+	vdo_launch_completion_callback(completion,
 				       increment_generation,
 				       thread_id);
 }
@@ -279,7 +279,7 @@ static void notify_flush(struct flusher *flusher)
 
 	thread_id =
 		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
-	launch_vdo_completion_callback(&flusher->completion,
+	vdo_launch_completion_callback(&flusher->completion,
 				       increment_generation,
 				       thread_id);
 }
@@ -298,7 +298,7 @@ static void flush_vdo(struct vdo_completion *completion)
 	int result;
 
 	assert_on_flusher_thread(flusher, __func__);
-	result = ASSERT(is_vdo_state_normal(&flusher->state),
+	result = ASSERT(vdo_is_state_normal(&flusher->state),
 			"flusher is in normal operation");
 	if (result != VDO_SUCCESS) {
 		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
@@ -330,7 +330,7 @@ static void flush_vdo(struct vdo_completion *completion)
  **/
 static void check_for_drain_complete(struct flusher *flusher)
 {
-	if (is_vdo_state_draining(&flusher->state)
+	if (vdo_is_state_draining(&flusher->state)
 	    && !has_waiters(&flusher->pending_flushes)
 	    && bio_list_empty(&flusher->waiting_flush_bios)) {
 		finish_vdo_draining(&flusher->state);
@@ -415,12 +415,12 @@ static void launch_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
 
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       flush_vdo,
 			       flush_vdo,
 			       completion->vdo->thread_config->packer_thread,
 			       NULL);
-	enqueue_vdo_completion_with_priority(completion,
+	vdo_enqueue_completion_with_priority(completion,
 					     VDO_REQ_Q_FLUSH_PRIORITY);
 }
 
@@ -442,7 +442,7 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 		= UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
 	const struct admin_state_code *code =
-		get_vdo_admin_state_code(&flusher->state);
+		vdo_get_admin_state_code(&flusher->state);
 
 	ASSERT_LOG_ONLY(!code->quiescent,
 			"Flushing not allowed in state %s",
@@ -597,12 +597,12 @@ static void vdo_complete_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
 
-	prepare_vdo_completion(completion,
+	vdo_prepare_completion(completion,
 			       vdo_complete_flush_callback,
 			       vdo_complete_flush_callback,
 			       select_bio_queue(completion->vdo->flusher),
 			       NULL);
-	enqueue_vdo_completion_with_priority(completion, BIO_Q_FLUSH_PRIORITY);
+	vdo_enqueue_completion_with_priority(completion, BIO_Q_FLUSH_PRIORITY);
 }
 
 /**
@@ -641,6 +641,6 @@ void drain_vdo_flusher(struct flusher *flusher,
 void resume_vdo_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);
-	finish_vdo_completion(parent,
+	vdo_finish_completion(parent,
 			      resume_vdo_if_quiescent(&flusher->state));
 }

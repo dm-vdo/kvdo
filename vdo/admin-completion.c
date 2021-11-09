@@ -150,7 +150,7 @@ static void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
 						 vdo_action *error_handler,
 						 thread_id_t thread_id)
 {
-	prepare_vdo_completion_for_requeue(&vdo->admin_completion.sub_task_completion,
+	vdo_prepare_completion_for_requeue(&vdo->admin_completion.sub_task_completion,
 					   callback,
 					   error_handler,
 					   thread_id,
@@ -224,7 +224,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 					      type);
 	}
 
-	prepare_vdo_completion(&admin_completion->completion,
+	vdo_prepare_completion(&admin_completion->completion,
 			       admin_operation_callback,
 			       admin_operation_callback,
 			       vdo->thread_config->admin_thread,
@@ -234,7 +234,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	admin_completion->phase = 0;
 	prepare_vdo_admin_sub_task(vdo, action, error_handler);
 	reinit_completion(&admin_completion->callback_sync);
-	enqueue_vdo_completion(&admin_completion->sub_task_completion);
+	vdo_enqueue_completion(&admin_completion->sub_task_completion);
 
 	/*
 	 * Using the "interruptible" interface means that Linux will not log a 

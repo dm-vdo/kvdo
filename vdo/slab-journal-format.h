@@ -134,7 +134,7 @@ struct packed_slab_journal_block {
  * @param origin       The first block of the slab
  **/
 static inline physical_block_number_t __must_check
-get_vdo_slab_journal_start_block(const struct slab_config *slab_config,
+vdo_get_slab_journal_start_block(const struct slab_config *slab_config,
 				 physical_block_number_t origin)
 {
 	return origin + slab_config->data_blocks
@@ -148,7 +148,7 @@ get_vdo_slab_journal_start_block(const struct slab_config *slab_config,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-pack_vdo_slab_journal_block_header(const struct slab_journal_block_header *header,
+vdo_pack_slab_journal_block_header(const struct slab_journal_block_header *header,
 				   struct packed_slab_journal_block_header *packed)
 {
 	packed->head = __cpu_to_le64(header->head);
@@ -158,7 +158,7 @@ pack_vdo_slab_journal_block_header(const struct slab_journal_block_header *heade
 	packed->metadata_type = header->metadata_type;
 	packed->has_block_map_increments = header->has_block_map_increments;
 
-	pack_vdo_journal_point(&header->recovery_point,
+	vdo_pack_journal_point(&header->recovery_point,
 			       &packed->recovery_point);
 }
 
@@ -170,7 +170,7 @@ pack_vdo_slab_journal_block_header(const struct slab_journal_block_header *heade
  * @return The decoded slab journal entry
  **/
 static inline struct slab_journal_entry __must_check
-unpack_vdo_slab_journal_entry(const packed_slab_journal_entry *packed)
+unvdo_pack_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;
 

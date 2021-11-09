@@ -275,7 +275,7 @@ bool are_vdo_ref_counts_active(struct ref_counts *ref_counts)
 	}
 
 	/* When not suspending or recovering, the ref_counts must be clean. */
-	code = get_vdo_admin_state_code(&ref_counts->slab->state);
+	code = vdo_get_admin_state_code(&ref_counts->slab->state);
 	return (has_waiters(&ref_counts->dirty_blocks) &&
 		(code != VDO_ADMIN_STATE_SUSPENDING) &&
 		(code != VDO_ADMIN_STATE_RECOVERING));
@@ -633,7 +633,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
 	enum reference_status old_status =
 		vdo_reference_count_to_status(*counter_ptr);
-	struct pbn_lock *lock = get_vdo_reference_operation_pbn_lock(operation);
+	struct pbn_lock *lock = vdo_get_reference_operation_pbn_lock(operation);
 	int result;
 
 	switch (operation.type) {
@@ -685,7 +685,7 @@ update_reference_count(struct ref_counts *ref_counts,
 		return result;
 	}
 
-	if (is_valid_vdo_journal_point(slab_journal_point)) {
+	if (vdo_is_valid_journal_point(slab_journal_point)) {
 		ref_counts->slab_journal_point = *slab_journal_point;
 	}
 
@@ -747,7 +747,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 		 * release the per-entry slab journal lock for the entry
 		 * associated with the update we are now doing.
 		 */
-		result = ASSERT(is_valid_vdo_journal_point(slab_journal_point),
+		result = ASSERT(vdo_is_valid_journal_point(slab_journal_point),
 				"Reference count adjustments need slab journal points.");
 		if (result != VDO_SUCCESS) {
 			return result;
@@ -765,7 +765,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 	 * cleaned. Therefore, we convert the per-entry slab journal lock to an
 	 * uncommitted reference block lock, if there is a per-entry lock.
 	 */
-	if (is_valid_vdo_journal_point(slab_journal_point)) {
+	if (vdo_is_valid_journal_point(slab_journal_point)) {
 		block->slab_journal_lock = slab_journal_point->sequence_number;
 	} else {
 		block->slab_journal_lock = 0;
@@ -838,7 +838,7 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 		COUNTS_PER_SECTOR;
 	struct reference_operation operation = { .type = entry.operation };
 
-	if (!before_vdo_journal_point(&block->commit_points[sector], entry_point)) {
+	if (!vdo_before_journal_point(&block->commit_points[sector], entry_point)) {
 		/*
 		 * This entry is already reflected in the existing counts, so 
 		 * do nothing. 
@@ -1280,7 +1280,7 @@ vdo_pack_reference_block(struct reference_block *block, void *buffer)
 	sector_count_t i;
 	struct packed_journal_point commit_point;
 
-	pack_vdo_journal_point(&block->ref_counts->slab_journal_point,
+	vdo_pack_journal_point(&block->ref_counts->slab_journal_point,
 			       &commit_point);
 
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
@@ -1473,7 +1473,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
 
-		unpack_vdo_journal_point(&sector->commit_point,
+		unvdo_pack_journal_point(&sector->commit_point,
 					 &block->commit_points[i]);
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
 		       sector->counts,
@@ -1482,14 +1482,14 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		 * The slab_journal_point must be the latest point found in any 
 		 * sector. 
 		 */
-		if (before_vdo_journal_point(&ref_counts->slab_journal_point,
+		if (vdo_before_journal_point(&ref_counts->slab_journal_point,
 					     &block->commit_points[i])) {
 			ref_counts->slab_journal_point =
 				block->commit_points[i];
 		}
 
 		if ((i > 0) &&
-		    !are_equivalent_vdo_journal_points(&block->commit_points[0],
+		    !vdo_are_equivalent_journal_points(&block->commit_points[0],
 						       &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
 
@@ -1592,7 +1592,7 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 	struct vdo_slab *slab = ref_counts->slab;
 	bool save = false;
 	const struct admin_state_code *state
-		= get_vdo_admin_state_code(&slab->state);
+		= vdo_get_admin_state_code(&slab->state);
 
 	if ((state == VDO_ADMIN_STATE_RECOVERING)
 	    || (state == VDO_ADMIN_STATE_SUSPENDING)) {
@@ -1622,7 +1622,7 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 			save = true;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVING) {
-		save = !is_unrecovered_vdo_slab(slab);
+		save = !vdo_is_unrecovered_slab(slab);
 	} else {
 		notify_vdo_slab_ref_counts_are_drained(slab, VDO_SUCCESS);
 		return;

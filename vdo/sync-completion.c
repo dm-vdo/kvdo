@@ -86,7 +86,7 @@ int perform_synchronous_vdo_action(struct vdo *vdo,
 	initialize_vdo_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
 	init_completion(&sync.completion);
 	sync.action = action;
-	launch_vdo_completion_callback_with_parent(&sync.vdo_completion,
+	vdo_launch_completion_callback_with_parent(&sync.vdo_completion,
 						   run_synchronous_action,
 						   thread_id,
 						   parent);
