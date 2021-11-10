@@ -44,61 +44,47 @@ enum {
 };
 
 /**
- * Create a physical zone.
+ * Initialize a physical zone.
  *
- * @param [in]  vdo          The vdo to which the zone will belong
- * @param [in]  zone_number  The number of the zone to create
- * @param [out] zone_ptr     A pointer to hold the new physical_zone
+ * @param vdo          The vdo to which the zone will belong
+ * @param zone_number  The number of the zone to create
+ * @param zone         The zone to initialize
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_vdo_physical_zone(struct vdo *vdo,
-			   zone_count_t zone_number,
-			   struct physical_zone **zone_ptr)
+int vdo_initialize_physical_zone(struct vdo *vdo,
+				 zone_count_t zone_number,
+				 struct physical_zone *zone)
 {
-	struct physical_zone *zone;
-	int result = UDS_ALLOCATE(1, struct physical_zone, __func__, &zone);
-
+	int result = make_int_map(VDO_LOCK_MAP_CAPACITY,
+				  0,
+				  &zone->pbn_operations);
 	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
-	if (result != VDO_SUCCESS) {
-		free_vdo_physical_zone(zone);
 		return result;
 	}
 
 	result = make_vdo_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
-		free_vdo_physical_zone(zone);
 		return result;
 	}
 
 	zone->zone_number = zone_number;
-	zone->thread_id =
-		vdo_get_physical_zone_thread(vdo->thread_config, zone_number);
-	zone->allocator =
-		vdo_get_block_allocator_for_zone(vdo->depot, zone_number);
-
-	*zone_ptr = zone;
+	zone->thread_id = vdo->thread_config->physical_threads[zone_number];
+	zone->allocator = vdo->depot->allocators[zone_number];
+	zone->next = &vdo->physical_zones[(zone_number + 1) %
+					  vdo->thread_config->physical_zone_count];
 	return VDO_SUCCESS;
 }
 
 /**
- * Free a physical zone.
+ * Destroy a physical zone.
  *
- * @param zone  The zone to free
+ * @param zone  The zone to destroy
  **/
-void free_vdo_physical_zone(struct physical_zone *zone)
+void vdo_destroy_physical_zone(struct physical_zone *zone)
 {
-	if (zone == NULL) {
-		return;
-	}
-
 	free_vdo_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
 	free_int_map(UDS_FORGET(zone->pbn_operations));
-	UDS_FREE(zone);
 }
 
 /**

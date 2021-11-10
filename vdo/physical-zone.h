@@ -35,13 +35,15 @@ struct physical_zone {
 	struct pbn_lock_pool *lock_pool;
 	/** The block allocator for this zone */
 	struct block_allocator *allocator;
+	/** The next zone from which to attempt an allocation */
+	struct physical_zone *next;
 };
 
-int __must_check make_vdo_physical_zone(struct vdo *vdo,
-					zone_count_t zone_number,
-					struct physical_zone **zone_ptr);
+int __must_check vdo_initialize_physical_zone(struct vdo *vdo,
+					      zone_count_t zone_number,
+					      struct physical_zone *zone);
 
-void free_vdo_physical_zone(struct physical_zone *zone);
+void vdo_destroy_physical_zone(struct physical_zone *zone);
 
 struct pbn_lock * __must_check
 get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,

@@ -113,7 +113,7 @@ struct vdo {
 	struct logical_zones *logical_zones;
 
 	/* The physical zones of this vdo */
-	struct physical_zone **physical_zones;
+	struct physical_zone *physical_zones;
 
 	/* The hash lock zones of this vdo */
 	struct hash_zone **hash_zones;
@@ -137,8 +137,8 @@ struct vdo {
 	atomic_t processing_message;
 
 	/*
-	 * Statistics 
-	 * Atomic stats counters 
+	 * Statistics
+	 * Atomic stats counters
 	 */
 	struct atomic_statistics stats;
 	/* Used to gather statistics without allocating memory */

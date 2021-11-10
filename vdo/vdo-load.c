@@ -404,16 +404,16 @@ int load_vdo(struct vdo *vdo)
 
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
 		/*
-		 * Even if the VDO is read-only, it is now able to handle 
-		 * (read) requests. 
+		 * Even if the VDO is read-only, it is now able to handle
+		 * (read) requests.
 		 */
 		uds_log_info("device '%s' started", device_name);
 		return VDO_SUCCESS;
 	}
 
 	/*
-	 * Something has gone very wrong. Make sure everything has drained and 
-	 * leave the device in an unresumable state. 
+	 * Something has gone very wrong. Make sure everything has drained and
+	 * leave the device in an unresumable state.
 	 */
 	uds_log_error_strerror(result,
 			       "Start failed, could not load VDO metadata");
@@ -579,7 +579,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	}
 
 	result = UDS_ALLOCATE(thread_config->physical_zone_count,
-			      struct physical_zone *,
+			      struct physical_zone,
 			      __func__,
 			      &vdo->physical_zones);
 	if (result != VDO_SUCCESS) {
@@ -587,8 +587,9 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-		result = make_vdo_physical_zone(vdo, zone,
-						&vdo->physical_zones[zone]);
+		result = vdo_initialize_physical_zone(vdo,
+						      zone,
+						      &vdo->physical_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

@@ -182,30 +182,6 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Try the next zone since we didn't find a free block in the current one.
- *
- * @param allocating_vio  The allocating_vio
- **/
-static void try_next_zone(struct allocating_vio *allocating_vio)
-{
-	zone_count_t zone_number;
-	struct vdo *vdo = vdo_get_from_allocating_vio(allocating_vio);
-
-	if (!should_try_next_zone(allocating_vio)) {
-		return;
-	}
-
-	zone_number = allocating_vio->zone->zone_number + 1;
-	if (zone_number == vdo->thread_config->physical_zone_count) {
-		zone_number = 0;
-	}
-
-	allocating_vio->zone = vdo->physical_zones[zone_number];
-	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_in_zone);
-}
-
-/**
  * Attempt to allocate a block. This callback is registered in
  * vio_allocate_data_block() and from itself.
  *
@@ -221,16 +197,20 @@ static void allocate_block_in_zone(struct vdo_completion *completion)
 
 	allocating_vio->allocation_attempts++;
 	result = allocate_vdo_block(allocator, &allocating_vio->allocation);
-	if (result == VDO_NO_SPACE) {
-		try_next_zone(allocating_vio);
-		return;
-	}
-
 	if (result == VDO_SUCCESS) {
 		result = attempt_pbn_write_lock(allocating_vio);
 	}
 
-	finish_allocation(allocating_vio, result);
+	if (result != VDO_NO_SPACE) {
+		finish_allocation(allocating_vio, result);
+		return;
+	}
+
+	if (should_try_next_zone(allocating_vio)) {
+		allocating_vio->zone = allocating_vio->zone->next;
+		vio_launch_physical_zone_callback(allocating_vio,
+						  allocate_block_in_zone);
+	}
 }
 
 /**
@@ -255,7 +235,7 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
 	allocating_vio->zone =
-		vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
+		&vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
 
 	vio_launch_physical_zone_callback(allocating_vio,
 					  allocate_block_in_zone);

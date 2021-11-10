@@ -398,6 +398,7 @@ static void finish_vdo(struct vdo *vdo)
 void destroy_vdo(struct vdo *vdo)
 {
 	int i;
+	zone_count_t zone;
 	const struct thread_config *thread_config;
 
 	if (vdo == NULL) {
@@ -411,8 +412,8 @@ void destroy_vdo(struct vdo *vdo)
 	vdo->allocations_allowed = true;
 
 	/*
-	 * Stop services that need to gather VDO statistics from the worker 
-	 * threads. 
+	 * Stop services that need to gather VDO statistics from the worker
+	 * threads.
 	 */
 	if (vdo->sysfs_added) {
 		init_completion(&vdo->stats_shutdown);
@@ -433,8 +434,6 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_block_map(UDS_FORGET(vdo->block_map));
 
 	if (vdo->hash_zones != NULL) {
-		zone_count_t zone;
-
 		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 			free_vdo_hash_zone(UDS_FORGET(vdo->hash_zones[zone]));
 		}
@@ -445,15 +444,15 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_logical_zones(UDS_FORGET(vdo->logical_zones));
 
 	if (vdo->physical_zones != NULL) {
-		zone_count_t zone;
-
-		for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-			free_vdo_physical_zone(UDS_FORGET(vdo->physical_zones[zone]));
+		for (zone = 0;
+		     zone < thread_config->physical_zone_count;
+		     zone++) {
+			vdo_destroy_physical_zone(&vdo->physical_zones[zone]);
 		}
+
+		UDS_FREE(UDS_FORGET(vdo->physical_zones));
 	}
 
-	UDS_FREE(vdo->physical_zones);
-	vdo->physical_zones = NULL;
 	free_vdo_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 
 	if (vdo->threads != NULL) {
@@ -810,8 +809,8 @@ static void set_compression_callback(struct vdo_completion *completion)
 		WRITE_ONCE(vdo->compressing, *enable);
 		if (was_enabled) {
 			/*
-			 * Signal the packer to flush since compression has 
-			 * been disabled. 
+			 * Signal the packer to flush since compression has
+			 * been disabled.
 			 */
 			flush_vdo_packer(vdo->packer);
 		}
@@ -959,8 +958,8 @@ static block_count_t __must_check
 get_vdo_physical_blocks_overhead(const struct vdo *vdo)
 {
 	/*
-	 * XXX config.physical_blocks is actually mutated during resize and is in 
-	 * a packed structure, but resize runs on admin thread so we're usually 
+	 * XXX config.physical_blocks is actually mutated during resize and is in
+	 * a packed structure, but resize runs on admin thread so we're usually
 	 * OK.
 	 */
 	return (vdo->states.vdo.config.physical_blocks -
@@ -986,15 +985,15 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	memset(stats, 0, sizeof(struct vdo_statistics));
 
 	/*
-	 * These are immutable properties of the vdo object, so it is safe to 
-	 * query them from any thread. 
+	 * These are immutable properties of the vdo object, so it is safe to
+	 * query them from any thread.
 	 */
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
 	/*
-	 * XXX config.physical_blocks is actually mutated during resize and is 
-	 * in a packed structure, but resize runs on the admin thread so we're 
+	 * XXX config.physical_blocks is actually mutated during resize and is
+	 * in a packed structure, but resize runs on the admin thread so we're
 	 * usually OK.
 	 */
 	stats->physical_blocks = vdo->states.vdo.config.physical_blocks;
@@ -1028,8 +1027,8 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->max_vios = READ_ONCE(vdo->request_limiter.maximum);
 
 	/*
-	 * get_vdo_dedupe_index_timeout_count() gives the number of timeouts, 
-	 * and dedupe_context_busy gives the number of queries not made because 
+	 * get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
+	 * and dedupe_context_busy gives the number of queries not made because
 	 * of earlier timeouts.
 	 */
 	stats->dedupe_advice_timeouts =
@@ -1138,7 +1137,7 @@ void dump_vdo_status(const struct vdo *vdo)
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-		dump_vdo_physical_zone(vdo->physical_zones[zone]);
+		dump_vdo_physical_zone(&vdo->physical_zones[zone]);
 	}
 
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
@@ -1214,8 +1213,8 @@ struct hash_zone *select_vdo_hash_zone(const struct vdo *vdo,
 	 * Eight bits of hash should suffice since the number of hash zones is
 	 * small.
 	 *
-	 * XXX Make a central repository for these offsets ala hashUtils. 
-	 * XXX Verify that the first byte is independent enough. 
+	 * XXX Make a central repository for these offsets ala hashUtils.
+	 * XXX Verify that the first byte is independent enough.
 	 */
 	uint32_t hash = name->name[0];
 
@@ -1258,8 +1257,8 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 	}
 
 	/*
-	 * Used because it does a more restrictive bounds check than 
-	 * get_vdo_slab(), and done first because it won't trigger read-only 
+	 * Used because it does a more restrictive bounds check than
+	 * get_vdo_slab(), and done first because it won't trigger read-only
 	 * mode on an invalid PBN.
 	 */
 	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
@@ -1267,8 +1266,8 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 	}
 
 	/*
-	 * With the PBN already checked, we should always succeed in finding a 
-	 * slab. 
+	 * With the PBN already checked, we should always succeed in finding a
+	 * slab.
 	 */
 	slab = get_vdo_slab(vdo->depot, pbn);
 	result =
@@ -1277,7 +1276,7 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 		return result;
 	}
 
-	*zone_ptr = vdo->physical_zones[get_vdo_slab_zone_number(slab)];
+	*zone_ptr = &vdo->physical_zones[get_vdo_slab_zone_number(slab)];
 	return VDO_SUCCESS;
 }
 
