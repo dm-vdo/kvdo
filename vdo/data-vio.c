@@ -179,14 +179,14 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 				logical_block_number_t lbn)
 {
 	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
+	zone_count_t zone_number;
 	struct lbn_lock *lock = &data_vio->logical;
 
 	lock->lbn = lbn;
 	lock->locked = false;
 	initialize_wait_queue(&lock->waiters);
-
-	lock->zone = get_vdo_logical_zone(vdo->logical_zones,
-					  vdo_compute_logical_zone(data_vio));
+	zone_number = vdo_compute_logical_zone(data_vio);
+	lock->zone = &vdo->logical_zones->zones[zone_number];
 }
 
 void attempt_logical_block_lock(struct vdo_completion *completion);
@@ -210,8 +210,8 @@ void prepare_data_vio(struct data_vio *data_vio,
 	struct vio *vio = data_vio_as_vio(data_vio);
 
 	/*
-	 * Clearing the tree lock must happen before initializing the LBN lock, 
-	 * which also adds information to the tree lock. 
+	 * Clearing the tree lock must happen before initializing the LBN lock,
+	 * which also adds information to the tree lock.
 	 */
 	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
 	initialize_lbn_lock(data_vio, lbn);
@@ -422,8 +422,10 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
-			     lock->lbn, data_vio, false,
+	result = int_map_put(lock->zone->lbn_operations,
+			     lock->lbn,
+			     data_vio,
+			     false,
 			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
@@ -476,8 +478,8 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	}
 
 	/*
-	 * Prevent writes and read-modify-writes from blocking indefinitely on 
-	 * lock holders in the packer. 
+	 * Prevent writes and read-modify-writes from blocking indefinitely on
+	 * lock holders in the packer.
 	 */
 	if (!is_read_data_vio(lock_holder) &&
 	    cancel_vio_compression(lock_holder)) {
@@ -495,14 +497,13 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 static void release_lock(struct data_vio *data_vio)
 {
 	struct lbn_lock *lock = &data_vio->logical;
-	struct int_map *lock_map =
-		get_vdo_logical_zone_lbn_lock_map(lock->zone);
+	struct int_map *lock_map = lock->zone->lbn_operations;
 	struct data_vio *lock_holder;
 
 	if (!lock->locked) {
 		/*
-		 * The lock is not locked, so it had better not be registered 
-		 * in the lock map. 
+		 * The lock is not locked, so it had better not be registered
+		 * in the lock map.
 		 */
 		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
 
@@ -541,8 +542,8 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
 
 	/*
-	 * Another data_vio is waiting for the lock, so just transfer it in a 
-	 * single lock map operation 
+	 * Another data_vio is waiting for the lock, so just transfer it in a
+	 * single lock map operation
 	 */
 	next_lock_holder =
 		waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
@@ -551,8 +552,10 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 	transfer_all_waiters(&lock->waiters,
 			     &next_lock_holder->logical.waiters);
 
-	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
-			     lock->lbn, next_lock_holder, true,
+	result = int_map_put(lock->zone->lbn_operations,
+			     lock->lbn,
+			     next_lock_holder,
+			     true,
 			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(next_lock_holder, result);
@@ -574,8 +577,8 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 	}
 
 	/*
-	 * Avoid stack overflow on lock transfer. 
-	 * XXX: this is only an issue in the 1 thread config. 
+	 * Avoid stack overflow on lock transfer.
+	 * XXX: this is only an issue in the 1 thread config.
 	 */
 	data_vio_as_completion(next_lock_holder)->requeue = true;
 	launch_locked_request(next_lock_holder);
@@ -628,15 +631,15 @@ void compress_data_vio(struct data_vio *data_vio)
 				    context);
 	if (size > 0) {
 		/*
-		 * The scratch block will be used to contain the compressed 
-		 * data. 
+		 * The scratch block will be used to contain the compressed
+		 * data.
 		 */
 		data_vio->compression.data = data_vio->scratch_block;
 		data_vio->compression.size = size;
 	} else {
 		/*
-		 * Use block size plus one as an indicator for uncompressible 
-		 * data. 
+		 * Use block size plus one as an indicator for uncompressible
+		 * data.
 		 */
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 	}

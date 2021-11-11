@@ -24,8 +24,52 @@
 #include "int-map.h"
 #include "types.h"
 
-struct logical_zone * __must_check
-get_vdo_logical_zone(struct logical_zones *zones, zone_count_t zone_number);
+struct logical_zone {
+	/** The completion for flush notifications */
+	struct vdo_completion completion;
+	/** The owner of this zone */
+	struct logical_zones *zones;
+	/** Which logical zone this is */
+	zone_count_t zone_number;
+	/** The thread id for this zone */
+	thread_id_t thread_id;
+	/** In progress operations keyed by LBN */
+	struct int_map *lbn_operations;
+	/** The logical to physical map */
+	struct block_map_zone *block_map_zone;
+	/** The current flush generation */
+	sequence_number_t flush_generation;
+	/**
+	 * The oldest active generation in this zone. This is mutated only on
+	 * the logical zone thread but is queried from the flusher thread.
+	 **/
+	sequence_number_t oldest_active_generation;
+	/** The number of IOs in the current flush generation */
+	block_count_t ios_in_flush_generation;
+	/** The youngest generation of the current notification */
+	sequence_number_t notification_generation;
+	/** Whether a notification is in progress */
+	bool notifying;
+	/** The queue of active data write VIOs */
+	struct list_head write_vios;
+	/** The administrative state of the zone */
+	struct admin_state state;
+	/** The selector for determining which physical zone to allocate from */
+	struct allocation_selector *selector;
+	/** The next zone */
+	struct logical_zone *next;
+};
+
+struct logical_zones {
+	/** The vdo whose zones these are */
+	struct vdo *vdo;
+	/** The manager for administrative actions */
+	struct action_manager *manager;
+	/** The number of zones */
+	zone_count_t zone_count;
+	/** The logical zones themselves */
+	struct logical_zone zones[];
+};
 
 int __must_check
 make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
@@ -39,31 +83,13 @@ void drain_vdo_logical_zones(struct logical_zones *zones,
 void resume_vdo_logical_zones(struct logical_zones *zones,
 			      struct vdo_completion *parent);
 
-thread_id_t __must_check
-get_vdo_logical_zone_thread_id(const struct logical_zone *zone);
-
-struct block_map_zone * __must_check
-get_vdo_logical_zone_block_map(const struct logical_zone *zone);
-
-struct int_map * __must_check
-get_vdo_logical_zone_lbn_lock_map(const struct logical_zone *zone);
-
-struct logical_zone * __must_check
-get_next_vdo_logical_zone(const struct logical_zone *zone);
-
 void
 increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
 					    sequence_number_t expected_generation);
 
-sequence_number_t __must_check
-get_vdo_logical_zone_oldest_locked_generation(const struct logical_zone *zone);
-
 int __must_check acquire_vdo_flush_generation_lock(struct data_vio *data_vio);
 
 void release_vdo_flush_generation_lock(struct data_vio *data_vio);
-
-struct allocation_selector * __must_check
-get_vdo_logical_zone_allocation_selector(struct logical_zone *zone);
 
 void dump_vdo_logical_zone(const struct logical_zone *zone);
 

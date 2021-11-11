@@ -664,8 +664,7 @@ launch_data_vio_hash_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		get_vdo_logical_zone_thread_id(data_vio->logical.zone);
+	thread_id_t expected = data_vio->logical.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((expected == thread_id),
@@ -688,7 +687,7 @@ set_data_vio_logical_callback(struct data_vio *data_vio,
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_vdo_logical_zone_thread_id(data_vio->logical.zone));
+				    data_vio->logical.zone->thread_id);
 }
 
 /**

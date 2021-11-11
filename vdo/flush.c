@@ -240,25 +240,22 @@ static void flush_packer_callback(struct vdo_completion *completion)
  **/
 static void increment_generation(struct vdo_completion *completion)
 {
-	thread_id_t thread_id;
 	struct flusher *flusher = as_flusher(completion);
+	struct logical_zone *zone = flusher->logical_zone_to_notify;
 
-	increment_vdo_logical_zone_flush_generation(flusher->logical_zone_to_notify,
+	increment_vdo_logical_zone_flush_generation(zone,
 						    flusher->notify_generation);
-	flusher->logical_zone_to_notify =
-		get_next_vdo_logical_zone(flusher->logical_zone_to_notify);
-	if (flusher->logical_zone_to_notify == NULL) {
+	if (zone->next == NULL) {
 		vdo_launch_completion_callback(completion,
 					       flush_packer_callback,
 					       flusher->thread_id);
 		return;
 	}
 
-	thread_id =
-		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
+	flusher->logical_zone_to_notify = zone->next;
 	vdo_launch_completion_callback(completion,
 				       increment_generation,
-				       thread_id);
+				       flusher->logical_zone_to_notify->thread_id);
 }
 
 /**
@@ -268,20 +265,16 @@ static void increment_generation(struct vdo_completion *completion)
  **/
 static void notify_flush(struct flusher *flusher)
 {
-	thread_id_t thread_id;
 	struct vdo_flush *flush =
 		waiter_as_flush(get_first_waiter(&flusher->notifiers));
 
 	flusher->notify_generation = flush->flush_generation;
-	flusher->logical_zone_to_notify =
-		get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
+	flusher->logical_zone_to_notify
+		= &flusher->vdo->logical_zones->zones[0];
 	flusher->completion.requeue = true;
-
-	thread_id =
-		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
 	vdo_launch_completion_callback(&flusher->completion,
 				       increment_generation,
-				       thread_id);
+				       flusher->logical_zone_to_notify->thread_id);
 }
 
 /**
@@ -349,12 +342,12 @@ void complete_vdo_flushes(struct flusher *flusher)
 
 	assert_on_flusher_thread(flusher, __func__);
 
-	for (zone = get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
-	     zone != NULL; zone = get_next_vdo_logical_zone(zone)) {
-		sequence_number_t oldest_in_zone =
-			get_vdo_logical_zone_oldest_locked_generation(zone);
+	for (zone = &flusher->vdo->logical_zones->zones[0];
+	     zone != NULL;
+	     zone = zone->next) {
 		oldest_active_generation =
-			min(oldest_active_generation, oldest_in_zone);
+			min(oldest_active_generation,
+			    READ_ONCE(zone->oldest_active_generation));
 	}
 
 	while (has_waiters(&flusher->pending_flushes)) {
@@ -435,8 +428,8 @@ static void launch_flush(struct vdo_flush *flush)
 void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 {
 	/*
-	 * Try to allocate a vdo_flush to represent the flush request. If the 
-	 * allocation fails, we'll deal with it later. 
+	 * Try to allocate a vdo_flush to represent the flush request. If the
+	 * allocation fails, we'll deal with it later.
 	 */
 	struct vdo_flush *flush
 		= UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
@@ -455,13 +448,13 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 
 	if (flush == NULL) {
 		/*
-		 * The vdo_flush allocation failed. Try to use the spare 
-		 * vdo_flush structure. 
+		 * The vdo_flush allocation failed. Try to use the spare
+		 * vdo_flush structure.
 		 */
 		if (flusher->spare_flush == NULL) {
 			/*
-			 * The spare is already in use. This bio is on 
-			 * waiting_flush_bios and it will be handled by a flush 
+			 * The spare is already in use. This bio is on
+			 * waiting_flush_bios and it will be handled by a flush
 			 * completion or by a bio that can allocate.
 			 */
 			spin_unlock(&flusher->lock);
@@ -501,8 +494,8 @@ static void release_flush(struct vdo_flush *flush)
 		/* Nothing needs to be started.  Save one spare flush request. */
 		if (flusher->spare_flush == NULL) {
 			/*
-			 * Make the new spare all zero, just like a newly 
-			 * allocated one. 
+			 * Make the new spare all zero, just like a newly
+			 * allocated one.
 			 */
 			memset(flush, 0, sizeof(*flush));
 			flusher->spare_flush = flush;
@@ -540,8 +533,8 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 
 	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
 		/*
-		 * We're not acknowledging this bio now, but we'll never touch 
-		 * it again, so this is the last chance to account for it. 
+		 * We're not acknowledging this bio now, but we'll never touch
+		 * it again, so this is the last chance to account for it.
 		 */
 		vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 
@@ -553,8 +546,8 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 
 
 	/*
-	 * Release the flush structure, freeing it, re-using it as the spare, 
-	 * or using it to launch any flushes that had to wait when allocations 
+	 * Release the flush structure, freeing it, re-using it as the spare,
+	 * or using it to launch any flushes that had to wait when allocations
 	 * failed.
 	 */
 	release_flush(flush);

@@ -1132,8 +1132,7 @@ void dump_vdo_status(const struct vdo *vdo)
 	dump_vdo_slab_depot(vdo->depot);
 
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
-		dump_vdo_logical_zone(get_vdo_logical_zone(vdo->logical_zones,
-							   zone));
+		dump_vdo_logical_zone(&vdo->logical_zones->zones[zone]);
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {

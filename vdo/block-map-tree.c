@@ -179,7 +179,7 @@ void vdo_set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
 static inline struct block_map_tree_zone * __must_check
 get_block_map_tree_zone(struct data_vio *data_vio)
 {
-	return &(get_vdo_logical_zone_block_map(data_vio->logical.zone)->tree_zone);
+	return &(data_vio->logical.zone->block_map_zone->tree_zone);
 }
 
 /**
@@ -260,8 +260,8 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 	vdo_enter_read_only_mode(zone->map_zone->read_only_notifier, result);
 
 	/*
-	 * We are in read-only mode, so we won't ever write any page out. Just 
-	 * take all waiters off the queue so the tree zone can be closed. 
+	 * We are in read-only mode, so we won't ever write any page out. Just
+	 * take all waiters off the queue so the tree zone can be closed.
 	 */
 	while (has_waiters(&zone->flush_waiters)) {
 		dequeue_next_waiter(&zone->flush_waiters);
@@ -591,8 +591,8 @@ static void write_page(struct tree_page *tree_page,
 	if ((zone->flusher != tree_page) &&
 	    (is_not_older(zone, tree_page->generation, zone->generation))) {
 		/*
-		 * This page was re-dirtied after the last flush was issued, 
-		 * hence we need to do another flush. 
+		 * This page was re-dirtied after the last flush was issued,
+		 * hence we need to do another flush.
 		 */
 		enqueue_page(tree_page, zone);
 		return_to_pool(zone, entry);
@@ -950,7 +950,7 @@ static void load_page(struct waiter *waiter, void *context)
 
 	entry->parent = data_vio;
 	entry->vio->completion.callback_thread_id =
-		get_vdo_logical_zone_block_map(data_vio->logical.zone)->thread_id;
+		data_vio->logical.zone->thread_id;
 
 	launch_read_metadata_vio(entry->vio,
 				 lock->tree_slots[lock->height - 1].block_map_slot.pbn,
@@ -1134,8 +1134,8 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 		/* This page is waiting to be written out. */
 		if (zone->flusher != tree_page) {
 			/*
-			 * The outstanding flush won't cover the update we just 
-			 * made, so mark the page as needing another flush. 
+			 * The outstanding flush won't cover the update we just
+			 * made, so mark the page as needing another flush.
 			 */
 			set_generation(zone, tree_page, zone->generation, true);
 		}
@@ -1291,8 +1291,8 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 
 	if (!is_write_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
 		/*
-		 * This is a pure read, the read phase of a read-modify-write, 
-		 * or a trim, so there's nothing left to do here. 
+		 * This is a pure read, the read phase of a read-modify-write,
+		 * or a trim, so there's nothing left to do here.
 		 */
 		finish_lookup(data_vio, VDO_SUCCESS);
 		return;
@@ -1309,7 +1309,7 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 	}
 
 	vio_allocate_data_block(data_vio_as_allocating_vio(data_vio),
-				get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
+				data_vio->logical.zone->selector,
 				VIO_BLOCK_MAP_WRITE_LOCK,
 				continue_block_map_page_allocation);
 }
@@ -1383,8 +1383,8 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 
 	if (!vdo_is_mapped_location(&mapping)) {
 		/*
-		 * The page we want one level down has not been allocated, so 
-		 * allocate it. 
+		 * The page we want one level down has not been allocated, so
+		 * allocate it.
 		 */
 		allocate_block_map_page(zone, data_vio);
 		return;

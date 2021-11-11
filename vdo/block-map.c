@@ -380,8 +380,8 @@ struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
 	struct block_map_state_2_0 state = {
 		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 		/*
-		 * This is the flat page count, which has turned out to always 
-		 * be 0. 
+		 * This is the flat page count, which has turned out to always
+		 * be 0.
 		 */
 		.flat_page_count = 0,
 		.root_origin = map->root_origin,
@@ -703,8 +703,7 @@ static void
 setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 		   vdo_action *action)
 {
-	struct block_map_zone *zone =
-		get_vdo_logical_zone_block_map(data_vio->logical.zone);
+	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 	if (vdo_is_state_draining(&zone->state)) {
 		finish_data_vio(data_vio, VDO_SHUTTING_DOWN);
 		return;
@@ -752,8 +751,8 @@ set_mapped_entry(struct data_vio *data_vio,
 	}
 
 	/*
-	 * Log the corruption even if we wind up ignoring it for write VIOs, 
-	 * converting all cases to VDO_BAD_MAPPING. 
+	 * Log the corruption even if we wind up ignoring it for write VIOs,
+	 * converting all cases to VDO_BAD_MAPPING.
 	 */
 	uds_log_error_strerror(VDO_BAD_MAPPING,
 			       "PBN %llu with state %u read from the block map was invalid",
@@ -761,16 +760,16 @@ set_mapped_entry(struct data_vio *data_vio,
 			       mapped.state);
 
 	/*
-	 * A read VIO has no option but to report the bad mapping--reading 
-	 * zeros would be hiding known data loss. 
+	 * A read VIO has no option but to report the bad mapping--reading
+	 * zeros would be hiding known data loss.
 	 */
 	if (is_read_data_vio(data_vio)) {
 		return VDO_BAD_MAPPING;
 	}
 
 	/*
-	 * A write VIO only reads this mapping to decref the old block. Treat 
-	 * this as an unmapped entry rather than fail the write. 
+	 * A write VIO only reads this mapping to decref the old block. Treat
+	 * this as an unmapped entry rather than fail the write.
 	 */
 	clear_data_vio_mapped_location(data_vio);
 	return VDO_SUCCESS;
@@ -823,8 +822,7 @@ void update_vdo_block_map_page(struct block_map_page *page,
 			       enum block_mapping_state mapping_state,
 			       sequence_number_t *recovery_lock)
 {
-	struct block_map_zone *zone =
-		get_vdo_logical_zone_block_map(data_vio->logical.zone);
+	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 	struct block_map *block_map = zone->block_map;
 	struct recovery_journal *journal = block_map->journal;
 	sequence_number_t old_locked, new_locked;
@@ -909,8 +907,8 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
 	    VDO_ZERO_BLOCK) {
 		/*
-		 * We know that the block map page for this LBN has not been 
-		 * allocated, so the block must be unmapped. 
+		 * We know that the block map page for this LBN has not been
+		 * allocated, so the block must be unmapped.
 		 */
 		clear_data_vio_mapped_location(data_vio);
 		continue_data_vio(data_vio, VDO_SUCCESS);
