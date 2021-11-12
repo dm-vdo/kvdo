@@ -48,9 +48,10 @@ void free_vdo_fixed_layout(struct fixed_layout *layout);
 block_count_t __must_check
 get_total_vdo_fixed_layout_size(const struct fixed_layout *layout);
 
-int __must_check vdo_get_partition(struct fixed_layout *layout,
-				   enum partition_id id,
-				   struct partition **partition_ptr);
+int __must_check
+vdo_get_fixed_layout_partition(struct fixed_layout *layout,
+			       enum partition_id id,
+			       struct partition **partition_ptr);
 
 int __must_check
 vdo_translate_to_pbn(const struct partition *partition,

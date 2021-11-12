@@ -886,24 +886,6 @@ struct slab_summary *get_vdo_slab_summary(const struct slab_depot *depot)
 }
 
 /**
- * Get the portion of the slab summary for a given physical zone.
- *
- * @param depot  The slab depot
- * @param zone   The zone
- *
- * @return The portion of the slab summary for the specified zone
- **/
-struct slab_summary_zone *
-get_vdo_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone)
-{
-	if (depot->slab_summary == NULL) {
-		return NULL;
-	}
-
-	return vdo_get_slab_summary_for_zone(depot->slab_summary, zone);
-}
-
-/**
  * Scrub all unrecovered slabs.
  *
  * @param depot         The depot to scrub

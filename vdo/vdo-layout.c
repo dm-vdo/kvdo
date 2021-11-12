@@ -74,8 +74,9 @@ int decode_vdo_layout(struct fixed_layout *layout,
 	int result;
 
 	for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
-		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i],
-					   &partition);
+		result = vdo_get_fixed_layout_partition(layout,
+						        REQUIRED_PARTITIONS[i],
+					                &partition);
 		if (result != VDO_SUCCESS) {
 			return uds_log_error_strerror(result,
 						      "VDO layout is missing required partition %u",
@@ -129,7 +130,7 @@ static struct partition * __must_check
 retrieve_partition(struct fixed_layout *layout, enum partition_id id)
 {
 	struct partition *partition;
-	int result = vdo_get_partition(layout, id, &partition);
+	int result = vdo_get_fixed_layout_partition(layout, id, &partition);
 
 	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
 			"vdo_layout has expected partition");

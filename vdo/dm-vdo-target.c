@@ -703,7 +703,7 @@ static struct target_type vdo_target_bio = {
 
 static bool dm_registered;
 
-static void vdo_destroy(void)
+static void vdo_module_destroy(void)
 {
 	uds_log_debug("in %s", __func__);
 
@@ -727,14 +727,14 @@ static int __init vdo_init(void)
 	result = register_vdo_status_codes();
 	if (result != UDS_SUCCESS) {
 		uds_log_error("register_vdo_status_codes failed %d", result);
-		vdo_destroy();
+		vdo_module_destroy();
 		return result;
 	}
 
 	result = dm_register_target(&vdo_target_bio);
 	if (result < 0) {
 		uds_log_error("dm_register_target failed %d", result);
-		vdo_destroy();
+		vdo_module_destroy();
 		return result;
 	}
 	dm_registered = true;
@@ -746,7 +746,7 @@ static int __init vdo_init(void)
 
 static void __exit vdo_exit(void)
 {
-	vdo_destroy();
+	vdo_module_destroy();
 }
 
 module_init(vdo_init);

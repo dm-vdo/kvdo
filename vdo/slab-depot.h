@@ -166,9 +166,6 @@ get_vdo_slab_config(const struct slab_depot *depot);
 struct slab_summary * __must_check
 get_vdo_slab_summary(const struct slab_depot *depot);
 
-struct slab_summary_zone * __must_check
-get_vdo_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone);
-
 void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				     struct vdo_completion *parent);
 

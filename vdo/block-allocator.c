@@ -232,7 +232,8 @@ static int allocate_components(struct block_allocator *allocator,
 	initialize_vdo_completion(&allocator->completion, vdo,
 				  VDO_BLOCK_ALLOCATOR_COMPLETION);
 	allocator->summary =
-		get_vdo_slab_summary_for_zone(depot, allocator->zone_number);
+		vdo_get_slab_summary_for_zone(depot->slab_summary,
+					      allocator->zone_number);
 
 	result = make_vio_pool(vdo,
 			       vio_pool_size,

@@ -152,9 +152,9 @@ block_count_t get_total_vdo_fixed_layout_size(const struct fixed_layout *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-int vdo_get_partition(struct fixed_layout *layout,
-		      enum partition_id id,
-		      struct partition **partition_ptr)
+int vdo_get_fixed_layout_partition(struct fixed_layout *layout,
+				   enum partition_id id,
+				   struct partition **partition_ptr)
 {
 	struct partition *partition;
 
@@ -324,7 +324,7 @@ int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
 		return VDO_NO_SPACE;
 	}
 
-	result = vdo_get_partition(layout, id, NULL);
+	result = vdo_get_fixed_layout_partition(layout, id, NULL);
 	if (result != VDO_UNKNOWN_PARTITION) {
 		return VDO_PARTITION_EXISTS;
 	}
