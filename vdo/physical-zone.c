@@ -159,6 +159,51 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 }
 
 /**
+ * Attempt to allocate a block from this zone. If a block is allocated, the
+ * recipient will also hold a lock on it.
+ *
+ * @param allocating_vio  The allocating_vio attempting an allocation
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+int vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio)
+{
+	int result;
+	struct pbn_lock *lock;
+
+	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
+			"must not allocate a block while already holding a lock on one");
+
+	result = allocate_vdo_block(allocating_vio->zone->allocator,
+				    &allocating_vio->allocation);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = attempt_vdo_physical_zone_pbn_lock(allocating_vio->zone,
+						    allocating_vio->allocation,
+						    allocating_vio->write_lock_type,
+						    &lock);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	if (lock->holder_count > 0) {
+		/* This block is already locked, which should be impossible. */
+		return uds_log_error_strerror(VDO_LOCK_ERROR,
+					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
+					      (unsigned long long) allocating_vio->allocation,
+					      lock->holder_count);
+	}
+
+	/* We've successfully acquired a new lock, so mark it as ours. */
+	lock->holder_count += 1;
+	allocating_vio->allocation_lock = lock;
+	assign_vdo_pbn_lock_provisional_reference(lock);
+	return VDO_SUCCESS;
+}
+
+/**
  * Release a physical block lock if it is held and return it to the lock pool.
  * It must be the last live reference, as if the memory were being freed (the
  * lock memory will re-initialized or zeroed).

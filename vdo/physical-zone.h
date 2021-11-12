@@ -49,10 +49,14 @@ struct pbn_lock * __must_check
 get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 			       physical_block_number_t pbn);
 
-int __must_check attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
-						    physical_block_number_t pbn,
-						    enum pbn_lock_type type,
-						    struct pbn_lock **lock_ptr);
+int __must_check
+attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+				   physical_block_number_t pbn,
+				   enum pbn_lock_type type,
+				   struct pbn_lock **lock_ptr);
+
+int __must_check
+vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio);
 
 void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 					physical_block_number_t locked_pbn,

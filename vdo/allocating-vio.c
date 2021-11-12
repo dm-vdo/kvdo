@@ -34,47 +34,6 @@
 #include "vio-write.h"
 
 /**
- * Make a single attempt to acquire a write lock on a newly-allocated PBN.
- *
- * @param allocating_vio  The allocating_vio that wants a write lock for its
- *                        newly allocated block
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
-{
-	struct pbn_lock *lock;
-	int result;
-
-	assert_vio_in_physical_zone(allocating_vio);
-
-	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
-			"must not acquire a lock while already referencing one");
-
-	result = attempt_vdo_physical_zone_pbn_lock(allocating_vio->zone,
-						    allocating_vio->allocation,
-						    allocating_vio->write_lock_type,
-						    &lock);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	if (lock->holder_count > 0) {
-		/* This block is already locked, which should be impossible. */
-		return uds_log_error_strerror(VDO_LOCK_ERROR,
-					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
-					      (unsigned long long) allocating_vio->allocation,
-					      lock->holder_count);
-	}
-
-	/* We've successfully acquired a new lock, so mark it as ours. */
-	lock->holder_count += 1;
-	allocating_vio->allocation_lock = lock;
-	assign_vdo_pbn_lock_provisional_reference(lock);
-	return VDO_SUCCESS;
-}
-
-/**
  * Finish the allocation process.
  *
  * @param allocating_vio  The allocating vio
@@ -191,16 +150,11 @@ static void allocate_block_in_zone(struct vdo_completion *completion)
 {
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
-	struct block_allocator *allocator = allocating_vio->zone->allocator;
 
 	assert_vio_in_physical_zone(allocating_vio);
 
 	allocating_vio->allocation_attempts++;
-	result = allocate_vdo_block(allocator, &allocating_vio->allocation);
-	if (result == VDO_SUCCESS) {
-		result = attempt_pbn_write_lock(allocating_vio);
-	}
-
+	result = vdo_allocate_and_lock_block(allocating_vio);
 	if (result != VDO_NO_SPACE) {
 		finish_allocation(allocating_vio, result);
 		return;
