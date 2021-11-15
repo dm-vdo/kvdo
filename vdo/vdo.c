@@ -26,6 +26,7 @@
 
 #include <linux/device-mapper.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -80,6 +81,12 @@ static void finish_vdo_request_queue(void *ptr)
 {
 	uds_unregister_allocating_thread();
 }
+
+#ifdef MODULE
+#define MODULE_NAME THIS_MODULE->name
+#else
+#define MODULE_NAME "dm-vdo"
+#endif  /* MODULE */
 
 static const struct vdo_work_queue_type request_queue_type = {
 	.start = start_vdo_request_queue,
@@ -276,7 +283,7 @@ int make_vdo(unsigned int instance,
 	snprintf(thread_name_prefix,
 		 sizeof(thread_name_prefix),
 		 "%s%u",
-		 THIS_MODULE->name,
+		 MODULE_NAME,
 		 instance);
 	BUG_ON(thread_name_prefix[0] == '\0');
 	result = UDS_ALLOCATE(vdo->thread_config->thread_count,
