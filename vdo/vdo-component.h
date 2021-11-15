@@ -29,11 +29,11 @@
  * The configuration of the VDO service.
  **/
 struct vdo_config {
-	block_count_t logical_blocks; ///< number of logical blocks
-	block_count_t physical_blocks; ///< number of physical blocks
-	block_count_t slab_size; ///< number of blocks in a slab
-	block_count_t recovery_journal_size; ///< number of recovery journal blocks
-	block_count_t slab_journal_blocks; ///< number of slab journal blocks
+	block_count_t logical_blocks; /* number of logical blocks */
+	block_count_t physical_blocks; /* number of physical blocks */
+	block_count_t slab_size; /* number of blocks in a slab */
+	block_count_t recovery_journal_size; /* number of recovery journal blocks */
+	block_count_t slab_journal_blocks; /* number of slab journal blocks */
 };
 
 /**
