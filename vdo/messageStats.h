@@ -22,6 +22,6 @@
 
 #include "types.h"
 
-int write_vdo_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
+int vdo_write_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
 
 #endif  /* MESSAGE_STATS_H */

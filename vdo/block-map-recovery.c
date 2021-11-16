@@ -142,7 +142,7 @@ static void swap_mappings(void *item1, void *item2)
 static inline struct block_map_recovery_completion * __must_check
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type,
+	vdo_assert_completion_type(completion->type,
 				   VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	return container_of(completion,
 			    struct block_map_recovery_completion,
@@ -152,7 +152,7 @@ as_block_map_recovery_completion(struct vdo_completion *completion)
 /**
  * Free the block_map_recovery_completion and notify the parent that the
  * block map recovery is done. This callback is registered in
- * make_vdo_recovery_completion().
+ * vdo_make_recovery_completion().
  *
  * @param completion  The block_map_recovery_completion
  **/
@@ -177,7 +177,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
  * @return a success or error code
  **/
 static int
-make_vdo_recovery_completion(struct vdo *vdo,
+vdo_make_recovery_completion(struct vdo *vdo,
 			     block_count_t entry_count,
 			     struct numbered_block_mapping *journal_entries,
 			     struct vdo_completion *parent,
@@ -197,9 +197,9 @@ make_vdo_recovery_completion(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_vdo_completion(&recovery->completion, vdo,
+	vdo_initialize_completion(&recovery->completion, vdo,
 				  VDO_BLOCK_MAP_RECOVERY_COMPLETION);
-	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
+	vdo_initialize_completion(&recovery->sub_task_completion, vdo,
 				  VDO_SUB_TASK_COMPLETION);
 	recovery->block_map = vdo->block_map;
 	recovery->journal_entries = journal_entries;
@@ -254,7 +254,7 @@ static void flush_block_map(struct vdo_completion *completion)
 			"flush_block_map() called on admin thread");
 
 	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
-	drain_vdo_block_map(recovery->block_map,
+	vdo_drain_block_map(recovery->block_map,
 			    VDO_ADMIN_STATE_RECOVERING,
 			    completion);
 }
@@ -289,10 +289,10 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 			struct vdo_page_completion *page_completion =
 				&recovery->page_completions[i];
 			if (recovery->page_completions[i].ready) {
-				release_vdo_page_completion(&page_completion->completion);
+				vdo_release_page_completion(&page_completion->completion);
 			}
 		}
-		complete_vdo_completion(&recovery->completion);
+		vdo_complete_completion(&recovery->completion);
 	} else {
 		vdo_launch_completion_callback_with_parent(&recovery->sub_task_completion,
 							   flush_block_map,
@@ -314,7 +314,7 @@ static void abort_recovery(struct block_map_recovery_completion *recovery,
 			   int result)
 {
 	recovery->aborted = true;
-	set_vdo_completion_result(&recovery->completion, result);
+	vdo_set_completion_result(&recovery->completion, result);
 	finish_if_done(recovery);
 }
 
@@ -435,7 +435,7 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 		find_entry_starting_next_page(recovery,
 					      recovery->current_unfetched_entry,
 					      true);
-	init_vdo_page_completion(((struct vdo_page_completion *) completion),
+	vdo_init_page_completion(((struct vdo_page_completion *) completion),
 				 recovery->block_map->zones[0].page_cache,
 				 new_pbn,
 				 true,
@@ -443,7 +443,7 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 				 page_loaded,
 				 handle_page_load_error);
 	recovery->outstanding++;
-	get_vdo_page(completion);
+	vdo_get_page(completion);
 }
 
 /**
@@ -489,7 +489,7 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 	while (page_completion->ready) {
 		struct numbered_block_mapping *start_of_next_page;
 		struct block_map_page *page =
-			dereference_writable_vdo_page(completion);
+			vdo_dereference_writable_page(completion);
 		int result = ASSERT(page != NULL, "page available");
 
 		if (result != VDO_SUCCESS) {
@@ -505,8 +505,8 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 					      recovery->current_entry,
 					      start_of_next_page);
 		recovery->current_entry = start_of_next_page;
-		request_vdo_page_write(completion);
-		release_vdo_page_completion(completion);
+		vdo_request_page_write(completion);
+		vdo_release_page_completion(completion);
 
 		if (finish_if_done(recovery)) {
 			return;
@@ -529,7 +529,7 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
  * @param parent           The completion to notify when the rebuild
  *                         is complete
  **/
-void recover_vdo_block_map(struct vdo *vdo,
+void vdo_recover_block_map(struct vdo *vdo,
 			   block_count_t entry_count,
 			   struct numbered_block_mapping *journal_entries,
 			   struct vdo_completion *parent)
@@ -538,7 +538,7 @@ void recover_vdo_block_map(struct vdo *vdo,
 	page_count_t i;
 	struct block_map_recovery_completion *recovery;
 
-	int result = make_vdo_recovery_completion(vdo, entry_count,
+	int result = vdo_make_recovery_completion(vdo, entry_count,
 						  journal_entries, parent,
 						  &recovery);
 	if (result != VDO_SUCCESS) {

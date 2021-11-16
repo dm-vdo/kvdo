@@ -82,7 +82,7 @@ struct vio {
  **/
 static inline struct vio *as_vio(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VIO_COMPLETION);
+	vdo_assert_completion_type(completion->type, VIO_COMPLETION);
 	return container_of(completion, struct vio, completion);
 }
 
@@ -130,7 +130,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  *
  * @return The vdo to which the vio belongs
  **/
-static inline struct vdo *vdo_get_from_vio(struct vio *vio)
+static inline struct vdo *vdo_from_vio(struct vio *vio)
 {
 	return vio_as_completion(vio)->vdo;
 }
@@ -146,7 +146,7 @@ static inline void
 set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 {
 	vio->physical = pbn;
-	vio->bio_zone = get_vdo_bio_zone(vdo_get_from_vio(vio), pbn);
+	vio->bio_zone = vdo_get_bio_zone(vdo_from_vio(vio), pbn);
 }
 
 /**
@@ -159,7 +159,7 @@ set_vio_physical(struct vio *vio, physical_block_number_t pbn)
 static inline thread_id_t __must_check
 get_vio_bio_zone_thread_id(struct vio *vio)
 {
-	return vdo_get_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
+	return vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
 }
 
 /**
@@ -453,7 +453,7 @@ static inline void continue_vio(struct vio *vio, int result)
 	struct vdo_completion *completion = vio_as_completion(vio);
 
 	if (unlikely(result != VDO_SUCCESS)) {
-		set_vdo_completion_result(vio_as_completion(vio), result);
+		vdo_set_completion_result(vio_as_completion(vio), result);
 	}
 
 	vdo_enqueue_completion(completion);

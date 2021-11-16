@@ -122,13 +122,13 @@ vdo_run_completion_callback(struct vdo_completion *completion)
 	completion->callback(completion);
 }
 
-void set_vdo_completion_result(struct vdo_completion *completion, int result);
+void vdo_set_completion_result(struct vdo_completion *completion, int result);
 
-void initialize_vdo_completion(struct vdo_completion *completion,
+void vdo_initialize_completion(struct vdo_completion *completion,
 			       struct vdo *vdo,
 			       enum vdo_completion_type type);
 
-void reset_vdo_completion(struct vdo_completion *completion);
+void vdo_reset_completion(struct vdo_completion *completion);
 
 void
 vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
@@ -149,9 +149,9 @@ vdo_invoke_completion_callback(struct vdo_completion *completion)
 						     VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
-void continue_vdo_completion(struct vdo_completion *completion, int result);
+void vdo_continue_completion(struct vdo_completion *completion, int result);
 
-void complete_vdo_completion(struct vdo_completion *completion);
+void vdo_complete_completion(struct vdo_completion *completion);
 
 /**
  * Finish a completion.
@@ -162,14 +162,14 @@ void complete_vdo_completion(struct vdo_completion *completion);
 static inline void vdo_finish_completion(struct vdo_completion *completion,
 					 int result)
 {
-	set_vdo_completion_result(completion, result);
-	complete_vdo_completion(completion);
+	vdo_set_completion_result(completion, result);
+	vdo_complete_completion(completion);
 }
 
 void vdo_finish_completion_parent_callback(struct vdo_completion *completion);
 
 void
-preserve_vdo_completion_error_and_continue(struct vdo_completion *completion);
+vdo_preserve_completion_error_and_continue(struct vdo_completion *completion);
 
 /**
  * A callback which does nothing. This callback is intended to be set as an
@@ -182,7 +182,7 @@ void vdo_noop_completion_callback(struct vdo_completion *completion __always_unu
 {
 }
 
-int assert_vdo_completion_type(enum vdo_completion_type actual,
+int vdo_assert_completion_type(enum vdo_completion_type actual,
 			       enum vdo_completion_type expected);
 
 /**
@@ -271,7 +271,7 @@ static inline void vdo_prepare_completion(struct vdo_completion *completion,
 					  thread_id_t thread_id,
 					  void *parent)
 {
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 	vdo_set_completion_callback_with_parent(completion, callback,
 						thread_id, parent);
 	completion->error_handler = error_handler;

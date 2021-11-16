@@ -59,7 +59,7 @@ static inline void assert_on_packer_thread(struct packer *packer,
  * This returns the next bin in the free_space-sorted list.
  **/
 static struct input_bin * __must_check
-next_vdo_packer_bin(const struct packer *packer, struct input_bin *bin)
+vdo_next_packer_bin(const struct packer *packer, struct input_bin *bin)
 {
 	if (bin->list.next == &packer->input_bins) {
 		return NULL;
@@ -72,7 +72,7 @@ next_vdo_packer_bin(const struct packer *packer, struct input_bin *bin)
  * This returns the first bin in the free_space-sorted list.
  **/
 static struct input_bin * __must_check
-get_vdo_packer_fullest_bin(const struct packer *packer)
+vdo_get_packer_fullest_bin(const struct packer *packer)
 {
 	if (list_empty(&packer->input_bins)) {
 		return NULL;
@@ -94,9 +94,9 @@ static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 {
 	struct input_bin *active_bin;
 
-	for (active_bin = get_vdo_packer_fullest_bin(packer);
+	for (active_bin = vdo_get_packer_fullest_bin(packer);
 	     active_bin != NULL;
-	     active_bin = next_vdo_packer_bin(packer, active_bin)) {
+	     active_bin = vdo_next_packer_bin(packer, active_bin)) {
 		if (active_bin->free_space > bin->free_space) {
 			list_move_tail(&bin->list, &active_bin->list);
 			return;
@@ -231,7 +231,7 @@ static void free_output_bin(struct output_bin *bin)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_packer(struct vdo *vdo,
+int vdo_make_packer(struct vdo *vdo,
 		    block_count_t input_bin_count,
 		    block_count_t output_bin_count,
 		    struct packer **packer_ptr)
@@ -257,10 +257,10 @@ int make_vdo_packer(struct vdo *vdo,
 	vdo_set_admin_state_code(&packer->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	result = make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
+	result = vdo_make_allocation_selector(vdo->thread_config->physical_zone_count,
 					      packer->thread_id, &packer->selector);
 	if (result != VDO_SUCCESS) {
-		free_vdo_packer(packer);
+		vdo_free_packer(packer);
 		return result;
 	}
 
@@ -268,7 +268,7 @@ int make_vdo_packer(struct vdo *vdo,
 		int result = make_input_bin(packer);
 
 		if (result != VDO_SUCCESS) {
-			free_vdo_packer(packer);
+			vdo_free_packer(packer);
 			return result;
 		}
 	}
@@ -283,7 +283,7 @@ int make_vdo_packer(struct vdo *vdo,
 				       struct vio *, __func__,
 				       &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
-		free_vdo_packer(packer);
+		vdo_free_packer(packer);
 		return result;
 	}
 
@@ -291,7 +291,7 @@ int make_vdo_packer(struct vdo *vdo,
 		int result = make_output_bin(packer, vdo);
 
 		if (result != VDO_SUCCESS) {
-			free_vdo_packer(packer);
+			vdo_free_packer(packer);
 			return result;
 		}
 	}
@@ -305,7 +305,7 @@ int make_vdo_packer(struct vdo *vdo,
  *
  * @param packer  The packer to free
  **/
-void free_vdo_packer(struct packer *packer)
+void vdo_free_packer(struct packer *packer)
 {
 	struct input_bin *input;
 	struct output_bin *output;
@@ -314,7 +314,7 @@ void free_vdo_packer(struct packer *packer)
 		return;
 	}
 
-	while ((input = get_vdo_packer_fullest_bin(packer)) != NULL) {
+	while ((input = vdo_get_packer_fullest_bin(packer)) != NULL) {
 		list_del_init(&input->list);
 		UDS_FREE(input);
 	}
@@ -362,7 +362,7 @@ bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
  *
  * @return a copy of the current statistics for the packer
  **/
-struct packer_statistics get_vdo_packer_statistics(const struct packer *packer)
+struct packer_statistics vdo_get_packer_statistics(const struct packer *packer)
 {
 	const struct packer_statistics *stats = &packer->statistics;
 
@@ -416,7 +416,7 @@ static void check_for_drain_complete(struct packer *packer)
 	if (vdo_is_state_draining(&packer->state) &&
 	    (packer->canceled_bin->slots_used == 0) &&
 	    (packer->idle_output_bin_count == packer->output_bin_count)) {
-		finish_vdo_draining(&packer->state);
+		vdo_finish_draining(&packer->state);
 	}
 }
 
@@ -531,7 +531,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 		.state = vdo_get_state_for_slot(data_vio->compression.slot),
 	};
 
-	share_compressed_vdo_write_lock(data_vio, bin->writer->allocation_lock);
+	vdo_share_compressed_write_lock(data_vio, bin->writer->allocation_lock);
 
 	/* Wait again for all the waiters to get a share. */
 	result = enqueue_waiter(&bin->outgoing, waiter);
@@ -593,7 +593,7 @@ static void continue_after_allocation(struct vdo_completion *completion)
 
 	if (allocating_vio->allocation == VDO_ZERO_BLOCK) {
 		completion->requeue = true;
-		set_vdo_completion_result(completion, VDO_NO_SPACE);
+		vdo_set_completion_result(completion, VDO_NO_SPACE);
 		vio_done_callback(completion);
 		return;
 	}
@@ -619,7 +619,7 @@ static void launch_compressed_write(struct packer *packer,
 	}
 
 	vio = allocating_vio_as_vio(bin->writer);
-	reset_vdo_completion(vio_as_completion(vio));
+	vdo_reset_completion(vio_as_completion(vio));
 	vio->callback = complete_output_bin;
 	vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
 	vio_allocate_data_block(bin->writer, packer->selector,
@@ -702,13 +702,13 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 		return false;
 	}
 
-	reset_vdo_compressed_block_header(&output->block->header);
+	vdo_reset_compressed_block_header(&output->block->header);
 
 	for (slot = 0; slot < batch.slots_used; slot++) {
 		struct data_vio *data_vio = batch.slots[slot];
 
 		data_vio->compression.slot = slot;
-		put_vdo_compressed_block_fragment(output->block, slot,
+		vdo_put_compressed_block_fragment(output->block, slot,
 						  space_used,
 						  data_vio->compression.data,
 						  data_vio->compression.size);
@@ -877,11 +877,11 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 	 * First best fit: select the bin with the least free space that has 
 	 * enough room for the compressed data in the data_vio. 
 	 */
-	struct input_bin *fullest_bin = get_vdo_packer_fullest_bin(packer);
+	struct input_bin *fullest_bin = vdo_get_packer_fullest_bin(packer);
 	struct input_bin *bin;
 
 	for (bin = fullest_bin; bin != NULL;
-	     bin = next_vdo_packer_bin(packer, bin)) {
+	     bin = vdo_next_packer_bin(packer, bin)) {
 		if (bin->free_space >= data_vio->compression.size) {
 			return bin;
 		}
@@ -984,8 +984,8 @@ static void write_all_non_empty_bins(struct packer *packer)
 {
 	struct input_bin *bin;
 
-	for (bin = get_vdo_packer_fullest_bin(packer); bin != NULL;
-	     bin = next_vdo_packer_bin(packer, bin)) {
+	for (bin = vdo_get_packer_fullest_bin(packer); bin != NULL;
+	     bin = vdo_next_packer_bin(packer, bin)) {
 		start_new_batch(packer, bin);
 		/*
 		 * We don't need to re-sort the bin here since this loop will 
@@ -1006,7 +1006,7 @@ static void write_all_non_empty_bins(struct packer *packer)
  *
  * @param packer  The packer to flush
  **/
-void flush_vdo_packer(struct packer *packer)
+void vdo_flush_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
 	if (vdo_is_state_normal(&packer->state)) {
@@ -1019,7 +1019,7 @@ void flush_vdo_packer(struct packer *packer)
  *
  * @param data_vio  The data_vio to remove
  **/
-static void remove_from_vdo_packer(struct data_vio *data_vio)
+static void vdo_remove_from_packer(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	struct input_bin *bin = data_vio->compression.bin;
@@ -1052,7 +1052,7 @@ static void remove_from_vdo_packer(struct data_vio *data_vio)
  *                    packer. The data_vio's compression.lock_holder field will
  *                    point to the data_vio to remove.
  **/
-void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
+void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct data_vio *lock_holder;
@@ -1061,7 +1061,7 @@ void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 
 	lock_holder = data_vio->compression.lock_holder;
 	data_vio->compression.lock_holder = NULL;
-	remove_from_vdo_packer(lock_holder);
+	vdo_remove_from_packer(lock_holder);
 }
 
 /**
@@ -1071,11 +1071,11 @@ void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
  *
  * @param packer  The packer
  **/
-void increment_vdo_packer_flush_generation(struct packer *packer)
+void vdo_increment_packer_flush_generation(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
 	packer->flush_generation++;
-	flush_vdo_packer(packer);
+	vdo_flush_packer(packer);
 }
 
 /**
@@ -1098,10 +1098,10 @@ static void initiate_drain(struct admin_state *state)
  * @param packer      The packer to drain
  * @param completion  The completion to finish when the packer has drained
  **/
-void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
+void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
-	start_vdo_draining(&packer->state, VDO_ADMIN_STATE_SUSPENDING,
+	vdo_start_draining(&packer->state, VDO_ADMIN_STATE_SUSPENDING,
 			   completion, initiate_drain);
 }
 
@@ -1111,10 +1111,10 @@ void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
  * @param packer  The packer to resume
  * @param parent  The completion to finish when the packer has resumed
  **/
-void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
+void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	vdo_finish_completion(parent, resume_vdo_if_quiescent(&packer->state));
+	vdo_finish_completion(parent, vdo_resume_if_quiescent(&packer->state));
 }
 
 
@@ -1162,7 +1162,7 @@ static void dump_output_bin(const struct output_bin *bin)
  *
  * @param packer  The packer
  **/
-void dump_vdo_packer(const struct packer *packer)
+void vdo_dump_packer(const struct packer *packer)
 {
 	struct input_bin *input;
 	struct output_bin *output;
@@ -1170,13 +1170,13 @@ void dump_vdo_packer(const struct packer *packer)
 	uds_log_info("packer");
 	uds_log_info("  flushGeneration=%llu state %s writing_batches=%s",
 		     (unsigned long long) packer->flush_generation,
-		     get_vdo_admin_state_name(&packer->state),
+		     vdo_get_admin_state_name(&packer->state),
 		     uds_bool_to_string(packer->writing_batches));
 
 	uds_log_info("  input_bin_count=%llu",
 		     (unsigned long long) packer->size);
-	for (input = get_vdo_packer_fullest_bin(packer); input != NULL;
-	     input = next_vdo_packer_bin(packer, input)) {
+	for (input = vdo_get_packer_fullest_bin(packer); input != NULL;
+	     input = vdo_next_packer_bin(packer, input)) {
 		dump_input_bin(input, false);
 	}
 

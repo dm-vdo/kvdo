@@ -41,7 +41,7 @@ const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
  *
  * @return the encoded size of the journal's state
  **/
-size_t get_vdo_recovery_journal_encoded_size(void)
+size_t vdo_get_recovery_journal_encoded_size(void)
 {
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
@@ -54,12 +54,12 @@ size_t get_vdo_recovery_journal_encoded_size(void)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
+int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 					  struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
 
-	int result = encode_vdo_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
+	int result = vdo_encode_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -98,7 +98,7 @@ int encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
  * @return VDO_SUCCESS or an error code
  **/
 int
-decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
+vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 				      struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
@@ -107,12 +107,12 @@ decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
 	sequence_number_t journal_start;
 	block_count_t logical_blocks_used, block_map_data_blocks;
 
-	result = decode_vdo_header(buffer, &header);
+	result = vdo_decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_vdo_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
+	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
 				     true, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -158,7 +158,7 @@ decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
  *
  * @return The name of the operation
  **/
-const char *get_vdo_journal_operation_name(enum journal_operation operation)
+const char *vdo_get_journal_operation_name(enum journal_operation operation)
 {
 	switch (operation) {
 	case VDO_JOURNAL_DATA_DECREMENT:

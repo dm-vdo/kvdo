@@ -36,10 +36,10 @@
  * owner that some lock has been released. It is the owner's responsibility to
  * check for which locks have been released, and to inform the lock counter
  * that it has received the notification by calling
- * acknowledge_vdo_lock_unlock().
+ * vdo_acknowledge_lock_unlock().
  **/
 
-int __must_check make_vdo_lock_counter(struct vdo *vdo,
+int __must_check vdo_make_lock_counter(struct vdo *vdo,
 				       void *parent,
 				       vdo_action callback,
 				       thread_id_t thread_id,
@@ -48,37 +48,37 @@ int __must_check make_vdo_lock_counter(struct vdo *vdo,
 				       block_count_t locks,
 				       struct lock_counter **lock_counter_ptr);
 
-void free_vdo_lock_counter(struct lock_counter *counter);
+void vdo_free_lock_counter(struct lock_counter *counter);
 
-bool __must_check is_vdo_lock_locked(struct lock_counter *lock_counter,
+bool __must_check vdo_is_lock_locked(struct lock_counter *lock_counter,
 				     block_count_t lock_number,
 				     enum vdo_zone_type zone_type);
 
-void initialize_vdo_lock_count(struct lock_counter *counter,
+void vdo_initialize_lock_count(struct lock_counter *counter,
 			       block_count_t lock_number,
 			       uint16_t value);
 
-void acquire_vdo_lock_count_reference(struct lock_counter *counter,
+void vdo_acquire_lock_count_reference(struct lock_counter *counter,
 				      block_count_t lock_number,
 				      enum vdo_zone_type zone_type,
 				      zone_count_t zone_id);
 
-void release_vdo_lock_count_reference(struct lock_counter *counter,
+void vdo_release_lock_count_reference(struct lock_counter *counter,
 				      block_count_t lock_number,
 				      enum vdo_zone_type zone_type,
 				      zone_count_t zone_id);
 
-void release_vdo_journal_zone_reference(struct lock_counter *counter,
+void vdo_release_journal_zone_reference(struct lock_counter *counter,
 					block_count_t lock_number);
 
 void
-release_vdo_journal_zone_reference_from_other_zone(struct lock_counter *counter,
+vdo_release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 						   block_count_t lock_number);
 
-void acknowledge_vdo_lock_unlock(struct lock_counter *counter);
+void vdo_acknowledge_lock_unlock(struct lock_counter *counter);
 
-bool __must_check suspend_vdo_lock_counter(struct lock_counter *counter);
+bool __must_check vdo_suspend_lock_counter(struct lock_counter *counter);
 
-bool __must_check resume_vdo_lock_counter(struct lock_counter *counter);
+bool __must_check vdo_resume_lock_counter(struct lock_counter *counter);
 
 #endif /* LOCK_COUNTER_H */

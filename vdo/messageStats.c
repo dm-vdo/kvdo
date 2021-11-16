@@ -1332,7 +1332,7 @@ int write_vdo_statistics(char *prefix,
 	return VDO_SUCCESS;
 }
 
-int write_vdo_stats(struct vdo *vdo,
+int vdo_write_stats(struct vdo *vdo,
 		    char *buf,
 		    unsigned int maxlen)
 {
@@ -1342,7 +1342,7 @@ int write_vdo_stats(struct vdo *vdo,
 		return result;
 	}
 
-	fetch_vdo_statistics(vdo, stats);
+	vdo_fetch_statistics(vdo, stats);
 	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
 	UDS_FREE(stats);
 	return result;

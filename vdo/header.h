@@ -108,25 +108,25 @@ vdo_is_upgradable_version(struct version_number expected_version,
 		&& (expected_version.minor_version > actual_version.minor_version));
 }
 
-int __must_check validate_vdo_version(struct version_number expected_version,
+int __must_check vdo_validate_version(struct version_number expected_version,
 				      struct version_number actual_version,
 				      const char *component_name);
 
-int __must_check validate_vdo_header(const struct header *expected_header,
+int __must_check vdo_validate_header(const struct header *expected_header,
 				     const struct header *actual_header,
 				     bool exact_size,
 				     const char *component_name);
 
 int __must_check
-encode_vdo_header(const struct header *header, struct buffer *buffer);
+vdo_encode_header(const struct header *header, struct buffer *buffer);
 
-int __must_check encode_vdo_version_number(struct version_number version,
+int __must_check vdo_encode_version_number(struct version_number version,
 					   struct buffer *buffer);
 
-int __must_check decode_vdo_header(struct buffer *buffer,
+int __must_check vdo_decode_header(struct buffer *buffer,
 				   struct header *header);
 
-int __must_check decode_vdo_version_number(struct buffer *buffer,
+int __must_check vdo_decode_version_number(struct buffer *buffer,
 					   struct version_number *version);
 
 /**
@@ -153,7 +153,7 @@ vdo_pack_version_number(struct version_number version)
  * @return the platform-independent representation of the version
  **/
 static inline struct version_number
-unvdo_pack_version_number(struct packed_version_number version)
+vdo_unpack_version_number(struct packed_version_number version)
 {
 	return (struct version_number) {
 		.major_version = __le32_to_cpu(version.major_version),

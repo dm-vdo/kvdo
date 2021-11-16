@@ -44,7 +44,7 @@ static const struct version_number BLOCK_MAP_4_1 = {
  *
  * @return the buffer pointer, as a block map page (for convenience)
  **/
-struct block_map_page *format_vdo_block_map_page(void *buffer,
+struct block_map_page *vdo_format_block_map_page(void *buffer,
 						 nonce_t nonce,
 						 physical_block_number_t pbn,
 						 bool initialized)
@@ -71,7 +71,7 @@ struct block_map_page *format_vdo_block_map_page(void *buffer,
  * @return The validity of the page
  **/
 enum block_map_page_validity
-validate_vdo_block_map_page(struct block_map_page *page,
+vdo_validate_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn)
 {
@@ -83,7 +83,7 @@ validate_vdo_block_map_page(struct block_map_page *page,
 			     PAGE_HEADER_4_1_SIZE);
 
 	if (!vdo_are_same_version(BLOCK_MAP_4_1,
-				  unvdo_pack_version_number(page->version)) ||
+				  vdo_unpack_version_number(page->version)) ||
 	    !vdo_is_block_map_page_initialized(page) ||
 	    (nonce != __le64_to_cpu(page->header.nonce))) {
 		return VDO_BLOCK_MAP_PAGE_INVALID;

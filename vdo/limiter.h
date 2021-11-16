@@ -59,7 +59,7 @@ static inline void limiter_release(struct limiter *limiter)
 	limiter_release_many(limiter, 1);
 }
 
-void drain_vdo_limiter(struct limiter *limiter,
+void vdo_drain_limiter(struct limiter *limiter,
 		       struct vdo_completion *completion);
 
 void limiter_wait_for_one_free(struct limiter *limiter);

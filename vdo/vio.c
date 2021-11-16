@@ -135,7 +135,7 @@ void initialize_vio(struct vio *vio,
 	vio->priority = priority;
 	vio->data = data;
 
-	initialize_vdo_completion(completion, vdo, VIO_COMPLETION);
+	vdo_initialize_completion(completion, vdo, VIO_COMPLETION);
 	completion->parent = parent;
 }
 
@@ -152,7 +152,7 @@ void vio_done_callback(struct vdo_completion *completion)
 
 	completion->callback = vio->callback;
 	completion->error_handler = vio->error_handler;
-	complete_vdo_completion(completion);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -288,7 +288,7 @@ void launch_metadata_vio(struct vio *vio,
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
 	const struct admin_state_code *code
-		= get_vdo_admin_state(completion->vdo);
+		= vdo_get_admin_state(completion->vdo);
 
 	ASSERT_LOG_ONLY(!code->quiescent,
 			"I/O not allowed in state %s",
@@ -298,7 +298,7 @@ void launch_metadata_vio(struct vio *vio,
 	vio->callback = callback;
 	vio->error_handler = error_handler;
 
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 	completion->callback = vio_done_callback;
 	completion->error_handler = handle_metadata_io_error;
 

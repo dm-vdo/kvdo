@@ -83,19 +83,19 @@ vdo_is_exact_recovery_journal_block(const struct recovery_journal *journal,
 		&& vdo_is_valid_recovery_journal_block(journal, header));
 }
 
-void load_vdo_recovery_journal(struct recovery_journal *journal,
+void vdo_load_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr);
 
 bool
-find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
+vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 					char *journal_data,
 					sequence_number_t *tail_ptr,
 					sequence_number_t *block_map_head_ptr,
 					sequence_number_t *slab_journal_head_ptr);
 
 int __must_check
-validate_vdo_recovery_journal_entry(const struct vdo *vdo,
+vdo_validate_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry);
 
 #endif /* RECOVERY_UTILS_H */

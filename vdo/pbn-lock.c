@@ -71,7 +71,7 @@ static inline bool has_lock_type(const struct pbn_lock *lock,
  *
  * @return <code>true</code> if the lock is a read lock
  **/
-bool is_vdo_pbn_read_lock(const struct pbn_lock *lock)
+bool vdo_is_pbn_read_lock(const struct pbn_lock *lock)
 {
 	return has_lock_type(lock, VIO_READ_LOCK);
 }
@@ -89,7 +89,7 @@ static inline void set_pbn_lock_type(struct pbn_lock *lock,
  * @param lock  The lock to initialize
  * @param type  The type of the lock
  **/
-void initialize_vdo_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
+void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
 {
 	lock->holder_count = 0;
 	set_pbn_lock_type(lock, type);
@@ -101,9 +101,9 @@ void initialize_vdo_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
  *
  * @param lock  The PBN write lock to downgrade
  **/
-void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock)
+void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock)
 {
-	ASSERT_LOG_ONLY(!is_vdo_pbn_read_lock(lock),
+	ASSERT_LOG_ONLY(!vdo_is_pbn_read_lock(lock),
 			"PBN lock must not already have been downgraded");
 	ASSERT_LOG_ONLY(!has_lock_type(lock, VIO_BLOCK_MAP_WRITE_LOCK),
 			"must not downgrade block map write locks");
@@ -139,7 +139,7 @@ void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock)
  * @return <code>true</code> if the claim succeeded, guaranteeing one
  *         increment can be made without overflowing the PBN's reference count
  **/
-bool claim_vdo_pbn_lock_increment(struct pbn_lock *lock)
+bool vdo_claim_pbn_lock_increment(struct pbn_lock *lock)
 {
 	/*
 	 * Claim the next free reference atomically since hash locks from
@@ -159,7 +159,7 @@ bool claim_vdo_pbn_lock_increment(struct pbn_lock *lock)
  *
  * @param lock  The PBN lock
  **/
-void assign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
+void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock)
 {
 	ASSERT_LOG_ONLY(!lock->has_provisional_reference,
 			"lock does not have a provisional reference");
@@ -172,7 +172,7 @@ void assign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
  *
  * @param lock  The PBN lock
  **/
-void unassign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
+void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock)
 {
 	lock->has_provisional_reference = false;
 }
@@ -185,14 +185,14 @@ void unassign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock)
  * @param locked_pbn  The PBN covered by the lock
  * @param allocator   The block allocator from which to release the reference
  **/
-void release_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock,
+void vdo_release_pbn_lock_provisional_reference(struct pbn_lock *lock,
 						physical_block_number_t locked_pbn,
 						struct block_allocator *allocator)
 {
 	if (vdo_pbn_lock_has_provisional_reference(lock)) {
-		release_vdo_block_reference(allocator,
+		vdo_release_block_reference(allocator,
 					    locked_pbn,
 					    lock->implementation->release_reason);
-		unassign_vdo_pbn_lock_provisional_reference(lock);
+		vdo_unassign_pbn_lock_provisional_reference(lock);
 	}
 }

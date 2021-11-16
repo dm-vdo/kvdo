@@ -35,7 +35,7 @@
  * @return VDO_SUCCESS             if the versions are the same
  *         VDO_UNSUPPORTED_VERSION if the versions don't match
  **/
-int validate_vdo_version(struct version_number expected_version,
+int vdo_validate_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
 {
@@ -67,7 +67,7 @@ int validate_vdo_version(struct version_number expected_version,
  *         VDO_INCORRECT_COMPONENT if the component ids don't match
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
  **/
-int validate_vdo_header(const struct header *expected_header,
+int vdo_validate_header(const struct header *expected_header,
 			const struct header *actual_header,
 			bool exact_size,
 			const char *component_name)
@@ -82,7 +82,7 @@ int validate_vdo_header(const struct header *expected_header,
 					      actual_header->id);
 	}
 
-	result = validate_vdo_version(expected_header->version,
+	result = vdo_validate_version(expected_header->version,
 				      actual_header->version, component_name);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -108,7 +108,7 @@ int validate_vdo_header(const struct header *expected_header,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_vdo_header(const struct header *header, struct buffer *buffer)
+int vdo_encode_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
 
@@ -121,7 +121,7 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 		return result;
 	}
 
-	result = encode_vdo_version_number(header->version, buffer);
+	result = vdo_encode_version_number(header->version, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -137,7 +137,7 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_vdo_version_number(struct version_number version,
+int vdo_encode_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
 	struct packed_version_number packed = vdo_pack_version_number(version);
@@ -153,7 +153,7 @@ int encode_vdo_version_number(struct version_number version,
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_vdo_header(struct buffer *buffer, struct header *header)
+int vdo_decode_header(struct buffer *buffer, struct header *header)
 {
 	uint32_t id;
 	uint64_t size;
@@ -165,7 +165,7 @@ int decode_vdo_header(struct buffer *buffer, struct header *header)
 		return result;
 	}
 
-	result = decode_vdo_version_number(buffer, &version);
+	result = vdo_decode_version_number(buffer, &version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -191,7 +191,7 @@ int decode_vdo_header(struct buffer *buffer, struct header *header)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_vdo_version_number(struct buffer *buffer,
+int vdo_decode_version_number(struct buffer *buffer,
 			      struct version_number *version)
 {
 	struct packed_version_number packed;
@@ -201,6 +201,6 @@ int decode_vdo_version_number(struct buffer *buffer,
 		return result;
 	}
 
-	*version = unvdo_pack_version_number(packed);
+	*version = vdo_unpack_version_number(packed);
 	return UDS_SUCCESS;
 }

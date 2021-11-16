@@ -44,6 +44,6 @@ enum vdo_state {
 };
 
 
-const char * __must_check describe_vdo_state(enum vdo_state state);
+const char * __must_check vdo_describe_state(enum vdo_state state);
 
 #endif /* VDO_STATE_H */

@@ -125,13 +125,13 @@ vdo_get_block_map_page_pbn(const struct block_map_page *page)
 	return __le64_to_cpu(page->header.pbn);
 }
 
-struct block_map_page *format_vdo_block_map_page(void *buffer,
+struct block_map_page *vdo_format_block_map_page(void *buffer,
 						 nonce_t nonce,
 						 physical_block_number_t pbn,
 						 bool initialized);
 
 enum block_map_page_validity __must_check
-validate_vdo_block_map_page(struct block_map_page *page,
+vdo_validate_block_map_page(struct block_map_page *page,
 			     nonce_t nonce,
 			     physical_block_number_t pbn);
 

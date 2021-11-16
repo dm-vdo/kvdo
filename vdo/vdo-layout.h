@@ -32,7 +32,6 @@
 #ifndef VDO_LAYOUT_H
 #define VDO_LAYOUT_H
 
-#include "fixed-layout.h"
 #include "kernel-types.h"
 #include "types.h"
 
@@ -49,35 +48,35 @@ struct vdo_layout {
 	struct vdo_completion *copy_completion;
 };
 
-int __must_check decode_vdo_layout(struct fixed_layout *layout,
+int __must_check vdo_decode_layout(struct fixed_layout *layout,
 				   struct vdo_layout **vdo_layout_ptr);
 
-void free_vdo_layout(struct vdo_layout *vdo_layout);
+void vdo_free_layout(struct vdo_layout *vdo_layout);
 
 struct partition * __must_check
-get_vdo_partition(struct vdo_layout *vdo_layout, enum partition_id id);
+vdo_get_partition(struct vdo_layout *vdo_layout, enum partition_id id);
 
 int __must_check
-prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
+prepare_to_vdo_grow_layout(struct vdo_layout *vdo_layout,
 			   block_count_t old_physical_blocks,
 			   block_count_t new_physical_blocks,
 			   struct vdo *vdo);
 
 block_count_t __must_check
-get_next_vdo_layout_size(struct vdo_layout *vdo_layout);
+vdo_get_next_layout_size(struct vdo_layout *vdo_layout);
 
 block_count_t __must_check
 vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
 
-block_count_t __must_check grow_vdo_layout(struct vdo_layout *vdo_layout);
+block_count_t __must_check vdo_grow_layout(struct vdo_layout *vdo_layout);
 
-void finish_vdo_layout_growth(struct vdo_layout *vdo_layout);
+void vdo_finish_layout_growth(struct vdo_layout *vdo_layout);
 
-void copy_vdo_layout_partition(struct vdo_layout *layout,
+void vdo_copy_layout_partition(struct vdo_layout *layout,
 			       enum partition_id id,
 			       struct vdo_completion *parent);
 
 struct fixed_layout * __must_check
-get_vdo_fixed_layout(const struct vdo_layout *vdo_layout);
+vdo_get_fixed_layout(const struct vdo_layout *vdo_layout);
 
 #endif /* VDO_LAYOUT_H */

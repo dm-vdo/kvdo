@@ -23,7 +23,7 @@
 #include "slab-iterator.h"
 #include "types.h"
 
-void erase_vdo_slab_journals(struct slab_depot *depot,
+void vdo_erase_slab_journals(struct slab_depot *depot,
 			     struct slab_iterator slabs,
 			     struct vdo_completion *parent);
 

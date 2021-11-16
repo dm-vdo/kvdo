@@ -45,7 +45,7 @@
  *
  * @return The block device name
  **/
-const char *get_vdo_device_name(const struct dm_target *target)
+const char *vdo_get_device_name(const struct dm_target *target)
 {
 	return dm_device_name(dm_table_get_md(target->table));
 }
@@ -64,7 +64,7 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 	int i;
 	struct device_config *config = vdo->device_config;
 
-	int result = make_vdo_thread_config(config->thread_counts,
+	int result = vdo_make_thread_config(config->thread_counts,
 					    &vdo->thread_config);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot create thread configuration";
@@ -111,10 +111,10 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int initialize_vdo(struct vdo *vdo,
-		   struct device_config *config,
-		   unsigned int instance,
-		   char **reason)
+int vdo_initialize_internal(struct vdo *vdo,
+			    struct device_config *config,
+			    unsigned int instance,
+			    char **reason)
 {
 	int result;
 
@@ -124,29 +124,29 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->allocations_allowed = true;
 	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
 	INIT_LIST_HEAD(&vdo->device_config_list);
-	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
+	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
 	mutex_init(&vdo->stats_mutex);
 	initialize_limiter(&vdo->request_limiter, MAXIMUM_VDO_USER_VIOS);
 	initialize_limiter(&vdo->discard_limiter,
 			   MAXIMUM_VDO_USER_VIOS * 3 / 4);
-	result = vdo_read_geometry_block(get_vdo_backing_device(vdo),
+	result = vdo_read_geometry_block(vdo_get_backing_device(vdo),
 					 &vdo->geometry);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
-		destroy_vdo(vdo);
+		vdo_destroy(vdo);
 		return result;
 	}
 
 	result = allocate_vdo_threads(vdo, reason);
 	if (result != VDO_SUCCESS) {
-		destroy_vdo(vdo);
+		vdo_destroy(vdo);
 		return result;
 	}
 
-	result = register_vdo(vdo);
+	result = vdo_register(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot add VDO to device registry";
-		destroy_vdo(vdo);
+		vdo_destroy(vdo);
 		return result;
 	}
 

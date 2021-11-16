@@ -51,15 +51,15 @@ struct compressed_block {
 	char data[];
 } __packed;
 
-void reset_vdo_compressed_block_header(struct compressed_block_header *header);
+void vdo_reset_compressed_block_header(struct compressed_block_header *header);
 
-int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
+int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      char *buffer,
 				      block_size_t block_size,
 				      uint16_t *fragment_offset,
 				      uint16_t *fragment_size);
 
-void put_vdo_compressed_block_fragment(struct compressed_block *block,
+void vdo_put_compressed_block_fragment(struct compressed_block *block,
 				       unsigned int fragment, uint16_t offset,
 				       const char *data, uint16_t size);
 

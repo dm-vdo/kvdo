@@ -93,7 +93,7 @@ static const struct vdo_work_queue_type bio_queue_type = {
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &vdo_get_from_vio(vio)->stats;
+	struct atomic_statistics *stats = &vdo_from_vio(vio)->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out, bio);
@@ -129,7 +129,7 @@ static void assert_in_bio_zone(struct vio *vio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	struct vdo *vdo = vdo_get_from_vio(vio);
+	struct vdo *vdo = vdo_from_vio(vio);
 	assert_in_bio_zone(vio);
 	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
@@ -142,7 +142,7 @@ static void send_bio_to_device(struct vio *vio,
          */
 	vio_as_completion(vio)->requeue = true;
 
-	bio_set_dev(bio, get_vdo_backing_device(vdo));
+	bio_set_dev(bio, vdo_get_backing_device(vdo));
 	submit_bio_noacct(bio);
 }
 
@@ -181,7 +181,7 @@ static void process_bio_map(struct vdo_work_item *item)
 static struct bio *get_bio_list(struct vio *vio)
 {
 	struct bio *bio;
-	struct io_submitter *submitter = vdo_get_from_vio(vio)->io_submitter;
+	struct io_submitter *submitter = vdo_from_vio(vio)->io_submitter;
 	struct bio_queue_data *bio_queue_data
 		= &(submitter->bio_queue_data[vio->bio_zone]);
 
@@ -326,7 +326,7 @@ static bool try_bio_map_merge(struct vio *vio)
 	bool merged = true;
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
-	struct vdo *vdo = vdo_get_from_vio(vio);
+	struct vdo *vdo = vdo_from_vio(vio);
 	struct bio_queue_data *bio_queue_data
 		= &vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
@@ -400,7 +400,7 @@ void submit_data_vio_io(struct data_vio *data_vio)
 void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
 {
 	struct vio *vio = bio->bi_private;
-	struct io_submitter *submitter = vdo_get_from_vio(vio)->io_submitter;
+	struct io_submitter *submitter = vdo_from_vio(vio)->io_submitter;
 
 	bio->bi_next = NULL;
 	setup_vio_work(vio, process_bio_map, priority);
@@ -422,7 +422,7 @@ void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_io_submitter(const char *thread_name_prefix,
+int vdo_make_io_submitter(const char *thread_name_prefix,
 			  unsigned int thread_count,
 			  unsigned int rotation_interval,
 			  unsigned int max_requests_active,
@@ -469,13 +469,13 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			 */
 			uds_log_error("bio map initialization failed %d",
 				      result);
-			cleanup_vdo_io_submitter(io_submitter);
-			free_vdo_io_submitter(io_submitter);
+			vdo_cleanup_io_submitter(io_submitter);
+			vdo_free_io_submitter(io_submitter);
 			return result;
 		}
 
 		bio_queue_data->queue_number = i;
-		result = make_vdo_thread(vdo,
+		result = vdo_make_thread(vdo,
 					 thread_name_prefix,
 					 vdo->thread_config->bio_threads[i],
 					 &bio_queue_type,
@@ -489,8 +489,8 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
 				      result);
-			cleanup_vdo_io_submitter(io_submitter);
-			free_vdo_io_submitter(io_submitter);
+			vdo_cleanup_io_submitter(io_submitter);
+			vdo_free_io_submitter(io_submitter);
 			return result;
 		}
 
@@ -509,7 +509,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
  *
  * @param [in]  io_submitter  The I/O submitter data to tear down (may be NULL)
  **/
-void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
+void vdo_cleanup_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -525,13 +525,13 @@ void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
 /**
  * Free the io_submitter fields and structure as needed for a
  * physical layer. This must be called after
- * cleanup_vdo_io_submitter(). It is used to release resources late in
+ * vdo_cleanup_io_submitter(). It is used to release resources late in
  * the shutdown process to avoid or reduce the chance of race
  * conditions.
  *
  * @param [in]  io_submitter  The I/O submitter data to destroy
  **/
-void free_vdo_io_submitter(struct io_submitter *io_submitter)
+void vdo_free_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -542,7 +542,7 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter)
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		/*
-		 * destroy_vdo() will free the work queue, so just give up our 
+		 * vdo_destroy() will free the work queue, so just give up our 
 		 * reference to it. 
 		 */
 		UDS_FORGET(io_submitter->bio_queue_data[i].queue);

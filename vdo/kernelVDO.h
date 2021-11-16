@@ -27,7 +27,7 @@
 #include "kernel-types.h"
 #include "workQueue.h"
 
-void enqueue_vdo_work(struct vdo *vdo,
+void vdo_enqueue_work(struct vdo *vdo,
 		      struct vdo_work_item *item,
 		      thread_id_t thread_id);
 

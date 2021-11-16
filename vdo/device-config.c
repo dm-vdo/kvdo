@@ -461,7 +461,7 @@ static void handle_parse_error(struct device_config *config,
 			       char **error_ptr,
 			       char *error_str)
 {
-	free_vdo_device_config(config);
+	vdo_free_device_config(config);
 	*error_ptr = error_str;
 }
 
@@ -475,7 +475,7 @@ static void handle_parse_error(struct device_config *config,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parse_vdo_device_config(int argc,
+int vdo_parse_device_config(int argc,
 			    char **argv,
 			    struct dm_target *ti,
 			    struct device_config **config_ptr)
@@ -700,11 +700,11 @@ int parse_vdo_device_config(int argc,
 }
 
 /**
- * Free a device config created by parse_vdo_device_config().
+ * Free a device config created by vdo_parse_device_config().
  *
  * @param config  The config to free
  **/
-void free_vdo_device_config(struct device_config *config)
+void vdo_free_device_config(struct device_config *config)
 {
 	if (config == NULL) {
 		return;
@@ -729,7 +729,7 @@ void free_vdo_device_config(struct device_config *config)
  * @param config  The config in question
  * @param vdo     The vdo in question
  **/
-void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
+void vdo_set_device_config(struct device_config *config, struct vdo *vdo)
 {
 	list_del_init(&config->config_list);
 	if (vdo != NULL) {
@@ -752,7 +752,7 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
  *
  * @return VDO_SUCCESS or an error
  **/
-int validate_new_vdo_device_config(struct device_config *to_validate,
+int vdo_validate_new_device_config(struct device_config *to_validate,
 				   struct device_config *config,
 				   bool may_grow,
 				   char **error_ptr)

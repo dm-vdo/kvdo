@@ -69,7 +69,7 @@ struct packed_vdo_component_41_0 {
  *
  * @return the encoded size of the vdo's state
  **/
-size_t get_vdo_component_encoded_size(void)
+size_t vdo_get_component_encoded_size(void)
 {
 	return (sizeof(struct packed_version_number)
 		+ sizeof(struct packed_vdo_component_41_0));
@@ -125,12 +125,12 @@ pack_vdo_component(const struct vdo_component component)
  *
  * @return VDO_SUCCESS or an error
  **/
-int encode_vdo_component(struct vdo_component component, struct buffer *buffer)
+int vdo_encode_component(struct vdo_component component, struct buffer *buffer)
 {
 	int result;
 	struct packed_vdo_component_41_0 packed;
 
-	result = encode_vdo_version_number(VDO_COMPONENT_DATA_41_0, buffer);
+	result = vdo_encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -190,7 +190,7 @@ unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check
-decode_vdo_component_41_0(struct buffer *buffer,
+vdo_decode_component_41_0(struct buffer *buffer,
 			  struct vdo_component *component)
 {
 	struct packed_vdo_component_41_0 packed;
@@ -214,23 +214,23 @@ decode_vdo_component_41_0(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_component(struct buffer *buffer,
+int vdo_decode_component(struct buffer *buffer,
 			 struct vdo_component *component)
 {
 	struct version_number version;
-	int result = decode_vdo_version_number(buffer, &version);
+	int result = vdo_decode_version_number(buffer, &version);
 
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_vdo_version(version, VDO_COMPONENT_DATA_41_0,
+	result = vdo_validate_version(version, VDO_COMPONENT_DATA_41_0,
 				      "VDO component data");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return decode_vdo_component_41_0(buffer, component);
+	return vdo_decode_component_41_0(buffer, component);
 }
 
 /**
@@ -244,7 +244,7 @@ int decode_vdo_component(struct buffer *buffer,
  *
  * @return a success or error code
  **/
-int validate_vdo_config(const struct vdo_config *config,
+int vdo_validate_config(const struct vdo_config *config,
 			block_count_t physical_block_count,
 			block_count_t logical_block_count)
 {
@@ -280,7 +280,7 @@ int validate_vdo_config(const struct vdo_config *config,
 		return result;
 	}
 
-	result = configure_vdo_slab(config->slab_size,
+	result = vdo_configure_slab(config->slab_size,
 				    config->slab_journal_blocks,
 				    &slab_config);
 	if (result != VDO_SUCCESS) {

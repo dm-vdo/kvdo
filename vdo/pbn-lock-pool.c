@@ -63,7 +63,7 @@ struct pbn_lock_pool {
  *
  * @return a VDO_SUCCESS or an error code
  **/
-int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
+int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
 	struct pbn_lock_pool *pool;
@@ -78,7 +78,7 @@ int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	INIT_LIST_HEAD(&pool->idle_list);
 
 	for (i = 0; i < capacity; i++) {
-		return_vdo_pbn_lock_to_pool(pool, &pool->locks[i].lock);
+		vdo_return_pbn_lock_to_pool(pool, &pool->locks[i].lock);
 	}
 
 	*pool_ptr = pool;
@@ -91,7 +91,7 @@ int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
  *
  * @param pool  The lock pool to free
  **/
-void free_vdo_pbn_lock_pool(struct pbn_lock_pool *pool)
+void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 {
 	if (pool == NULL) {
 		return;
@@ -115,7 +115,7 @@ void free_vdo_pbn_lock_pool(struct pbn_lock_pool *pool)
  *
  * @return VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty
  **/
-int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 				  enum pbn_lock_type type,
 				  struct pbn_lock **lock_ptr)
 {
@@ -140,7 +140,7 @@ int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	memset(idle_entry, 0, sizeof(*idle_entry));
 
 	idle = list_entry(idle_entry, idle_pbn_lock, entry);
-	initialize_vdo_pbn_lock(&idle->lock, type);
+	vdo_initialize_pbn_lock(&idle->lock, type);
 
 	*lock_ptr = &idle->lock;
 	return VDO_SUCCESS;
@@ -154,7 +154,7 @@ int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
  * @param pool  The pool from which the lock was borrowed
  * @param lock  The last reference to the lock being returned
  **/
-void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+void vdo_return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 				 struct pbn_lock *lock)
 {
 	idle_pbn_lock *idle;

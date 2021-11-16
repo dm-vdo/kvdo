@@ -46,11 +46,11 @@ int __must_check vdo_initialize_physical_zone(struct vdo *vdo,
 void vdo_destroy_physical_zone(struct physical_zone *zone);
 
 struct pbn_lock * __must_check
-get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
 			       physical_block_number_t pbn);
 
 int __must_check
-attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 				   physical_block_number_t pbn,
 				   enum pbn_lock_type type,
 				   struct pbn_lock **lock_ptr);
@@ -58,10 +58,10 @@ attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 int __must_check
 vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio);
 
-void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 					physical_block_number_t locked_pbn,
 					struct pbn_lock *lock);
 
-void dump_vdo_physical_zone(const struct physical_zone *zone);
+void vdo_dump_physical_zone(const struct physical_zone *zone);
 
 #endif /* PHYSICAL_ZONE_H */

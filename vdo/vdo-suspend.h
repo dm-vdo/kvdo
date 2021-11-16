@@ -22,6 +22,6 @@
 
 #include "kernel-types.h"
 
-int suspend_vdo(struct vdo *vdo);
+int vdo_suspend(struct vdo *vdo);
 
 #endif /* VDO_SUSPEND_H */

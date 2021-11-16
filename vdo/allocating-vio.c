@@ -54,7 +54,7 @@ static void finish_allocation(struct allocating_vio *allocating_vio,
 	}
 
 	completion->callback = allocating_vio->allocation_callback;
-	continue_vdo_completion(completion, result);
+	vdo_continue_completion(completion, result);
 }
 
 static void allocate_block_in_zone(struct vdo_completion *completion);
@@ -123,7 +123,7 @@ static bool should_try_next_zone(struct allocating_vio *allocating_vio)
 	}
 
 	waiter->callback = retry_allocate_block_in_zone;
-	result = enqueue_for_clean_vdo_slab(allocator, waiter);
+	result = vdo_enqueue_for_clean_slab(allocator, waiter);
 	if (result == VDO_SUCCESS) {
 		return false;
 	}
@@ -189,7 +189,7 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
 	allocating_vio->zone =
-		&vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
+		&vdo->physical_zones[vdo_get_next_allocation_zone(selector)];
 
 	vio_launch_physical_zone_callback(allocating_vio,
 					  allocate_block_in_zone);
@@ -211,7 +211,7 @@ void vio_release_allocation_lock(struct allocating_vio *allocating_vio)
 		allocating_vio->allocation = VDO_ZERO_BLOCK;
 	}
 
-	release_vdo_physical_zone_pbn_lock(allocating_vio->zone,
+	vdo_release_physical_zone_pbn_lock(allocating_vio->zone,
 					   locked_pbn,
 					   UDS_FORGET(allocating_vio->allocation_lock));
 }

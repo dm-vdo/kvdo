@@ -39,14 +39,14 @@ extern const block_count_t VDO_ALL_FREE_BLOCKS;
 struct fixed_layout;
 struct partition;
 
-int __must_check make_vdo_fixed_layout(block_count_t total_blocks,
+int __must_check vdo_make_fixed_layout(block_count_t total_blocks,
 				       physical_block_number_t start_offset,
 				       struct fixed_layout **layout_ptr);
 
-void free_vdo_fixed_layout(struct fixed_layout *layout);
+void vdo_free_fixed_layout(struct fixed_layout *layout);
 
 block_count_t __must_check
-get_total_vdo_fixed_layout_size(const struct fixed_layout *layout);
+vdo_get_total_fixed_layout_size(const struct fixed_layout *layout);
 
 int __must_check
 vdo_get_fixed_layout_partition(struct fixed_layout *layout,
@@ -64,35 +64,35 @@ vdo_translate_from_pbn(const struct partition *partition,
 		       physical_block_number_t *partition_block_number);
 
 block_count_t __must_check
-get_vdo_fixed_layout_blocks_available(const struct fixed_layout *layout);
+vdo_get_fixed_layout_blocks_available(const struct fixed_layout *layout);
 
 int __must_check
-make_vdo_fixed_layout_partition(struct fixed_layout *layout,
+vdo_make_fixed_layout_partition(struct fixed_layout *layout,
 				enum partition_id id,
 				block_count_t block_count,
 				enum partition_direction direction,
 				physical_block_number_t base);
 
 block_count_t __must_check
-get_vdo_fixed_layout_partition_size(const struct partition *partition);
+vdo_get_fixed_layout_partition_size(const struct partition *partition);
 
 physical_block_number_t __must_check
-get_vdo_fixed_layout_partition_offset(const struct partition *partition);
+vdo_get_fixed_layout_partition_offset(const struct partition *partition);
 
 physical_block_number_t __must_check
-get_vdo_fixed_layout_partition_base(const struct partition *partition);
+vdo_get_fixed_layout_partition_base(const struct partition *partition);
 
 size_t __must_check
-get_vdo_fixed_layout_encoded_size(const struct fixed_layout *layout);
+vdo_get_fixed_layout_encoded_size(const struct fixed_layout *layout);
 
 int __must_check
-encode_vdo_fixed_layout(const struct fixed_layout *layout, struct buffer *buffer);
+vdo_encode_fixed_layout(const struct fixed_layout *layout, struct buffer *buffer);
 
 int __must_check
-decode_vdo_fixed_layout(struct buffer *buffer, struct fixed_layout **layout_ptr);
+vdo_decode_fixed_layout(struct buffer *buffer, struct fixed_layout **layout_ptr);
 
 int __must_check
-make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
+vdo_make_partitioned_fixed_layout(block_count_t physical_blocks,
 				  physical_block_number_t starting_offset,
 				  block_count_t block_map_blocks,
 				  block_count_t journal_blocks,

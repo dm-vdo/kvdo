@@ -23,7 +23,7 @@
 #include "kernel-types.h"
 #include "types.h"
 
-void rebuild_vdo_reference_counts(struct vdo *vdo,
+void vdo_rebuild_reference_counts(struct vdo *vdo,
 				  struct vdo_completion *parent,
 				  block_count_t *logical_blocks_used,
 				  block_count_t *block_map_data_blocks);

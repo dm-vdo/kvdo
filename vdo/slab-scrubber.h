@@ -59,40 +59,40 @@ struct slab_scrubber {
 };
 
 int __must_check
-make_vdo_slab_scrubber(struct vdo *vdo,
+vdo_make_slab_scrubber(struct vdo *vdo,
 		       block_count_t slab_journal_size,
 		       struct read_only_notifier *read_only_notifier,
 		       struct slab_scrubber **scrubber_ptr);
 
-void free_vdo_slab_scrubber(struct slab_scrubber *scrubber);
+void vdo_free_slab_scrubber(struct slab_scrubber *scrubber);
 
 void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 				     struct vdo_slab *slab,
 				     bool high_priority);
 
-void scrub_vdo_slabs(struct slab_scrubber *scrubber,
+void vdo_scrub_slabs(struct slab_scrubber *scrubber,
 		     void *parent,
 		     vdo_action *callback,
 		     vdo_action *error_handler);
 
-void scrub_high_priority_vdo_slabs(struct slab_scrubber *scrubber,
+void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 				   bool scrub_at_least_one,
 				   struct vdo_completion *parent,
 				   vdo_action *callback,
 				   vdo_action *error_handler);
 
-void stop_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
+void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber,
 			     struct vdo_completion *parent);
 
-void resume_vdo_slab_scrubbing(struct slab_scrubber *scrubber,
+void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber,
 			       struct vdo_completion *parent);
 
-int enqueue_clean_vdo_slab_waiter(struct slab_scrubber *scrubber,
+int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 				  struct waiter *waiter);
 
 slab_count_t __must_check
-get_scrubber_vdo_slab_count(const struct slab_scrubber *scrubber);
+vdo_get_scrubber_slab_count(const struct slab_scrubber *scrubber);
 
-void dump_vdo_slab_scrubber(const struct slab_scrubber *scrubber);
+void vdo_dump_slab_scrubber(const struct slab_scrubber *scrubber);
 
 #endif /* SLAB_SCRUBBER_H */

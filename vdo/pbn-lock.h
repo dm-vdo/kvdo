@@ -73,13 +73,13 @@ struct pbn_lock {
 	atomic_t increments_claimed;
 };
 
-void initialize_vdo_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type);
+void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type);
 
-bool __must_check is_vdo_pbn_read_lock(const struct pbn_lock *lock);
+bool __must_check vdo_is_pbn_read_lock(const struct pbn_lock *lock);
 
-void downgrade_vdo_pbn_write_lock(struct pbn_lock *lock);
+void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock);
 
-bool __must_check claim_vdo_pbn_lock_increment(struct pbn_lock *lock);
+bool __must_check vdo_claim_pbn_lock_increment(struct pbn_lock *lock);
 
 /**
  * Check whether a PBN lock has a provisional reference.
@@ -92,12 +92,12 @@ vdo_pbn_lock_has_provisional_reference(struct pbn_lock *lock)
 	return ((lock != NULL) && lock->has_provisional_reference);
 }
 
-void assign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock);
+void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 
-void unassign_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock);
+void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 
 void
-release_vdo_pbn_lock_provisional_reference(struct pbn_lock *lock,
+vdo_release_pbn_lock_provisional_reference(struct pbn_lock *lock,
 					   physical_block_number_t locked_pbn,
 					   struct block_allocator *allocator);
 

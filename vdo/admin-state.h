@@ -90,7 +90,7 @@ struct admin_state {
 typedef void vdo_admin_initiator(struct admin_state *state);
 
 const char * __must_check
-get_vdo_admin_state_name(const struct admin_state *state);
+vdo_get_admin_state_name(const struct admin_state *state);
 
 /**
  * Get the current admin state code.
@@ -253,48 +253,48 @@ vdo_is_state_quiescent(const struct admin_state *state)
 	return vdo_get_admin_state_code(state)->quiescent;
 }
 
-bool start_vdo_draining(struct admin_state *state,
+bool vdo_start_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator * initiator);
 
-bool finish_vdo_draining(struct admin_state *state);
+bool vdo_finish_draining(struct admin_state *state);
 
-bool finish_vdo_draining_with_result(struct admin_state *state, int result);
+bool vdo_finish_draining_with_result(struct admin_state *state, int result);
 
 bool __must_check
-assert_vdo_load_operation(const struct admin_state_code *operation,
+vdo_assert_load_operation(const struct admin_state_code *operation,
 			  struct vdo_completion *waiter);
 
-bool start_vdo_loading(struct admin_state *state,
+bool vdo_start_loading(struct admin_state *state,
 		       const struct admin_state_code *operation,
 		       struct vdo_completion *waiter,
 		       vdo_admin_initiator *initiator);
 
-bool finish_vdo_loading(struct admin_state *state);
+bool vdo_finish_loading(struct admin_state *state);
 
-bool finish_vdo_loading_with_result(struct admin_state *state, int result);
+bool vdo_finish_loading_with_result(struct admin_state *state, int result);
 
-bool start_vdo_resuming(struct admin_state *state,
+bool vdo_start_resuming(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator *initiator);
 
-bool finish_vdo_resuming(struct admin_state *state);
+bool vdo_finish_resuming(struct admin_state *state);
 
-bool finish_vdo_resuming_with_result(struct admin_state *state, int result);
+bool vdo_finish_resuming_with_result(struct admin_state *state, int result);
 
-int resume_vdo_if_quiescent(struct admin_state *state);
+int vdo_resume_if_quiescent(struct admin_state *state);
 
-int start_vdo_operation(struct admin_state *state,
+int vdo_start_operation(struct admin_state *state,
 			const struct admin_state_code *operation);
 
-bool start_vdo_operation_with_waiter(struct admin_state *state,
+bool vdo_start_operation_with_waiter(struct admin_state *state,
 				     const struct admin_state_code *operation,
 				     struct vdo_completion *waiter,
 				     vdo_admin_initiator *initiator);
 
-bool finish_vdo_operation(struct admin_state *state, int result);
+bool vdo_finish_operation(struct admin_state *state, int result);
 
 /**
  * Set a result for the current operation.
@@ -306,7 +306,7 @@ static inline void vdo_set_operation_result(struct admin_state *state,
 					    int result)
 {
 	if (state->waiter != NULL) {
-		set_vdo_completion_result(state->waiter, result);
+		vdo_set_completion_result(state->waiter, result);
 	}
 }
 

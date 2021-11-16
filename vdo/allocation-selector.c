@@ -36,7 +36,7 @@ enum {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_allocation_selector(zone_count_t physical_zone_count,
+int vdo_make_allocation_selector(zone_count_t physical_zone_count,
 				 thread_id_t thread_id,
 				 struct allocation_selector **selector_ptr)
 {
@@ -65,7 +65,7 @@ int make_vdo_allocation_selector(zone_count_t physical_zone_count,
  *
  * @return The number of the physical zone from which to allocate
  **/
-zone_count_t get_next_vdo_allocation_zone(struct allocation_selector *selector)
+zone_count_t vdo_get_next_allocation_zone(struct allocation_selector *selector)
 {
 	if (selector->last_physical_zone > 0) {
 		if (selector->allocation_count < ALLOCATIONS_PER_ZONE) {

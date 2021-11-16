@@ -89,7 +89,7 @@ static void do_dump(struct vdo *vdo,
 		     active,
 		     maximum,
 		     outstanding,
-		     get_vdo_device_name(vdo->device_config->owning_target));
+		     vdo_get_device_name(vdo->device_config->owning_target));
 	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0)
 	    && (vdo->threads != NULL)) {
 		thread_id_t id;
@@ -99,7 +99,7 @@ static void do_dump(struct vdo *vdo,
 		}
 	}
 
-	dump_vdo_dedupe_index(vdo->dedupe_index);
+	vdo_dump_dedupe_index(vdo->dedupe_index);
 	dump_buffer_pool(vdo->data_vio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
@@ -107,7 +107,7 @@ static void do_dump(struct vdo *vdo,
 		 * Options should become more fine-grained when we have more to 
 		 * display here. 
 		 */
-		dump_vdo_status(vdo);
+		vdo_dump_status(vdo);
 	}
 
 	report_uds_memory_usage();

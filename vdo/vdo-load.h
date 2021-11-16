@@ -22,9 +22,9 @@
 
 #include "kernel-types.h"
 
-int __must_check load_vdo(struct vdo *vdo);
+int __must_check vdo_load(struct vdo *vdo);
 
 int __must_check
-prepare_to_load_vdo(struct vdo *vdo);
+prepare_to_vdo_load(struct vdo *vdo);
 
 #endif /* VDO_LOAD_H */

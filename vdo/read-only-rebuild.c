@@ -76,7 +76,7 @@ struct read_only_rebuild_completion {
 static inline struct read_only_rebuild_completion * __must_check
 as_read_only_rebuild_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type,
+	vdo_assert_completion_type(completion->type,
 				   VDO_READ_ONLY_REBUILD_COMPLETION);
 	return container_of(completion, struct read_only_rebuild_completion,
 			    completion);
@@ -118,9 +118,9 @@ make_rebuild_completion(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_vdo_completion(&rebuild->completion, vdo,
+	vdo_initialize_completion(&rebuild->completion, vdo,
 				  VDO_READ_ONLY_REBUILD_COMPLETION);
-	initialize_vdo_completion(&rebuild->sub_task_completion, vdo,
+	vdo_initialize_completion(&rebuild->sub_task_completion, vdo,
 				  VDO_SUB_TASK_COMPLETION);
 
 	rebuild->vdo = vdo;
@@ -142,7 +142,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(UDS_FORGET(completion));
 	struct block_map *block_map = rebuild->vdo->block_map;
 
-	set_vdo_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
+	vdo_set_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
 	free_rebuild_completion(UDS_FORGET(rebuild));
 	vdo_finish_completion(parent, result);
 }
@@ -158,7 +158,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(completion);
 	struct vdo *vdo = rebuild->vdo;
 
-	initialize_vdo_recovery_journal_post_rebuild(vdo->recovery_journal,
+	vdo_initialize_recovery_journal_post_rebuild(vdo->recovery_journal,
 						     vdo->states.vdo.complete_recoveries,
 						     rebuild->tail,
 						     rebuild->logical_blocks_used,
@@ -209,7 +209,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
 
-	assert_on_vdo_admin_thread(vdo, __func__);
+	vdo_assert_on_admin_thread(vdo, __func__);
 	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
 		/* A "rebuild" for upgrade should not increment this count. */
 		vdo->states.vdo.complete_recoveries++;
@@ -217,7 +217,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 
 	uds_log_info("Saving rebuilt state");
 	vdo_prepare_completion_to_finish_parent(completion, &rebuild->completion);
-	drain_vdo_slab_depot(vdo->depot, VDO_ADMIN_STATE_REBUILDING, completion);
+	vdo_drain_slab_depot(vdo->depot, VDO_ADMIN_STATE_REBUILDING, completion);
 }
 
 /**
@@ -244,7 +244,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 			       vdo_finish_completion_parent_callback,
 			       vdo->thread_config->admin_thread,
 			       completion->parent);
-	rebuild_vdo_reference_counts(vdo,
+	vdo_rebuild_reference_counts(vdo,
 				     completion,
 				     &rebuild->logical_blocks_used,
 				     &rebuild->block_map_data_blocks);
@@ -267,8 +267,8 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
-			unvdo_pack_recovery_journal_entry(&sector->entries[i]);
-		int result = validate_vdo_recovery_journal_entry(rebuild->vdo,
+			vdo_unpack_recovery_journal_entry(&sector->entries[i]);
+		int result = vdo_validate_recovery_journal_entry(rebuild->vdo,
 								 &entry);
 		if (result != VDO_SUCCESS) {
 			/*
@@ -333,7 +333,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		journal_entry_count_t block_entries;
 		uint8_t j;
 
-		unvdo_pack_recovery_block_header(packed_header, &header);
+		vdo_unpack_recovery_block_header(packed_header, &header);
 
 		if (!vdo_is_exact_recovery_journal_block(journal, &header, i)) {
 			/* This block is invalid, so skip it. */
@@ -406,10 +406,10 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 
 	uds_log_info("Finished reading recovery journal");
-	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
+	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	found_entries =
-		find_vdo_recovery_journal_head_and_tail(vdo->recovery_journal,
+		vdo_find_recovery_journal_head_and_tail(vdo->recovery_journal,
 							rebuild->journal_data,
 							&rebuild->tail,
 							&rebuild->head,
@@ -423,7 +423,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	/* Suppress block map errors. */
-	set_vdo_page_cache_rebuild_mode(vdo->block_map->zones[0].page_cache,
+	vdo_set_page_cache_rebuild_mode(vdo->block_map->zones[0].page_cache,
 					true);
 
 	/* Play the recovery journal into the block map. */
@@ -432,7 +432,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			       vdo_finish_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
-	recover_vdo_block_map(vdo, rebuild->entry_count, rebuild->entries,
+	vdo_recover_block_map(vdo, rebuild->entry_count, rebuild->entries,
 			      completion);
 }
 
@@ -447,14 +447,14 @@ static void load_journal_callback(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
 
-	assert_on_vdo_logical_zone_thread(vdo, 0, __func__);
+	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	vdo_prepare_completion(completion,
 			       apply_journal_entries,
 			       vdo_finish_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
-	load_vdo_recovery_journal(vdo->recovery_journal, completion,
+	vdo_load_recovery_journal(vdo->recovery_journal, completion,
 				  &rebuild->journal_data);
 }
 
@@ -466,7 +466,7 @@ static void load_journal_callback(struct vdo_completion *completion)
  * @param vdo           The vdo to rebuild
  * @param parent        The completion to notify when the rebuild is complete
  **/
-void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent)
+void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct read_only_rebuild_completion *rebuild;
 	struct vdo_completion *completion, *sub_task_completion;
@@ -499,7 +499,7 @@ void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 			       vdo_finish_completion_parent_callback,
 			       vdo_get_logical_zone_thread(vdo->thread_config, 0),
 			       completion);
-	load_vdo_slab_depot(vdo->depot,
+	vdo_load_slab_depot(vdo->depot,
 			    VDO_ADMIN_STATE_LOADING_FOR_REBUILD,
 			    sub_task_completion,
 			    NULL);

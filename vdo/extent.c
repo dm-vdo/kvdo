@@ -43,7 +43,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int create_vdo_extent(struct vdo *vdo,
+int vdo_create_extent(struct vdo *vdo,
 		      enum vio_type vio_type,
 		      enum vio_priority priority,
 		      block_count_t block_count,
@@ -52,7 +52,7 @@ int create_vdo_extent(struct vdo *vdo,
 {
 	struct vdo_extent *extent;
 	int result = ASSERT(vdo_is_metadata_vio_type(vio_type),
-			    "create_vdo_extent() called for metadata");
+			    "vdo_create_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -63,7 +63,7 @@ int create_vdo_extent(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_vdo_completion(&extent->completion, vdo,
+	vdo_initialize_completion(&extent->completion, vdo,
 				  VDO_EXTENT_COMPLETION);
 
 	for (; extent->count < block_count; extent->count++) {
@@ -74,7 +74,7 @@ int create_vdo_extent(struct vdo *vdo,
 					     data,
 					     &extent->vios[extent->count]);
 		if (result != VDO_SUCCESS) {
-			free_vdo_extent(UDS_FORGET(extent));
+			vdo_free_extent(UDS_FORGET(extent));
 			return result;
 		}
 
@@ -90,7 +90,7 @@ int create_vdo_extent(struct vdo *vdo,
  *
  * @param extent  The extent to free
  **/
-void free_vdo_extent(struct vdo_extent *extent)
+void vdo_free_extent(struct vdo_extent *extent)
 {
 	block_count_t i;
 
@@ -117,7 +117,7 @@ static void handle_vio_completion(struct vdo_completion *completion)
 	struct vdo_extent *extent = vdo_completion_as_extent(completion->parent);
 
 	if (++extent->complete_count != extent->count) {
-		set_vdo_completion_result(vdo_extent_as_completion(extent),
+		vdo_set_completion_result(vdo_extent_as_completion(extent),
 					  completion->result);
 		return;
 	}
@@ -142,7 +142,7 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 {
 	block_count_t i;
 
-	reset_vdo_completion(&extent->completion);
+	vdo_reset_completion(&extent->completion);
 	if (count > extent->count) {
 		vdo_finish_completion(&extent->completion, VDO_OUT_OF_RANGE);
 		return;
@@ -168,7 +168,7 @@ static void launch_metadata_extent(struct vdo_extent *extent,
  * @param count        The number of blocks to read (must be less than or
  *                     equal to the length of the extent)
  **/
-void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
+void vdo_read_partial_metadata_extent(struct vdo_extent *extent,
 				      physical_block_number_t start_block,
 				      block_count_t count)
 {
@@ -184,7 +184,7 @@ void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
  * @param count        The number of blocks to read (must be less than or
  *                     equal to the length of the extent)
  **/
-void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
+void vdo_write_partial_metadata_extent(struct vdo_extent *extent,
 				       physical_block_number_t start_block,
 				       block_count_t count)
 {

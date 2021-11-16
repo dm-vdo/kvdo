@@ -153,7 +153,7 @@ static bool __must_check requires_recovery(const struct vdo *vdo)
  **/
 static bool __must_check requires_rebuild(const struct vdo *vdo)
 {
-	switch (get_vdo_state(vdo)) {
+	switch (vdo_get_state(vdo)) {
 	case VDO_DIRTY:
 	case VDO_FORCE_REBUILD:
 	case VDO_REPLAYING:
@@ -192,7 +192,7 @@ static enum slab_depot_load_type get_load_type(struct vdo *vdo)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int initialize_vdo_kobjects(struct vdo *vdo)
+static int vdo_initialize_kobjects(struct vdo *vdo)
 {
 	int result;
 	struct dm_target *target = vdo->device_config->owning_target;
@@ -207,13 +207,13 @@ static int initialize_vdo_kobjects(struct vdo *vdo)
 		return VDO_CANT_ADD_SYSFS_NODE;
 	}
 
-	result = add_vdo_dedupe_index_sysfs(vdo->dedupe_index,
+	result = vdo_add_dedupe_index_sysfs(vdo->dedupe_index,
 					    &vdo->vdo_directory);
 	if (result != 0) {
 		return VDO_CANT_ADD_SYSFS_NODE;
 	}
 
-	return add_vdo_sysfs_stats_dir(vdo);
+	return vdo_add_sysfs_stats_dir(vdo);
 }
 
 /**
@@ -227,13 +227,13 @@ static void load_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 
-	assert_vdo_admin_phase_thread(admin_completion,
+	vdo_assert_admin_phase_thread(admin_completion,
 				      __func__,
 				      LOAD_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case LOAD_PHASE_START:
-		if (!start_vdo_operation_with_waiter(&vdo->admin_state,
+		if (!vdo_start_operation_with_waiter(&vdo->admin_state,
 						     VDO_ADMIN_STATE_LOADING,
 						     &admin_completion->completion,
 						     NULL)) {
@@ -241,11 +241,11 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		/* Prepare the recovery journal for new entries. */
-		open_vdo_recovery_journal(vdo->recovery_journal,
+		vdo_open_recovery_journal(vdo->recovery_journal,
 					  vdo->depot,
 					  vdo->block_map);
 		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
-					       reset_vdo_admin_sub_task(completion));
+					       vdo_reset_admin_sub_task(completion));
 		return;
 
 	case LOAD_PHASE_LOAD_DEPOT:
@@ -260,9 +260,9 @@ static void load_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		reset_vdo_admin_sub_task(completion);
+		vdo_reset_admin_sub_task(completion);
 		if (requires_read_only_rebuild(vdo)) {
-			launch_vdo_rebuild(vdo, completion);
+			vdo_launch_rebuild(vdo, completion);
 			return;
 		}
 
@@ -271,7 +271,7 @@ static void load_callback(struct vdo_completion *completion)
 			return;
 		}
 
-		load_vdo_slab_depot(vdo->depot,
+		vdo_load_slab_depot(vdo->depot,
 				    (was_new(vdo)
 				     ? VDO_ADMIN_STATE_FORMATTING
 				     : VDO_ADMIN_STATE_LOADING),
@@ -280,30 +280,30 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_MAKE_DIRTY:
-		set_vdo_state(vdo, VDO_DIRTY);
-		save_vdo_components(vdo, reset_vdo_admin_sub_task(completion));
+		vdo_set_state(vdo, VDO_DIRTY);
+		vdo_save_components(vdo, vdo_reset_admin_sub_task(completion));
 		return;
 
 	case LOAD_PHASE_PREPARE_TO_ALLOCATE:
-		initialize_vdo_block_map_from_journal(vdo->block_map,
+		vdo_initialize_block_map_from_journal(vdo->block_map,
 						      vdo->recovery_journal);
-		prepare_vdo_slab_depot_to_allocate(vdo->depot,
+		vdo_prepare_slab_depot_to_allocate(vdo->depot,
 						   get_load_type(vdo),
-						   reset_vdo_admin_sub_task(completion));
+						   vdo_reset_admin_sub_task(completion));
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
 		if (requires_recovery(vdo)) {
-			enter_vdo_recovery_mode(vdo);
+			vdo_enter_recovery_mode(vdo);
 		}
 
 		vdo_scrub_all_unrecovered_slabs(vdo->depot,
-						reset_vdo_admin_sub_task(completion));
+						vdo_reset_admin_sub_task(completion));
 		return;
 
 	case LOAD_PHASE_STATS:
-		vdo_finish_completion(reset_vdo_admin_sub_task(completion),
-				      initialize_vdo_kobjects(vdo));
+		vdo_finish_completion(vdo_reset_admin_sub_task(completion),
+				      vdo_initialize_kobjects(vdo));
 		return;
 
 	case LOAD_PHASE_DATA_REDUCTION:
@@ -315,7 +315,7 @@ static void load_callback(struct vdo_completion *completion)
 			 * log scary error messages) if this is known to be a
 			 * newly-formatted volume.
 			 */
-			start_vdo_dedupe_index(vdo->dedupe_index,
+			vdo_start_dedupe_index(vdo->dedupe_index,
 					       was_new(vdo));
 		}
 
@@ -326,29 +326,29 @@ static void load_callback(struct vdo_completion *completion)
 		break;
 
 	case LOAD_PHASE_DRAIN_JOURNAL:
-		drain_vdo_recovery_journal(vdo->recovery_journal,
+		vdo_drain_recovery_journal(vdo->recovery_journal,
 					   VDO_ADMIN_STATE_SAVING,
-					   reset_vdo_admin_sub_task(completion));
+					   vdo_reset_admin_sub_task(completion));
 		return;
 
 	case LOAD_PHASE_WAIT_FOR_READ_ONLY:
 		admin_completion->phase = LOAD_PHASE_FINISHED;
-		reset_vdo_admin_sub_task(completion);
+		vdo_reset_admin_sub_task(completion);
 		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 							   completion);
 		return;
 
 	default:
-		set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
+		vdo_set_completion_result(vdo_reset_admin_sub_task(completion),
 					  UDS_BAD_STATE);
 	}
 
-	finish_vdo_operation(&vdo->admin_state, completion->result);
+	vdo_finish_operation(&vdo->admin_state, completion->result);
 }
 
 /**
  * Handle an error during the load operation. If at all possible, bring the vdo
- * online in read-only mode. This handler is registered in load_vdo().
+ * online in read-only mode. This handler is registered in vdo_load().
  *
  * @param completion  The sub-task completion
  **/
@@ -358,7 +358,7 @@ static void handle_load_error(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 
-	assert_vdo_admin_operation_type(admin_completion,
+	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
 	if (requires_read_only_rebuild(vdo)
@@ -389,14 +389,14 @@ static void handle_load_error(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-int load_vdo(struct vdo *vdo)
+int vdo_load(struct vdo *vdo)
 {
 	const char *device_name;
 	int result;
 
-	device_name = get_vdo_device_name(vdo->device_config->owning_target);
+	device_name = vdo_get_device_name(vdo->device_config->owning_target);
 	uds_log_info("starting device '%s'", device_name);
-	result = perform_vdo_admin_operation(vdo,
+	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_LOAD,
 					     get_thread_id_for_phase,
 					     load_callback,
@@ -418,7 +418,7 @@ int load_vdo(struct vdo *vdo)
 	uds_log_error_strerror(result,
 			       "Start failed, could not load VDO metadata");
 	vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;
-	suspend_vdo(vdo);
+	vdo_suspend(vdo);
 	return result;
 }
 
@@ -451,17 +451,17 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 {
 	const struct device_config *config = vdo->device_config;
 	struct super_block_codec *codec
-		= get_vdo_super_block_codec(vdo->super_block);
-	int result = decode_vdo_component_states(codec->component_buffer,
+		= vdo_get_super_block_codec(vdo->super_block);
+	int result = vdo_decode_component_states(codec->component_buffer,
 						 vdo->geometry.release_version,
 						 &vdo->states);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	set_vdo_state(vdo, vdo->states.vdo.state);
+	vdo_set_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
-	result = validate_vdo_component_states(&vdo->states,
+	result = vdo_validate_component_states(&vdo->states,
 					       vdo->geometry.nonce,
 					       config->physical_blocks,
 					       config->logical_blocks);
@@ -469,7 +469,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 		return result;
 	}
 
-	return decode_vdo_layout(vdo->states.layout, &vdo->layout);
+	return vdo_decode_layout(vdo->states.layout, &vdo->layout);
 }
 
 /**
@@ -491,18 +491,18 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	int result = decode_from_super_block(vdo);
 
 	if (result != VDO_SUCCESS) {
-		destroy_vdo_component_states(&vdo->states);
+		vdo_destroy_component_states(&vdo->states);
 		return result;
 	}
 
 	maximum_age = vdo->device_config->block_map_maximum_age;
 	journal_length =
-		get_vdo_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
+		vdo_get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = make_vdo_read_only_notifier(in_vdo_read_only_mode(vdo),
+	result = vdo_make_read_only_notifier(vdo_in_read_only_mode(vdo),
 					     thread_config,
 					     vdo,
 					     &vdo->read_only_notifier);
@@ -510,15 +510,15 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = enable_vdo_read_only_entry(vdo);
+	result = vdo_enable_read_only_entry(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_recovery_journal(vdo->states.recovery_journal,
+	result = vdo_decode_recovery_journal(vdo->states.recovery_journal,
 					     vdo->states.vdo.nonce,
 					     vdo,
-					     get_vdo_partition(vdo->layout,
+					     vdo_get_partition(vdo->layout,
 							       VDO_RECOVERY_JOURNAL_PARTITION),
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
@@ -530,16 +530,16 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = decode_vdo_slab_depot(vdo->states.slab_depot,
+	result = vdo_decode_slab_depot(vdo->states.slab_depot,
 				       vdo,
-				       get_vdo_partition(vdo->layout,
+				       vdo_get_partition(vdo->layout,
 							 VDO_SLAB_SUMMARY_PARTITION),
 				       &vdo->depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_block_map(vdo->states.block_map,
+	result = vdo_decode_block_map(vdo->states.block_map,
 				      vdo->states.vdo.config.logical_blocks,
 				      thread_config,
 				      vdo,
@@ -553,7 +553,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = make_vdo_flusher(vdo);
+	result = vdo_make_flusher(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -567,13 +567,13 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	}
 
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-		result = make_vdo_hash_zone(vdo, zone, &vdo->hash_zones[zone]);
+		result = vdo_make_hash_zone(vdo, zone, &vdo->hash_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
 	}
 
-	result = make_vdo_logical_zones(vdo, &vdo->logical_zones);
+	result = vdo_make_logical_zones(vdo, &vdo->logical_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -595,7 +595,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		}
 	}
 
-	return make_vdo_packer(vdo,
+	return vdo_make_packer(vdo,
 			       DEFAULT_PACKER_INPUT_BINS,
 			       DEFAULT_PACKER_OUTPUT_BINS,
 			       &vdo->packer);
@@ -610,7 +610,7 @@ static void finish_operation_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
-	finish_vdo_operation(&vdo->admin_state, completion->result);
+	vdo_finish_operation(&vdo->admin_state, completion->result);
 }
 
 /**
@@ -619,18 +619,18 @@ static void finish_operation_callback(struct vdo_completion *completion)
  *
  * @param completion The sub-task completion
  **/
-static void load_vdo_components(struct vdo_completion *completion)
+static void vdo_load_components(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
-	prepare_vdo_admin_sub_task(vdo,
+	vdo_prepare_admin_sub_task(vdo,
 				   finish_operation_callback,
 				   finish_operation_callback);
 	vdo_finish_completion(completion, decode_vdo(vdo));
 }
 
 /**
- * Callback to initiate a pre-load, registered in prepare_to_load_vdo().
+ * Callback to initiate a pre-load, registered in prepare_to_vdo_load().
  *
  * @param completion  The sub-task completion
  **/
@@ -640,18 +640,18 @@ static void pre_load_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
 
-	assert_on_vdo_admin_thread(vdo, __func__);
-	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
+	vdo_assert_on_admin_thread(vdo, __func__);
+	if (!vdo_start_operation_with_waiter(&vdo->admin_state,
 					     VDO_ADMIN_STATE_PRE_LOADING,
 					     &admin_completion->completion,
 					     NULL)) {
 		return;
 	}
 
-	prepare_vdo_admin_sub_task(vdo,
-				   load_vdo_components,
+	vdo_prepare_admin_sub_task(vdo,
+				   vdo_load_components,
 				   finish_operation_callback);
-	load_vdo_super_block(vdo,
+	vdo_load_super_block(vdo,
 			     completion,
 			     vdo_get_data_region_start(vdo->geometry),
 			     &vdo->super_block);
@@ -663,9 +663,9 @@ static void pre_load_callback(struct vdo_completion *completion)
  * whereas perform_vdo_load() will be called during pre-resume if the vdo has
  * not been resumed before.
  **/
-int prepare_to_load_vdo(struct vdo *vdo)
+int prepare_to_vdo_load(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo,
+	return vdo_perform_admin_operation(vdo,
 					   VDO_ADMIN_OPERATION_PRE_LOAD,
 					   NULL,
 					   pre_load_callback,

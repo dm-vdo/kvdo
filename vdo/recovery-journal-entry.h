@@ -104,7 +104,7 @@ vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
  * @return  The unpacked entry
  **/
 static inline struct recovery_journal_entry
-unvdo_pack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
+vdo_unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;

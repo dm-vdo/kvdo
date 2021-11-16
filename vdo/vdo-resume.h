@@ -23,8 +23,8 @@
 #include "kernel-types.h"
 #include "types.h"
 
-int preresume_vdo(struct vdo *vdo,
-		  struct device_config *config,
-		  const char *device_name);
+int vdo_preresume_internal(struct vdo *vdo,
+			   struct device_config *config,
+			   const char *device_name);
 
 #endif /* VDO_RESUME_H */

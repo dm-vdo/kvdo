@@ -42,7 +42,7 @@
 static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",
 	"acknowledge_write",
-	"acquire_vdo_hash_lock",
+	"acquire_hash_lock",
 	"attempt_logical_block_lock",
 	"lock_duplicate_pbn",
 	"check_for_duplication",
@@ -237,7 +237,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNMAPPED;
 	}
 
-	reset_vdo_completion(vio_as_completion(vio));
+	vdo_reset_completion(vio_as_completion(vio));
 	set_data_vio_logical_callback(data_vio,
 				      attempt_logical_block_lock);
 }
@@ -281,7 +281,7 @@ void finish_data_vio(struct data_vio *data_vio, int result)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
-	set_vdo_completion_result(completion, result);
+	vdo_set_completion_result(completion, result);
 	complete_data_vio(completion);
 }
 
@@ -371,7 +371,7 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 				 enum block_mapping_state state)
 {
 	struct physical_zone *zone;
-	int result = get_vdo_physical_zone(vdo_get_from_data_vio(data_vio),
+	int result = vdo_get_physical_zone(vdo_get_from_data_vio(data_vio),
 					   pbn, &zone);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -485,7 +485,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	    cancel_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
 		launch_data_vio_packer_callback(data_vio,
-						remove_lock_holder_from_vdo_packer);
+						vdo_remove_lock_holder_from_packer);
 	}
 }
 

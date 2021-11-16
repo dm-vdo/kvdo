@@ -20,12 +20,12 @@
 #ifndef INSTANCE_NUMBER_H
 #define INSTANCE_NUMBER_H
 
-int allocate_vdo_instance(unsigned int *instance_ptr);
+int vdo_allocate_instance(unsigned int *instance_ptr);
 
-void release_vdo_instance(unsigned int instance);
+void vdo_release_instance(unsigned int instance);
 
-void initialize_vdo_instance_number_tracking(void);
+void vdo_initialize_instance_number_tracking(void);
 
-void clean_up_vdo_instance_number_tracking(void);
+void vdo_clean_up_instance_number_tracking(void);
 
 #endif /* INSTANCE_NUMBER_H */

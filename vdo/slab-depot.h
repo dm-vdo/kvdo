@@ -94,15 +94,15 @@ struct slab_depot {
 };
 
 int __must_check
-decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
+vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 		      struct vdo *vdo,
 		      struct partition *summary_partition,
 		      struct slab_depot **depot_ptr);
 
-void free_vdo_slab_depot(struct slab_depot *depot);
+void vdo_free_slab_depot(struct slab_depot *depot);
 
 struct slab_depot_state_2_0 __must_check
-record_vdo_slab_depot(const struct slab_depot *depot);
+vdo_record_slab_depot(const struct slab_depot *depot);
 
 int __must_check vdo_allocate_slab_ref_counts(struct slab_depot *depot);
 
@@ -111,10 +111,10 @@ vdo_get_block_allocator_for_zone(struct slab_depot *depot,
 				 zone_count_t zone_number);
 
 struct vdo_slab * __must_check
-get_vdo_slab(const struct slab_depot *depot, physical_block_number_t pbn);
+vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
 
 struct slab_journal * __must_check
-get_vdo_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn);
+vdo_get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn);
 
 uint8_t __must_check
 vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
@@ -124,24 +124,24 @@ vdo_is_physical_data_block(const struct slab_depot *depot,
 			   physical_block_number_t pbn);
 
 block_count_t __must_check
-get_vdo_slab_depot_allocated_blocks(const struct slab_depot *depot);
+vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot);
 
 block_count_t __must_check
-get_vdo_slab_depot_data_blocks(const struct slab_depot *depot);
+vdo_get_slab_depot_data_blocks(const struct slab_depot *depot);
 
-void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
+void vdo_get_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats);
 
-void load_vdo_slab_depot(struct slab_depot *depot,
+void vdo_load_slab_depot(struct slab_depot *depot,
 			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent,
 			 void *context);
 
-void prepare_vdo_slab_depot_to_allocate(struct slab_depot *depot,
+void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 					enum slab_depot_load_type load_type,
 					struct vdo_completion *parent);
 
-void update_vdo_slab_depot_size(struct slab_depot *depot);
+void vdo_update_slab_depot_size(struct slab_depot *depot);
 
 int __must_check
 vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size);
@@ -150,28 +150,28 @@ void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent);
 
 void vdo_abandon_new_slabs(struct slab_depot *depot);
 
-void drain_vdo_slab_depot(struct slab_depot *depot,
+void vdo_drain_slab_depot(struct slab_depot *depot,
 			  const struct admin_state_code *operation,
 			  struct vdo_completion *parent);
 
-void resume_vdo_slab_depot(struct slab_depot *depot, struct vdo_completion *parent);
+void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent);
 
 void
 vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 					   sequence_number_t recovery_block_number);
 
 const struct slab_config * __must_check
-get_vdo_slab_config(const struct slab_depot *depot);
+vdo_get_slab_config(const struct slab_depot *depot);
 
 struct slab_summary * __must_check
-get_vdo_slab_summary(const struct slab_depot *depot);
+vdo_get_slab_summary(const struct slab_depot *depot);
 
 void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				     struct vdo_completion *parent);
 
-block_count_t __must_check get_vdo_slab_depot_new_size(const struct slab_depot *depot);
+block_count_t __must_check vdo_get_slab_depot_new_size(const struct slab_depot *depot);
 
-void dump_vdo_slab_depot(const struct slab_depot *depot);
+void vdo_dump_slab_depot(const struct slab_depot *depot);
 
 void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion);
 

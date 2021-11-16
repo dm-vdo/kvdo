@@ -23,7 +23,7 @@
 #include "completion.h"
 #include "types.h"
 
-int perform_synchronous_vdo_action(struct vdo *vdo,
+int vdo_perform_synchronous_action(struct vdo *vdo,
 				   vdo_action * action,
 				   thread_id_t thread_id,
 				   void *parent);

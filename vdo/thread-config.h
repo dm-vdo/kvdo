@@ -45,10 +45,10 @@ struct thread_config {
 };
 
 int __must_check
-make_vdo_thread_config(struct thread_count_config counts,
+vdo_make_thread_config(struct thread_count_config counts,
 		       struct thread_config **config_ptr);
 
-void free_vdo_thread_config(struct thread_config *config);
+void vdo_free_thread_config(struct thread_config *config);
 
 /**
  * Get the thread id for a given logical zone.

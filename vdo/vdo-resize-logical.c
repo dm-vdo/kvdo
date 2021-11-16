@@ -54,7 +54,7 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 
 /**
  * Callback to initiate a grow logical, registered in
- * perform_vdo_grow_logical().
+ * vdo_perform_grow_logical().
  *
  * @param completion  The sub-task completion
  **/
@@ -64,9 +64,9 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 
-	assert_vdo_admin_operation_type(admin_completion,
+	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_GROW_LOGICAL);
-	assert_vdo_admin_phase_thread(admin_completion, __func__,
+	vdo_assert_admin_phase_thread(admin_completion, __func__,
 				      GROW_LOGICAL_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
@@ -74,26 +74,26 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow logical size of a read-only VDO");
-			vdo_finish_completion(reset_vdo_admin_sub_task(completion),
+			vdo_finish_completion(vdo_reset_admin_sub_task(completion),
 					      VDO_READ_ONLY);
 			return;
 		}
 
-		if (start_vdo_operation_with_waiter(&vdo->admin_state,
+		if (vdo_start_operation_with_waiter(&vdo->admin_state,
 						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
 			vdo->states.vdo.config.logical_blocks =
 				vdo_get_new_entry_count(vdo->block_map);
-			save_vdo_components(vdo,
-					    reset_vdo_admin_sub_task(completion));
+			vdo_save_components(vdo,
+					    vdo_reset_admin_sub_task(completion));
 		}
 
 		return;
 
 	case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-		grow_vdo_block_map(vdo->block_map,
-				   reset_vdo_admin_sub_task(completion));
+		vdo_grow_block_map(vdo->block_map,
+				   vdo_reset_admin_sub_task(completion));
 		return;
 
 	case GROW_LOGICAL_PHASE_END:
@@ -105,11 +105,11 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
+		vdo_set_completion_result(vdo_reset_admin_sub_task(completion),
 					  UDS_BAD_STATE);
 	}
 
-	finish_vdo_operation(&vdo->admin_state, completion->result);
+	vdo_finish_operation(&vdo->admin_state, completion->result);
 }
 
 /**
@@ -146,7 +146,7 @@ static void handle_growth_error(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
+int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	int result;
 
@@ -166,7 +166,7 @@ int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result = perform_vdo_admin_operation(vdo,
+	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_GROW_LOGICAL,
 					     get_thread_id_for_phase,
 					     grow_logical_callback,
@@ -189,7 +189,7 @@ int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_vdo_to_grow_logical(struct vdo *vdo,
+int vdo_prepare_to_grow_logical(struct vdo *vdo,
 				block_count_t new_logical_blocks)
 {
 	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;

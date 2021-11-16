@@ -170,7 +170,7 @@ vdo_pack_slab_journal_block_header(const struct slab_journal_block_header *heade
  * @return The decoded slab journal entry
  **/
 static inline struct slab_journal_entry __must_check
-unvdo_pack_slab_journal_entry(const packed_slab_journal_entry *packed)
+vdo_unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;
 
@@ -185,7 +185,7 @@ unvdo_pack_slab_journal_entry(const packed_slab_journal_entry *packed)
 }
 
 struct slab_journal_entry __must_check
-decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
+vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 			      journal_entry_count_t entry_count);
 
 

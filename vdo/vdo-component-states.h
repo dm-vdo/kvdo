@@ -58,15 +58,15 @@ struct vdo_component_states {
 	struct fixed_layout *layout;
 };
 
-void destroy_vdo_component_states(struct vdo_component_states *states);
+void vdo_destroy_component_states(struct vdo_component_states *states);
 
 int __must_check
-decode_vdo_component_states(struct buffer *buffer,
+vdo_decode_component_states(struct buffer *buffer,
 			    release_version_number_t expected_release_version,
 			    struct vdo_component_states *states);
 
 int __must_check
-validate_vdo_component_states(struct vdo_component_states *states,
+vdo_validate_component_states(struct vdo_component_states *states,
 			      nonce_t geometry_nonce,
 			      block_count_t physical_size,
 			      block_count_t logical_size);
@@ -78,9 +78,9 @@ validate_vdo_component_states(struct vdo_component_states *states,
  * @param states  The states of the vdo to be encoded
  **/
 int __must_check
-encode_vdo(struct buffer *buffer, struct vdo_component_states *states);
+vdo_encode(struct buffer *buffer, struct vdo_component_states *states);
 
-int encode_vdo_component_states(struct buffer *buffer,
+int vdo_encode_component_states(struct buffer *buffer,
 				const struct vdo_component_states *states);
 
 #endif /* VDO_COMPONENT_STATES_H */

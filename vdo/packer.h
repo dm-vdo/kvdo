@@ -138,32 +138,32 @@ struct packer {
 	struct output_bin *idle_output_bins[];
 };
 
-int __must_check make_vdo_packer(struct vdo *vdo,
+int __must_check vdo_make_packer(struct vdo *vdo,
 				 block_count_t input_bin_count,
 				 block_count_t output_bin_count,
 				 struct packer **packer_ptr);
 
-void free_vdo_packer(struct packer *packer);
+void vdo_free_packer(struct packer *packer);
 
 bool __must_check
 vdo_data_is_sufficiently_compressible(struct data_vio *data_vio);
 
 struct packer_statistics __must_check
-get_vdo_packer_statistics(const struct packer *packer);
+vdo_get_packer_statistics(const struct packer *packer);
 
 void vdo_attempt_packing(struct data_vio *data_vio);
 
-void flush_vdo_packer(struct packer *packer);
+void vdo_flush_packer(struct packer *packer);
 
-void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion);
+void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion);
 
-void increment_vdo_packer_flush_generation(struct packer *packer);
+void vdo_increment_packer_flush_generation(struct packer *packer);
 
 void
-drain_vdo_packer(struct packer *packer, struct vdo_completion *completion);
+vdo_drain_packer(struct packer *packer, struct vdo_completion *completion);
 
-void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent);
+void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 
-void dump_vdo_packer(const struct packer *packer);
+void vdo_dump_packer(const struct packer *packer);
 
 #endif /* PACKER_H */

@@ -39,7 +39,7 @@ struct sync_completion {
 static inline struct sync_completion * __must_check
 as_sync_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VDO_SYNC_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_SYNC_COMPLETION);
 	return container_of(completion,
 			    struct sync_completion,
 			    vdo_completion);
@@ -58,7 +58,7 @@ static void complete_synchronous_action(struct vdo_completion *completion)
 
 /**
  * A vdo_action to perform a synchronous action registered in
- * perform_synchronous_vdo_action().
+ * vdo_perform_synchronous_action().
  *
  * @param completion  The sync completion
  **/
@@ -76,14 +76,14 @@ static void run_synchronous_action(struct vdo_completion *completion)
  * @param thread_id  The thread on which to run the action
  * @param parent     The parent of the sync completion (may be NULL)
  **/
-int perform_synchronous_vdo_action(struct vdo *vdo,
+int vdo_perform_synchronous_action(struct vdo *vdo,
 				   vdo_action *action,
 				   thread_id_t thread_id,
 				   void *parent)
 {
 	struct sync_completion sync;
 
-	initialize_vdo_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
+	vdo_initialize_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
 	init_completion(&sync.completion);
 	sync.action = action;
 	vdo_launch_completion_callback_with_parent(&sync.vdo_completion,

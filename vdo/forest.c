@@ -94,7 +94,7 @@ struct cursors {
  *
  * @return The requested page
  **/
-struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
+struct tree_page *vdo_get_tree_page_by_index(struct forest *forest,
 					     root_count_t root_index,
 					     height_t height,
 					     page_number_t page_index)
@@ -204,7 +204,7 @@ static int make_segment(struct forest *old_forest,
 			if (height == (VDO_BLOCK_MAP_TREE_HEIGHT - 1)) {
 				/* Record the root. */
 				struct block_map_page *page =
-					format_vdo_block_map_page(page_ptr->page_buffer,
+					vdo_format_block_map_page(page_ptr->page_buffer,
 							      forest->map->nonce,
 							      VDO_INVALID_PBN,
 							      true);
@@ -252,7 +252,7 @@ static void deforest(struct forest *forest, size_t first_page_segment)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_forest(struct block_map *map, block_count_t entries)
+int vdo_make_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *forest, *old_forest = map->forest;
 	struct boundary new_boundary, *old_boundary = NULL;
@@ -295,7 +295,7 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
  *
  * @param forest  The forest to free
  **/
-void free_vdo_forest(struct forest *forest)
+void vdo_free_forest(struct forest *forest)
 {
 	if (forest == NULL) {
 		return;
@@ -309,7 +309,7 @@ void free_vdo_forest(struct forest *forest)
  *
  * @param map  The block map
  **/
-void abandon_vdo_forest(struct block_map *map)
+void vdo_abandon_forest(struct block_map *map)
 {
 	struct forest *forest = map->next_forest;
 
@@ -326,7 +326,7 @@ void abandon_vdo_forest(struct block_map *map)
  *
  * @param map  The block map
  **/
-void replace_vdo_forest(struct block_map *map)
+void vdo_replace_forest(struct block_map *map)
 {
 	if (map->next_forest != NULL) {
 		if (map->forest != NULL) {
@@ -527,7 +527,7 @@ static struct boundary compute_boundary(struct block_map *map,
 	height_t height;
 
 	page_count_t leaf_pages =
-		compute_vdo_block_map_page_count(map->entry_count);
+		vdo_compute_block_map_page_count(map->entry_count);
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
@@ -562,7 +562,7 @@ static struct boundary compute_boundary(struct block_map *map,
  * @param parent    The completion to notify on each traversed PBN, and when
  *                  the traversal is complete
  **/
-void traverse_vdo_forest(struct block_map *map,
+void vdo_traverse_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent)
 {

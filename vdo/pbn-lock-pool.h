@@ -26,16 +26,16 @@
 struct pbn_lock_pool;
 
 int __must_check
-make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
+vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
 
-void free_vdo_pbn_lock_pool(struct pbn_lock_pool *pool);
+void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool);
 
 int __must_check
-borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 			      enum pbn_lock_type type,
 			      struct pbn_lock **lock_ptr);
 
-void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+void vdo_return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 				 struct pbn_lock *lock);
 
 #endif /* PBN_LOCK_POOL_H */

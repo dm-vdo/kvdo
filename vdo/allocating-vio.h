@@ -162,7 +162,7 @@ waiter_as_allocating_vio(struct waiter *waiter)
 static inline struct vdo *
 vdo_get_from_allocating_vio(struct allocating_vio *allocating_vio)
 {
-	return vdo_get_from_vio(allocating_vio_as_vio(allocating_vio));
+	return vdo_from_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**

@@ -127,7 +127,7 @@ static const struct vdo_work_queue_type cpu_q_type = {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_thread(struct vdo *vdo,
+int vdo_make_thread(struct vdo *vdo,
 		    const char *thread_name_prefix,
 		    thread_id_t thread_id,
 		    const struct vdo_work_queue_type *type,
@@ -170,7 +170,7 @@ int make_vdo_thread(struct vdo *vdo,
  * @return VDO_SUCCESS or an error code
  **/
 static int __must_check
-make_vdo_request_thread_group(struct vdo *vdo,
+vdo_make_request_thread_group(struct vdo *vdo,
 			      const char *thread_name_prefix,
 			      thread_count_t count,
 			      thread_id_t ids[])
@@ -179,7 +179,7 @@ make_vdo_request_thread_group(struct vdo *vdo,
 	int result;
 
 	for (thread = 0; thread < count; thread++) {
-		result = make_vdo_thread(vdo,
+		result = vdo_make_thread(vdo,
 					 thread_name_prefix,
 					 ids[thread],
 					 &request_queue_type,
@@ -203,7 +203,7 @@ make_vdo_request_thread_group(struct vdo *vdo,
  * @return VDO_SUCCESS or an error code
  **/
 static int __must_check
-make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
+vdo_make_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 {
 	int result;
 	const struct thread_config *thread_config = vdo->thread_config;
@@ -213,7 +213,7 @@ make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 		thread_config->packer_thread,
 	};
 
-	result = make_vdo_request_thread_group(vdo,
+	result = vdo_make_request_thread_group(vdo,
 					       thread_name_prefix,
 					       3,
 					       singletons);
@@ -221,7 +221,7 @@ make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 		return result;
 	}
 
-	result = make_vdo_request_thread_group(vdo,
+	result = vdo_make_request_thread_group(vdo,
 					       thread_name_prefix,
 					       thread_config->logical_zone_count,
 					       thread_config->logical_threads);
@@ -229,7 +229,7 @@ make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 		return result;
 	}
 
-	result = make_vdo_request_thread_group(vdo,
+	result = vdo_make_request_thread_group(vdo,
 					       thread_name_prefix,
 					       thread_config->physical_zone_count,
 					       thread_config->physical_threads);
@@ -237,7 +237,7 @@ make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 		return result;
 	}
 
-	return make_vdo_request_thread_group(vdo,
+	return vdo_make_request_thread_group(vdo,
 					     thread_name_prefix,
 					     thread_config->hash_zone_count,
 					     thread_config->hash_zone_threads);
@@ -253,7 +253,7 @@ make_vdo_request_threads(struct vdo *vdo, const char *thread_name_prefix)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo(unsigned int instance,
+int vdo_make(unsigned int instance,
 	     struct device_config *config,
 	     char **reason,
 	     struct vdo **vdo_ptr)
@@ -268,11 +268,11 @@ int make_vdo(unsigned int instance,
 	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO";
-		release_vdo_instance(instance);
+		vdo_release_instance(instance);
 		return result;
 	}
 
-	result = initialize_vdo(vdo, config, instance, reason);
+	result = vdo_initialize_internal(vdo, config, instance, reason);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -296,7 +296,7 @@ int make_vdo(unsigned int instance,
 	}
 
 	/* Request threads, etc */
-	result = make_vdo_request_threads(vdo, thread_name_prefix);
+	result = vdo_make_request_threads(vdo, thread_name_prefix);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot initialize request queues";
 		return result;
@@ -312,7 +312,7 @@ int make_vdo(unsigned int instance,
 	}
 
 	/* Dedupe Index */
-	result = make_vdo_dedupe_index(&vdo->dedupe_index,
+	result = vdo_make_dedupe_index(&vdo->dedupe_index,
 				       vdo,
 				       thread_name_prefix);
 	if (result != UDS_SUCCESS) {
@@ -338,7 +338,7 @@ int make_vdo(unsigned int instance,
 	}
 
 	/* Bio queue */
-	result = make_vdo_io_submitter(thread_name_prefix,
+	result = vdo_make_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
 				       vdo->request_limiter.limit,
@@ -351,7 +351,7 @@ int make_vdo(unsigned int instance,
 
 	/* Bio ack queue */
 	if (vdo_uses_bio_ack_queue(vdo)) {
-		result = make_vdo_thread(vdo,
+		result = vdo_make_thread(vdo,
 					 thread_name_prefix,
 					 vdo->thread_config->bio_ack_thread,
 					 &bio_ack_q_type,
@@ -364,7 +364,7 @@ int make_vdo(unsigned int instance,
 	}
 
 	/* CPU Queues */
-	result = make_vdo_thread(vdo,
+	result = vdo_make_thread(vdo,
 				 thread_name_prefix,
 				 vdo->thread_config->cpu_thread,
 				 &cpu_q_type,
@@ -386,8 +386,8 @@ static void finish_vdo(struct vdo *vdo)
 		return;
 	}
 
-	cleanup_vdo_io_submitter(vdo->io_submitter);
-	finish_vdo_dedupe_index(vdo->dedupe_index);
+	vdo_cleanup_io_submitter(vdo->io_submitter);
+	vdo_finish_dedupe_index(vdo->dedupe_index);
 
 	for (i = 0; i < vdo->thread_config->thread_count; i++) {
 		finish_work_queue(vdo->threads[i].queue);
@@ -402,7 +402,7 @@ static void finish_vdo(struct vdo *vdo)
  *
  * @param vdo  The vdo to destroy (may be NULL)
  **/
-void destroy_vdo(struct vdo *vdo)
+void vdo_destroy(struct vdo *vdo)
 {
 	int i;
 	zone_count_t zone;
@@ -413,7 +413,7 @@ void destroy_vdo(struct vdo *vdo)
 	}
 
 	/* A running VDO should never be destroyed without suspending first. */
-	BUG_ON(get_vdo_admin_state(vdo)->normal);
+	BUG_ON(vdo_get_admin_state(vdo)->normal);
 
 	thread_config = vdo->thread_config;
 	vdo->allocations_allowed = true;
@@ -429,26 +429,26 @@ void destroy_vdo(struct vdo *vdo)
 	}
 
 	finish_vdo(vdo);
-	unregister_vdo(vdo);
-	free_vdo_io_submitter(UDS_FORGET(vdo->io_submitter));
-	free_vdo_dedupe_index(UDS_FORGET(vdo->dedupe_index));
-	free_vdo_flusher(UDS_FORGET(vdo->flusher));
-	free_vdo_packer(UDS_FORGET(vdo->packer));
-	free_vdo_recovery_journal(UDS_FORGET(vdo->recovery_journal));
-	free_vdo_slab_depot(UDS_FORGET(vdo->depot));
-	free_vdo_layout(UDS_FORGET(vdo->layout));
-	free_vdo_super_block(UDS_FORGET(vdo->super_block));
-	free_vdo_block_map(UDS_FORGET(vdo->block_map));
+	vdo_unregister(vdo);
+	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
+	vdo_free_dedupe_index(UDS_FORGET(vdo->dedupe_index));
+	vdo_free_flusher(UDS_FORGET(vdo->flusher));
+	vdo_free_packer(UDS_FORGET(vdo->packer));
+	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
+	vdo_free_slab_depot(UDS_FORGET(vdo->depot));
+	vdo_free_layout(UDS_FORGET(vdo->layout));
+	vdo_free_super_block(UDS_FORGET(vdo->super_block));
+	vdo_free_block_map(UDS_FORGET(vdo->block_map));
 
 	if (vdo->hash_zones != NULL) {
 		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-			free_vdo_hash_zone(UDS_FORGET(vdo->hash_zones[zone]));
+			vdo_free_hash_zone(UDS_FORGET(vdo->hash_zones[zone]));
 		}
 	}
 	UDS_FREE(vdo->hash_zones);
 	vdo->hash_zones = NULL;
 
-	free_vdo_logical_zones(UDS_FORGET(vdo->logical_zones));
+	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
 
 	if (vdo->physical_zones != NULL) {
 		for (zone = 0;
@@ -460,7 +460,7 @@ void destroy_vdo(struct vdo *vdo)
 		UDS_FREE(UDS_FORGET(vdo->physical_zones));
 	}
 
-	free_vdo_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
+	vdo_free_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 
 	if (vdo->threads != NULL) {
 		for (i = 0; i < vdo->thread_config->thread_count; i++) {
@@ -469,7 +469,7 @@ void destroy_vdo(struct vdo *vdo)
 		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
 
-	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
+	vdo_free_thread_config(UDS_FORGET(vdo->thread_config));
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0;
@@ -481,7 +481,7 @@ void destroy_vdo(struct vdo *vdo)
 		UDS_FREE(UDS_FORGET(vdo->compression_context));
 	}
 
-	release_vdo_instance(vdo->instance);
+	vdo_release_instance(vdo->instance);
 
 	/*
 	 * The call to kobject_put on the kobj sysfs node will decrement its
@@ -514,7 +514,7 @@ static void pool_stats_release(struct kobject *directory)
  *
  * @return VDO_SUCCESS or an error
  **/
-int add_vdo_sysfs_stats_dir(struct vdo *vdo)
+int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 {
 	int result;
 	static struct kobj_type stats_directory_type = {
@@ -546,12 +546,12 @@ int add_vdo_sysfs_stats_dir(struct vdo *vdo)
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_modify_vdo(struct vdo *vdo,
+int vdo_prepare_to_modify(struct vdo *vdo,
 			  struct device_config *config,
 			  bool may_grow,
 			  char **error_ptr)
 {
-	int result = validate_new_vdo_device_config(config,
+	int result = vdo_validate_new_device_config(config,
 						    vdo->device_config,
 						    may_grow,
 						    error_ptr);
@@ -560,16 +560,16 @@ int prepare_to_modify_vdo(struct vdo *vdo,
 	}
 
 	if (config->logical_blocks > vdo->device_config->logical_blocks) {
-		result = prepare_vdo_to_grow_logical(vdo,
+		result = vdo_prepare_to_grow_logical(vdo,
 						     config->logical_blocks);
 		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
+			*error_ptr = "Device vdo_prepare_to_grow_logical failed";
 			return result;
 		}
 	}
 
 	if (config->physical_blocks > vdo->device_config->physical_blocks) {
-		result = prepare_vdo_to_grow_physical(vdo,
+		result = vdo_prepare_to_grow_physical(vdo,
 						      config->physical_blocks);
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_PARAMETER_MISMATCH) {
@@ -582,9 +582,9 @@ int prepare_to_modify_vdo(struct vdo *vdo,
 			}
 
 			if (result == VDO_TOO_MANY_SLABS) {
-				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
+				*error_ptr = "Device vdo_prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
 			} else {
-				*error_ptr = "Device prepare_vdo_to_grow_physical failed";
+				*error_ptr = "Device vdo_prepare_to_grow_physical failed";
 			}
 			return result;
 		}
@@ -593,7 +593,7 @@ int prepare_to_modify_vdo(struct vdo *vdo,
 	if (strcmp(config->parent_device_name,
 		   vdo->device_config->parent_device_name) != 0) {
 		const char *device_name
-			= get_vdo_device_name(config->owning_target);
+			= vdo_get_device_name(config->owning_target);
 		uds_log_info("Updating backing device of %s from %s to %s",
 			     device_name,
 			     vdo->device_config->parent_device_name,
@@ -610,7 +610,7 @@ int prepare_to_modify_vdo(struct vdo *vdo,
  *
  * @return The vdo's current block device
  **/
-struct block_device *get_vdo_backing_device(const struct vdo *vdo)
+struct block_device *vdo_get_backing_device(const struct vdo *vdo)
 {
 	return vdo->device_config->owned_device->bdev;
 }
@@ -628,7 +628,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	struct bio bio;
 
 	bio_init(&bio, 0, 0);
-	bio_set_dev(&bio, get_vdo_backing_device(vdo));
+	bio_set_dev(&bio, vdo_get_backing_device(vdo));
 	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	submit_bio_wait(&bio);
 	result = blk_status_to_errno(bio.bi_status);
@@ -650,7 +650,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
  *
  * @return the current state of the vdo
  **/
-enum vdo_state get_vdo_state(const struct vdo *vdo)
+enum vdo_state vdo_get_state(const struct vdo *vdo)
 {
 	enum vdo_state state = atomic_read(&vdo->state);
 
@@ -664,7 +664,7 @@ enum vdo_state get_vdo_state(const struct vdo *vdo)
  * @param vdo    The vdo whose state is to be set
  * @param state  The new state of the vdo
  **/
-void set_vdo_state(struct vdo *vdo, enum vdo_state state)
+void vdo_set_state(struct vdo *vdo, enum vdo_state state)
 {
 	smp_wmb();
 	atomic_set(&vdo->state, state);
@@ -677,7 +677,7 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state)
  *
  * @return The code for the vdo's current admin state
  **/
-const struct admin_state_code *get_vdo_admin_state(const struct vdo *vdo)
+const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
 {
 	return vdo_get_admin_state_code(&vdo->admin_state);
 }
@@ -688,36 +688,36 @@ const struct admin_state_code *get_vdo_admin_state(const struct vdo *vdo)
 static void record_vdo(struct vdo *vdo)
 {
 	vdo->states.release_version = vdo->geometry.release_version;
-	vdo->states.vdo.state = get_vdo_state(vdo);
-	vdo->states.block_map = record_vdo_block_map(vdo->block_map);
+	vdo->states.vdo.state = vdo_get_state(vdo);
+	vdo->states.block_map = vdo_record_block_map(vdo->block_map);
 	vdo->states.recovery_journal =
-		record_vdo_recovery_journal(vdo->recovery_journal);
-	vdo->states.slab_depot = record_vdo_slab_depot(vdo->depot);
-	vdo->states.layout = get_vdo_fixed_layout(vdo->layout);
+		vdo_record_recovery_journal(vdo->recovery_journal);
+	vdo->states.slab_depot = vdo_record_slab_depot(vdo->depot);
+	vdo->states.layout = vdo_get_fixed_layout(vdo->layout);
 }
 
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode
  * super block savers should use this bottle neck instead of calling
- * save_vdo_super_block() directly.
+ * vdo_save_super_block() directly.
  *
  * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete
  **/
-void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
+void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	int result;
 
 	struct buffer *buffer
-		= get_vdo_super_block_codec(vdo->super_block)->component_buffer;
+		= vdo_get_super_block_codec(vdo->super_block)->component_buffer;
 	record_vdo(vdo);
-	result = encode_vdo_component_states(buffer, &vdo->states);
+	result = vdo_encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	save_vdo_super_block(vdo->super_block,
+	vdo_save_super_block(vdo->super_block,
 			     vdo_get_data_region_start(vdo->geometry),
 			     parent);
 }
@@ -737,12 +737,12 @@ static void notify_vdo_of_read_only_mode(void *listener,
 {
 	struct vdo *vdo = listener;
 
-	if (in_vdo_read_only_mode(vdo)) {
-		complete_vdo_completion(parent);
+	if (vdo_in_read_only_mode(vdo)) {
+		vdo_complete_completion(parent);
 	}
 
-	set_vdo_state(vdo, VDO_READ_ONLY_MODE);
-	save_vdo_components(vdo, parent);
+	vdo_set_state(vdo, VDO_READ_ONLY_MODE);
+	vdo_save_components(vdo, parent);
 }
 
 /**
@@ -752,9 +752,9 @@ static void notify_vdo_of_read_only_mode(void *listener,
  *
  * @return VDO_SUCCESS or an error
  **/
-int enable_vdo_read_only_entry(struct vdo *vdo)
+int vdo_enable_read_only_entry(struct vdo *vdo)
 {
-	return register_vdo_read_only_listener(vdo->read_only_notifier,
+	return vdo_register_read_only_listener(vdo->read_only_notifier,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
 					       vdo->thread_config->admin_thread);
@@ -767,9 +767,9 @@ int enable_vdo_read_only_entry(struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo is in read-only mode
  **/
-bool in_vdo_read_only_mode(const struct vdo *vdo)
+bool vdo_in_read_only_mode(const struct vdo *vdo)
 {
-	return (get_vdo_state(vdo) == VDO_READ_ONLY_MODE);
+	return (vdo_get_state(vdo) == VDO_READ_ONLY_MODE);
 }
 
 /**
@@ -779,9 +779,9 @@ bool in_vdo_read_only_mode(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo is in recovery mode
  **/
-bool in_vdo_recovery_mode(const struct vdo *vdo)
+bool vdo_in_recovery_mode(const struct vdo *vdo)
 {
-	return (get_vdo_state(vdo) == VDO_RECOVERING);
+	return (vdo_get_state(vdo) == VDO_RECOVERING);
 }
 
 /**
@@ -789,16 +789,16 @@ bool in_vdo_recovery_mode(const struct vdo *vdo)
  *
  * @param vdo  The vdo
  **/
-void enter_vdo_recovery_mode(struct vdo *vdo)
+void vdo_enter_recovery_mode(struct vdo *vdo)
 {
-	assert_on_vdo_admin_thread(vdo, __func__);
+	vdo_assert_on_admin_thread(vdo, __func__);
 
-	if (in_vdo_read_only_mode(vdo)) {
+	if (vdo_in_read_only_mode(vdo)) {
 		return;
 	}
 
 	uds_log_info("Entering recovery mode");
-	set_vdo_state(vdo, VDO_RECOVERING);
+	vdo_set_state(vdo, VDO_RECOVERING);
 }
 
 /**
@@ -810,7 +810,7 @@ static void set_compression_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 	bool *enable = completion->parent;
-	bool was_enabled = get_vdo_compressing(vdo);
+	bool was_enabled = vdo_get_compressing(vdo);
 
 	if (*enable != was_enabled) {
 		WRITE_ONCE(vdo->compressing, *enable);
@@ -819,13 +819,13 @@ static void set_compression_callback(struct vdo_completion *completion)
 			 * Signal the packer to flush since compression has
 			 * been disabled.
 			 */
-			flush_vdo_packer(vdo->packer);
+			vdo_flush_packer(vdo->packer);
 		}
 	}
 
 	uds_log_info("compression is %s", (*enable ? "enabled" : "disabled"));
 	*enable = was_enabled;
-	complete_vdo_completion(completion);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -836,9 +836,9 @@ static void set_compression_callback(struct vdo_completion *completion)
  *
  * @return Whether compression was previously on or off
  **/
-bool set_vdo_compressing(struct vdo *vdo, bool enable)
+bool vdo_set_compressing(struct vdo *vdo, bool enable)
 {
-	perform_synchronous_vdo_action(vdo,
+	vdo_perform_synchronous_action(vdo,
 				       set_compression_callback,
 				       vdo->thread_config->packer_thread,
 				       &enable);
@@ -852,7 +852,7 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable)
  *
  * @return State of compression
  **/
-bool get_vdo_compressing(struct vdo *vdo)
+bool vdo_get_compressing(struct vdo *vdo)
 {
 	return READ_ONCE(vdo->compressing);
 }
@@ -881,7 +881,7 @@ get_hash_lock_statistics(const struct vdo *vdo)
 
 	for (zone = 0; zone < zone_count; zone++) {
 		struct hash_lock_statistics stats =
-			get_vdo_hash_zone_statistics(vdo->hash_zones[zone]);
+			vdo_get_hash_zone_statistics(vdo->hash_zones[zone]);
 		totals.dedupe_advice_valid += stats.dedupe_advice_valid;
 		totals.dedupe_advice_stale += stats.dedupe_advice_stale;
 		totals.concurrent_data_matches +=
@@ -948,9 +948,9 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
  * @return The number of blocks allocated for user data
  **/
 static block_count_t __must_check
-get_vdo_physical_blocks_allocated(const struct vdo *vdo)
+vdo_get_physical_blocks_allocated(const struct vdo *vdo)
 {
-	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
+	return (vdo_get_slab_depot_allocated_blocks(vdo->depot) -
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
@@ -962,7 +962,7 @@ get_vdo_physical_blocks_allocated(const struct vdo *vdo)
  * @return The number of overhead blocks
  **/
 static block_count_t __must_check
-get_vdo_physical_blocks_overhead(const struct vdo *vdo)
+vdo_get_physical_blocks_overhead(const struct vdo *vdo)
 {
 	/*
 	 * XXX config.physical_blocks is actually mutated during resize and is in
@@ -970,7 +970,7 @@ get_vdo_physical_blocks_overhead(const struct vdo *vdo)
 	 * OK.
 	 */
 	return (vdo->states.vdo.config.physical_blocks -
-		get_vdo_slab_depot_data_blocks(vdo->depot) +
+		vdo_get_slab_depot_data_blocks(vdo->depot) +
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
@@ -984,9 +984,9 @@ static void get_vdo_statistics(const struct vdo *vdo,
 			       struct vdo_statistics *stats)
 {
 	struct recovery_journal *journal = vdo->recovery_journal;
-	enum vdo_state state = get_vdo_state(vdo);
+	enum vdo_state state = vdo_get_state(vdo);
 
-	assert_on_vdo_admin_thread(vdo, __func__);
+	vdo_assert_on_admin_thread(vdo, __func__);
 
 	/* start with a clean slate */
 	memset(stats, 0, sizeof(struct vdo_statistics));
@@ -1010,21 +1010,21 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->block_map_cache_size = get_block_map_cache_size(vdo);
 
 	/* The callees are responsible for thread-safety. */
-	stats->data_blocks_used = get_vdo_physical_blocks_allocated(vdo);
-	stats->overhead_blocks_used = get_vdo_physical_blocks_overhead(vdo);
+	stats->data_blocks_used = vdo_get_physical_blocks_allocated(vdo);
+	stats->overhead_blocks_used = vdo_get_physical_blocks_overhead(vdo);
 	stats->logical_blocks_used =
-		get_vdo_recovery_journal_logical_blocks_used(journal);
-	get_vdo_slab_depot_statistics(vdo->depot, stats);
-	stats->journal = get_vdo_recovery_journal_statistics(journal);
-	stats->packer = get_vdo_packer_statistics(vdo->packer);
-	stats->block_map = get_vdo_block_map_statistics(vdo->block_map);
+		vdo_get_recovery_journal_logical_blocks_used(journal);
+	vdo_get_slab_depot_statistics(vdo->depot, stats);
+	stats->journal = vdo_get_recovery_journal_statistics(journal);
+	stats->packer = vdo_get_packer_statistics(vdo->packer);
+	stats->block_map = vdo_get_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
 		 sizeof(stats->mode),
 		 "%s",
-		 describe_vdo_state(state));
+		 vdo_describe_state(state));
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = vdo->instance;
@@ -1034,12 +1034,12 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->max_vios = READ_ONCE(vdo->request_limiter.maximum);
 
 	/*
-	 * get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
-	 * and dedupe_context_busy gives the number of queries not made because
+	 * vdo_get_dedupe_index_timeout_count() gives the number of timeouts, 
+	 * and dedupe_context_busy gives the number of queries not made because 
 	 * of earlier timeouts.
 	 */
 	stats->dedupe_advice_timeouts =
-		(get_vdo_dedupe_index_timeout_count(vdo->dedupe_index) +
+		(vdo_get_dedupe_index_timeout_count(vdo->dedupe_index) +
 		 atomic64_read(&vdo->stats.dedupe_context_busy));
 	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
 	stats->logical_block_size =
@@ -1065,19 +1065,19 @@ static void get_vdo_statistics(const struct vdo *vdo,
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 	get_uds_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
-	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
+	vdo_get_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }
 
 /**
  * Action to populate a vdo_statistics structure on the admin thread;
- * registered in fetch_vdo_statistics().
+ * registered in vdo_fetch_statistics().
  *
  * @param completion  The completion
  **/
-static void fetch_vdo_statistics_callback(struct vdo_completion *completion)
+static void vdo_fetch_statistics_callback(struct vdo_completion *completion)
 {
 	get_vdo_statistics(completion->vdo, completion->parent);
-	complete_vdo_completion(completion);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -1086,10 +1086,10 @@ static void fetch_vdo_statistics_callback(struct vdo_completion *completion)
  * @param [in]  vdo    The vdo
  * @param [out] stats  The vdo statistics are returned here
  **/
-void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
+void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
-	perform_synchronous_vdo_action(vdo,
-				       fetch_vdo_statistics_callback,
+	vdo_perform_synchronous_action(vdo,
+				       vdo_fetch_statistics_callback,
 				       vdo->thread_config->admin_thread,
 				       stats);
 }
@@ -1128,26 +1128,26 @@ thread_id_t vdo_get_callback_thread_id(void)
  *
  * @param vdo  The vdo to dump
  **/
-void dump_vdo_status(const struct vdo *vdo)
+void vdo_dump_status(const struct vdo *vdo)
 {
 	const struct thread_config *thread_config = vdo->thread_config;
 	zone_count_t zone;
 
-	dump_vdo_flusher(vdo->flusher);
-	dump_vdo_recovery_journal_statistics(vdo->recovery_journal);
-	dump_vdo_packer(vdo->packer);
-	dump_vdo_slab_depot(vdo->depot);
+	vdo_dump_flusher(vdo->flusher);
+	vdo_dump_recovery_journal_statistics(vdo->recovery_journal);
+	vdo_dump_packer(vdo->packer);
+	vdo_dump_slab_depot(vdo->depot);
 
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
-		dump_vdo_logical_zone(&vdo->logical_zones->zones[zone]);
+		vdo_dump_logical_zone(&vdo->logical_zones->zones[zone]);
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-		dump_vdo_physical_zone(&vdo->physical_zones[zone]);
+		vdo_dump_physical_zone(&vdo->physical_zones[zone]);
 	}
 
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-		dump_vdo_hash_zone(vdo->hash_zones[zone]);
+		vdo_dump_hash_zone(vdo->hash_zones[zone]);
 	}
 }
 
@@ -1158,7 +1158,7 @@ void dump_vdo_status(const struct vdo *vdo)
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assert_on_vdo_admin_thread(const struct vdo *vdo, const char *name)
+void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 vdo->thread_config->admin_thread),
@@ -1173,7 +1173,7 @@ void assert_on_vdo_admin_thread(const struct vdo *vdo, const char *name)
  * @param logical_zone  The number of the logical zone
  * @param name          The name of the calling function
  **/
-void assert_on_vdo_logical_zone_thread(const struct vdo *vdo,
+void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 				       zone_count_t logical_zone,
 				       const char *name)
 {
@@ -1191,7 +1191,7 @@ void assert_on_vdo_logical_zone_thread(const struct vdo *vdo,
  * @param physical_zone  The number of the physical zone
  * @param name           The name of the calling function
  **/
-void assert_on_vdo_physical_zone_thread(const struct vdo *vdo,
+void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name)
 {
@@ -1210,7 +1210,7 @@ void assert_on_vdo_physical_zone_thread(const struct vdo *vdo,
  *
  * @return  The hash zone responsible for the chunk name
  **/
-struct hash_zone *select_vdo_hash_zone(const struct vdo *vdo,
+struct hash_zone *vdo_select_hash_zone(const struct vdo *vdo,
 				       const struct uds_chunk_name *name)
 {
 	/*
@@ -1250,7 +1250,7 @@ struct hash_zone *select_vdo_hash_zone(const struct vdo *vdo,
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int get_vdo_physical_zone(const struct vdo *vdo,
+int vdo_get_physical_zone(const struct vdo *vdo,
 			  physical_block_number_t pbn,
 			  struct physical_zone **zone_ptr)
 {
@@ -1263,8 +1263,8 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 	}
 
 	/*
-	 * Used because it does a more restrictive bounds check than
-	 * get_vdo_slab(), and done first because it won't trigger read-only
+	 * Used because it does a more restrictive bounds check than 
+	 * vdo_get_slab(), and done first because it won't trigger read-only 
 	 * mode on an invalid PBN.
 	 */
 	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
@@ -1275,14 +1275,14 @@ int get_vdo_physical_zone(const struct vdo *vdo,
 	 * With the PBN already checked, we should always succeed in finding a
 	 * slab.
 	 */
-	slab = get_vdo_slab(vdo->depot, pbn);
+	slab = vdo_get_slab(vdo->depot, pbn);
 	result =
-		ASSERT(slab != NULL, "get_vdo_slab must succeed on all valid PBNs");
+		ASSERT(slab != NULL, "vdo_get_slab must succeed on all valid PBNs");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	*zone_ptr = &vdo->physical_zones[get_vdo_slab_zone_number(slab)];
+	*zone_ptr = &vdo->physical_zones[vdo_get_slab_zone_number(slab)];
 	return VDO_SUCCESS;
 }
 
@@ -1324,7 +1324,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 		return no_advice;
 	}
 
-	result = get_vdo_physical_zone(vdo, advice->pbn, &zone);
+	result = vdo_get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
 		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
 			      (unsigned long long) advice->pbn,
@@ -1349,7 +1349,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
  * @return The bio queue zone number for submitting I/O to the specified pbn
  **/
 zone_count_t
-get_vdo_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
+vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
 {
 	return ((pbn
 		 / vdo->device_config->thread_counts.bio_rotation_interval)

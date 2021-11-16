@@ -48,7 +48,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			      "logical thread array",
 			      &config->logical_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(config);
+		vdo_free_thread_config(config);
 		return result;
 	}
 
@@ -57,7 +57,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			      "physical thread array",
 			      &config->physical_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(config);
+		vdo_free_thread_config(config);
 		return result;
 	}
 
@@ -66,7 +66,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			      "hash thread array",
 			      &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(config);
+		vdo_free_thread_config(config);
 		return result;
 	}
 
@@ -75,7 +75,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			      "bio thread array",
 			      &config->bio_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(config);
+		vdo_free_thread_config(config);
 		return result;
 	}
 
@@ -111,7 +111,7 @@ static void assign_thread_ids(struct thread_config *config,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_thread_config(struct thread_count_config counts,
+int vdo_make_thread_config(struct thread_count_config counts,
 			   struct thread_config **config_ptr)
 {
 	int result;
@@ -180,7 +180,7 @@ int make_vdo_thread_config(struct thread_count_config counts,
  *
  * @param config  The thread configuration to destroy
  **/
-void free_vdo_thread_config(struct thread_config *config)
+void vdo_free_thread_config(struct thread_config *config)
 {
 	if (config == NULL) {
 		return;

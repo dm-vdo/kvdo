@@ -106,7 +106,7 @@ page_info_from_lru_entry(struct list_head *entry)
 static inline struct vdo_page_completion *
 as_vdo_page_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VDO_PAGE_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
 	return container_of(completion, struct vdo_page_completion, completion);
 }
 
@@ -120,7 +120,7 @@ page_completion_from_waiter(struct waiter *waiter)
 	}
 
 	completion = container_of(waiter, struct vdo_page_completion, waiter);
-	assert_vdo_completion_type(completion->completion.type,
+	vdo_assert_completion_type(completion->completion.type,
 				   VDO_PAGE_COMPLETION);
 	return completion;
 }
@@ -216,7 +216,7 @@ static void write_dirty_pages_callback(struct list_head *entry, void *context);
  *
  * @return a success or error code
  **/
-int make_vdo_page_cache(struct vdo *vdo,
+int vdo_make_page_cache(struct vdo *vdo,
 			page_count_t page_count,
 			vdo_page_read_function *read_hook,
 			vdo_page_write_function *write_hook,
@@ -248,20 +248,20 @@ int make_vdo_page_cache(struct vdo *vdo,
 
 	result = allocate_cache_components(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(cache);
+		vdo_free_page_cache(cache);
 		return result;
 	}
 
 	result = initialize_info(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(cache);
+		vdo_free_page_cache(cache);
 		return result;
 	}
 
-	result = make_vdo_dirty_lists(maximum_age, write_dirty_pages_callback,
+	result = vdo_make_dirty_lists(maximum_age, write_dirty_pages_callback,
 				      cache, &cache->dirty_lists);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(cache);
+		vdo_free_page_cache(cache);
 		return result;
 	}
 
@@ -278,7 +278,7 @@ int make_vdo_page_cache(struct vdo *vdo,
  *
  * @param cache  The cache to free
  **/
-void free_vdo_page_cache(struct vdo_page_cache *cache)
+void vdo_free_page_cache(struct vdo_page_cache *cache)
 {
 	if (cache == NULL) {
 		return;
@@ -307,10 +307,10 @@ void free_vdo_page_cache(struct vdo_page_cache *cache)
  * @param cache  The cache
  * @param period The initial dirty period to set
  **/
-void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
+void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache,
 				       sequence_number_t period)
 {
-	set_vdo_dirty_lists_current_period(cache->dirty_lists, period);
+	vdo_set_dirty_lists_current_period(cache->dirty_lists, period);
 }
 
 /**
@@ -320,7 +320,7 @@ void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
  * @param rebuilding  <code>true</code> if the cache should be put into
  *                    read-only rebuild mode, <code>false</code> otherwise
  **/
-void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
+void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 				     bool rebuilding)
 {
 	cache->rebuilding = rebuilding;
@@ -625,7 +625,7 @@ select_lru_page(struct vdo_page_cache *cache)
  * @return the statistics
  **/
 struct block_map_statistics
-get_vdo_page_cache_statistics(const struct vdo_page_cache *cache)
+vdo_get_page_cache_statistics(const struct vdo_page_cache *cache)
 {
 	const struct block_map_statistics *stats = &cache->stats;
 
@@ -802,11 +802,11 @@ static void set_persistent_error(struct vdo_page_cache *cache,
  * @param callback         The completion callback
  * @param error_handler    The handler for page errors
  *
- * @note Once a completion has occurred for the get_vdo_page() operation,
+ * @note Once a completion has occurred for the vdo_get_page() operation,
  *       the underlying page shall be busy (stuck in memory) until the
  *       vdo_completion returned by this operation has been released.
  **/
-void init_vdo_page_completion(struct vdo_page_completion *page_completion,
+void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
 			      physical_block_number_t pbn,
 			      bool writable,
@@ -825,7 +825,7 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 		.cache = cache,
 	};
 
-	initialize_vdo_completion(completion, cache->vdo, VDO_PAGE_COMPLETION);
+	vdo_initialize_completion(completion, cache->vdo, VDO_PAGE_COMPLETION);
 	vdo_prepare_completion(completion,
 			       callback,
 			       error_handler,
@@ -890,7 +890,7 @@ validate_completed_page(struct vdo_completion *completion, bool writable)
  *
  * @return <code>true</code> if the cache is active
  **/
-bool is_vdo_page_cache_active(struct vdo_page_cache *cache)
+bool vdo_is_page_cache_active(struct vdo_page_cache *cache)
 {
 	return ((cache->outstanding_reads != 0) ||
 		(cache->outstanding_writes != 0));
@@ -962,12 +962,12 @@ static void run_read_hook(struct vdo_completion *completion)
 	struct page_info *info = completion->parent;
 
 	completion->callback = page_is_loaded;
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 	result = info->cache->read_hook(get_page_buffer(info),
 					info->pbn,
 					info->cache->zone,
 					info->context);
-	continue_vdo_completion(completion, result);
+	vdo_continue_completion(completion, result);
 }
 
 /**
@@ -988,7 +988,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	 */
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 	if (cache->read_hook != NULL) {
 		run_read_hook(completion);
 	} else {
@@ -1259,11 +1259,11 @@ static void discard_page_if_needed(struct vdo_page_cache *cache)
  * @param cache   The cache to advance
  * @param period  The new dirty period
  **/
-void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
+void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
 				   sequence_number_t period)
 {
 	assert_on_cache_thread(cache, __func__);
-	advance_vdo_dirty_lists_period(cache->dirty_lists, period);
+	vdo_advance_dirty_lists_period(cache->dirty_lists, period);
 }
 
 /**
@@ -1397,7 +1397,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 		if (vdo_is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
-			reset_vdo_completion(completion);
+			vdo_reset_completion(completion);
 			completion->callback = page_is_written_out;
 			completion->error_handler = handle_page_write_error;
 			vdo_finish_completion(completion, VDO_READ_ONLY);
@@ -1429,7 +1429,7 @@ static void write_pages(struct vdo_completion *flush_completion)
  *
  * @param completion The completion to release
  **/
-void release_vdo_page_completion(struct vdo_completion *completion)
+void vdo_release_page_completion(struct vdo_completion *completion)
 {
 	struct page_info *discard_info = NULL;
 	struct vdo_page_completion *page_completion;
@@ -1502,9 +1502,9 @@ static void load_page_for_completion(struct page_info *info,
  * the completion is destroyed.
  *
  * @param completion    the completion initialized by
- *                      init_vdo_page_completion().
+ *                      vdo_init_page_completion().
  **/
-void get_vdo_page(struct vdo_completion *completion)
+void vdo_get_page(struct vdo_completion *completion)
 {
 	struct page_info *info;
 
@@ -1582,7 +1582,7 @@ void get_vdo_page(struct vdo_completion *completion)
  *                          if it wasn't)
  * @param new_dirty_period  the period in which the page is now dirty
  **/
-void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
+void vdo_mark_completed_page_dirty(struct vdo_completion *completion,
 				   sequence_number_t old_dirty_period,
 				   sequence_number_t new_dirty_period)
 {
@@ -1596,7 +1596,7 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
 
 	info = vdo_page_comp->info;
 	set_info_state(info, PS_DIRTY);
-	add_to_vdo_dirty_lists(info->cache->dirty_lists,
+	vdo_add_to_dirty_lists(info->cache->dirty_lists,
 			       &info->state_entry,
 			       old_dirty_period,
 			       new_dirty_period);
@@ -1607,7 +1607,7 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
  *
  * @param completion  the vdo_page_completion containing the page
  **/
-void request_vdo_page_write(struct vdo_completion *completion)
+void vdo_request_page_write(struct vdo_completion *completion)
 {
 	struct page_info *info;
 
@@ -1636,7 +1636,7 @@ static void *dereference_page_completion(struct vdo_page_completion *completion)
  * @return a pointer to the raw memory at the beginning of the page, or
  *         NULL if the page is not available.
  **/
-const void *dereference_readable_vdo_page(struct vdo_completion *completion)
+const void *vdo_dereference_readable_page(struct vdo_completion *completion)
 {
 	return dereference_page_completion(
 		validate_completed_page(completion, false));
@@ -1651,7 +1651,7 @@ const void *dereference_readable_vdo_page(struct vdo_completion *completion)
  * @return a pointer to the raw memory at the beginning of the page, or
  *         NULL if the page is not available, or if the page is read-only
  **/
-void *dereference_writable_vdo_page(struct vdo_completion *completion)
+void *vdo_dereference_writable_page(struct vdo_completion *completion)
 {
 	return dereference_page_completion(validate_completed_page(completion,
 								   true));
@@ -1667,7 +1667,7 @@ void *dereference_writable_vdo_page(struct vdo_completion *completion)
  * @return a pointer to the per-page client context, or NULL if
  *         the page is not available
  **/
-void *get_vdo_page_completion_context(struct vdo_completion *completion)
+void *vdo_get_page_completion_context(struct vdo_completion *completion)
 {
 	struct vdo_page_completion *page_completion =
 		as_vdo_page_completion(completion);
@@ -1681,14 +1681,14 @@ void *get_vdo_page_completion_context(struct vdo_completion *completion)
  *
  * @param cache  The cache to drain
  **/
-void drain_vdo_page_cache(struct vdo_page_cache *cache)
+void vdo_drain_page_cache(struct vdo_page_cache *cache)
 {
 	assert_on_cache_thread(cache, __func__);
 	ASSERT_LOG_ONLY(vdo_is_state_draining(&cache->zone->state),
-			"drain_vdo_page_cache() called during block map drain");
+			"vdo_drain_page_cache() called during block map drain");
 
 	if (!vdo_is_state_suspending(&cache->zone->state)) {
-		flush_vdo_dirty_lists(cache->dirty_lists);
+		vdo_flush_dirty_lists(cache->dirty_lists);
 		save_pages(cache);
 	}
 }
@@ -1701,7 +1701,7 @@ void drain_vdo_page_cache(struct vdo_page_cache *cache)
  *
  * @return a success or error code
  **/
-int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
+int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 {
 	struct page_info *info;
 

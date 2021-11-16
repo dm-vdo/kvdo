@@ -584,7 +584,7 @@ void finish_data_vio(struct data_vio *data_vio, int result);
  **/
 static inline void continue_data_vio(struct data_vio *data_vio, int result)
 {
-	continue_vdo_completion(data_vio_as_completion(data_vio), result);
+	vdo_continue_completion(data_vio_as_completion(data_vio), result);
 }
 
 const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio);
@@ -613,7 +613,7 @@ enqueue_data_vio(struct wait_queue *queue,
  **/
 static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected = get_vdo_hash_zone_thread_id(data_vio->hash_zone);
+	thread_id_t expected = vdo_get_hash_zone_thread_id(data_vio->hash_zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 	/*
 	 * It's odd to use the LBN, but converting the chunk name to hex is a
@@ -640,7 +640,7 @@ set_data_vio_hash_zone_callback(struct data_vio *data_vio,
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_vdo_hash_zone_thread_id(data_vio->hash_zone));
+				    vdo_get_hash_zone_thread_id(data_vio->hash_zone));
 }
 
 /**

@@ -26,24 +26,24 @@
 #include "types.h"
 
 int __must_check
-make_vdo_dedupe_index(struct dedupe_index **index_ptr,
+vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 		      struct vdo *vdo,
 		      const char *thread_name_prefix);
 
-void dump_vdo_dedupe_index(struct dedupe_index *index);
+void vdo_dump_dedupe_index(struct dedupe_index *index);
 
-void free_vdo_dedupe_index(struct dedupe_index *index);
+void vdo_free_dedupe_index(struct dedupe_index *index);
 
-const char *get_vdo_dedupe_index_state_name(struct dedupe_index *index);
+const char *vdo_get_dedupe_index_state_name(struct dedupe_index *index);
 
-uint64_t get_vdo_dedupe_index_timeout_count(struct dedupe_index *index);
+uint64_t vdo_get_dedupe_index_timeout_count(struct dedupe_index *index);
 
-void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
+void vdo_get_dedupe_index_statistics(struct dedupe_index *index,
 				     struct index_statistics *stats);
 
-int message_vdo_dedupe_index(struct dedupe_index *index, const char *name);
+int vdo_message_dedupe_index(struct dedupe_index *index, const char *name);
 
-void enqueue_vdo_index_operation(struct data_vio *data_vio,
+void vdo_enqueue_index_operation(struct data_vio *data_vio,
 				 enum uds_request_type operation);
 
 /**
@@ -59,7 +59,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
  **/
 static inline void vdo_post_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_vdo_index_operation(data_vio, UDS_POST);
+	vdo_enqueue_index_operation(data_vio, UDS_POST);
 }
 
 /**
@@ -74,7 +74,7 @@ static inline void vdo_post_dedupe_advice(struct data_vio *data_vio)
  **/
 static inline void vdo_query_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_vdo_index_operation(data_vio, UDS_QUERY);
+	vdo_enqueue_index_operation(data_vio, UDS_QUERY);
 }
 
 /**
@@ -90,21 +90,21 @@ static inline void vdo_query_dedupe_advice(struct data_vio *data_vio)
  **/
 static inline void vdo_update_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_vdo_index_operation(data_vio, UDS_UPDATE);
+	vdo_enqueue_index_operation(data_vio, UDS_UPDATE);
 }
 
-int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
+int vdo_add_dedupe_index_sysfs(struct dedupe_index *index,
 			       struct kobject *parent);
 
-void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag);
+void vdo_start_dedupe_index(struct dedupe_index *index, bool create_flag);
 
-void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag);
+void vdo_suspend_dedupe_index(struct dedupe_index *index, bool save_flag);
 
-void resume_vdo_dedupe_index(struct dedupe_index *index,
+void vdo_resume_dedupe_index(struct dedupe_index *index,
 			     bool dedupe,
 			     bool create);
 
-void finish_vdo_dedupe_index(struct dedupe_index *index);
+void vdo_finish_dedupe_index(struct dedupe_index *index);
 
 /*
  * Interval (in milliseconds or jiffies) from submission until switching to 
@@ -118,8 +118,8 @@ extern unsigned int vdo_dedupe_index_timeout_interval;
  */
 extern unsigned int vdo_dedupe_index_min_timer_interval;
 
-void set_vdo_dedupe_index_timeout_interval(unsigned int value);
+void vdo_set_dedupe_index_timeout_interval(unsigned int value);
 
-void set_vdo_dedupe_index_min_timer_interval(unsigned int value);
+void vdo_set_dedupe_index_min_timer_interval(unsigned int value);
 
 #endif /* DEDUPE_INDEX_H */

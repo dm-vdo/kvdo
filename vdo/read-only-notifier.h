@@ -43,12 +43,12 @@ typedef void vdo_read_only_notification(void *listener,
 					struct vdo_completion *parent);
 
 int __must_check
-make_vdo_read_only_notifier(bool is_read_only,
+vdo_make_read_only_notifier(bool is_read_only,
 			    const struct thread_config *thread_config,
 			    struct vdo *vdo,
 			    struct read_only_notifier **notifier_ptr);
 
-void free_vdo_read_only_notifier(struct read_only_notifier *notifier);
+void vdo_free_read_only_notifier(struct read_only_notifier *notifier);
 
 void
 vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
@@ -65,7 +65,7 @@ bool __must_check vdo_is_read_only(struct read_only_notifier *notifier);
 bool __must_check
 vdo_is_or_will_be_read_only(struct read_only_notifier *notifier);
 
-int register_vdo_read_only_listener(struct read_only_notifier *notifier,
+int vdo_register_read_only_listener(struct read_only_notifier *notifier,
 				    void *listener,
 				    vdo_read_only_notification *notification,
 				    thread_id_t thread_id);

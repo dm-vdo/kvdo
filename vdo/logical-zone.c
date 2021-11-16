@@ -43,7 +43,7 @@
  **/
 static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type,
+	vdo_assert_completion_type(completion->type,
 				   VDO_GENERATION_FLUSHED_COMPLETION);
 	return container_of(completion, struct logical_zone, completion);
 }
@@ -80,7 +80,7 @@ static int initialize_zone(struct logical_zones *zones,
 		zone->next = &zones->zones[zone_number + 1];
 	}
 
-	initialize_vdo_completion(&zone->completion, vdo,
+	vdo_initialize_completion(&zone->completion, vdo,
 				  VDO_GENERATION_FLUSHED_COMPLETION);
 	zone->zones = zones;
 	zone->zone_number = zone_number;
@@ -92,7 +92,7 @@ static int initialize_zone(struct logical_zones *zones,
 	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	return make_vdo_allocation_selector(vdo->thread_config->physical_zone_count,
+	return vdo_make_allocation_selector(vdo->thread_config->physical_zone_count,
 					    zone->thread_id, &zone->selector);
 }
 
@@ -104,7 +104,7 @@ static int initialize_zone(struct logical_zones *zones,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
+int vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
 	struct logical_zones *zones;
 	int result;
@@ -126,12 +126,12 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	for (zone = 0; zone < zone_count; zone++) {
 		result = initialize_zone(zones, zone);
 		if (result != VDO_SUCCESS) {
-			free_vdo_logical_zones(zones);
+			vdo_free_logical_zones(zones);
 			return result;
 		}
 	}
 
-	result = make_vdo_action_manager(zones->zone_count,
+	result = vdo_make_action_manager(zones->zone_count,
 					 get_thread_id_for_zone,
 					 vdo->thread_config->admin_thread,
 					 zones,
@@ -139,7 +139,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 					 vdo,
 					 &zones->manager);
 	if (result != VDO_SUCCESS) {
-		free_vdo_logical_zones(zones);
+		vdo_free_logical_zones(zones);
 		return result;
 	}
 
@@ -152,7 +152,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
  *
  * @param zones The set of zones to free
  **/
-void free_vdo_logical_zones(struct logical_zones *zones)
+void vdo_free_logical_zones(struct logical_zones *zones)
 {
 	zone_count_t index;
 
@@ -191,7 +191,7 @@ static void check_for_drain_complete(struct logical_zone *zone)
 		return;
 	}
 
-	finish_vdo_draining(&zone->state);
+	vdo_finish_draining(&zone->state);
 }
 
 /**
@@ -217,18 +217,18 @@ static void drain_logical_zone(void *context,
 {
 	struct logical_zones *zones = context;
 
-	start_vdo_draining(&zones->zones[zone_number].state,
-			   get_current_vdo_manager_operation(zones->manager),
+	vdo_start_draining(&zones->zones[zone_number].state,
+			   vdo_get_current_manager_operation(zones->manager),
 			   parent,
 			   initiate_drain);
 }
 
 /**********************************************************************/
-void drain_vdo_logical_zones(struct logical_zones *zones,
+void vdo_drain_logical_zones(struct logical_zones *zones,
 			     const struct admin_state_code *operation,
 			     struct vdo_completion *parent)
 {
-	schedule_vdo_operation(zones->manager, operation, NULL,
+	vdo_schedule_operation(zones->manager, operation, NULL,
 			       drain_logical_zone, NULL, parent);
 }
 
@@ -244,7 +244,7 @@ static void resume_logical_zone(void *context,
 	struct logical_zone *zone
 		= &(((struct logical_zones *) context)->zones[zone_number]);
 
-	vdo_finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
+	vdo_finish_completion(parent, vdo_resume_if_quiescent(&zone->state));
 }
 
 /**
@@ -253,10 +253,10 @@ static void resume_logical_zone(void *context,
  * @param zones   The logical zones to resume
  * @param parent  The object to notify when the zones have resumed
  **/
-void resume_vdo_logical_zones(struct logical_zones *zones,
+void vdo_resume_logical_zones(struct logical_zones *zones,
 			      struct vdo_completion *parent)
 {
-	schedule_vdo_operation(zones->manager, VDO_ADMIN_STATE_RESUMING, NULL,
+	vdo_schedule_operation(zones->manager, VDO_ADMIN_STATE_RESUMING, NULL,
 			       resume_logical_zone, NULL, parent);
 }
 
@@ -296,7 +296,7 @@ static bool update_oldest_active_generation(struct logical_zone *zone)
  *                             before the increment
  **/
 void
-increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
+vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
 					    sequence_number_t expected_generation)
 {
 	assert_on_zone_thread(zone, __func__);
@@ -318,7 +318,7 @@ increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquire_vdo_flush_generation_lock(struct data_vio *data_vio)
+int vdo_acquire_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 
@@ -347,7 +347,7 @@ static void notify_flusher(struct vdo_completion *completion)
 {
 	struct logical_zone *zone = as_logical_zone(completion);
 
-	complete_vdo_flushes(zone->zones->vdo->flusher);
+	vdo_complete_flushes(zone->zones->vdo->flusher);
 	vdo_launch_completion_callback(completion,
 				       attempt_generation_complete_notification,
 				       zone->thread_id);
@@ -373,7 +373,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 	zone->notifying = true;
 	zone->notification_generation = zone->oldest_active_generation;
 	vdo_launch_completion_callback(&zone->completion, notify_flusher,
-				       get_vdo_flusher_thread_id(zone->zones->vdo->flusher));
+				       vdo_get_flusher_thread_id(zone->zones->vdo->flusher));
 }
 
 /**
@@ -384,7 +384,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
  *
  * @param data_vio  The data_vio whose lock is to be released
  **/
-void release_vdo_flush_generation_lock(struct data_vio *data_vio)
+void vdo_release_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 
@@ -420,7 +420,7 @@ void release_vdo_flush_generation_lock(struct data_vio *data_vio)
  *
  * @param zone   The zone to dump
  **/
-void dump_vdo_logical_zone(const struct logical_zone *zone)
+void vdo_dump_logical_zone(const struct logical_zone *zone)
 {
 	uds_log_info("logical_zone %u", zone->zone_number);
 	uds_log_info("  flush_generation=%llu oldest_active_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",

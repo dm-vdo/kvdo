@@ -118,25 +118,25 @@ vdo_is_recovery_block_full(const struct recovery_journal_block *block)
 }
 
 int __must_check
-make_vdo_recovery_block(struct vdo *vdo,
+vdo_make_recovery_block(struct vdo *vdo,
 			struct recovery_journal *journal,
 			struct recovery_journal_block **block_ptr);
 
-void free_vdo_recovery_block(struct recovery_journal_block *block);
+void vdo_free_recovery_block(struct recovery_journal_block *block);
 
-void initialize_vdo_recovery_block(struct recovery_journal_block *block);
+void vdo_initialize_recovery_block(struct recovery_journal_block *block);
 
 int __must_check
-enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
+vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 				 struct data_vio *data_vio);
 
-int __must_check commit_vdo_recovery_block(struct recovery_journal_block *block,
+int __must_check vdo_commit_recovery_block(struct recovery_journal_block *block,
 					   vdo_action *callback,
 					   vdo_action *error_handler);
 
-void dump_vdo_recovery_block(const struct recovery_journal_block *block);
+void vdo_dump_recovery_block(const struct recovery_journal_block *block);
 
 bool __must_check
-can_commit_vdo_recovery_block(struct recovery_journal_block *block);
+vdo_can_commit_recovery_block(struct recovery_journal_block *block);
 
 #endif /* RECOVERY_JOURNAL_BLOCK_H */

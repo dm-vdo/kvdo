@@ -94,11 +94,11 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
-	switch (get_vdo_state(vdo)) {
+	switch (vdo_get_state(vdo)) {
 	case VDO_CLEAN:
 	case VDO_NEW:
-		set_vdo_state(vdo, VDO_DIRTY);
-		save_vdo_components(vdo, completion);
+		vdo_set_state(vdo, VDO_DIRTY);
+		vdo_save_components(vdo, completion);
 		return;
 
 	case VDO_DIRTY:
@@ -107,7 +107,7 @@ static void write_super_block(struct vdo *vdo,
 	case VDO_RECOVERING:
 	case VDO_REBUILD_FOR_UPGRADE:
 		/* No need to write the super block in these cases */
-		complete_vdo_completion(completion);
+		vdo_complete_completion(completion);
 		return;
 
 	case VDO_REPLAYING:
@@ -127,14 +127,14 @@ static void resume_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 
-	assert_vdo_admin_operation_type(admin_completion,
+	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_RESUME);
-	assert_vdo_admin_phase_thread(admin_completion, __func__,
+	vdo_assert_admin_phase_thread(admin_completion, __func__,
 				      RESUME_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case RESUME_PHASE_START:
-		if (start_vdo_resuming(&vdo->admin_state,
+		if (vdo_start_resuming(&vdo->admin_state,
 				       VDO_ADMIN_STATE_RESUMING,
 				       &admin_completion->completion,
 				       NULL)) {
@@ -144,41 +144,41 @@ static void resume_callback(struct vdo_completion *completion)
 
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
 		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
-					       reset_vdo_admin_sub_task(completion));
+					       vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_INDEX:
 		if (!vdo_is_read_only(vdo->read_only_notifier)) {
-			resume_vdo_dedupe_index(vdo->dedupe_index,
+			vdo_resume_dedupe_index(vdo->dedupe_index,
 						vdo->device_config->deduplication,
 						vdo->load_state == VDO_NEW);
 		}
 
-		complete_vdo_completion(reset_vdo_admin_sub_task(completion));
+		vdo_complete_completion(vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_DEPOT:
-		resume_vdo_slab_depot(vdo->depot, reset_vdo_admin_sub_task(completion));
+		vdo_resume_slab_depot(vdo->depot, vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_JOURNAL:
-		resume_vdo_recovery_journal(vdo->recovery_journal,
-					    reset_vdo_admin_sub_task(completion));
+		vdo_resume_recovery_journal(vdo->recovery_journal,
+					    vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_BLOCK_MAP:
-		resume_vdo_block_map(vdo->block_map,
-				     reset_vdo_admin_sub_task(completion));
+		vdo_resume_block_map(vdo->block_map,
+				     vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_LOGICAL_ZONES:
-		resume_vdo_logical_zones(vdo->logical_zones,
-					 reset_vdo_admin_sub_task(completion));
+		vdo_resume_logical_zones(vdo->logical_zones,
+					 vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_PACKER:
 	{
-		bool was_enabled = get_vdo_compressing(vdo);
+		bool was_enabled = vdo_get_compressing(vdo);
 		bool enable = vdo->device_config->compression;
 
 		if (enable != was_enabled) {
@@ -187,24 +187,24 @@ static void resume_callback(struct vdo_completion *completion)
 		uds_log_info("compression is %s",
 			     (enable ? "enabled" : "disabled"));
 
-		resume_vdo_packer(vdo->packer,
-				  reset_vdo_admin_sub_task(completion));
+		vdo_resume_packer(vdo->packer,
+				  vdo_reset_admin_sub_task(completion));
 		return;
 	}
 	case RESUME_PHASE_FLUSHER:
-		resume_vdo_flusher(vdo->flusher,
-				  reset_vdo_admin_sub_task(completion));
+		vdo_resume_flusher(vdo->flusher,
+				  vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_END:
 		break;
 
 	default:
-		set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
+		vdo_set_completion_result(vdo_reset_admin_sub_task(completion),
 					  UDS_BAD_STATE);
 	}
 
-	finish_vdo_resuming_with_result(&vdo->admin_state, completion->result);
+	vdo_finish_resuming_with_result(&vdo->admin_state, completion->result);
 }
 
 /**
@@ -221,14 +221,14 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 {
 	int result;
 
-	result = perform_vdo_grow_logical(vdo, config->logical_blocks);
+	result = vdo_perform_grow_logical(vdo, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("grow logical operation failed, result = %d",
 			      result);
 		return result;
 	}
 
-	result = perform_vdo_grow_physical(vdo, config->physical_blocks);
+	result = vdo_perform_grow_physical(vdo, config->physical_blocks);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("resize operation failed, result = %d", result);
 	}
@@ -246,9 +246,9 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
  *
  * @return VDO_SUCCESS or an error
  **/
-int preresume_vdo(struct vdo *vdo,
-		  struct device_config *config,
-		  const char *device_name)
+int vdo_preresume_internal(struct vdo *vdo,
+			   struct device_config *config,
+			   const char *device_name)
 {
 	int result;
 
@@ -275,16 +275,16 @@ int preresume_vdo(struct vdo *vdo,
 		return result;
 	}
 
-	if (get_vdo_admin_state(vdo)->normal) {
+	if (vdo_get_admin_state(vdo)->normal) {
 		/* The VDO was just started, so we don't need to resume it. */
 		return VDO_SUCCESS;
 	}
 
-	result = perform_vdo_admin_operation(vdo,
+	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_RESUME,
 					     get_thread_id_for_phase,
 					     resume_callback,
-					     preserve_vdo_completion_error_and_continue);
+					     vdo_preserve_completion_error_and_continue);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("resume of device '%s' failed with error: %d",

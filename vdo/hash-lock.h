@@ -136,22 +136,22 @@ static inline void vdo_initialize_hash_lock(struct hash_lock *lock)
 }
 
 const char * __must_check
-get_vdo_hash_lock_state_name(enum hash_lock_state state);
+vdo_get_hash_lock_state_name(enum hash_lock_state state);
 
 struct pbn_lock * __must_check
-get_vdo_duplicate_lock(struct data_vio *data_vio);
+vdo_get_duplicate_lock(struct data_vio *data_vio);
 
-int __must_check acquire_vdo_hash_lock(struct data_vio *data_vio);
+int __must_check vdo_acquire_hash_lock(struct data_vio *data_vio);
 
-void enter_vdo_hash_lock(struct data_vio *data_vio);
+void vdo_enter_hash_lock(struct data_vio *data_vio);
 
-void continue_vdo_hash_lock(struct data_vio *data_vio);
+void vdo_continue_hash_lock(struct data_vio *data_vio);
 
-void continue_vdo_hash_lock_on_error(struct data_vio *data_vio);
+void vdo_continue_hash_lock_on_error(struct data_vio *data_vio);
 
-void release_vdo_hash_lock(struct data_vio *data_vio);
+void vdo_release_hash_lock(struct data_vio *data_vio);
 
-void share_compressed_vdo_write_lock(struct data_vio *data_vio,
+void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 				     struct pbn_lock *pbn_lock);
 
 #endif /* HASH_LOCK_H */

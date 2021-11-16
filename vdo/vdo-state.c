@@ -29,7 +29,7 @@
  *
  * @return A string constant describing the state
  **/
-const char *describe_vdo_state(enum vdo_state state)
+const char *vdo_describe_state(enum vdo_state state)
 {
 	/* These strings should all fit in the 15 chars of VDOStatistics.mode. */
 	switch (state) {

@@ -23,11 +23,11 @@
 #include "kernel-types.h"
 #include "types.h"
 
-int perform_vdo_grow_physical(struct vdo *vdo,
+int vdo_perform_grow_physical(struct vdo *vdo,
 			      block_count_t new_physical_blocks);
 
 int __must_check
-prepare_vdo_to_grow_physical(struct vdo *vdo,
+vdo_prepare_to_grow_physical(struct vdo *vdo,
 			     block_count_t new_physical_blocks);
 
 #endif /* VDO_RESIZE_H */

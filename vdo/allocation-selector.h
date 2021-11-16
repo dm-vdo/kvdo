@@ -40,11 +40,11 @@ struct allocation_selector {
 };
 
 int __must_check
-make_vdo_allocation_selector(zone_count_t physical_zone_count,
+vdo_make_allocation_selector(zone_count_t physical_zone_count,
 			     thread_id_t thread_id,
 			     struct allocation_selector **selector_ptr);
 
 zone_count_t __must_check
-get_next_vdo_allocation_zone(struct allocation_selector *selector);
+vdo_get_next_allocation_zone(struct allocation_selector *selector);
 
 #endif /* ALLOCATION_SELECTOR_H */

@@ -23,6 +23,6 @@
 #include "completion.h"
 #include "vdo.h"
 
-void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent);
+void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif /* READ_ONLY_REBUILD_H */

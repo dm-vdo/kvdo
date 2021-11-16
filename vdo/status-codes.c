@@ -103,7 +103,7 @@ static void do_status_code_registration(void)
  *
  * @return a success or error code
  **/
-int register_vdo_status_codes(void)
+int vdo_register_status_codes(void)
 {
 	perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;

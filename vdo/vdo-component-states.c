@@ -43,13 +43,13 @@ const struct version_number VDO_VOLUME_VERSION_67_0 = {
  *
  * @param states  The component states to destroy
  **/
-void destroy_vdo_component_states(struct vdo_component_states *states)
+void vdo_destroy_component_states(struct vdo_component_states *states)
 {
 	if (states == NULL) {
 		return;
 	}
 
-	free_vdo_fixed_layout(UDS_FORGET(states->layout));
+	vdo_free_fixed_layout(UDS_FORGET(states->layout));
 }
 
 /**
@@ -64,29 +64,29 @@ void destroy_vdo_component_states(struct vdo_component_states *states)
 static int __must_check
 decode_components(struct buffer *buffer, struct vdo_component_states *states)
 {
-	int result = decode_vdo_component(buffer, &states->vdo);
+	int result = vdo_decode_component(buffer, &states->vdo);
 
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_fixed_layout(buffer, &states->layout);
+	result = vdo_decode_fixed_layout(buffer, &states->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_recovery_journal_state_7_0(buffer,
+	result = vdo_decode_recovery_journal_state_7_0(buffer,
 						       &states->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_slab_depot_state_2_0(buffer, &states->slab_depot);
+	result = vdo_decode_slab_depot_state_2_0(buffer, &states->slab_depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_block_map_state_2_0(buffer, &states->block_map);
+	result = vdo_decode_block_map_state_2_0(buffer, &states->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -106,7 +106,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_component_states(struct buffer *buffer,
+int vdo_decode_component_states(struct buffer *buffer,
 				release_version_number_t expected_release_version,
 				struct vdo_component_states *states)
 {
@@ -125,12 +125,12 @@ int decode_vdo_component_states(struct buffer *buffer,
 	}
 
 	/* Check the VDO volume version */
-	result = decode_vdo_version_number(buffer, &states->volume_version);
+	result = vdo_decode_version_number(buffer, &states->volume_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_vdo_version(VDO_VOLUME_VERSION_67_0,
+	result = vdo_validate_version(VDO_VOLUME_VERSION_67_0,
 				      states->volume_version,
 				      "volume");
 	if (result != VDO_SUCCESS) {
@@ -139,7 +139,7 @@ int decode_vdo_component_states(struct buffer *buffer,
 
 	result = decode_components(buffer, states);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(UDS_FORGET(states->layout));
+		vdo_free_fixed_layout(UDS_FORGET(states->layout));
 		return result;
 	}
 
@@ -157,7 +157,7 @@ int decode_vdo_component_states(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error if the configuration is invalid
  **/
-int validate_vdo_component_states(struct vdo_component_states *states,
+int vdo_validate_component_states(struct vdo_component_states *states,
 				  nonce_t geometry_nonce,
 				  block_count_t physical_size,
 				  block_count_t logical_size)
@@ -169,7 +169,7 @@ int validate_vdo_component_states(struct vdo_component_states *states,
 					      (unsigned long long) states->vdo.nonce);
 	}
 
-	return validate_vdo_config(&states->vdo.config,
+	return vdo_validate_config(&states->vdo.config,
 				   physical_size,
 				   logical_size);
 }
@@ -185,11 +185,11 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 {
 	return (sizeof(release_version_number_t) +
 		sizeof(struct packed_version_number) +
-		get_vdo_component_encoded_size() +
-		get_vdo_fixed_layout_encoded_size(layout) +
-		get_vdo_recovery_journal_encoded_size() +
-		get_vdo_slab_depot_encoded_size() +
-		get_vdo_block_map_encoded_size());
+		vdo_get_component_encoded_size() +
+		vdo_get_fixed_layout_encoded_size(layout) +
+		vdo_get_recovery_journal_encoded_size() +
+		vdo_get_slab_depot_encoded_size() +
+		vdo_get_block_map_encoded_size());
 }
 
 /**
@@ -198,7 +198,7 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
  * @param buffer  The buffer to encode into
  * @param states  The states to encode
  **/
-int encode_vdo_component_states(struct buffer *buffer,
+int vdo_encode_component_states(struct buffer *buffer,
 				const struct vdo_component_states *states)
 {
 	size_t expected_size;
@@ -213,33 +213,33 @@ int encode_vdo_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_vdo_version_number(states->volume_version, buffer);
+	result = vdo_encode_version_number(states->volume_version, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_component(states->vdo, buffer);
+	result = vdo_encode_component(states->vdo, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_fixed_layout(states->layout, buffer);
+	result = vdo_encode_fixed_layout(states->layout, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_recovery_journal_state_7_0(states->recovery_journal,
+	result = vdo_encode_recovery_journal_state_7_0(states->recovery_journal,
 						       buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_slab_depot_state_2_0(states->slab_depot, buffer);
+	result = vdo_encode_slab_depot_state_2_0(states->slab_depot, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_block_map_state_2_0(states->block_map, buffer);
+	result = vdo_encode_block_map_state_2_0(states->block_map, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

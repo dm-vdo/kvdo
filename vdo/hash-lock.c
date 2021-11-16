@@ -151,7 +151,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio);
  *
  * @return The PBN lock on the data_vio's duplicate location
  **/
-struct pbn_lock *get_vdo_duplicate_lock(struct data_vio *data_vio)
+struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 {
 	if (data_vio->hash_lock == NULL) {
 		return NULL;
@@ -166,7 +166,7 @@ struct pbn_lock *get_vdo_duplicate_lock(struct data_vio *data_vio)
  *
  * @return The short string representing the state
  **/
-const char *get_vdo_hash_lock_state_name(enum hash_lock_state state)
+const char *vdo_get_hash_lock_state_name(enum hash_lock_state state)
 {
 	/* Catch if a state has been added without updating the name array. */
 	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1)
@@ -187,8 +187,8 @@ static void set_hash_lock_state(struct hash_lock *lock,
 	if (false) {
 		uds_log_warning("XXX %px %s -> %s",
 				(void *) lock,
-				get_vdo_hash_lock_state_name(lock->state),
-				get_vdo_hash_lock_state_name(new_state));
+				vdo_get_hash_lock_state_name(lock->state),
+				vdo_get_hash_lock_state_name(new_state));
 	}
 	lock->state = new_state;
 }
@@ -311,7 +311,7 @@ static void set_hash_lock(struct data_vio *data_vio,
 			ASSERT_LOG_ONLY(
 				old_lock->reference_count > 1,
 				"hash locks should only become unreferenced in a terminal state, not state %s",
-				get_vdo_hash_lock_state_name(old_lock->state));
+				vdo_get_hash_lock_state_name(old_lock->state));
 		}
 
 		list_del_init(&data_vio->hash_lock_entry);
@@ -351,7 +351,7 @@ static void set_hash_lock(struct data_vio *data_vio,
 static void exit_hash_lock(struct data_vio *data_vio)
 {
 	/* Release the hash lock now, saving a thread transition in cleanup. */
-	release_vdo_hash_lock(data_vio);
+	vdo_release_hash_lock(data_vio);
 
 	/*
 	 * Complete the data_vio and start the clean-up path in vioWrite to 
@@ -433,7 +433,7 @@ static void wait_on_hash_lock(struct hash_lock *lock,
 		 */
 		data_vio->compression.lock_holder = lock->agent;
 		launch_data_vio_packer_callback(data_vio,
-						remove_lock_holder_from_vdo_packer);
+						vdo_remove_lock_holder_from_packer);
 	}
 }
 
@@ -641,7 +641,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY(lock->duplicate_lock != NULL,
 			"must have a duplicate lock to release");
 
-	release_vdo_physical_zone_pbn_lock(agent->duplicate.zone,
+	vdo_release_physical_zone_pbn_lock(agent->duplicate.zone,
 					   agent->duplicate.pbn,
 					   UDS_FORGET(lock->duplicate_lock));
 
@@ -820,7 +820,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 			   struct data_vio *new_agent)
 {
 	struct hash_lock *new_lock;
-	int result = acquire_lock_from_vdo_hash_zone(new_agent->hash_zone,
+	int result = vdo_acquire_lock_from_hash_zone(new_agent->hash_zone,
 						     &new_agent->chunk_name,
 						     old_lock, &new_lock);
 	if (result != VDO_SUCCESS) {
@@ -859,7 +859,7 @@ static void launch_dedupe(struct hash_lock *lock,
 			  bool has_claim)
 {
 	if (!has_claim &&
-	    !claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
+	    !vdo_claim_pbn_lock_increment(lock->duplicate_lock)) {
 		/* Out of increments, so must roll over to a new lock. */
 		fork_hash_lock(lock, data_vio);
 		return;
@@ -900,7 +900,7 @@ static void start_deduping(struct hash_lock *lock,
 		transfer_allocation_lock(agent);
 	}
 
-	ASSERT_LOG_ONLY(is_vdo_pbn_read_lock(lock->duplicate_lock),
+	ASSERT_LOG_ONLY(vdo_is_pbn_read_lock(lock->duplicate_lock),
 			"duplicate_lock must be a PBN read lock");
 
 	/*
@@ -967,9 +967,9 @@ static void finish_verifying(struct vdo_completion *completion)
 	if (!lock->verify_counted) {
 		lock->verify_counted = true;
 		if (lock->verified) {
-			bump_vdo_hash_zone_valid_advice_count(agent->hash_zone);
+			vdo_bump_hash_zone_valid_advice_count(agent->hash_zone);
 		} else {
-			bump_vdo_hash_zone_stale_advice_count(agent->hash_zone);
+			vdo_bump_hash_zone_stale_advice_count(agent->hash_zone);
 		}
 	}
 
@@ -979,7 +979,7 @@ static void finish_verifying(struct vdo_completion *completion)
 	 * agent.
 	 */
 	if (lock->verified &&
-	    !claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
+	    !vdo_claim_pbn_lock_increment(lock->duplicate_lock)) {
 		agent->is_duplicate = false;
 		lock->verified = false;
 	}
@@ -1059,7 +1059,7 @@ static void finish_locking(struct vdo_completion *completion)
 		 * compress the data, remembering to update UDS later with the
 		 * new advice.
 		 */
-		bump_vdo_hash_zone_stale_advice_count(agent->hash_zone);
+		vdo_bump_hash_zone_stale_advice_count(agent->hash_zone);
 		lock->update_advice = true;
 		start_writing(lock, agent);
 		return;
@@ -1079,7 +1079,7 @@ static void finish_locking(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
+	if (!vdo_claim_pbn_lock_increment(lock->duplicate_lock)) {
 		/*
 		 * LOCKING -> UNLOCKING transition: The verified block was
 		 * re-locked, but has no available increments left. Must first
@@ -1143,14 +1143,14 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		return;
 	}
 
-	result = attempt_vdo_physical_zone_pbn_lock(zone, agent->duplicate.pbn,
+	result = vdo_attempt_physical_zone_pbn_lock(zone, agent->duplicate.pbn,
 						    VIO_READ_LOCK, &lock);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio(agent, result);
 		return;
 	}
 
-	if (!is_vdo_pbn_read_lock(lock)) {
+	if (!vdo_is_pbn_read_lock(lock)) {
 		/*
 		 * There are three cases of write locks: uncompressed data
 		 * block writes, compressed (packed) block writes, and block
@@ -1204,7 +1204,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	if (lock->holder_count == 0) {
 		/* Ensure that the newly-locked block is referenced. */
 		struct vdo_slab *slab =
-			get_vdo_slab(depot, agent->duplicate.pbn);
+			vdo_get_slab(depot, agent->duplicate.pbn);
 
 		result = vdo_acquire_provisional_reference(
 				slab, agent->duplicate.pbn, lock);
@@ -1212,7 +1212,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 			uds_log_warning_strerror(result,
 						 "Error acquiring provisional reference for dedupe candidate; aborting dedupe");
 			agent->is_duplicate = false;
-			release_vdo_physical_zone_pbn_lock(
+			vdo_release_physical_zone_pbn_lock(
 				zone, agent->duplicate.pbn, UDS_FORGET(lock));
 			continue_data_vio(agent, result);
 			return;
@@ -1469,7 +1469,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	/*
 	 * Send the agent to the compress/pack/write path in vioWrite.  If it
 	 * succeeds, it will return to the hash lock via
-	 * continue_vdo_hash_lock() and call finish_writing().
+	 * vdo_continue_hash_lock() and call finish_writing().
 	 */
 	launch_compress_data_vio(agent);
 }
@@ -1546,7 +1546,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
 {
 	int result =
 		ASSERT_FALSE("hash lock must not be in unimplemented state %s",
-			     get_vdo_hash_lock_state_name(lock->state));
+			     vdo_get_hash_lock_state_name(lock->state));
 	continue_data_vio_in(data_vio, result, compress_data_callback);
 }
 
@@ -1558,7 +1558,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
  * @param data_vio  The data_vio that has just acquired a lock on its chunk
  *                  name
  **/
-void enter_vdo_hash_lock(struct data_vio *data_vio)
+void vdo_enter_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 
@@ -1605,7 +1605,7 @@ void enter_vdo_hash_lock(struct data_vio *data_vio)
  *
  * @param data_vio  The data_vio to continue processing in its hash lock
  **/
-void continue_vdo_hash_lock(struct data_vio *data_vio)
+void vdo_continue_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 	/*
@@ -1657,10 +1657,10 @@ void continue_vdo_hash_lock(struct data_vio *data_vio)
  *
  * @param data_vio  The data_vio with an error
  **/
-void continue_vdo_hash_lock_on_error(struct data_vio *data_vio)
+void vdo_continue_hash_lock_on_error(struct data_vio *data_vio)
 {
 	/*
-	 * XXX We could simply use continue_vdo_hash_lock() and check for 
+	 * XXX We could simply use vdo_continue_hash_lock() and check for 
 	 * errors in that. 
 	 */
 	abort_hash_lock(data_vio->hash_lock, data_vio);
@@ -1691,9 +1691,9 @@ static bool is_hash_collision(struct hash_lock *lock,
 	collides = !compare_data_vios(lock_holder, candidate);
 
 	if (collides) {
-		bump_vdo_hash_zone_collision_count(candidate->hash_zone);
+		vdo_bump_hash_zone_collision_count(candidate->hash_zone);
 	} else {
-		bump_vdo_hash_zone_data_match_count(candidate->hash_zone);
+		vdo_bump_hash_zone_data_match_count(candidate->hash_zone);
 	}
 
 	return collides;
@@ -1724,7 +1724,7 @@ assert_hash_lock_preconditions(const struct data_vio *data_vio)
  *
  * @param data_vio  The data_vio acquiring a lock on its chunk name
  **/
-int acquire_vdo_hash_lock(struct data_vio *data_vio)
+int vdo_acquire_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock;
 	int result = assert_hash_lock_preconditions(data_vio);
@@ -1733,7 +1733,7 @@ int acquire_vdo_hash_lock(struct data_vio *data_vio)
 		return result;
 	}
 
-	result = acquire_lock_from_vdo_hash_zone(data_vio->hash_zone,
+	result = vdo_acquire_lock_from_hash_zone(data_vio->hash_zone,
 						 &data_vio->chunk_name,
 						 NULL,
 						 &lock);
@@ -1767,7 +1767,7 @@ int acquire_vdo_hash_lock(struct data_vio *data_vio)
  *
  * @param data_vio  The data_vio releasing its hash lock
  **/
-void release_vdo_hash_lock(struct data_vio *data_vio)
+void vdo_release_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 
@@ -1783,7 +1783,7 @@ void release_vdo_hash_lock(struct data_vio *data_vio)
 	}
 
 	set_hash_lock_state(lock, VDO_HASH_LOCK_DESTROYING);
-	return_lock_to_vdo_hash_zone(data_vio->hash_zone, lock);
+	vdo_return_lock_to_hash_zone(data_vio->hash_zone, lock);
 }
 
 /**
@@ -1806,7 +1806,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 	allocating_vio->allocation_lock = NULL;
 	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
-	ASSERT_LOG_ONLY(is_vdo_pbn_read_lock(pbn_lock),
+	ASSERT_LOG_ONLY(vdo_is_pbn_read_lock(pbn_lock),
 			"must have downgraded the allocation lock before transfer");
 
 	hash_lock->duplicate = data_vio->new_mapped;
@@ -1828,20 +1828,20 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
  * @param data_vio  The data_vio which was just compressed
  * @param pbn_lock  The PBN lock on the compressed block
  **/
-void share_compressed_vdo_write_lock(struct data_vio *data_vio,
+void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 				     struct pbn_lock *pbn_lock)
 {
 	bool claimed;
 
-	ASSERT_LOG_ONLY(get_vdo_duplicate_lock(data_vio) == NULL,
+	ASSERT_LOG_ONLY(vdo_get_duplicate_lock(data_vio) == NULL,
 			"a duplicate PBN lock should not exist when writing");
 	ASSERT_LOG_ONLY(vdo_is_state_compressed(data_vio->new_mapped.state),
 			"lock transfer must be for a compressed write");
 	assert_data_vio_in_new_mapped_zone(data_vio);
 
 	/* First sharer downgrades the lock. */
-	if (!is_vdo_pbn_read_lock(pbn_lock)) {
-		downgrade_vdo_pbn_write_lock(pbn_lock);
+	if (!vdo_is_pbn_read_lock(pbn_lock)) {
+		vdo_downgrade_pbn_write_lock(pbn_lock);
 	}
 
 	/*
@@ -1856,7 +1856,7 @@ void share_compressed_vdo_write_lock(struct data_vio *data_vio,
 	 * Claim a reference for this data_vio. Necessary since another 
 	 * hash_lock might start deduplicating against it before our incRef. 
 	 */
-	claimed = claim_vdo_pbn_lock_increment(pbn_lock);
+	claimed = vdo_claim_pbn_lock_increment(pbn_lock);
 	ASSERT_LOG_ONLY(claimed,
 			"impossible to fail to claim an initial increment");
 }

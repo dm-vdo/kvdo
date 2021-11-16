@@ -100,7 +100,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	/* Handle empty bios.  Empty flush bios are not associated with a vio. */
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		launch_vdo_flush(vdo, bio);
+		vdo_launch_flush(vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
 
@@ -208,15 +208,15 @@ static void vdo_status(struct dm_target *ti,
 	case STATUSTYPE_INFO:
 		/* Report info for dmsetup status */
 		mutex_lock(&vdo->stats_mutex);
-		fetch_vdo_statistics(vdo, &vdo->stats_buffer);
+		vdo_fetch_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(get_vdo_backing_device(vdo), name_buffer),
+		       bdevname(vdo_get_backing_device(vdo), name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
-		       get_vdo_dedupe_index_state_name(vdo->dedupe_index),
-		       get_vdo_compressing(vdo) ? "online" : "offline",
+		       vdo_get_dedupe_index_state_name(vdo->dedupe_index),
+		       vdo_get_compressing(vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
 		mutex_unlock(&vdo->stats_mutex);
@@ -249,7 +249,7 @@ static void vdo_status(struct dm_target *ti,
 static block_count_t __must_check
 get_underlying_device_block_count(const struct vdo *vdo)
 {
-	return (i_size_read(get_vdo_backing_device(vdo)->bd_inode)
+	return (i_size_read(vdo_get_backing_device(vdo)->bd_inode)
 		/ VDO_BLOCK_SIZE);
 }
 
@@ -272,12 +272,12 @@ process_vdo_message_locked(struct vdo *vdo,
 	if (argc == 2) {
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
-				set_vdo_compressing(vdo, true);
+				vdo_set_compressing(vdo, true);
 				return 0;
 			}
 
 			if (strcasecmp(argv[1], "off") == 0) {
-				set_vdo_compressing(vdo, false);
+				vdo_set_compressing(vdo, false);
 				return 0;
 			}
 
@@ -330,7 +330,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return message_vdo_dedupe_index(vdo->dedupe_index,
+			return vdo_message_dedupe_index(vdo->dedupe_index,
 							argv[0]);
 		}
 	}
@@ -371,7 +371,7 @@ static int vdo_message(struct dm_target *ti,
 	 * and see if it is full or not.
 	 */
 	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
-		write_vdo_stats(vdo, result_buffer, maxlen);
+		vdo_write_stats(vdo, result_buffer, maxlen);
 		result = 1;
 	} else {
 		result = vdo_map_to_system_error(process_vdo_message(vdo,
@@ -410,7 +410,7 @@ static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
 
-	return (get_vdo_backing_device(vdo)->bd_dev
+	return (vdo_get_backing_device(vdo)->bd_dev
 		== config->owned_device->bdev->bd_dev);
 }
 
@@ -435,7 +435,7 @@ static int vdo_initialize(struct dm_target *ti,
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
-	uds_log_info("loading device '%s'", get_vdo_device_name(ti));
+	uds_log_info("loading device '%s'", vdo_get_device_name(ti));
 	uds_log_debug("Logical block size     = %llu",
 		      (uint64_t) config->logical_block_size);
 	uds_log_debug("Logical blocks         = %llu", logical_blocks);
@@ -450,25 +450,25 @@ static int vdo_initialize(struct dm_target *ti,
 		      (config->compression ? "on" : "off"));
 
 
-	vdo = find_vdo_matching(vdo_uses_device, config);
+	vdo = vdo_find_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
 		uds_log_error("Existing vdo already uses device %s",
 			      vdo->device_config->parent_device_name);
-		release_vdo_instance(instance);
+		vdo_release_instance(instance);
 		ti->error = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = make_vdo(instance, config, &ti->error, &vdo);
+	result = vdo_make(instance, config, &ti->error, &vdo);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
 			      result,
 			      ti->error);
-		destroy_vdo(vdo);
+		vdo_destroy(vdo);
 		return result;
 	}
 
-	result = prepare_to_load_vdo(vdo);
+	result = prepare_to_vdo_load(vdo);
 	if (result != VDO_SUCCESS) {
 		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
 			     ? "Pre-load is only valid immediately after initialization"
@@ -476,11 +476,11 @@ static int vdo_initialize(struct dm_target *ti,
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
 			      ti->error);
-		destroy_vdo(vdo);
+		vdo_destroy(vdo);
 		return result;
 	}
 
-	set_device_config_vdo(config, vdo);
+	vdo_set_device_config(config, vdo);
 	vdo->device_config = config;
 	ti->private = config;
 	configure_target_capabilities(ti);
@@ -493,7 +493,7 @@ static int vdo_initialize(struct dm_target *ti,
 static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
 {
 	struct dm_target *ti = vdo->device_config->owning_target;
-	const char *device_name = get_vdo_device_name(ti);
+	const char *device_name = vdo_get_device_name(ti);
 
 	return (strcmp(device_name, (const char *) context) == 0);
 }
@@ -509,10 +509,10 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	uds_register_allocating_thread(&allocating_thread, NULL);
 
-	device_name = get_vdo_device_name(ti);
-	old_vdo = find_vdo_matching(vdo_is_named, (void *) device_name);
+	device_name = vdo_get_device_name(ti);
+	old_vdo = vdo_find_matching(vdo_is_named, (void *) device_name);
 	if (old_vdo == NULL) {
-		result = allocate_vdo_instance(&instance);
+		result = vdo_allocate_instance(&instance);
 		if (result != VDO_SUCCESS) {
 			uds_unregister_allocating_thread();
 			return -ENOMEM;
@@ -522,31 +522,31 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	uds_register_thread_device_id(&instance_thread, &instance);
-	result = parse_vdo_device_config(argc, argv, ti, &config);
+	result = vdo_parse_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
 		if (old_vdo == NULL) {
-			release_vdo_instance(instance);
+			vdo_release_instance(instance);
 		}
 		return -EINVAL;
 	}
 
 	/* Is there already a device of this name? */
 	if (old_vdo != NULL) {
-		bool may_grow = (get_vdo_admin_state(old_vdo)
+		bool may_grow = (vdo_get_admin_state(old_vdo)
 				 != VDO_ADMIN_STATE_PRE_LOADED);
 
 		uds_log_info("preparing to modify device '%s'", device_name);
-		result = prepare_to_modify_vdo(old_vdo,
+		result = vdo_prepare_to_modify(old_vdo,
 					       config,
 					       may_grow,
 					       &ti->error);
 		if (result != VDO_SUCCESS) {
 			result = vdo_map_to_system_error(result);
-			free_vdo_device_config(UDS_FORGET(config));
+			vdo_free_device_config(UDS_FORGET(config));
 		} else {
-			set_device_config_vdo(config, old_vdo);
+			vdo_set_device_config(config, old_vdo);
 			ti->private = config;
 			configure_target_capabilities(ti);
 		}
@@ -559,7 +559,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		/* vdo_initialize calls into various VDO routines, so map error */
 		result = vdo_map_to_system_error(result);
-		free_vdo_device_config(config);
+		vdo_free_device_config(config);
 	}
 
 	uds_unregister_thread_device_id();
@@ -572,7 +572,7 @@ static void vdo_dtr(struct dm_target *ti)
 	struct device_config *config = ti->private;
 	struct vdo *vdo = config->vdo;
 
-	set_device_config_vdo(config, NULL);
+	vdo_set_device_config(config, NULL);
 	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
@@ -583,13 +583,13 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_register_thread_device_id(&instance_thread, &instance);
 		uds_register_allocating_thread(&allocating_thread, NULL);
 
-		device_name = get_vdo_device_name(ti);
+		device_name = vdo_get_device_name(ti);
 		uds_log_info("stopping device '%s'", device_name);
 		if (vdo->dump_on_shutdown) {
 			vdo_dump_all(vdo, "device shutdown");
 		}
 
-		destroy_vdo(UDS_FORGET(vdo));
+		vdo_destroy(UDS_FORGET(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
@@ -602,7 +602,7 @@ static void vdo_dtr(struct dm_target *ti)
 			vdo_as_device_config(vdo->device_config_list.next);
 	}
 
-	free_vdo_device_config(config);
+	vdo_free_device_config(config);
 	ti->private = NULL;
 }
 
@@ -620,7 +620,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	struct registered_thread instance_thread;
 
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
-	suspend_vdo(vdo);
+	vdo_suspend(vdo);
 	uds_unregister_thread_device_id();
 }
 
@@ -634,7 +634,7 @@ static int vdo_preresume(struct dm_target *ti)
 	int result;
 
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
-	device_name = get_vdo_device_name(ti);
+	device_name = vdo_get_device_name(ti);
 
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
@@ -647,8 +647,8 @@ static int vdo_preresume(struct dm_target *ti)
 		return -EINVAL;
 	}
 
-	if (get_vdo_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
-		result = load_vdo(vdo);
+	if (vdo_get_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
+		result = vdo_load(vdo);
 		if (result != VDO_SUCCESS) {
 			uds_unregister_thread_device_id();
 			return vdo_map_to_system_error(result);
@@ -657,7 +657,7 @@ static int vdo_preresume(struct dm_target *ti)
 	}
 
 	uds_log_info("resuming device '%s'", device_name);
-	result = preresume_vdo(vdo, config, device_name);
+	result = vdo_preresume_internal(vdo, config, device_name);
 	if ((result == VDO_PARAMETER_MISMATCH)
 	    || (result == VDO_INVALID_ADMIN_STATE)) {
 		result = -EINVAL;
@@ -673,7 +673,7 @@ static void vdo_resume(struct dm_target *ti)
 	uds_register_thread_device_id(&instance_thread,
 				      &get_vdo_for_target(ti)->instance);
 
-	uds_log_info("device '%s' resumed", get_vdo_device_name(ti));
+	uds_log_info("device '%s' resumed", vdo_get_device_name(ti));
 	uds_unregister_thread_device_id();
 }
 
@@ -711,7 +711,7 @@ static void vdo_module_destroy(void)
 		dm_unregister_target(&vdo_target_bio);
 	}
 
-	clean_up_vdo_instance_number_tracking();
+	vdo_clean_up_instance_number_tracking();
 
 	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
@@ -720,13 +720,13 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
-	initialize_vdo_device_registry_once();
+	vdo_initialize_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
 	/* Add VDO errors to the already existing set of errors in UDS. */
-	result = register_vdo_status_codes();
+	result = vdo_register_status_codes();
 	if (result != UDS_SUCCESS) {
-		uds_log_error("register_vdo_status_codes failed %d", result);
+		uds_log_error("vdo_register_status_codes failed %d", result);
 		vdo_module_destroy();
 		return result;
 	}
@@ -739,7 +739,7 @@ static int __init vdo_init(void)
 	}
 	dm_registered = true;
 
-	initialize_vdo_instance_number_tracking();
+	vdo_initialize_instance_number_tracking();
 
 	return result;
 }

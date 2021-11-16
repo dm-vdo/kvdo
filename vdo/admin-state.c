@@ -204,7 +204,7 @@ vdo_get_admin_state_code_name(const struct admin_state_code *code)
  *
  * @return The name of the state's code
  **/
-const char *get_vdo_admin_state_name(const struct admin_state *state)
+const char *vdo_get_admin_state_name(const struct admin_state *state)
 {
 	return vdo_get_admin_state_code_name(vdo_get_admin_state_code(state));
 }
@@ -280,15 +280,15 @@ get_next_state(const struct admin_state *state,
 /**
  * Finish the current operation. Will notify the operation waiter if there is
  * one. This method should be used for operations started with
- * start_vdo_operation(). For operations which were started with
- * start_vdo_draining(), use finish_vdo_draining() instead.
+ * vdo_start_operation(). For operations which were started with
+ * vdo_start_draining(), use vdo_finish_draining() instead.
  *
  * @param state   The state whose operation is to be finished
  * @param result  The result of the operation
  *
  * @return <code>true</code> if there was an operation to finish
  **/
-bool finish_vdo_operation(struct admin_state *state, int result)
+bool vdo_finish_operation(struct admin_state *state, int result)
 {
 	if (!is_vdo_state_operating(state)) {
 		return false;
@@ -296,13 +296,13 @@ bool finish_vdo_operation(struct admin_state *state, int result)
 
 	state->complete = state->starting;
 	if (state->waiter != NULL) {
-		set_vdo_completion_result(state->waiter, result);
+		vdo_set_completion_result(state->waiter, result);
 	}
 
 	if (!state->starting) {
 		vdo_set_admin_state_code(state, state->next_state);
 		if (state->waiter != NULL) {
-			complete_vdo_completion(UDS_FORGET(state->waiter));
+			vdo_complete_completion(UDS_FORGET(state->waiter));
 		}
 	}
 
@@ -336,7 +336,7 @@ begin_operation(struct admin_state *state,
 		  uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 					 "Can't start %s from %s",
 					 vdo_get_admin_state_code_name(operation),
-					 get_vdo_admin_state_name(state));
+					 vdo_get_admin_state_name(state));
 	} else if (state->waiter != NULL) {
 		result =
 		  uds_log_error_strerror(VDO_COMPONENT_BUSY,
@@ -351,7 +351,7 @@ begin_operation(struct admin_state *state,
 			initiator(state);
 			state->starting = false;
 			if (state->complete) {
-				finish_vdo_operation(state, VDO_SUCCESS);
+				vdo_finish_operation(state, VDO_SUCCESS);
 			}
 		}
 
@@ -451,7 +451,7 @@ assert_vdo_drain_operation(const struct admin_state_code *operation,
  * @return <code>true</code> if the drain was initiated, if not the waiter
  *         will be notified
  **/
-bool start_vdo_draining(struct admin_state *state,
+bool vdo_start_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator *initiator)
@@ -463,7 +463,7 @@ bool start_vdo_draining(struct admin_state *state,
 	}
 
 	if (code->quiescent) {
-		complete_vdo_completion(waiter);
+		vdo_complete_completion(waiter);
 		return false;
 	}
 
@@ -487,9 +487,9 @@ bool start_vdo_draining(struct admin_state *state,
  * @return <code>true</code> if the state was draining; will notify the waiter
  *         if so
  **/
-bool finish_vdo_draining(struct admin_state *state)
+bool vdo_finish_draining(struct admin_state *state)
 {
-	return finish_vdo_draining_with_result(state, VDO_SUCCESS);
+	return vdo_finish_draining_with_result(state, VDO_SUCCESS);
 }
 
 /**
@@ -501,10 +501,10 @@ bool finish_vdo_draining(struct admin_state *state)
  * @return <code>true</code> if the state was draining; will notify the
  *         waiter if so
  **/
-bool finish_vdo_draining_with_result(struct admin_state *state, int result)
+bool vdo_finish_draining_with_result(struct admin_state *state, int result)
 {
 	return (vdo_is_state_draining(state)
-		&& finish_vdo_operation(state, result));
+		&& vdo_finish_operation(state, result));
 }
 
 /**
@@ -516,7 +516,7 @@ bool finish_vdo_draining_with_result(struct admin_state *state, int result)
  *
  * @return <code>true</code> if the specified operation is a load
  **/
-bool assert_vdo_load_operation(const struct admin_state_code *operation,
+bool vdo_assert_load_operation(const struct admin_state_code *operation,
 			       struct vdo_completion *waiter)
 {
 	return check_code(operation->loading,
@@ -538,12 +538,12 @@ bool assert_vdo_load_operation(const struct admin_state_code *operation,
  * @return <code>true</code> if the load was initiated, if not the waiter
  *         will be notified
  **/
-bool start_vdo_loading(struct admin_state *state,
+bool vdo_start_loading(struct admin_state *state,
 		       const struct admin_state_code *operation,
 		       struct vdo_completion *waiter,
 		       vdo_admin_initiator *initiator)
 {
-	return (assert_vdo_load_operation(operation, waiter) &&
+	return (vdo_assert_load_operation(operation, waiter) &&
 		start_operation(state, operation, waiter, initiator));
 }
 
@@ -555,9 +555,9 @@ bool start_vdo_loading(struct admin_state *state,
  * @return <code>true</code> if the state was loading; will notify the waiter
  *         if so
  **/
-bool finish_vdo_loading(struct admin_state *state)
+bool vdo_finish_loading(struct admin_state *state)
 {
-	return finish_vdo_loading_with_result(state, VDO_SUCCESS);
+	return vdo_finish_loading_with_result(state, VDO_SUCCESS);
 }
 
 /**
@@ -569,10 +569,10 @@ bool finish_vdo_loading(struct admin_state *state)
  * @return <code>true</code> if the state was loading; will notify the
  *         waiter if so
  **/
-bool finish_vdo_loading_with_result(struct admin_state *state, int result)
+bool vdo_finish_loading_with_result(struct admin_state *state, int result)
 {
 	return (vdo_is_state_loading(state)
-		&& finish_vdo_operation(state, result));
+		&& vdo_finish_operation(state, result));
 }
 
 /**
@@ -607,7 +607,7 @@ assert_vdo_resume_operation(const struct admin_state_code *operation,
  * @return <code>true</code> if the resume was initiated, if not the waiter
  *         will be notified
  **/
-bool start_vdo_resuming(struct admin_state *state,
+bool vdo_start_resuming(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator *initiator)
@@ -624,9 +624,9 @@ bool start_vdo_resuming(struct admin_state *state,
  * @return <code>true</code> if the state was resuming; will notify the waiter
  *         if so
  **/
-bool finish_vdo_resuming(struct admin_state *state)
+bool vdo_finish_resuming(struct admin_state *state)
 {
-	return finish_vdo_resuming_with_result(state, VDO_SUCCESS);
+	return vdo_finish_resuming_with_result(state, VDO_SUCCESS);
 }
 
 /**
@@ -638,10 +638,10 @@ bool finish_vdo_resuming(struct admin_state *state)
  * @return <code>true</code> if the state was resuming; will notify the
  *         waiter if so
  **/
-bool finish_vdo_resuming_with_result(struct admin_state *state, int result)
+bool vdo_finish_resuming_with_result(struct admin_state *state, int result)
 {
 	return (vdo_is_state_resuming(state)
-		&& finish_vdo_operation(state, result));
+		&& vdo_finish_operation(state, result));
 }
 
 /**
@@ -651,7 +651,7 @@ bool finish_vdo_resuming_with_result(struct admin_state *state, int result)
  *
  * @return VDO_SUCCESS if the state resumed, VDO_INVALID_ADMIN_STATE otherwise
  **/
-int resume_vdo_if_quiescent(struct admin_state *state)
+int vdo_resume_if_quiescent(struct admin_state *state)
 {
 	if (!vdo_is_state_quiescent(state)) {
 		return VDO_INVALID_ADMIN_STATE;
@@ -685,7 +685,7 @@ static bool assert_operation(const struct admin_state_code *code,
  * @return VDO_SUCCESS             if the operation was started
  *         VDO_INVALID_ADMIN_STATE if not
  **/
-int start_vdo_operation(struct admin_state *state,
+int vdo_start_operation(struct admin_state *state,
 			const struct admin_state_code *operation)
 {
 	return (assert_operation(operation, NULL) ?
@@ -705,7 +705,7 @@ int start_vdo_operation(struct admin_state *state,
  *
  * @return <code>true</code> if the operation was started
  **/
-bool start_vdo_operation_with_waiter(struct admin_state *state,
+bool vdo_start_operation_with_waiter(struct admin_state *state,
 				     const struct admin_state_code *operation,
 				     struct vdo_completion *waiter,
 				     vdo_admin_initiator *initiator)

@@ -52,7 +52,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
  *
  * @return VDO_SUCCESS or an error
  **/
-int initialize_vdo_super_block_codec(struct super_block_codec *codec)
+int vdo_initialize_super_block_codec(struct super_block_codec *codec)
 {
 	int result = make_buffer(MAX_COMPONENT_DATA_SIZE,
 				 &codec->component_buffer);
@@ -82,7 +82,7 @@ int initialize_vdo_super_block_codec(struct super_block_codec *codec)
  *
  * @param codec  The codec to clean up
  **/
-void destroy_vdo_super_block_codec(struct super_block_codec *codec)
+void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 {
 	free_buffer(UDS_FORGET(codec->block_buffer));
 	free_buffer(UDS_FORGET(codec->component_buffer));
@@ -96,7 +96,7 @@ void destroy_vdo_super_block_codec(struct super_block_codec *codec)
  *
  * @return VDO_SUCCESS or an error
  **/
-int encode_vdo_super_block(struct super_block_codec *codec)
+int vdo_encode_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
 	struct header header = SUPER_BLOCK_HEADER_12_0;
@@ -112,7 +112,7 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 
 	/* Encode the header. */
 	header.size += component_data_size;
-	result = encode_vdo_header(&header, buffer);
+	result = vdo_encode_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -143,7 +143,7 @@ int encode_vdo_super_block(struct super_block_codec *codec)
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_super_block(struct super_block_codec *codec)
+int vdo_decode_super_block(struct super_block_codec *codec)
 {
 	struct header header;
 	int result;
@@ -156,12 +156,12 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 	clear_buffer(buffer);
 
 	/* Decode and validate the header. */
-	result = decode_vdo_header(buffer, &header);
+	result = vdo_decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_vdo_header(&SUPER_BLOCK_HEADER_12_0, &header, false,
+	result = vdo_validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false,
 				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;

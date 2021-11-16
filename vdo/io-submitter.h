@@ -24,16 +24,16 @@
 
 #include "kernel-types.h"
 
-int make_vdo_io_submitter(const char *thread_name_prefix,
+int vdo_make_io_submitter(const char *thread_name_prefix,
 			  unsigned int thread_count,
 			  unsigned int rotation_interval,
 			  unsigned int max_requests_active,
 			  struct vdo *vdo,
 			  struct io_submitter **io_submitter);
 
-void cleanup_vdo_io_submitter(struct io_submitter *io_submitter);
+void vdo_cleanup_io_submitter(struct io_submitter *io_submitter);
 
-void free_vdo_io_submitter(struct io_submitter *io_submitter);
+void vdo_free_io_submitter(struct io_submitter *io_submitter);
 
 void process_data_vio_io(struct vdo_completion *completion);
 

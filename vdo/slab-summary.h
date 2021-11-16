@@ -133,7 +133,7 @@ struct slab_summary {
 };
 
 int __must_check
-make_vdo_slab_summary(struct vdo *vdo,
+vdo_make_slab_summary(struct vdo *vdo,
 		      struct partition *partition,
 		      const struct thread_config *thread_config,
 		      unsigned int slab_size_shift,
@@ -141,16 +141,16 @@ make_vdo_slab_summary(struct vdo *vdo,
 		      struct read_only_notifier *read_only_notifier,
 		      struct slab_summary **slab_summary_ptr);
 
-void free_vdo_slab_summary(struct slab_summary *summary);
+void vdo_free_slab_summary(struct slab_summary *summary);
 
 struct slab_summary_zone * __must_check
 vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
 
-void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+void vdo_drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				 const struct admin_state_code *operation,
 				 struct vdo_completion *parent);
 
-void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+void vdo_resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				  struct vdo_completion *parent);
 
 void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
@@ -180,15 +180,15 @@ void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 				      slab_count_t slab_count,
 				      struct slab_status *statuses);
 
-void set_vdo_slab_summary_origin(struct slab_summary *summary,
+void vdo_set_slab_summary_origin(struct slab_summary *summary,
 				 struct partition *partition);
 
-void load_vdo_slab_summary(struct slab_summary *summary,
+void vdo_load_slab_summary(struct slab_summary *summary,
 			   const struct admin_state_code *operation,
 			   zone_count_t zones_to_combine,
 			   struct vdo_completion *parent);
 
 struct slab_summary_statistics __must_check
-get_vdo_slab_summary_statistics(const struct slab_summary *summary);
+vdo_get_slab_summary_statistics(const struct slab_summary *summary);
 
 #endif /* SLAB_SUMMARY_H */

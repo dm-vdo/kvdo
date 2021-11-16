@@ -191,7 +191,7 @@ static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 }
 
 int __must_check
-make_vdo_thread(struct vdo *vdo,
+vdo_make_thread(struct vdo *vdo,
 		const char *thread_name_prefix,
 		thread_id_t thread_id,
 		const struct vdo_work_queue_type *type,
@@ -199,34 +199,34 @@ make_vdo_thread(struct vdo *vdo,
 		void *contexts[]);
 
 int __must_check
-make_vdo(unsigned int instance,
+vdo_make(unsigned int instance,
 	 struct device_config *config,
 	 char **reason,
 	 struct vdo **vdo_ptr);
 
-void destroy_vdo(struct vdo *vdo);
+void vdo_destroy(struct vdo *vdo);
 
-int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
+int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
 
 int __must_check
-prepare_to_modify_vdo(struct vdo *vdo,
+vdo_prepare_to_modify(struct vdo *vdo,
 		      struct device_config *config,
 		      bool may_grow,
 		      char **error_ptr);
 
 struct block_device * __must_check
-get_vdo_backing_device(const struct vdo *vdo);
+vdo_get_backing_device(const struct vdo *vdo);
 
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
 const struct admin_state_code * __must_check
-get_vdo_admin_state(const struct vdo *vdo);
+vdo_get_admin_state(const struct vdo *vdo);
 
-bool set_vdo_compressing(struct vdo *vdo, bool enable);
+bool vdo_set_compressing(struct vdo *vdo, bool enable);
 
-bool get_vdo_compressing(struct vdo *vdo);
+bool vdo_get_compressing(struct vdo *vdo);
 
-void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
+void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 thread_id_t vdo_get_callback_thread_id(void);
 
@@ -235,40 +235,40 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 			   const struct data_location *advice,
 			   logical_block_number_t lbn);
 
-enum vdo_state __must_check get_vdo_state(const struct vdo *vdo);
+enum vdo_state __must_check vdo_get_state(const struct vdo *vdo);
 
-void set_vdo_state(struct vdo *vdo, enum vdo_state state);
+void vdo_set_state(struct vdo *vdo, enum vdo_state state);
 
-void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent);
+void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent);
 
-int enable_vdo_read_only_entry(struct vdo *vdo);
+int vdo_enable_read_only_entry(struct vdo *vdo);
 
-bool __must_check in_vdo_read_only_mode(const struct vdo *vdo);
+bool __must_check vdo_in_read_only_mode(const struct vdo *vdo);
 
-bool __must_check in_vdo_recovery_mode(const struct vdo *vdo);
+bool __must_check vdo_in_recovery_mode(const struct vdo *vdo);
 
-void enter_vdo_recovery_mode(struct vdo *vdo);
+void vdo_enter_recovery_mode(struct vdo *vdo);
 
-void assert_on_vdo_admin_thread(const struct vdo *vdo, const char *name);
+void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name);
 
-void assert_on_vdo_logical_zone_thread(const struct vdo *vdo,
+void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 				       zone_count_t logical_zone,
 				       const char *name);
 
-void assert_on_vdo_physical_zone_thread(const struct vdo *vdo,
+void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name);
 
 struct hash_zone * __must_check
-select_vdo_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
+vdo_select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 
-int __must_check get_vdo_physical_zone(const struct vdo *vdo,
+int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);
 
 zone_count_t __must_check
-get_vdo_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
+vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
 
-void dump_vdo_status(const struct vdo *vdo);
+void vdo_dump_status(const struct vdo *vdo);
 
 #endif /* VDO_H */

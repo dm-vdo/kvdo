@@ -81,17 +81,17 @@ static inline struct device_config *vdo_as_device_config(struct list_head *entry
 	return list_entry(entry, struct device_config, config_list);
 }
 
-int __must_check parse_vdo_device_config(int argc,
+int __must_check vdo_parse_device_config(int argc,
 					 char **argv,
 					 struct dm_target *ti,
 					 struct device_config **config_ptr);
 
-void free_vdo_device_config(struct device_config *config);
+void vdo_free_device_config(struct device_config *config);
 
-void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
+void vdo_set_device_config(struct device_config *config, struct vdo *vdo);
 
 int __must_check
-validate_new_vdo_device_config(struct device_config *to_validate,
+vdo_validate_new_device_config(struct device_config *to_validate,
 			       struct device_config *config,
 			       bool may_grow,
 			       char **error_ptr);

@@ -166,7 +166,7 @@ vdo_pack_recovery_block_header(const struct recovery_block_header *header,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unvdo_pack_recovery_block_header(const struct packed_journal_header *packed,
+vdo_unpack_recovery_block_header(const struct packed_journal_header *packed,
 				 struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {

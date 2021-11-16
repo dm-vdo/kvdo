@@ -40,7 +40,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_recovery_block(struct vdo *vdo,
+int vdo_make_recovery_block(struct vdo *vdo,
 			    struct recovery_journal *journal,
 			    struct recovery_journal_block **block_ptr)
 {
@@ -68,7 +68,7 @@ int make_vdo_recovery_block(struct vdo *vdo,
 	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
 			      &block->block);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_block(block);
+		vdo_free_recovery_block(block);
 		return result;
 	}
 
@@ -79,7 +79,7 @@ int make_vdo_recovery_block(struct vdo *vdo,
 				     block->block,
 				     &block->vio);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_block(block);
+		vdo_free_recovery_block(block);
 		return result;
 	}
 
@@ -96,7 +96,7 @@ int make_vdo_recovery_block(struct vdo *vdo,
  *
  * @param block  The tail block to free
  **/
-void free_vdo_recovery_block(struct recovery_journal_block *block)
+void vdo_free_recovery_block(struct recovery_journal_block *block)
 {
 	if (block == NULL) {
 		return;
@@ -140,7 +140,7 @@ static void set_active_sector(struct recovery_journal_block *block,
  *
  * @param block  The journal block to initialize
  **/
-void initialize_vdo_recovery_block(struct recovery_journal_block *block)
+void vdo_initialize_recovery_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
 	struct recovery_block_header unpacked = {
@@ -179,7 +179,7 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
  *
  * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
  **/
-int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
+int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 				     struct data_vio *data_vio)
 {
 	/*
@@ -307,7 +307,7 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
  *
  * @return <code>true</code> if the block can be committed now
  **/
-bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
+bool vdo_can_commit_recovery_block(struct recovery_journal_block *block)
 {
 	/*
 	 * Cannot commit in read-only mode, if already committing the block, 
@@ -330,7 +330,7 @@ bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
  *
  * @return VDO_SUCCESS, or an error if the write could not be launched
  **/
-int commit_vdo_recovery_block(struct recovery_journal_block *block,
+int vdo_commit_recovery_block(struct recovery_journal_block *block,
 			      vdo_action *callback,
 			      vdo_action *error_handler)
 {
@@ -338,7 +338,7 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t block_pbn;
 	bool fua;
-	int result = ASSERT(can_commit_vdo_recovery_block(block),
+	int result = ASSERT(vdo_can_commit_recovery_block(block),
 			    "should never call %s when the block can't be committed",
 			    __func__);
 	if (result != VDO_SUCCESS) {
@@ -391,7 +391,7 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
  *
  * @param block  The block to dump
  **/
-void dump_vdo_recovery_block(const struct recovery_journal_block *block)
+void vdo_dump_recovery_block(const struct recovery_journal_block *block)
 {
 	uds_log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
 		     (unsigned long long) block->sequence_number,

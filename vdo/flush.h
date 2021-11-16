@@ -41,22 +41,22 @@ struct vdo_flush {
 	sequence_number_t flush_generation;
 };
 
-int __must_check make_vdo_flusher(struct vdo *vdo);
+int __must_check vdo_make_flusher(struct vdo *vdo);
 
-void free_vdo_flusher(struct flusher *flusher);
+void vdo_free_flusher(struct flusher *flusher);
 
-thread_id_t __must_check get_vdo_flusher_thread_id(struct flusher *flusher);
+thread_id_t __must_check vdo_get_flusher_thread_id(struct flusher *flusher);
 
-void complete_vdo_flushes(struct flusher *flusher);
+void vdo_complete_flushes(struct flusher *flusher);
 
-void dump_vdo_flusher(const struct flusher *flusher);
+void vdo_dump_flusher(const struct flusher *flusher);
 
-void launch_vdo_flush(struct vdo *vdo, struct bio *bio);
+void vdo_launch_flush(struct vdo *vdo, struct bio *bio);
 
-void drain_vdo_flusher(struct flusher *flusher,
+void vdo_drain_flusher(struct flusher *flusher,
 		       struct vdo_completion *completion);
 
-void resume_vdo_flusher(struct flusher *flusher,
+void vdo_resume_flusher(struct flusher *flusher,
 			struct vdo_completion *parent);
 
 #endif /* FLUSH_H */

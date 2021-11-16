@@ -41,12 +41,12 @@ struct super_block_codec {
 	byte *encoded_super_block;
 };
 
-int __must_check initialize_vdo_super_block_codec(struct super_block_codec *codec);
+int __must_check vdo_initialize_super_block_codec(struct super_block_codec *codec);
 
-void destroy_vdo_super_block_codec(struct super_block_codec *codec);
+void vdo_destroy_super_block_codec(struct super_block_codec *codec);
 
-int __must_check encode_vdo_super_block(struct super_block_codec *codec);
+int __must_check vdo_encode_super_block(struct super_block_codec *codec);
 
-int __must_check decode_vdo_super_block(struct super_block_codec *codec);
+int __must_check vdo_decode_super_block(struct super_block_codec *codec);
 
 #endif /* SUPER_BLOCK_CODEC_H */

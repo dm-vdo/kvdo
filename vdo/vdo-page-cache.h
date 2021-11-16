@@ -195,7 +195,7 @@ struct page_info {
 	byte context[MAX_PAGE_CONTEXT_SIZE];
 };
 
-int __must_check make_vdo_page_cache(struct vdo *vdo,
+int __must_check vdo_make_page_cache(struct vdo *vdo,
 				     page_count_t page_count,
 				     vdo_page_read_function *read_hook,
 				     vdo_page_write_function *write_hook,
@@ -204,17 +204,17 @@ int __must_check make_vdo_page_cache(struct vdo *vdo,
 				     struct block_map_zone *zone,
 				     struct vdo_page_cache **cache_ptr);
 
-void free_vdo_page_cache(struct vdo_page_cache *cache);
+void vdo_free_page_cache(struct vdo_page_cache *cache);
 
-void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
+void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache,
 				       sequence_number_t period);
 
-void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
+void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 				     bool rebuilding);
 
-bool __must_check is_vdo_page_cache_active(struct vdo_page_cache *cache);
+bool __must_check vdo_is_page_cache_active(struct vdo_page_cache *cache);
 
-void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
+void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
 				   sequence_number_t period);
 
 /* ASYNC */
@@ -240,7 +240,7 @@ struct vdo_page_completion {
 	struct page_info *info;
 };
 
-void init_vdo_page_completion(struct vdo_page_completion *page_completion,
+void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
 			      physical_block_number_t pbn,
 			      bool writable,
@@ -248,29 +248,29 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 			      vdo_action *callback,
 			      vdo_action *error_handler);
 
-void release_vdo_page_completion(struct vdo_completion *completion);
+void vdo_release_page_completion(struct vdo_completion *completion);
 
-void get_vdo_page(struct vdo_completion *completion);
+void vdo_get_page(struct vdo_completion *completion);
 
-void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
+void vdo_mark_completed_page_dirty(struct vdo_completion *completion,
 				   sequence_number_t old_dirty_period,
 				   sequence_number_t new_dirty_period);
 
-void request_vdo_page_write(struct vdo_completion *completion);
+void vdo_request_page_write(struct vdo_completion *completion);
 
-const void *dereference_readable_vdo_page(struct vdo_completion *completion);
+const void *vdo_dereference_readable_page(struct vdo_completion *completion);
 
-void *dereference_writable_vdo_page(struct vdo_completion *completion);
+void *vdo_dereference_writable_page(struct vdo_completion *completion);
 
-void *get_vdo_page_completion_context(struct vdo_completion *completion);
+void *vdo_get_page_completion_context(struct vdo_completion *completion);
 
-void drain_vdo_page_cache(struct vdo_page_cache *cache);
+void vdo_drain_page_cache(struct vdo_page_cache *cache);
 
-int __must_check invalidate_vdo_page_cache(struct vdo_page_cache *cache);
+int __must_check vdo_invalidate_page_cache(struct vdo_page_cache *cache);
 
 /* STATISTICS & TESTING */
 
 struct block_map_statistics __must_check
-get_vdo_page_cache_statistics(const struct vdo_page_cache *cache);
+vdo_get_page_cache_statistics(const struct vdo_page_cache *cache);
 
 #endif /* VDO_PAGE_CACHE_H */

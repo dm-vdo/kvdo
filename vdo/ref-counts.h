@@ -141,15 +141,15 @@ struct ref_counts {
 };
 
 int __must_check
-make_vdo_ref_counts(block_count_t block_count,
+vdo_make_ref_counts(block_count_t block_count,
 		    struct vdo_slab *slab,
 		    physical_block_number_t origin,
 		    struct read_only_notifier *read_only_notifier,
 		    struct ref_counts **ref_counts_ptr);
 
-void free_vdo_ref_counts(struct ref_counts *ref_counts);
+void vdo_free_ref_counts(struct ref_counts *ref_counts);
 
-bool __must_check are_vdo_ref_counts_active(struct ref_counts *ref_counts);
+bool __must_check vdo_are_ref_counts_active(struct ref_counts *ref_counts);
 
 void vdo_reset_search_cursor(struct ref_counts *ref_counts);
 
@@ -197,11 +197,11 @@ void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts);
 
 void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts);
 
-void drain_vdo_ref_counts(struct ref_counts *ref_counts);
+void vdo_drain_ref_counts(struct ref_counts *ref_counts);
 
 void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts);
 
-void dump_vdo_ref_counts(const struct ref_counts *ref_counts);
+void vdo_dump_ref_counts(const struct ref_counts *ref_counts);
 
 
 #endif /* REF_COUNTS_H */

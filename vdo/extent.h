@@ -51,7 +51,7 @@ struct vdo_extent {
 static inline struct vdo_extent *
 vdo_completion_as_extent(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VDO_EXTENT_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_EXTENT_COMPLETION);
 	return container_of(completion, struct vdo_extent, completion);
 }
 
@@ -68,16 +68,16 @@ vdo_extent_as_completion(struct vdo_extent *extent)
 	return &extent->completion;
 }
 
-int __must_check create_vdo_extent(struct vdo *vdo,
+int __must_check vdo_create_extent(struct vdo *vdo,
 				   enum vio_type vio_type,
 				   enum vio_priority priority,
 				   block_count_t block_count,
 				   char *data,
 				   struct vdo_extent **extent_ptr);
 
-void free_vdo_extent(struct vdo_extent *extent);
+void vdo_free_extent(struct vdo_extent *extent);
 
-void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
+void vdo_read_partial_metadata_extent(struct vdo_extent *extent,
 				      physical_block_number_t start_block,
 				      block_count_t count);
 
@@ -91,10 +91,10 @@ void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
 static inline void vdo_read_metadata_extent(struct vdo_extent *extent,
 					    physical_block_number_t start_block)
 {
-	read_partial_vdo_metadata_extent(extent, start_block, extent->count);
+	vdo_read_partial_metadata_extent(extent, start_block, extent->count);
 }
 
-void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
+void vdo_write_partial_metadata_extent(struct vdo_extent *extent,
 				       physical_block_number_t start_block,
 				       block_count_t count);
 /**
@@ -108,7 +108,7 @@ void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
 static inline void vdo_write_metadata_extent(struct vdo_extent *extent,
 					     physical_block_number_t start_block)
 {
-	write_partial_vdo_metadata_extent(extent, start_block, extent->count);
+	vdo_write_partial_metadata_extent(extent, start_block, extent->count);
 }
 
 #endif /* EXTENT_H */

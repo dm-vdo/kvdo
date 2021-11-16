@@ -34,7 +34,7 @@
 
 /**
  * Finish loading the journal by freeing the extent and notifying the parent.
- * This callback is registered in load_vdo_recovery_journal().
+ * This callback is registered in vdo_load_recovery_journal().
  *
  * @param completion  The load extent
  **/
@@ -43,7 +43,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
 
-	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
+	vdo_free_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	vdo_finish_completion(parent, result);
 }
 
@@ -57,7 +57,7 @@ static void finish_journal_load(struct vdo_completion *completion)
  *                                the caller's responsibility to free this
  *                                buffer)
  **/
-void load_vdo_recovery_journal(struct recovery_journal *journal,
+void vdo_load_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr)
 {
@@ -69,7 +69,7 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 		return;
 	}
 
-	result = create_vdo_extent(parent->vdo, VIO_TYPE_RECOVERY_JOURNAL,
+	result = vdo_create_extent(parent->vdo, VIO_TYPE_RECOVERY_JOURNAL,
 				   VIO_PRIORITY_METADATA, journal->size,
 				   *journal_data_ptr, &extent);
 	if (result != VDO_SUCCESS) {
@@ -81,7 +81,7 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 			       finish_journal_load, parent->callback_thread_id,
 			       parent);
 	vdo_read_metadata_extent(extent,
-				 get_vdo_fixed_layout_partition_offset(journal->partition));
+				 vdo_get_fixed_layout_partition_offset(journal->partition));
 }
 
 /**
@@ -122,7 +122,7 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
  *
  * @return  <code>True</code> if there were valid journal blocks
  **/
-bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
+bool vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 					     char *journal_data,
 					     sequence_number_t *tail_ptr,
 					     sequence_number_t *block_map_head_ptr,
@@ -141,7 +141,7 @@ bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 							      i);
 		struct recovery_block_header header;
 
-		unvdo_pack_recovery_block_header(packed_header, &header);
+		vdo_unpack_recovery_block_header(packed_header, &header);
 
 		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
 			/*
@@ -184,7 +184,7 @@ bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
  * @return VDO_SUCCESS or an error
  **/
 int
-validate_vdo_recovery_journal_entry(const struct vdo *vdo,
+vdo_validate_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)
 {
 	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||
@@ -196,7 +196,7 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 					      (unsigned long long) entry->slot.pbn,
 					      entry->slot.slot,
 					      (unsigned long long) entry->mapping.pbn,
-					      get_vdo_journal_operation_name(entry->operation));
+					      vdo_get_journal_operation_name(entry->operation));
 	}
 
 	if ((entry->operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) &&
@@ -207,7 +207,7 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 					      (unsigned long long) entry->slot.pbn,
 					      entry->slot.slot,
 					      (unsigned long long) entry->mapping.pbn,
-					      get_vdo_journal_operation_name(entry->operation));
+					      vdo_get_journal_operation_name(entry->operation));
 	}
 
 	return VDO_SUCCESS;

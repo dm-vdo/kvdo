@@ -37,7 +37,7 @@ static struct pbn_lock *return_pbn_lock(struct reference_operation operation)
  * @param operation  The reference_operation to set up
  **/
 void
-set_up_vdo_reference_operation_with_lock(enum journal_operation type,
+vdo_set_up_reference_operation_with_lock(enum journal_operation type,
 					 physical_block_number_t pbn,
 					 enum block_mapping_state state,
 					 struct pbn_lock *lock,
@@ -56,7 +56,7 @@ static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.context == NULL)
 			? NULL
-			: get_vdo_physical_zone_pbn_lock(operation.context,
+			: vdo_get_physical_zone_pbn_lock(operation.context,
 							 operation.pbn));
 }
 
@@ -72,7 +72,7 @@ static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
  * @param operation  The reference_operation to set up
  **/
 void
-set_up_vdo_reference_operation_with_zone(enum journal_operation type,
+vdo_set_up_reference_operation_with_zone(enum journal_operation type,
 					 physical_block_number_t pbn,
 					 enum block_mapping_state state,
 					 struct physical_zone *zone,

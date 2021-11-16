@@ -121,7 +121,7 @@ enum vdo_status_codes {
 
 extern const struct error_info vdo_status_list[];
 
-int register_vdo_status_codes(void);
+int vdo_register_status_codes(void);
 
 int vdo_map_to_system_error(int error);
 

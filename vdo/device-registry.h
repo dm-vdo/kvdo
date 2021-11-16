@@ -30,13 +30,13 @@
  **/
 typedef bool vdo_filter_t(struct vdo *vdo, void *context);
 
-void initialize_vdo_device_registry_once(void);
+void vdo_initialize_device_registry_once(void);
 
-int __must_check register_vdo(struct vdo *vdo);
+int __must_check vdo_register(struct vdo *vdo);
 
-void unregister_vdo(struct vdo *vdo);
+void vdo_unregister(struct vdo *vdo);
 
 struct vdo * __must_check
-find_vdo_matching(vdo_filter_t *filter, void *context);
+vdo_find_matching(vdo_filter_t *filter, void *context);
 
 #endif /* DEVICE_REGISTRY_H */

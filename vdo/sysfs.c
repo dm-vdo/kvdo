@@ -60,7 +60,7 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_vdo_dedupe_index_timeout_interval(*(uint *)kp->arg);
+	vdo_set_dedupe_index_timeout_interval(*(uint *)kp->arg);
 	return 0;
 }
 
@@ -72,7 +72,7 @@ static int vdo_min_dedupe_timer_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_vdo_dedupe_index_min_timer_interval(*(uint *)kp->arg);
+	vdo_set_dedupe_index_min_timer_interval(*(uint *)kp->arg);
 	return 0;
 }
 

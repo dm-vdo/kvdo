@@ -134,7 +134,7 @@ static inline void vdo_pack_journal_point(const struct journal_point *unpacked,
  * @param unpacked  The unpacked output point
  **/
 static inline void
-unvdo_pack_journal_point(const struct packed_journal_point *packed,
+vdo_unpack_journal_point(const struct packed_journal_point *packed,
 			 struct journal_point *unpacked)
 {
 	uint64_t native = __le64_to_cpu(packed->encoded_point);

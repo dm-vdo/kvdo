@@ -33,12 +33,12 @@
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-make_vdo_copy_completion(struct vdo *vdo,
+vdo_make_copy_completion(struct vdo *vdo,
 			 struct vdo_completion **completion_ptr);
 
-void free_vdo_copy_completion(struct vdo_completion *completion);
+void vdo_free_copy_completion(struct vdo_completion *completion);
 
-void copy_vdo_partition(struct vdo_completion *completion,
+void vdo_copy_partition(struct vdo_completion *completion,
 			struct partition *source,
 			struct partition *target,
 			struct vdo_completion *parent);

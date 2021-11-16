@@ -40,18 +40,18 @@ struct recovery_journal_state_7_0 {
 
 extern const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0;
 
-size_t __must_check get_vdo_recovery_journal_encoded_size(void);
+size_t __must_check vdo_get_recovery_journal_encoded_size(void);
 
 int __must_check
-encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
+vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 				      struct buffer *buffer);
 
 int __must_check
-decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
+vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 				      struct recovery_journal_state_7_0 *state);
 
 const char * __must_check
-get_vdo_journal_operation_name(enum journal_operation operation);
+vdo_get_journal_operation_name(enum journal_operation operation);
 
 /**
  * Determine whether the header of the given sector could describe a

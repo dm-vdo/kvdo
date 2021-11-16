@@ -117,7 +117,7 @@ struct block_map {
 };
 
 int __must_check
-decode_vdo_block_map(struct block_map_state_2_0 state,
+vdo_decode_block_map(struct block_map_state_2_0 state,
 		     block_count_t logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct vdo *vdo,
@@ -128,11 +128,11 @@ decode_vdo_block_map(struct block_map_state_2_0 state,
 		     block_count_t maximum_age,
 		     struct block_map **map_ptr);
 
-void drain_vdo_block_map(struct block_map *map,
+void vdo_drain_block_map(struct block_map *map,
 			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent);
 
-void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent);
+void vdo_resume_block_map(struct block_map *map, struct vdo_completion *parent);
 
 int __must_check
 vdo_prepare_to_grow_block_map(struct block_map *map,
@@ -140,16 +140,16 @@ vdo_prepare_to_grow_block_map(struct block_map *map,
 
 block_count_t __must_check vdo_get_new_entry_count(struct block_map *map);
 
-void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent);
+void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent);
 
 void vdo_abandon_block_map_growth(struct block_map *map);
 
-void free_vdo_block_map(struct block_map *map);
+void vdo_free_block_map(struct block_map *map);
 
 struct block_map_state_2_0 __must_check
-record_vdo_block_map(const struct block_map *map);
+vdo_record_block_map(const struct block_map *map);
 
-void initialize_vdo_block_map_from_journal(struct block_map *map,
+void vdo_initialize_block_map_from_journal(struct block_map *map,
 					   struct recovery_journal *journal);
 
 struct block_map_zone * __must_check
@@ -164,12 +164,12 @@ void vdo_find_block_map_slot(struct data_vio *data_vio,
 block_count_t __must_check
 vdo_get_number_of_block_map_entries(const struct block_map *map);
 
-void advance_vdo_block_map_era(struct block_map *map,
+void vdo_advance_block_map_era(struct block_map *map,
 			       sequence_number_t recovery_block_number);
 
 void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone);
 
-void update_vdo_block_map_page(struct block_map_page *page,
+void vdo_update_block_map_page(struct block_map_page *page,
 			       struct data_vio *data_vio,
 			       physical_block_number_t pbn,
 			       enum block_mapping_state mapping_state,
@@ -180,6 +180,6 @@ void vdo_get_mapped_block(struct data_vio *data_vio);
 void vdo_put_mapped_block(struct data_vio *data_vio);
 
 struct block_map_statistics __must_check
-get_vdo_block_map_statistics(struct block_map *map);
+vdo_get_block_map_statistics(struct block_map *map);
 
 #endif /* BLOCK_MAP_H */

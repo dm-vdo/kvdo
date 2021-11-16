@@ -71,14 +71,14 @@ vdo_get_reference_operation_pbn_lock(struct reference_operation operation)
 }
 
 void
-set_up_vdo_reference_operation_with_lock(enum journal_operation type,
+vdo_set_up_reference_operation_with_lock(enum journal_operation type,
 					 physical_block_number_t pbn,
 					 enum block_mapping_state state,
 					 struct pbn_lock *lock,
 					 struct reference_operation *operation);
 
 void
-set_up_vdo_reference_operation_with_zone(enum journal_operation type,
+vdo_set_up_reference_operation_with_zone(enum journal_operation type,
 					 physical_block_number_t pbn,
 					 enum block_mapping_state state,
 					 struct physical_zone *zone,

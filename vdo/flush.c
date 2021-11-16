@@ -92,7 +92,7 @@ static inline void assert_on_flusher_thread(struct flusher *flusher,
  **/
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type,
+	vdo_assert_completion_type(completion->type,
 				   VDO_FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
 }
@@ -107,7 +107,7 @@ static struct flusher *as_flusher(struct vdo_completion *completion)
 static inline struct vdo_flush *
 completion_as_vdo_flush(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VDO_FLUSH_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_FLUSH_COMPLETION);
 	return container_of(completion, struct vdo_flush, completion);
 }
 
@@ -130,7 +130,7 @@ static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_flusher(struct vdo *vdo)
+int vdo_make_flusher(struct vdo *vdo)
 {
 	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
 
@@ -142,7 +142,7 @@ int make_vdo_flusher(struct vdo *vdo)
 	vdo->flusher->thread_id = vdo->thread_config->packer_thread;
 	vdo_set_admin_state_code(&vdo->flusher->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
-	initialize_vdo_completion(&vdo->flusher->completion, vdo,
+	vdo_initialize_completion(&vdo->flusher->completion, vdo,
 				  VDO_FLUSH_NOTIFICATION_COMPLETION);
 
 	spin_lock_init(&vdo->flusher->lock);
@@ -156,7 +156,7 @@ int make_vdo_flusher(struct vdo *vdo)
  *
  * @param flusher  The flusher to free
  **/
-void free_vdo_flusher(struct flusher *flusher)
+void vdo_free_flusher(struct flusher *flusher)
 {
 	if (flusher == NULL) {
 		return;
@@ -173,7 +173,7 @@ void free_vdo_flusher(struct flusher *flusher)
  *
  * @return The ID of the thread which handles the flusher
  **/
-thread_id_t get_vdo_flusher_thread_id(struct flusher *flusher)
+thread_id_t vdo_get_flusher_thread_id(struct flusher *flusher)
 {
 	return flusher->thread_id;
 }
@@ -209,7 +209,7 @@ static void finish_notification(struct vdo_completion *completion)
 		return;
 	}
 
-	complete_vdo_flushes(flusher);
+	vdo_complete_flushes(flusher);
 	if (has_waiters(&flusher->notifiers)) {
 		notify_flush(flusher);
 	}
@@ -226,7 +226,7 @@ static void flush_packer_callback(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
 
-	increment_vdo_packer_flush_generation(flusher->vdo->packer);
+	vdo_increment_packer_flush_generation(flusher->vdo->packer);
 	vdo_launch_completion_callback(completion, finish_notification,
 				       flusher->thread_id);
 }
@@ -243,7 +243,7 @@ static void increment_generation(struct vdo_completion *completion)
 	struct flusher *flusher = as_flusher(completion);
 	struct logical_zone *zone = flusher->logical_zone_to_notify;
 
-	increment_vdo_logical_zone_flush_generation(zone,
+	vdo_increment_logical_zone_flush_generation(zone,
 						    flusher->notify_generation);
 	if (zone->next == NULL) {
 		vdo_launch_completion_callback(completion,
@@ -326,7 +326,7 @@ static void check_for_drain_complete(struct flusher *flusher)
 	if (vdo_is_state_draining(&flusher->state)
 	    && !has_waiters(&flusher->pending_flushes)
 	    && bio_list_empty(&flusher->waiting_flush_bios)) {
-		finish_vdo_draining(&flusher->state);
+		vdo_finish_draining(&flusher->state);
 	}
 }
 
@@ -335,7 +335,7 @@ static void check_for_drain_complete(struct flusher *flusher)
  *
  * @param flusher  The flusher
  **/
-void complete_vdo_flushes(struct flusher *flusher)
+void vdo_complete_flushes(struct flusher *flusher)
 {
 	sequence_number_t oldest_active_generation = UINT64_MAX;
 	struct logical_zone *zone;
@@ -375,7 +375,7 @@ void complete_vdo_flushes(struct flusher *flusher)
  *
  * @param flusher  The flusher
  **/
-void dump_vdo_flusher(const struct flusher *flusher)
+void vdo_dump_flusher(const struct flusher *flusher)
 {
 	uds_log_info("struct flusher");
 	uds_log_info("  flush_generation=%llu first_unacknowledged_generation=%llu",
@@ -396,7 +396,7 @@ void dump_vdo_flusher(const struct flusher *flusher)
  **/
 static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 {
-	initialize_vdo_completion(&flush->completion,
+	vdo_initialize_completion(&flush->completion,
 				  vdo,
 				  VDO_FLUSH_COMPLETION);
 	bio_list_init(&flush->bios);
@@ -425,7 +425,7 @@ static void launch_flush(struct vdo_flush *flush)
  * @param vdo  The vdo
  * @param bio  The bio containing an empty flush request
  **/
-void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
+void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 {
 	/*
 	 * Try to allocate a vdo_flush to represent the flush request. If the
@@ -539,7 +539,7 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 		vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 
 		/* Update the device, and send it on down... */
-		bio_set_dev(bio, get_vdo_backing_device(vdo));
+		bio_set_dev(bio, vdo_get_backing_device(vdo));
 		atomic64_inc(&vdo->stats.flush_out);
 		submit_bio_noacct(bio);
 	}
@@ -615,11 +615,11 @@ static void initiate_drain(struct admin_state *state)
  * @param flusher     The flusher to drain
  * @param completion  The completion to finish when the flusher has drained
  **/
-void drain_vdo_flusher(struct flusher *flusher,
+void vdo_drain_flusher(struct flusher *flusher,
 		       struct vdo_completion *completion)
 {
 	assert_on_flusher_thread(flusher, __func__);
-	start_vdo_draining(&flusher->state,
+	vdo_start_draining(&flusher->state,
 			   VDO_ADMIN_STATE_SUSPENDING,
 			   completion,
 			   initiate_drain);
@@ -631,9 +631,9 @@ void drain_vdo_flusher(struct flusher *flusher,
  * @param flusher  The flusher to resume
  * @param parent   The completion to finish when the flusher has resumed
  **/
-void resume_vdo_flusher(struct flusher *flusher, struct vdo_completion *parent)
+void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);
 	vdo_finish_completion(parent,
-			      resume_vdo_if_quiescent(&flusher->state));
+			      vdo_resume_if_quiescent(&flusher->state));
 }

@@ -41,7 +41,7 @@ enum {
  * When done, the version number is set to the current version, and all
  * fragments are empty.
  **/
-void reset_vdo_compressed_block_header(struct compressed_block_header *header)
+void vdo_reset_compressed_block_header(struct compressed_block_header *header)
 {
 	/*
 	 * Make sure the block layout isn't accidentally changed by changing 
@@ -75,7 +75,7 @@ get_compressed_fragment_size(const struct compressed_block_header *header,
  * @return If a valid compressed fragment is found, VDO_SUCCESS;
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
  **/
-int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
+int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      char *buffer,
 				      block_size_t block_size,
 				      uint16_t *fragment_offset,
@@ -92,7 +92,7 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	version = unvdo_pack_version_number(header->version);
+	version = vdo_unpack_version_number(header->version);
 	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
 	}
@@ -131,7 +131,7 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
  *
  * @note no bounds checking -- the data better fit without smashing other stuff
  **/
-void put_vdo_compressed_block_fragment(struct compressed_block *block,
+void vdo_put_compressed_block_fragment(struct compressed_block *block,
 				       unsigned int fragment,
 				       uint16_t offset,
 				       const char *data,

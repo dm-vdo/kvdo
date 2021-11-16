@@ -45,7 +45,7 @@ static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 {
 	struct vdo_completion *parent = eraser->parent;
 
-	free_vdo_extent(UDS_FORGET(eraser->extent));
+	vdo_free_extent(UDS_FORGET(eraser->extent));
 	UDS_FREE(eraser->zero_buffer);
 	UDS_FREE(eraser);
 	vdo_finish_completion(parent, result);
@@ -89,7 +89,7 @@ static void erase_next_slab_journal(struct vdo_completion *extent_completion)
  * @param slabs         The slabs whose journals need erasing
  * @param parent        The object to notify when complete
  **/
-void erase_vdo_slab_journals(struct slab_depot *depot,
+void vdo_erase_slab_journals(struct slab_depot *depot,
 			     struct slab_iterator slabs,
 			     struct vdo_completion *parent)
 {
@@ -107,7 +107,7 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 	eraser->parent = parent;
 	eraser->slabs = slabs;
 
-	journal_size = get_vdo_slab_config(depot)->slab_journal_blocks;
+	journal_size = vdo_get_slab_config(depot)->slab_journal_blocks;
 	result = UDS_ALLOCATE(journal_size * VDO_BLOCK_SIZE,
 			      char,
 			      __func__,
@@ -117,7 +117,7 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 		return;
 	}
 
-	result = create_vdo_extent(parent->vdo,
+	result = vdo_create_extent(parent->vdo,
 				   VIO_TYPE_SLAB_JOURNAL,
 				   VIO_PRIORITY_METADATA,
 				   journal_size,

@@ -23,8 +23,8 @@
 #include "kernel-types.h"
 #include "types.h"
 
-int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
+int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
-int prepare_vdo_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
+int vdo_prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
 #endif /* VDO_RESIZE_LOGICAL_H */

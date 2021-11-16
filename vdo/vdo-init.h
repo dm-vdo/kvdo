@@ -28,12 +28,12 @@
 
 
 const char * __must_check
-get_vdo_device_name(const struct dm_target *target);
+vdo_get_device_name(const struct dm_target *target);
 
 int __must_check
-initialize_vdo(struct vdo *vdo,
-	       struct device_config *config,
-	       unsigned int instance,
-	       char **reason);
+vdo_initialize_internal(struct vdo *vdo,
+			struct device_config *config,
+			unsigned int instance,
+			char **reason);
 
 #endif /* VDO_INIT_H */

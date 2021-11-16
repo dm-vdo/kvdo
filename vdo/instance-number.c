@@ -94,7 +94,7 @@ static int grow_bit_array(void)
 	return UDS_SUCCESS;
 }
 
-static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
+static int vdo_allocate_instance_locked(unsigned int *instance_ptr)
 {
 	unsigned int instance;
 	/* If there are no unallocated instances, grow the bit array. */
@@ -139,12 +139,12 @@ static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
  *
  * @result  UDS_SUCCESS or an error code
  **/
-int allocate_vdo_instance(unsigned int *instance_ptr)
+int vdo_allocate_instance(unsigned int *instance_ptr)
 {
 	int result;
 
 	mutex_lock(&instance_number_lock);
-	result = allocate_vdo_instance_locked(instance_ptr);
+	result = vdo_allocate_instance_locked(instance_ptr);
 
 	mutex_unlock(&instance_number_lock);
 	return result;
@@ -155,7 +155,7 @@ int allocate_vdo_instance(unsigned int *instance_ptr)
  *
  * @param instance  The instance number to release
  **/
-void release_vdo_instance(unsigned int instance)
+void vdo_release_instance(unsigned int instance)
 {
 	mutex_lock(&instance_number_lock);
 	if (instance >= bit_count) {
@@ -177,7 +177,7 @@ void release_vdo_instance(unsigned int instance)
 /**
  * Initialize the instance-number tracking data structures.
  **/
-void initialize_vdo_instance_number_tracking(void)
+void vdo_initialize_instance_number_tracking(void)
 {
 	mutex_init(&instance_number_lock);
 }
@@ -185,7 +185,7 @@ void initialize_vdo_instance_number_tracking(void)
 /**
  * Free up the instance-number tracking data structures.
  **/
-void clean_up_vdo_instance_number_tracking(void)
+void vdo_clean_up_instance_number_tracking(void)
 {
 	ASSERT_LOG_ONLY(instance_count == 0,
 			"should have no instance numbers still in use, but have %u",

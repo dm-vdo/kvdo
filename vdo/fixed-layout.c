@@ -80,7 +80,7 @@ static const struct header LAYOUT_HEADER_3_0 = {
  *
  * @return a success or error code
  **/
-int make_vdo_fixed_layout(block_count_t total_blocks,
+int vdo_make_fixed_layout(block_count_t total_blocks,
 			  physical_block_number_t start_offset,
 			  struct fixed_layout **layout_ptr)
 {
@@ -107,7 +107,7 @@ int make_vdo_fixed_layout(block_count_t total_blocks,
  *
  * @note all partitions created by this layout become invalid pointers
  **/
-void free_vdo_fixed_layout(struct fixed_layout *layout)
+void vdo_free_fixed_layout(struct fixed_layout *layout)
 {
 	if (layout == NULL) {
 		return;
@@ -130,9 +130,9 @@ void free_vdo_fixed_layout(struct fixed_layout *layout)
  *
  * @return The size of the layout
  **/
-block_count_t get_total_vdo_fixed_layout_size(const struct fixed_layout *layout)
+block_count_t vdo_get_total_fixed_layout_size(const struct fixed_layout *layout)
 {
-	block_count_t size = get_vdo_fixed_layout_blocks_available(layout);
+	block_count_t size = vdo_get_fixed_layout_blocks_available(layout);
 	struct partition *partition;
 
 	for (partition = layout->head; partition != NULL;
@@ -246,7 +246,7 @@ int vdo_translate_from_pbn(const struct partition *partition,
  * @return the number of blocks yet unallocated to partitions
  **/
 block_count_t
-get_vdo_fixed_layout_blocks_available(const struct fixed_layout *layout)
+vdo_get_fixed_layout_blocks_available(const struct fixed_layout *layout)
 {
 	return layout->last_free - layout->first_free;
 }
@@ -303,7 +303,7 @@ static int allocate_partition(struct fixed_layout *layout,
  * @return a success or error code, particularly
  *      VDO_NO_SPACE if there are less than block_count blocks remaining
  **/
-int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
+int vdo_make_fixed_layout_partition(struct fixed_layout *layout,
 				    enum partition_id id,
 				    block_count_t block_count,
 				    enum partition_direction direction,
@@ -354,7 +354,7 @@ int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
  * @return the size of the partition in blocks
  **/
 block_count_t
-get_vdo_fixed_layout_partition_size(const struct partition *partition)
+vdo_get_fixed_layout_partition_size(const struct partition *partition)
 {
 	return partition->count;
 }
@@ -367,7 +367,7 @@ get_vdo_fixed_layout_partition_size(const struct partition *partition)
  * @return the partition's offset in blocks
  **/
 physical_block_number_t
-get_vdo_fixed_layout_partition_offset(const struct partition *partition)
+vdo_get_fixed_layout_partition_offset(const struct partition *partition)
 {
 	return partition->offset;
 }
@@ -381,7 +381,7 @@ get_vdo_fixed_layout_partition_offset(const struct partition *partition)
  * @return the number of the first block in the partition
  **/
 physical_block_number_t
-get_vdo_fixed_layout_partition_base(const struct partition *partition)
+vdo_get_fixed_layout_partition_base(const struct partition *partition)
 {
 	return partition->base;
 }
@@ -400,7 +400,7 @@ static inline size_t get_encoded_size(const struct fixed_layout *layout)
 }
 
 /**********************************************************************/
-size_t get_vdo_fixed_layout_encoded_size(const struct fixed_layout *layout)
+size_t vdo_get_fixed_layout_encoded_size(const struct fixed_layout *layout)
 {
 	return VDO_ENCODED_HEADER_SIZE + get_encoded_size(layout);
 }
@@ -488,7 +488,7 @@ static int encode_layout_3_0(const struct fixed_layout *layout,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_vdo_fixed_layout(const struct fixed_layout *layout,
+int vdo_encode_fixed_layout(const struct fixed_layout *layout,
 			    struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
@@ -497,12 +497,12 @@ int encode_vdo_fixed_layout(const struct fixed_layout *layout,
 	struct header header = LAYOUT_HEADER_3_0;
 
 	if (!ensure_available_space(buffer,
-				    get_vdo_fixed_layout_encoded_size(layout))) {
+				    vdo_get_fixed_layout_encoded_size(layout))) {
 		return UDS_BUFFER_ERROR;
 	}
 
 	header.size = get_encoded_size(layout);
-	result = encode_vdo_header(&header, buffer);
+	result = vdo_encode_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -628,21 +628,21 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_fixed_layout(struct buffer *buffer,
+int vdo_decode_fixed_layout(struct buffer *buffer,
 			    struct fixed_layout **layout_ptr)
 {
 	struct header header;
 	struct layout_3_0 layout_header;
 	struct fixed_layout *layout;
 
-	int result = decode_vdo_header(buffer, &header);
+	int result = vdo_decode_header(buffer, &header);
 
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	/* Layout is variable size, so only do a minimum size check here. */
-	result = validate_vdo_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
+	result = vdo_validate_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -668,7 +668,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 
 	result = decode_partitions_3_0(buffer, layout);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(layout);
+		vdo_free_fixed_layout(layout);
 		return result;
 	}
 
@@ -688,7 +688,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
+int vdo_make_partitioned_fixed_layout(block_count_t physical_blocks,
 				      physical_block_number_t starting_offset,
 				      block_count_t block_map_blocks,
 				      block_count_t journal_blocks,
@@ -705,38 +705,38 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 					      "Not enough space to make a VDO");
 	}
 
-	result = make_vdo_fixed_layout(physical_blocks - starting_offset,
+	result = vdo_make_fixed_layout(physical_blocks - starting_offset,
 				       starting_offset,
 				       &layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = make_vdo_fixed_layout_partition(layout,
+	result = vdo_make_fixed_layout_partition(layout,
 						 VDO_BLOCK_MAP_PARTITION,
 						 block_map_blocks,
 						 VDO_PARTITION_FROM_BEGINNING,
 						 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(layout);
+		vdo_free_fixed_layout(layout);
 		return result;
 	}
 
-	result = make_vdo_fixed_layout_partition(layout,
+	result = vdo_make_fixed_layout_partition(layout,
 						 VDO_SLAB_SUMMARY_PARTITION,
 						 summary_blocks,
 						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(layout);
+		vdo_free_fixed_layout(layout);
 		return result;
 	}
 
-	result = make_vdo_fixed_layout_partition(layout,
+	result = vdo_make_fixed_layout_partition(layout,
 						 VDO_RECOVERY_JOURNAL_PARTITION,
 						 journal_blocks,
 						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(layout);
+		vdo_free_fixed_layout(layout);
 		return result;
 	}
 
@@ -747,13 +747,13 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	 * in the volume, other than the super block, should be part of some
 	 * partition.
 	 */
-	result = make_vdo_fixed_layout_partition(layout,
+	result = vdo_make_fixed_layout_partition(layout,
 						 VDO_BLOCK_ALLOCATOR_PARTITION,
 						 VDO_ALL_FREE_BLOCKS,
 						 VDO_PARTITION_FROM_BEGINNING,
 						 block_map_blocks);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(layout);
+		vdo_free_fixed_layout(layout);
 		return result;
 	}
 

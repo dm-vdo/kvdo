@@ -63,7 +63,7 @@ struct copy_completion {
 static inline struct copy_completion * __must_check
 as_copy_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type,
+	vdo_assert_completion_type(completion->type,
 				   VDO_PARTITION_COPY_COMPLETION);
 	return container_of(completion, struct copy_completion, completion);
 }
@@ -75,7 +75,7 @@ as_copy_completion(struct vdo_completion *completion)
  **/
 static void free_copy_completion(struct copy_completion *copy)
 {
-	free_vdo_extent(UDS_FORGET(copy->extent));
+	vdo_free_extent(UDS_FORGET(copy->extent));
 	UDS_FREE(copy->data);
 	UDS_FREE(copy);
 }
@@ -88,7 +88,7 @@ static void free_copy_completion(struct copy_completion *copy)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_copy_completion(struct vdo *vdo,
+int vdo_make_copy_completion(struct vdo *vdo,
 			     struct vdo_completion **completion_ptr)
 {
 	struct copy_completion *copy;
@@ -98,7 +98,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_vdo_completion(&copy->completion, vdo,
+	vdo_initialize_completion(&copy->completion, vdo,
 				  VDO_PARTITION_COPY_COMPLETION);
 
 	result = UDS_ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
@@ -110,7 +110,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = create_vdo_extent(vdo,
+	result = vdo_create_extent(vdo,
 				   VIO_TYPE_PARTITION_COPY,
 				   VIO_PRIORITY_HIGH,
 				   STRIDE_LENGTH,
@@ -130,7 +130,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
  *
  * @param completion  The completion to free
  **/
-void free_vdo_copy_completion(struct vdo_completion *completion)
+void vdo_free_copy_completion(struct vdo_completion *completion)
 {
 	if (completion == NULL) {
 		return;
@@ -190,7 +190,7 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 	}
 
 	completion->callback = complete_write_for_copy;
-	write_partial_vdo_metadata_extent(vdo_completion_as_extent(completion),
+	vdo_write_partial_metadata_extent(vdo_completion_as_extent(completion),
 					  layer_start_block,
 					  get_stride_size(copy));
 }
@@ -215,7 +215,7 @@ static void copy_partition_stride(struct copy_completion *copy)
 			       vdo_finish_completion_parent_callback,
 			       copy->completion.callback_thread_id,
 			       &copy->completion);
-	read_partial_vdo_metadata_extent(copy->extent, layer_start_block,
+	vdo_read_partial_metadata_extent(copy->extent, layer_start_block,
 					 get_stride_size(copy));
 }
 
@@ -230,14 +230,14 @@ static void copy_partition_stride(struct copy_completion *copy)
 static int validate_partition_copy(struct partition *source,
 				   struct partition *target)
 {
-	block_count_t source_size = get_vdo_fixed_layout_partition_size(source);
-	block_count_t target_size = get_vdo_fixed_layout_partition_size(target);
+	block_count_t source_size = vdo_get_fixed_layout_partition_size(source);
+	block_count_t target_size = vdo_get_fixed_layout_partition_size(target);
 
 	physical_block_number_t source_start =
-		get_vdo_fixed_layout_partition_offset(source);
+		vdo_get_fixed_layout_partition_offset(source);
 	physical_block_number_t source_end = source_start + source_size;
 	physical_block_number_t target_start =
-		get_vdo_fixed_layout_partition_offset(target);
+		vdo_get_fixed_layout_partition_offset(target);
 	physical_block_number_t target_end = target_start + target_size;
 
 	int result = ASSERT(source_size <= target_size,
@@ -259,7 +259,7 @@ static int validate_partition_copy(struct partition *source,
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copy_vdo_partition(struct vdo_completion *completion,
+void vdo_copy_partition(struct vdo_completion *completion,
 			struct partition *source,
 			struct partition *target,
 			struct vdo_completion *parent)
@@ -277,6 +277,6 @@ void copy_vdo_partition(struct vdo_completion *completion,
 	copy->source = source;
 	copy->target = target;
 	copy->current_index = 0;
-	copy->ending_index = get_vdo_fixed_layout_partition_size(source);
+	copy->ending_index = vdo_get_fixed_layout_partition_size(source);
 	copy_partition_stride(copy);
 }

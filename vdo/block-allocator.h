@@ -123,7 +123,7 @@ struct block_allocator {
 };
 
 int __must_check
-make_vdo_block_allocator(struct slab_depot *depot,
+vdo_make_block_allocator(struct slab_depot *depot,
 			 zone_count_t zone_number,
 			 thread_id_t thread_id,
 			 nonce_t nonce,
@@ -132,83 +132,83 @@ make_vdo_block_allocator(struct slab_depot *depot,
 			 struct read_only_notifier *read_only_notifier,
 			 struct block_allocator **allocator_ptr);
 
-void free_vdo_block_allocator(struct block_allocator *allocator);
+void vdo_free_block_allocator(struct block_allocator *allocator);
 
-void queue_vdo_slab(struct vdo_slab *slab);
+void vdo_queue_slab(struct vdo_slab *slab);
 
-void adjust_vdo_free_block_count(struct vdo_slab *slab, bool increment);
+void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment);
 
-int __must_check allocate_vdo_block(struct block_allocator *allocator,
+int __must_check vdo_allocate_block(struct block_allocator *allocator,
 				    physical_block_number_t *block_number_ptr);
 
-void release_vdo_block_reference(struct block_allocator *allocator,
+void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why);
 
 block_count_t __must_check
-get_vdo_allocated_blocks(const struct block_allocator *allocator);
+vdo_get_allocated_blocks(const struct block_allocator *allocator);
 
 block_count_t __must_check
-get_vdo_unrecovered_slab_count(const struct block_allocator *allocator);
+vdo_get_unrecovered_slab_count(const struct block_allocator *allocator);
 
-void load_vdo_block_allocator(void *context,
+void vdo_load_block_allocator(void *context,
 			      zone_count_t zone_number,
 			      struct vdo_completion *parent);
 
-void notify_vdo_slab_journals_are_recovered(struct block_allocator *allocator,
+void vdo_notify_slab_journals_are_recovered(struct block_allocator *allocator,
 					    int result);
 
-void prepare_vdo_block_allocator_to_allocate(void *context,
+void vdo_prepare_block_allocator_to_allocate(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent);
 
-void register_vdo_slab_with_allocator(struct block_allocator *allocator,
+void vdo_register_slab_with_allocator(struct block_allocator *allocator,
 				      struct vdo_slab *slab);
 
-void register_new_vdo_slabs_for_allocator(void *context,
+void vdo_register_new_slabs_for_allocator(void *context,
 					  zone_count_t zone_number,
 					  struct vdo_completion *parent);
 
-void drain_vdo_block_allocator(void *context,
+void vdo_drain_block_allocator(void *context,
 			       zone_count_t zone_number,
 			       struct vdo_completion *parent);
 
-void resume_vdo_block_allocator(void *context,
+void vdo_resume_block_allocator(void *context,
 				zone_count_t zone_number,
 				struct vdo_completion *parent);
 
-void release_vdo_tail_block_locks(void *context,
+void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent);
 
 struct slab_summary_zone * __must_check
-get_vdo_slab_summary_zone(const struct block_allocator *allocator);
+vdo_get_slab_summary_zone(const struct block_allocator *allocator);
 
 int __must_check
-acquire_vdo_block_allocator_vio(struct block_allocator *allocator,
+vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
 				struct waiter *waiter);
 
-void return_vdo_block_allocator_vio(struct block_allocator *allocator,
+void vdo_return_block_allocator_vio(struct block_allocator *allocator,
 				    struct vio_pool_entry *entry);
 
-void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
+void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent);
 
-int __must_check enqueue_for_clean_vdo_slab(struct block_allocator *allocator,
+int __must_check vdo_enqueue_for_clean_slab(struct block_allocator *allocator,
 					    struct waiter *waiter);
 
-void increase_vdo_slab_scrubbing_priority(struct vdo_slab *slab);
+void vdo_increase_slab_scrubbing_priority(struct vdo_slab *slab);
 
 struct block_allocator_statistics __must_check
-get_vdo_block_allocator_statistics(const struct block_allocator *allocator);
+vdo_get_block_allocator_statistics(const struct block_allocator *allocator);
 
 struct slab_journal_statistics __must_check
-get_vdo_slab_journal_statistics(const struct block_allocator *allocator);
+vdo_get_slab_journal_statistics(const struct block_allocator *allocator);
 
 struct ref_counts_statistics __must_check
-get_vdo_ref_counts_statistics(const struct block_allocator *allocator);
+vdo_get_ref_counts_statistics(const struct block_allocator *allocator);
 
-void dump_vdo_block_allocator(const struct block_allocator *allocator);
+void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
 #endif /* BLOCK_ALLOCATOR_H */

@@ -35,35 +35,35 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_vdo_hash_zone(struct vdo *vdo,
+int __must_check vdo_make_hash_zone(struct vdo *vdo,
 				    zone_count_t zone_number,
 				    struct hash_zone **zone_ptr);
 
-void free_vdo_hash_zone(struct hash_zone *zone);
+void vdo_free_hash_zone(struct hash_zone *zone);
 
 thread_id_t __must_check
-get_vdo_hash_zone_thread_id(const struct hash_zone *zone);
+vdo_get_hash_zone_thread_id(const struct hash_zone *zone);
 
 struct hash_lock_statistics __must_check
-get_vdo_hash_zone_statistics(const struct hash_zone *zone);
+vdo_get_hash_zone_statistics(const struct hash_zone *zone);
 
 int __must_check
-acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
+vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 				const struct uds_chunk_name *hash,
 				struct hash_lock *replace_lock,
 				struct hash_lock **lock_ptr);
 
-void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
+void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
 				  struct hash_lock *lock);
 
-void bump_vdo_hash_zone_valid_advice_count(struct hash_zone *zone);
+void vdo_bump_hash_zone_valid_advice_count(struct hash_zone *zone);
 
-void bump_vdo_hash_zone_stale_advice_count(struct hash_zone *zone);
+void vdo_bump_hash_zone_stale_advice_count(struct hash_zone *zone);
 
-void bump_vdo_hash_zone_data_match_count(struct hash_zone *zone);
+void vdo_bump_hash_zone_data_match_count(struct hash_zone *zone);
 
-void bump_vdo_hash_zone_collision_count(struct hash_zone *zone);
+void vdo_bump_hash_zone_collision_count(struct hash_zone *zone);
 
-void dump_vdo_hash_zone(const struct hash_zone *zone);
+void vdo_dump_hash_zone(const struct hash_zone *zone);
 
 #endif /* HASH_ZONE_H */

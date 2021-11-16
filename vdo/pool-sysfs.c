@@ -73,7 +73,7 @@ static struct sysfs_ops vdo_pool_sysfs_ops = {
 static ssize_t pool_compressing_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf, "%s\n",
-		       (get_vdo_compressing(vdo) ? "1" : "0"));
+		       (vdo_get_compressing(vdo) ? "1" : "0"));
 }
 
 /**********************************************************************/

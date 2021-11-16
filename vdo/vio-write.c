@@ -44,7 +44,7 @@
  *       prepare_for_dedupe()
  *       hashData()
  *       resolve_hash_zone()
- *       acquire_vdo_hash_lock()
+ *       vdo_acquire_hash_lock()
  *       attemptDedupe() (query UDS)
  *       if (is_duplicate) {
  *         verifyAdvice() (read verify)
@@ -180,7 +180,7 @@ static void release_logical_lock(struct vdo_completion *completion)
 
 	assert_data_vio_in_logical_zone(data_vio);
 	vdo_release_logical_block_lock(data_vio);
-	release_vdo_flush_generation_lock(data_vio);
+	vdo_release_flush_generation_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_DONE);
 }
 
@@ -194,7 +194,7 @@ static void clean_hash_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_hash_zone(data_vio);
-	release_vdo_hash_lock(data_vio);
+	vdo_release_hash_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_RELEASE_LOGICAL);
 }
 
@@ -311,7 +311,7 @@ static void finish_write_data_vio_with_error(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_hash_zone(data_vio);
-	continue_vdo_hash_lock_on_error(data_vio);
+	vdo_continue_hash_lock_on_error(data_vio);
 }
 
 /**
@@ -378,7 +378,7 @@ static void finish_write_data_vio(struct vdo_completion *completion)
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
-	continue_vdo_hash_lock(data_vio);
+	vdo_continue_hash_lock(data_vio);
 }
 
 /**
@@ -438,12 +438,12 @@ static void update_block_map_for_dedupe(struct vdo_completion *completion)
  **/
 static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 {
-	set_up_vdo_reference_operation_with_lock(VDO_JOURNAL_DATA_INCREMENT,
+	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_INCREMENT,
 						 data_vio->new_mapped.pbn,
 						 data_vio->new_mapped.state,
 						 lock,
 						 &data_vio->operation);
-	add_vdo_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -454,12 +454,12 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
  **/
 static void journal_decrement(struct data_vio *data_vio)
 {
-	set_up_vdo_reference_operation_with_zone(VDO_JOURNAL_DATA_DECREMENT,
+	vdo_set_up_reference_operation_with_zone(VDO_JOURNAL_DATA_DECREMENT,
 						 data_vio->mapped.pbn,
 						 data_vio->mapped.state,
 						 data_vio->mapped.zone,
 						 &data_vio->operation);
-	add_vdo_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -481,7 +481,7 @@ static void update_reference_count(struct data_vio *data_vio)
 		return;
 	}
 
-	add_vdo_slab_journal_entry(get_vdo_slab_journal(depot, pbn), data_vio);
+	vdo_add_slab_journal_entry(vdo_get_slab_journal(depot, pbn), data_vio);
 }
 
 /**
@@ -614,7 +614,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 					      increment_for_compression);
 	data_vio->last_async_operation =
 		VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_COMPRESSION;
-	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
+	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
 }
 
 /**
@@ -721,7 +721,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 
 	set_data_vio_new_mapped_zone_callback(data_vio, increment_for_dedupe);
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_DEDUPE;
-	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
+	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
 }
 
 /**
@@ -760,7 +760,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 		return;
 	}
 
-	result = acquire_vdo_hash_lock(data_vio);
+	result = vdo_acquire_hash_lock(data_vio);
 	if (abort_on_error(result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -775,7 +775,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 		return;
 	}
 
-	enter_vdo_hash_lock(data_vio);
+	vdo_enter_hash_lock(data_vio);
 }
 
 /**
@@ -798,7 +798,7 @@ static void hash_data_vio(struct vdo_completion *completion)
 			&data_vio->chunk_name);
 
 	data_vio->hash_zone =
-		select_vdo_hash_zone(vdo_get_from_data_vio(data_vio),
+		vdo_select_hash_zone(vdo_get_from_data_vio(data_vio),
 				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio,
@@ -950,7 +950,7 @@ static void increment_for_write(struct vdo_completion *completion)
 	 * the block. Downgrade the allocation lock to a read lock so it can be
 	 * used later by the hash lock.
 	 */
-	downgrade_vdo_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
+	vdo_downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE;
 	set_data_vio_logical_callback(data_vio,
@@ -999,7 +999,7 @@ static void write_bio_finished(struct bio *bio)
 		= vio_as_data_vio((struct vio *) bio->bi_private);
 
 	vdo_count_completed_bios(bio);
-	set_vdo_completion_result(data_vio_as_completion(data_vio),
+	vdo_set_completion_result(data_vio_as_completion(data_vio),
 				  vdo_get_bio_result(bio));
 	launch_data_vio_journal_callback(data_vio,
 					 finish_block_write);
@@ -1154,7 +1154,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 	}
 
 	/* Write requests join the current flush generation. */
-	result = acquire_vdo_flush_generation_lock(data_vio);
+	result = vdo_acquire_flush_generation_lock(data_vio);
 	if (abort_on_error(result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}

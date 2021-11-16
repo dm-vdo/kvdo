@@ -51,7 +51,7 @@
  * @param item       The work item to be run
  * @param thread_id  The thread on which to run the work item
  **/
-void enqueue_vdo_work(struct vdo *vdo,
+void vdo_enqueue_work(struct vdo *vdo,
 		      struct vdo_work_item *item,
 		      thread_id_t thread_id)
 {

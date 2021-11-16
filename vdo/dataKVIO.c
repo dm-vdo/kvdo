@@ -194,7 +194,7 @@ read_data_vio_read_block_callback(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	if (data_vio->read_block.status != VDO_SUCCESS) {
-		set_vdo_completion_result(completion,
+		vdo_set_completion_result(completion,
 					  data_vio->read_block.status);
 		enqueue_data_vio_callback(data_vio);
 		return;
@@ -225,7 +225,7 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 	 */
 	uint16_t fragment_offset, fragment_size;
 	char *compressed_data = read_block->data;
-	int result = get_vdo_compressed_block_fragment(read_block->mapping_state,
+	int result = vdo_get_compressed_block_fragment(read_block->mapping_state,
 						       compressed_data,
 						       VDO_BLOCK_SIZE,
 						       &fragment_offset,

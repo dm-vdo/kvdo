@@ -48,15 +48,15 @@ struct vdo_component {
 	nonce_t nonce;
 };
 
-size_t __must_check get_vdo_component_encoded_size(void);
+size_t __must_check vdo_get_component_encoded_size(void);
 
 int __must_check
-encode_vdo_component(struct vdo_component component, struct buffer *buffer);
+vdo_encode_component(struct vdo_component component, struct buffer *buffer);
 
 int __must_check
-decode_vdo_component(struct buffer *buffer, struct vdo_component *component);
+vdo_decode_component(struct buffer *buffer, struct vdo_component *component);
 
-int validate_vdo_config(const struct vdo_config *config,
+int vdo_validate_config(const struct vdo_config *config,
 			block_count_t physical_block_count,
 			block_count_t logical_block_count);
 

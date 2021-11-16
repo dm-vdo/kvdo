@@ -253,16 +253,16 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 	}
 
-	result = decode_vdo_header(buffer, &header);
+	result = vdo_decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	if (header.version.major_version <= 4) {
-		result = validate_vdo_header(&GEOMETRY_BLOCK_HEADER_4_0,
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0,
 					     &header, true, __func__);
 	} else {
-		result = validate_vdo_header(&GEOMETRY_BLOCK_HEADER_5_0,
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0,
 					     &header, true, __func__);
 	}
 	if (result != VDO_SUCCESS) {

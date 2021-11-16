@@ -38,7 +38,7 @@ struct numbered_block_mapping {
 	uint32_t number;
 } __packed;
 
-void recover_vdo_block_map(struct vdo *vdo,
+void vdo_recover_block_map(struct vdo *vdo,
 			   block_count_t entry_count,
 			   struct numbered_block_mapping *journal_entries,
 			   struct vdo_completion *parent);

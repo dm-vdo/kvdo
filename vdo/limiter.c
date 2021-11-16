@@ -67,7 +67,7 @@ void limiter_release_many(struct limiter *limiter, uint32_t count)
 	limiter->completion = NULL;
 	spin_unlock(&limiter->lock);
 
-	complete_vdo_completion(completion);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -76,7 +76,7 @@ void limiter_release_many(struct limiter *limiter, uint32_t count)
  * @param limiter     The limiter
  * @param completion  The completion to notify when the limiter is idle
  **/
-void drain_vdo_limiter(struct limiter *limiter,
+void vdo_drain_limiter(struct limiter *limiter,
 		       struct vdo_completion *completion)
 {
 	bool finished = false;
@@ -87,13 +87,13 @@ void drain_vdo_limiter(struct limiter *limiter,
 	} else if (limiter->completion == NULL) {
 		limiter->completion = completion;
 	} else {
-		set_vdo_completion_result(completion, VDO_COMPONENT_BUSY);
+		vdo_set_completion_result(completion, VDO_COMPONENT_BUSY);
 		finished = true;
 	}
 	spin_unlock(&limiter->lock);
 
 	if (finished) {
-		complete_vdo_completion(completion);
+		vdo_complete_completion(completion);
 	}
 }
 

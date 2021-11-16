@@ -94,10 +94,10 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
-	switch (get_vdo_state(vdo)) {
+	switch (vdo_get_state(vdo)) {
 	case VDO_DIRTY:
 	case VDO_NEW:
-		set_vdo_state(vdo, VDO_CLEAN);
+		vdo_set_state(vdo, VDO_CLEAN);
 		break;
 
 	case VDO_CLEAN:
@@ -113,11 +113,11 @@ static void write_super_block(struct vdo *vdo,
 		return;
 	}
 
-	save_vdo_components(vdo, completion);
+	vdo_save_components(vdo, completion);
 }
 
 /**
- * Callback to initiate a suspend, registered in suspend_vdo().
+ * Callback to initiate a suspend, registered in vdo_suspend().
  *
  * @param completion  The sub-task completion
  **/
@@ -129,18 +129,18 @@ static void suspend_callback(struct vdo_completion *completion)
 	struct admin_state *admin_state = &vdo->admin_state;
 	int result;
 
-	assert_vdo_admin_operation_type(admin_completion,
+	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_SUSPEND);
-	assert_vdo_admin_phase_thread(admin_completion, __func__,
+	vdo_assert_admin_phase_thread(admin_completion, __func__,
 				      SUSPEND_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
-		if (start_vdo_draining(admin_state,
+		if (vdo_start_draining(admin_state,
 				       vdo->suspend_type,
 				       &admin_completion->completion,
 				       NULL)) {
-			complete_vdo_completion(reset_vdo_admin_sub_task(completion));
+			vdo_complete_completion(vdo_reset_admin_sub_task(completion));
 		}
 		return;
 
@@ -152,23 +152,23 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * result of this suspend will be VDO_READ_ONLY and not
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
-		if (in_vdo_read_only_mode(vdo)) {
-			set_vdo_completion_result(&admin_completion->completion,
+		if (vdo_in_read_only_mode(vdo)) {
+			vdo_set_completion_result(&admin_completion->completion,
 						  VDO_READ_ONLY);
 		}
 
-		drain_vdo_packer(vdo->packer,
-				 reset_vdo_admin_sub_task(completion));
+		vdo_drain_packer(vdo->packer,
+				 vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DATA_VIOS:
-		drain_vdo_limiter(&vdo->request_limiter,
-				  reset_vdo_admin_sub_task(completion));
+		vdo_drain_limiter(&vdo->request_limiter,
+				  vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_FLUSHES:
-		drain_vdo_flusher(vdo->flusher,
-				  reset_vdo_admin_sub_task(completion));
+		vdo_drain_flusher(vdo->flusher,
+				  vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
@@ -184,32 +184,32 @@ static void suspend_callback(struct vdo_completion *completion)
 						 result);
 		}
 
-		drain_vdo_logical_zones(vdo->logical_zones,
+		vdo_drain_logical_zones(vdo->logical_zones,
 					vdo_get_admin_state_code(admin_state),
-					reset_vdo_admin_sub_task(completion));
+					vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
-		drain_vdo_block_map(vdo->block_map,
+		vdo_drain_block_map(vdo->block_map,
 				    vdo_get_admin_state_code(admin_state),
-				    reset_vdo_admin_sub_task(completion));
+				    vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
-		drain_vdo_recovery_journal(vdo->recovery_journal,
+		vdo_drain_recovery_journal(vdo->recovery_journal,
 					   vdo_get_admin_state_code(admin_state),
-					   reset_vdo_admin_sub_task(completion));
+					   vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
-		drain_vdo_slab_depot(vdo->depot,
+		vdo_drain_slab_depot(vdo->depot,
 				     vdo_get_admin_state_code(admin_state),
-				     reset_vdo_admin_sub_task(completion));
+				     vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_READ_ONLY_WAIT:
 		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-							   reset_vdo_admin_sub_task(completion));
+							   vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
@@ -222,20 +222,20 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		write_super_block(vdo, reset_vdo_admin_sub_task(completion));
+		write_super_block(vdo, vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_END:
-		suspend_vdo_dedupe_index(vdo->dedupe_index,
+		vdo_suspend_dedupe_index(vdo->dedupe_index,
 					 (vdo->suspend_type
 					  == VDO_ADMIN_STATE_SAVING));
 		break;
 
 	default:
-		set_vdo_completion_result(completion, UDS_BAD_STATE);
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	finish_vdo_draining_with_result(admin_state, completion->result);
+	vdo_finish_draining_with_result(admin_state, completion->result);
 }
 
 /**
@@ -246,12 +246,12 @@ static void suspend_callback(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-int suspend_vdo(struct vdo *vdo)
+int vdo_suspend(struct vdo *vdo)
 {
 	const char *device_name;
 	int result;
 
-	device_name = get_vdo_device_name(vdo->device_config->owning_target);
+	device_name = vdo_get_device_name(vdo->device_config->owning_target);
 	uds_log_info("suspending device '%s'", device_name);
 
 	/*
@@ -259,11 +259,11 @@ int suspend_vdo(struct vdo *vdo)
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	result = perform_vdo_admin_operation(vdo,
+	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_SUSPEND,
 					     get_thread_id_for_phase,
 					     suspend_callback,
-					     preserve_vdo_completion_error_and_continue);
+					     vdo_preserve_completion_error_and_continue);
 
 	/*
 	 * Treat VDO_READ_ONLY as a success since a read-only suspension still 
@@ -276,7 +276,7 @@ int suspend_vdo(struct vdo *vdo)
 
 	if (result == VDO_INVALID_ADMIN_STATE) {
 		uds_log_error("Suspend invoked while in unexpected state: %s",
-			      get_vdo_admin_state(vdo)->name);
+			      vdo_get_admin_state(vdo)->name);
 		result = -EINVAL;
 	}
 

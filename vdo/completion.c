@@ -67,14 +67,14 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
  * @param vdo        The VDO instance
  * @param type       The type of the completion
  **/
-void initialize_vdo_completion(struct vdo_completion *completion,
+void vdo_initialize_completion(struct vdo_completion *completion,
 			       struct vdo *vdo,
 			       enum vdo_completion_type type)
 {
 	memset(completion, 0, sizeof(*completion));
 	completion->vdo = vdo;
 	completion->type = type;
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 }
 
 /**
@@ -83,7 +83,7 @@ void initialize_vdo_completion(struct vdo_completion *completion,
  *
  * @param completion the completion to reset
  **/
-void reset_vdo_completion(struct vdo_completion *completion)
+void vdo_reset_completion(struct vdo_completion *completion)
 {
 	completion->result = VDO_SUCCESS;
 	completion->complete = false;
@@ -105,7 +105,7 @@ static inline void assert_incomplete(struct vdo_completion *completion)
  * @param completion The completion whose result is to be set
  * @param result     The result to set
  **/
-void set_vdo_completion_result(struct vdo_completion *completion, int result)
+void vdo_set_completion_result(struct vdo_completion *completion, int result)
 {
 	assert_incomplete(completion);
 	if (completion->result == VDO_SUCCESS) {
@@ -164,9 +164,9 @@ vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
  * @param completion  The completion to continue
  * @param result      The current result (will not mask older errors)
  **/
-void continue_vdo_completion(struct vdo_completion *completion, int result)
+void vdo_continue_completion(struct vdo_completion *completion, int result)
 {
-	set_vdo_completion_result(completion, result);
+	vdo_set_completion_result(completion, result);
 	vdo_invoke_completion_callback(completion);
 }
 
@@ -175,7 +175,7 @@ void continue_vdo_completion(struct vdo_completion *completion, int result)
  *
  * @param completion  The completion to complete
  **/
-void complete_vdo_completion(struct vdo_completion *completion)
+void vdo_complete_completion(struct vdo_completion *completion)
 {
 	assert_incomplete(completion);
 	completion->complete = true;
@@ -203,13 +203,13 @@ void vdo_finish_completion_parent_callback(struct vdo_completion *completion)
  * @param completion  The completion which failed
  **/
 void
-preserve_vdo_completion_error_and_continue(struct vdo_completion *completion)
+vdo_preserve_completion_error_and_continue(struct vdo_completion *completion)
 {
 	if (completion->parent != NULL) {
-		set_vdo_completion_result(completion->parent, completion->result);
+		vdo_set_completion_result(completion->parent, completion->result);
 	}
 
-	reset_vdo_completion(completion);
+	vdo_reset_completion(completion);
 	vdo_invoke_completion_callback(completion);
 }
 
@@ -253,7 +253,7 @@ get_completion_type_name(enum vdo_completion_type completion_type)
  *
  * @return          VDO_SUCCESS or VDO_PARAMETER_MISMATCH
  **/
-int assert_vdo_completion_type(enum vdo_completion_type actual,
+int vdo_assert_completion_type(enum vdo_completion_type actual,
 			       enum vdo_completion_type expected)
 {
 	return ASSERT((expected == actual),

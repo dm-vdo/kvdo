@@ -66,7 +66,7 @@ static int validate_page_on_read(void *buffer,
 	nonce_t nonce = zone->block_map->nonce;
 
 	enum block_map_page_validity validity =
-		validate_vdo_block_map_page(page, nonce, pbn);
+		vdo_validate_block_map_page(page, nonce, pbn);
 	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
 		return uds_log_error_strerror(VDO_BAD_PAGE,
 					      "Expected page %llu but got page %llu instead",
@@ -75,7 +75,7 @@ static int validate_page_on_read(void *buffer,
 	}
 
 	if (validity == VDO_BLOCK_MAP_PAGE_INVALID) {
-		format_vdo_block_map_page(page, nonce, pbn, false);
+		vdo_format_block_map_page(page, nonce, pbn, false);
 	}
 
 	context->recovery_lock = 0;
@@ -100,7 +100,7 @@ static bool handle_page_write(void *raw_page,
 	}
 
 	/* Release the page's references on the recovery journal. */
-	release_vdo_recovery_journal_block_reference(zone->block_map->journal,
+	vdo_release_recovery_journal_block_reference(zone->block_map->journal,
 						     context->recovery_lock,
 						     VDO_ZONE_TYPE_LOGICAL,
 						     zone->zone_number);
@@ -148,7 +148,7 @@ initialize_block_map_zone(struct block_map *map,
 	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	return make_vdo_page_cache(vdo,
+	return vdo_make_page_cache(vdo,
 				   cache_size / map->zone_count,
 				   validate_page_on_read,
 				   handle_page_write,
@@ -194,7 +194,7 @@ static void prepare_for_era_advance(void *context,
 	struct block_map *map = context;
 
 	map->current_era_point = map->pending_era_point;
-	complete_vdo_completion(parent);
+	vdo_complete_completion(parent);
 }
 
 /**
@@ -208,7 +208,7 @@ static void advance_block_map_zone_era(void *context,
 {
 	struct block_map_zone *zone =
 		vdo_get_block_map_zone(context, zone_number);
-	advance_vdo_page_cache_period(zone->page_cache,
+	vdo_advance_page_cache_period(zone->page_cache,
 				      zone->block_map->current_era_point);
 	vdo_advance_zone_tree_period(&zone->tree_zone,
 				     zone->block_map->current_era_point);
@@ -217,7 +217,7 @@ static void advance_block_map_zone_era(void *context,
 
 /**
  * Schedule an era advance if necessary. This method should not be called
- * directly. Rather, call schedule_vdo_default_action() on the block map's action
+ * directly. Rather, call vdo_schedule_default_action() on the block map's action
  * manager.
  *
  * <p>Implements vdo_action_scheduler.
@@ -230,7 +230,7 @@ static bool schedule_era_advance(void *context)
 		return false;
 	}
 
-	return schedule_vdo_action(map->action_manager,
+	return vdo_schedule_action(map->action_manager,
 				   prepare_for_era_advance,
 				   advance_block_map_zone_era,
 				   NULL,
@@ -245,7 +245,7 @@ static bool schedule_era_advance(void *context)
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	vdo_uninitialize_block_map_tree_zone(&zone->tree_zone);
-	free_vdo_page_cache(UDS_FORGET(zone->page_cache));
+	vdo_free_page_cache(UDS_FORGET(zone->page_cache));
 }
 
 /**
@@ -253,7 +253,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
  *
  * @param map  The block map to free
  **/
-void free_vdo_block_map(struct block_map *map)
+void vdo_free_block_map(struct block_map *map)
 {
 	zone_count_t zone;
 
@@ -266,7 +266,7 @@ void free_vdo_block_map(struct block_map *map)
 	}
 
 	vdo_abandon_block_map_growth(map);
-	free_vdo_forest(UDS_FORGET(map->forest));
+	vdo_free_forest(UDS_FORGET(map->forest));
 	UDS_FREE(UDS_FORGET(map->action_manager));
 
 	UDS_FREE(map);
@@ -289,7 +289,7 @@ void free_vdo_block_map(struct block_map *map)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_vdo_block_map(struct block_map_state_2_0 state,
+int vdo_decode_block_map(struct block_map_state_2_0 state,
 			 block_count_t logical_blocks,
 			 const struct thread_config *thread_config,
 			 struct vdo *vdo,
@@ -328,13 +328,13 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 	map->journal = journal;
 	map->nonce = nonce;
 
-	result = make_vdo_forest(map, map->entry_count);
+	result = vdo_make_forest(map, map->entry_count);
 	if (result != VDO_SUCCESS) {
-		free_vdo_block_map(map);
+		vdo_free_block_map(map);
 		return result;
 	}
 
-	replace_vdo_forest(map);
+	vdo_replace_forest(map);
 
 	map->zone_count = thread_config->logical_zone_count;
 	for (zone = 0; zone < map->zone_count; zone++) {
@@ -346,21 +346,21 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 						   cache_size,
 						   maximum_age);
 		if (result != VDO_SUCCESS) {
-			free_vdo_block_map(map);
+			vdo_free_block_map(map);
 			return result;
 		}
 	}
 
 
-	result = make_vdo_action_manager(map->zone_count,
+	result = vdo_make_action_manager(map->zone_count,
 					 get_block_map_zone_thread_id,
-					 get_vdo_recovery_journal_thread_id(journal),
+					 vdo_get_recovery_journal_thread_id(journal),
 					 map,
 					 schedule_era_advance,
 					 vdo,
 					 &map->action_manager);
 	if (result != VDO_SUCCESS) {
-		free_vdo_block_map(map);
+		vdo_free_block_map(map);
 		return result;
 	}
 
@@ -375,7 +375,7 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
  *
  * @return The state of the block map
  **/
-struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
+struct block_map_state_2_0 vdo_record_block_map(const struct block_map *map)
 {
 	struct block_map_state_2_0 state = {
 		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
@@ -398,19 +398,19 @@ struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
  * @param map      The map in question
  * @param journal  The journal to initialize from
  **/
-void initialize_vdo_block_map_from_journal(struct block_map *map,
+void vdo_initialize_block_map_from_journal(struct block_map *map,
 					   struct recovery_journal *journal)
 {
 	zone_count_t zone = 0;
 
 	map->current_era_point =
-		get_vdo_recovery_journal_current_sequence_number(journal);
+		vdo_get_recovery_journal_current_sequence_number(journal);
 	map->pending_era_point = map->current_era_point;
 
 	for (zone = 0; zone < map->zone_count; zone++) {
 		vdo_set_tree_zone_initial_period(&map->zones[zone].tree_zone,
 						 map->current_era_point);
-		set_vdo_page_cache_initial_period(map->zones[zone].page_cache,
+		vdo_set_page_cache_initial_period(map->zones[zone].page_cache,
 						  map->current_era_point);
 	}
 }
@@ -482,7 +482,7 @@ block_count_t vdo_get_number_of_block_map_entries(const struct block_map *map)
  * @param recovery_block_number  The sequence number of the finished recovery
  *                               journal block
  **/
-void advance_vdo_block_map_era(struct block_map *map,
+void vdo_advance_block_map_era(struct block_map *map,
 			       sequence_number_t recovery_block_number)
 {
 	if (map == NULL) {
@@ -490,7 +490,7 @@ void advance_vdo_block_map_era(struct block_map *map,
 	}
 
 	map->pending_era_point = recovery_block_number;
-	schedule_vdo_default_action(map->action_manager);
+	vdo_schedule_default_action(map->action_manager);
 }
 
 /**
@@ -503,8 +503,8 @@ void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (vdo_is_state_draining(&zone->state) &&
 	    !vdo_is_tree_zone_active(&zone->tree_zone) &&
-	    !is_vdo_page_cache_active(zone->page_cache)) {
-		finish_vdo_draining_with_result(&zone->state,
+	    !vdo_is_page_cache_active(zone->page_cache)) {
+		vdo_finish_draining_with_result(&zone->state,
 						(vdo_is_read_only(zone->read_only_notifier) ?
 							VDO_READ_ONLY : VDO_SUCCESS));
 	}
@@ -520,7 +520,7 @@ static void initiate_drain(struct admin_state *state)
 	struct block_map_zone *zone =
 		container_of(state, struct block_map_zone, state);
 	vdo_drain_zone_trees(&zone->tree_zone);
-	drain_vdo_page_cache(zone->page_cache);
+	vdo_drain_page_cache(zone->page_cache);
 	vdo_block_map_check_for_drain_complete(zone);
 }
 
@@ -535,8 +535,8 @@ drain_zone(void *context, zone_count_t zone_number,
 {
 	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
 
-	start_vdo_draining(&zone->state,
-			   get_current_vdo_manager_operation(zone->block_map->action_manager),
+	vdo_start_draining(&zone->state,
+			   vdo_get_current_manager_operation(zone->block_map->action_manager),
 			   parent,
 			   initiate_drain);
 }
@@ -548,11 +548,11 @@ drain_zone(void *context, zone_count_t zone_number,
  * @param operation  The type of drain to perform
  * @param parent     The completion to notify when the drain is complete
  **/
-void drain_vdo_block_map(struct block_map *map,
+void vdo_drain_block_map(struct block_map *map,
 			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent)
 {
-	schedule_vdo_operation(map->action_manager, operation, NULL,
+	vdo_schedule_operation(map->action_manager, operation, NULL,
 			       drain_zone, NULL, parent);
 }
 
@@ -567,7 +567,7 @@ static void resume_block_map_zone(void *context,
 {
 	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
 
-	vdo_finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
+	vdo_finish_completion(parent, vdo_resume_if_quiescent(&zone->state));
 }
 
 /**
@@ -576,9 +576,9 @@ static void resume_block_map_zone(void *context,
  * @param map     The block map to resume
  * @param parent  The completion to notify when the resume is complete
  **/
-void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
+void vdo_resume_block_map(struct block_map *map, struct vdo_completion *parent)
 {
-	schedule_vdo_operation(map->action_manager,
+	vdo_schedule_operation(map->action_manager,
 			       VDO_ADMIN_STATE_RESUMING,
 			       NULL,
 			       resume_block_map_zone,
@@ -610,7 +610,7 @@ int vdo_prepare_to_grow_block_map(struct block_map *map,
 		return VDO_SUCCESS;
 	}
 
-	return make_vdo_forest(map, new_logical_blocks);
+	return vdo_make_forest(map, new_logical_blocks);
 }
 
 /**
@@ -633,8 +633,8 @@ block_count_t vdo_get_new_entry_count(struct block_map *map)
  **/
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
-	replace_vdo_forest(context);
-	complete_vdo_completion(completion);
+	vdo_replace_forest(context);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -644,9 +644,9 @@ static void grow_forest(void *context, struct vdo_completion *completion)
  * @param map     The block map to grow
  * @param parent  The object to notify when the growth is complete
  **/
-void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
+void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent)
 {
-	schedule_vdo_operation(map->action_manager,
+	vdo_schedule_operation(map->action_manager,
 			       VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 			       grow_forest,
 			       NULL,
@@ -661,7 +661,7 @@ void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
  **/
 void vdo_abandon_block_map_growth(struct block_map *map)
 {
-	abandon_vdo_forest(map);
+	vdo_abandon_forest(map);
 }
 
 /**
@@ -676,8 +676,8 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 {
 	struct vdo_completion *parent = completion->parent;
 
-	release_vdo_page_completion(completion);
-	continue_vdo_completion(parent, result);
+	vdo_release_page_completion(completion);
+	vdo_continue_completion(parent, result);
 }
 
 /**
@@ -709,14 +709,14 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 		return;
 	}
 
-	init_vdo_page_completion(&data_vio->page_completion,
+	vdo_init_page_completion(&data_vio->page_completion,
 				 zone->page_cache,
 				 data_vio->tree_lock.tree_slots[0].block_map_slot.pbn,
 				 modifiable,
 				 data_vio_as_completion(data_vio),
 				 action,
 				 handle_page_error);
-	get_vdo_page(&data_vio->page_completion.completion);
+	vdo_get_page(&data_vio->page_completion.completion);
 }
 
 /**
@@ -791,7 +791,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	page = dereference_readable_vdo_page(completion);
+	page = vdo_dereference_readable_page(completion);
 	result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		finish_processing_page(completion, result);
@@ -816,7 +816,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
  *                                number lock held by the page. Will be updated
  *                                if the lock changes to protect the new entry
  **/
-void update_vdo_block_map_page(struct block_map_page *page,
+void vdo_update_block_map_page(struct block_map_page *page,
 			       struct data_vio *data_vio,
 			       physical_block_number_t pbn,
 			       enum block_mapping_state mapping_state,
@@ -839,14 +839,14 @@ void update_vdo_block_map_page(struct block_map_page *page,
 
 	if ((old_locked == 0) || (old_locked > new_locked)) {
 		/* Acquire a lock on the newly referenced journal block. */
-		acquire_vdo_recovery_journal_block_reference(journal,
+		vdo_acquire_recovery_journal_block_reference(journal,
 							     new_locked,
 							     VDO_ZONE_TYPE_LOGICAL,
 							     zone->zone_number);
 
 		/* If the block originally held a newer lock, release it. */
 		if (old_locked > 0) {
-			release_vdo_recovery_journal_block_reference(journal,
+			vdo_release_recovery_journal_block_reference(journal,
 								     old_locked,
 								     VDO_ZONE_TYPE_LOGICAL,
 								     zone->zone_number);
@@ -876,21 +876,21 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	page = dereference_writable_vdo_page(completion);
+	page = vdo_dereference_writable_page(completion);
 	result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		finish_processing_page(completion, result);
 		return;
 	}
 
-	context = get_vdo_page_completion_context(completion);
+	context = vdo_get_page_completion_context(completion);
 	old_lock = context->recovery_lock;
-	update_vdo_block_map_page(page,
+	vdo_update_block_map_page(page,
 				  data_vio,
 				  data_vio->new_mapped.pbn,
 				  data_vio->new_mapped.state,
 				  &context->recovery_lock);
-	mark_completed_vdo_page_dirty(completion, old_lock,
+	vdo_mark_completed_page_dirty(completion, old_lock,
 				      context->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }
@@ -936,7 +936,7 @@ void vdo_put_mapped_block(struct data_vio *data_vio)
  *
  * @return The block map statistics
  **/
-struct block_map_statistics get_vdo_block_map_statistics(struct block_map *map)
+struct block_map_statistics vdo_get_block_map_statistics(struct block_map *map)
 {
 	zone_count_t zone = 0;
 	struct block_map_statistics totals;
@@ -946,7 +946,7 @@ struct block_map_statistics get_vdo_block_map_statistics(struct block_map *map)
 	for (zone = 0; zone < map->zone_count; zone++) {
 		struct vdo_page_cache *cache = map->zones[zone].page_cache;
 		struct block_map_statistics stats =
-			get_vdo_page_cache_statistics(cache);
+			vdo_get_page_cache_statistics(cache);
 
 		totals.dirty_pages += stats.dirty_pages;
 		totals.clean_pages += stats.clean_pages;

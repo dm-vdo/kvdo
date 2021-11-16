@@ -162,7 +162,7 @@ static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unvdo_pack_slab_journal_block_header(
+vdo_unpack_slab_journal_block_header(
 	const struct packed_slab_journal_block_header *packed,
 	struct slab_journal_block_header *header)
 {
@@ -174,39 +174,39 @@ unvdo_pack_slab_journal_block_header(
 		.metadata_type = packed->metadata_type,
 		.has_block_map_increments = packed->has_block_map_increments,
 	};
-	unvdo_pack_journal_point(&packed->recovery_point,
+	vdo_unpack_journal_point(&packed->recovery_point,
 				 &header->recovery_point);
 }
 
 struct slab_journal * __must_check
 vdo_slab_journal_from_dirty_entry(struct list_head *entry);
 
-int __must_check make_vdo_slab_journal(struct block_allocator *allocator,
+int __must_check vdo_make_slab_journal(struct block_allocator *allocator,
 				       struct vdo_slab *slab,
 				       struct recovery_journal *recovery_journal,
 				       struct slab_journal **journal_ptr);
 
-void free_vdo_slab_journal(struct slab_journal *journal);
+void vdo_free_slab_journal(struct slab_journal *journal);
 
-bool __must_check is_vdo_slab_journal_blank(const struct slab_journal *journal);
+bool __must_check vdo_is_slab_journal_blank(const struct slab_journal *journal);
 
-bool __must_check is_vdo_slab_journal_active(struct slab_journal *journal);
+bool __must_check vdo_is_slab_journal_active(struct slab_journal *journal);
 
-void abort_vdo_slab_journal_waiters(struct slab_journal *journal);
+void vdo_abort_slab_journal_waiters(struct slab_journal *journal);
 
-void reopen_vdo_slab_journal(struct slab_journal *journal);
+void vdo_reopen_slab_journal(struct slab_journal *journal);
 
 bool __must_check
-attempt_replay_into_vdo_slab_journal(struct slab_journal *journal,
+vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 				     physical_block_number_t pbn,
 				     enum journal_operation operation,
 				     struct journal_point *recovery_point,
 				     struct vdo_completion *parent);
 
-void add_vdo_slab_journal_entry(struct slab_journal *journal,
+void vdo_add_slab_journal_entry(struct slab_journal *journal,
 				struct data_vio *data_vio);
 
-void adjust_vdo_slab_journal_block_reference(struct slab_journal *journal,
+void vdo_adjust_slab_journal_block_reference(struct slab_journal *journal,
 					     sequence_number_t sequence_number,
 					     int adjustment);
 
@@ -214,9 +214,9 @@ bool __must_check
 vdo_release_recovery_journal_lock(struct slab_journal *journal,
 				  sequence_number_t recovery_lock);
 
-void drain_vdo_slab_journal(struct slab_journal *journal);
+void vdo_drain_slab_journal(struct slab_journal *journal);
 
-void decode_vdo_slab_journal(struct slab_journal *journal);
+void vdo_decode_slab_journal(struct slab_journal *journal);
 
 bool __must_check
 vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal);
@@ -236,6 +236,6 @@ vdo_get_slab_journal_block_offset(struct slab_journal *journal,
 	return (sequence % journal->size);
 }
 
-void dump_vdo_slab_journal(const struct slab_journal *journal);
+void vdo_dump_slab_journal(const struct slab_journal *journal);
 
 #endif /* SLAB_JOURNAL_H */

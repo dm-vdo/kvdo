@@ -50,7 +50,7 @@ const struct header VDO_SLAB_DEPOT_HEADER_2_0 = {
  * @return The number of slabs
  **/
 slab_count_t __must_check
-compute_vdo_slab_count(physical_block_number_t first_block,
+vdo_compute_slab_count(physical_block_number_t first_block,
 		       physical_block_number_t last_block,
 		       unsigned int slab_size_shift)
 {
@@ -64,7 +64,7 @@ compute_vdo_slab_count(physical_block_number_t first_block,
  *
  * @return The encoded size of the depot's state
  **/
-size_t get_vdo_slab_depot_encoded_size(void)
+size_t vdo_get_slab_depot_encoded_size(void)
 {
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0);
 }
@@ -125,12 +125,12 @@ static int encode_slab_config(const struct slab_config *config,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_vdo_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
+int vdo_encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 				    struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
 
-	int result = encode_vdo_header(&VDO_SLAB_DEPOT_HEADER_2_0, buffer);
+	int result = vdo_encode_header(&VDO_SLAB_DEPOT_HEADER_2_0, buffer);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -229,7 +229,7 @@ static int decode_slab_config(struct buffer *buffer,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int decode_vdo_slab_depot_state_2_0(struct buffer *buffer,
+int vdo_decode_slab_depot_state_2_0(struct buffer *buffer,
 				    struct slab_depot_state_2_0 *state)
 {
 	struct header header;
@@ -239,12 +239,12 @@ int decode_vdo_slab_depot_state_2_0(struct buffer *buffer,
 	physical_block_number_t first_block, last_block;
 	zone_count_t zone_count;
 
-	result = decode_vdo_header(buffer, &header);
+	result = vdo_decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_vdo_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true,
+	result = vdo_validate_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true,
 				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -302,7 +302,7 @@ int decode_vdo_slab_depot_state_2_0(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int configure_vdo_slab_depot(block_count_t block_count,
+int vdo_configure_slab_depot(block_count_t block_count,
 			     physical_block_number_t first_block,
 			     struct slab_config slab_config,
 			     zone_count_t zone_count,
@@ -313,7 +313,7 @@ int configure_vdo_slab_depot(block_count_t block_count,
 	physical_block_number_t last_block;
 	block_count_t slab_size = slab_config.slab_blocks;
 
-	uds_log_debug("slabDepot configure_vdo_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
+	uds_log_debug("slabDepot vdo_configure_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
 		      (unsigned long long) block_count,
 		      (unsigned long long) first_block,
 		      (unsigned long long) slab_size,
@@ -358,7 +358,7 @@ int configure_vdo_slab_depot(block_count_t block_count,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int configure_vdo_slab(block_count_t slab_size,
+int vdo_configure_slab(block_count_t slab_size,
 		       block_count_t slab_journal_blocks,
 		       struct slab_config *slab_config)
 {

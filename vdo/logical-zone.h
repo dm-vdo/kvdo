@@ -72,25 +72,25 @@ struct logical_zones {
 };
 
 int __must_check
-make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
+vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
 
-void free_vdo_logical_zones(struct logical_zones *zones);
+void vdo_free_logical_zones(struct logical_zones *zones);
 
-void drain_vdo_logical_zones(struct logical_zones *zones,
+void vdo_drain_logical_zones(struct logical_zones *zones,
 			     const struct admin_state_code *operation,
 			     struct vdo_completion *completion);
 
-void resume_vdo_logical_zones(struct logical_zones *zones,
+void vdo_resume_logical_zones(struct logical_zones *zones,
 			      struct vdo_completion *parent);
 
 void
-increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
+vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
 					    sequence_number_t expected_generation);
 
-int __must_check acquire_vdo_flush_generation_lock(struct data_vio *data_vio);
+int __must_check vdo_acquire_flush_generation_lock(struct data_vio *data_vio);
 
-void release_vdo_flush_generation_lock(struct data_vio *data_vio);
+void vdo_release_flush_generation_lock(struct data_vio *data_vio);
 
-void dump_vdo_logical_zone(const struct logical_zone *zone);
+void vdo_dump_logical_zone(const struct logical_zone *zone);
 
 #endif /* LOGICAL_ZONE_H */

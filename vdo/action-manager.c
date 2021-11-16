@@ -91,7 +91,7 @@ struct action_manager {
 static inline struct action_manager *
 as_action_manager(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, VDO_ACTION_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_ACTION_COMPLETION);
 	return container_of(completion, struct action_manager, completion);
 }
 
@@ -113,7 +113,7 @@ static bool no_default_action(void *context __always_unused)
 static void no_preamble(void *context __always_unused,
 			struct vdo_completion *completion)
 {
-	complete_vdo_completion(completion);
+	vdo_complete_completion(completion);
 }
 
 /**
@@ -144,7 +144,7 @@ static int no_conclusion(void *context __always_unused)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_vdo_action_manager(zone_count_t zones,
+int vdo_make_action_manager(zone_count_t zones,
 			    vdo_zone_thread_getter *get_zone_thread_id,
 			    thread_id_t initiator_thread_id,
 			    void *context,
@@ -173,7 +173,7 @@ int make_vdo_action_manager(zone_count_t zones,
 		&manager->actions[0];
 	vdo_set_admin_state_code(&manager->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
-	initialize_vdo_completion(&manager->completion, vdo,
+	vdo_initialize_completion(&manager->completion, vdo,
 				  VDO_ACTION_COMPLETION);
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
@@ -187,7 +187,7 @@ int make_vdo_action_manager(zone_count_t zones,
  * @return The manager's current operation
  **/
 const struct admin_state_code *
-get_current_vdo_manager_operation(struct action_manager *manager)
+vdo_get_current_manager_operation(struct action_manager *manager)
 {
 	return vdo_get_admin_state_code(&manager->state);
 }
@@ -201,7 +201,7 @@ get_current_vdo_manager_operation(struct action_manager *manager)
  * @return The action-specific context for the manager's current action or
  *         NULL if there is no context or no current action
  **/
-void *get_current_vdo_action_context(struct action_manager *manager)
+void *vdo_get_current_action_context(struct action_manager *manager)
 {
 	return (manager->current_action->in_use ?
 		manager->current_action->context :
@@ -234,7 +234,7 @@ static void prepare_for_next_zone(struct action_manager *manager)
 {
 	vdo_prepare_completion_for_requeue(&manager->completion,
 					   apply_to_zone,
-					   preserve_vdo_completion_error_and_continue,
+					   vdo_preserve_completion_error_and_continue,
 					   get_acting_zone_thread_id(manager),
 					   manager->current_action->parent);
 }
@@ -249,7 +249,7 @@ static void prepare_for_conclusion(struct action_manager *manager)
 {
 	vdo_prepare_completion_for_requeue(&manager->completion,
 					   finish_action_callback,
-					   preserve_vdo_completion_error_and_continue,
+					   vdo_preserve_completion_error_and_continue,
 					   manager->initiator_thread_id,
 					   manager->current_action->parent);
 }
@@ -293,7 +293,7 @@ static void handle_preamble_error(struct vdo_completion *completion)
 {
 	/* Skip the zone actions since the preamble failed. */
 	completion->callback = finish_action_callback;
-	preserve_vdo_completion_error_and_continue(completion);
+	vdo_preserve_completion_error_and_continue(completion);
 }
 
 /**
@@ -304,11 +304,11 @@ static void handle_preamble_error(struct vdo_completion *completion)
 static void launch_current_action(struct action_manager *manager)
 {
 	struct action *action = manager->current_action;
-	int result = start_vdo_operation(&manager->state, action->operation);
+	int result = vdo_start_operation(&manager->state, action->operation);
 
 	if (result != VDO_SUCCESS) {
 		if (action->parent != NULL) {
-			set_vdo_completion_result(action->parent, result);
+			vdo_set_completion_result(action->parent, result);
 		}
 
 		/*
@@ -342,14 +342,14 @@ static void launch_current_action(struct action_manager *manager)
  *
  * @return <code>true</code> if an action was scheduled.
  **/
-bool schedule_vdo_default_action(struct action_manager *manager)
+bool vdo_schedule_default_action(struct action_manager *manager)
 {
 	/*
 	 * Don't schedule a default action if we are operating or not in normal 
 	 * operation. 
 	 */
 	const struct admin_state_code *code
-		= get_current_vdo_manager_operation(manager);
+		= vdo_get_current_manager_operation(manager);
 	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)
 		&& manager->scheduler(manager->context));
 }
@@ -376,9 +376,9 @@ static void finish_action_callback(struct vdo_completion *completion)
 	 * freed.
 	 */
 	has_next_action = (manager->current_action->in_use
-			   || schedule_vdo_default_action(manager));
+			   || vdo_schedule_default_action(manager));
 	result = action.conclusion(manager->context);
-	finish_vdo_operation(&manager->state, VDO_SUCCESS);
+	vdo_finish_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL) {
 		vdo_finish_completion(action.parent, result);
 	}
@@ -407,13 +407,13 @@ static void finish_action_callback(struct vdo_completion *completion)
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool schedule_vdo_action(struct action_manager *manager,
+bool vdo_schedule_action(struct action_manager *manager,
 			 vdo_action_preamble *preamble,
 			 vdo_zone_action *action,
 			 vdo_action_conclusion *conclusion,
 			 struct vdo_completion *parent)
 {
-	return schedule_vdo_operation(manager,
+	return vdo_schedule_operation(manager,
 				      VDO_ADMIN_STATE_OPERATING,
 				      preamble,
 				      action,
@@ -442,14 +442,14 @@ bool schedule_vdo_action(struct action_manager *manager,
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool schedule_vdo_operation(struct action_manager *manager,
+bool vdo_schedule_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
 			    struct vdo_completion *parent)
 {
-	return schedule_vdo_operation_with_context(manager,
+	return vdo_schedule_operation_with_context(manager,
 						   operation,
 						   preamble,
 						   action,
@@ -475,14 +475,14 @@ bool schedule_vdo_operation(struct action_manager *manager,
  * @param conclusion  A method to be invoked back on the initiator thread once
  *                    the action has been applied to all zones; may be NULL
  * @param context     An action-specific context which may be retrieved via
- *                    get_current_vdo_action_context(); may be NULL
+ *                    vdo_get_current_action_context(); may be NULL
  * @param parent      The object to notify once the action is complete or if
  *                    the action can not be scheduled; may be NULL
  *
  * @return <code>true</code> if the action was scheduled
  **/
 bool
-schedule_vdo_operation_with_context(struct action_manager *manager,
+vdo_schedule_operation_with_context(struct action_manager *manager,
 				    const struct admin_state_code *operation,
 				    vdo_action_preamble *preamble,
 				    vdo_zone_action *action,

@@ -95,7 +95,7 @@ static uint32_t hash_key(const void *key)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
+int vdo_make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		       struct hash_zone **zone_ptr)
 {
 	vio_count_t i;
@@ -109,7 +109,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
 				  hash_key, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS) {
-		free_vdo_hash_zone(zone);
+		vdo_free_hash_zone(zone);
 		return result;
 	}
 
@@ -121,7 +121,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = UDS_ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
 			      "hash_lock array", &zone->lock_array);
 	if (result != VDO_SUCCESS) {
-		free_vdo_hash_zone(zone);
+		vdo_free_hash_zone(zone);
 		return result;
 	}
 
@@ -141,7 +141,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
  *
  * @param zone  The zone to free
  **/
-void free_vdo_hash_zone(struct hash_zone *zone)
+void vdo_free_hash_zone(struct hash_zone *zone)
 {
 	if (zone == NULL) {
 		return;
@@ -160,7 +160,7 @@ void free_vdo_hash_zone(struct hash_zone *zone)
  *
  * @return The zone's thread ID
  **/
-thread_id_t get_vdo_hash_zone_thread_id(const struct hash_zone *zone)
+thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
 {
 	return zone->thread_id;
 }
@@ -173,7 +173,7 @@ thread_id_t get_vdo_hash_zone_thread_id(const struct hash_zone *zone)
  * @return A copy of the current statistics for the hash zone
  **/
 struct hash_lock_statistics
-get_vdo_hash_zone_statistics(const struct hash_zone *zone)
+vdo_get_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct hash_lock_statistics *stats = &zone->statistics;
 
@@ -217,7 +217,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
+int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 				    const struct uds_chunk_name *hash,
 				    struct hash_lock *replace_lock,
 				    struct hash_lock **lock_ptr)
@@ -287,7 +287,7 @@ int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
  * @param zone  The zone from which the lock was borrowed
  * @param lock  The lock that is no longer in use
  **/
-void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
+void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
 				  struct hash_lock *lock)
 {
 	if (lock->registered) {
@@ -307,7 +307,7 @@ void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
 			"hash lock returned to zone must not reference a PBN lock");
 	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
 			"returned hash lock must not be in use with state %s",
-			get_vdo_hash_lock_state_name(lock->state));
+			vdo_get_hash_lock_state_name(lock->state));
 	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
 			"hash lock returned to zone must not be in a pool ring");
 	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
@@ -336,7 +336,7 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	 * chars of state is unambiguous. 'U' indicates a lock not registered in 
 	 * the map.
 	 */
-	state = get_vdo_hash_lock_state_name(lock->state);
+	state = vdo_get_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		     (unsigned long long) lock->duplicate.pbn,
@@ -364,7 +364,7 @@ static void increment_stat(uint64_t *stat)
  *
  * @param zone  The hash zone of the lock that received valid advice
  **/
-void bump_vdo_hash_zone_valid_advice_count(struct hash_zone *zone)
+void vdo_bump_hash_zone_valid_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_valid);
 }
@@ -375,7 +375,7 @@ void bump_vdo_hash_zone_valid_advice_count(struct hash_zone *zone)
  *
  * @param zone  The hash zone of the lock that received stale advice
  **/
-void bump_vdo_hash_zone_stale_advice_count(struct hash_zone *zone)
+void vdo_bump_hash_zone_stale_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_stale);
 }
@@ -386,7 +386,7 @@ void bump_vdo_hash_zone_stale_advice_count(struct hash_zone *zone)
  *
  * @param zone  The hash zone of the lock that matched a new data_vio
  **/
-void bump_vdo_hash_zone_data_match_count(struct hash_zone *zone)
+void vdo_bump_hash_zone_data_match_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_data_matches);
 }
@@ -397,7 +397,7 @@ void bump_vdo_hash_zone_data_match_count(struct hash_zone *zone)
  *
  * @param zone  The hash zone of the lock that rejected a colliding data_vio
  **/
-void bump_vdo_hash_zone_collision_count(struct hash_zone *zone)
+void vdo_bump_hash_zone_collision_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_hash_collisions);
 }
@@ -407,7 +407,7 @@ void bump_vdo_hash_zone_collision_count(struct hash_zone *zone)
  *
  * @param zone   The zone to dump
  **/
-void dump_vdo_hash_zone(const struct hash_zone *zone)
+void vdo_dump_hash_zone(const struct hash_zone *zone)
 {
 	vio_count_t i;
 

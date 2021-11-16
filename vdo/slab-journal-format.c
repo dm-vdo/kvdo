@@ -31,11 +31,11 @@
  * @return The decoded entry
  **/
 struct slab_journal_entry
-decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
+vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 			      journal_entry_count_t entry_count)
 {
 	struct slab_journal_entry entry =
-		unvdo_pack_slab_journal_entry(&block->payload.entries[entry_count]);
+		vdo_unpack_slab_journal_entry(&block->payload.entries[entry_count]);
 	if (block->header.has_block_map_increments &&
 	    ((block->payload.full_entries.entry_types[entry_count / 8] &
 	      ((byte)1 << (entry_count % 8))) != 0)) {

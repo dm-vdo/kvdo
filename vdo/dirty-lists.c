@@ -56,7 +56,7 @@ struct dirty_lists {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_dirty_lists(block_count_t maximum_age,
+int vdo_make_dirty_lists(block_count_t maximum_age,
 			 vdo_dirty_callback *callback,
 			 void *context,
 			 struct dirty_lists **dirty_lists_ptr)
@@ -89,7 +89,7 @@ int make_vdo_dirty_lists(block_count_t maximum_age,
  * @param dirty_lists  The dirty_lists
  * @param period       The current period
  **/
-void set_vdo_dirty_lists_current_period(struct dirty_lists *dirty_lists,
+void vdo_set_dirty_lists_current_period(struct dirty_lists *dirty_lists,
 					sequence_number_t period)
 {
 	ASSERT_LOG_ONLY(dirty_lists->next_period == 0, "current period not set");
@@ -163,7 +163,7 @@ static void write_expired_elements(struct dirty_lists *dirty_lists)
  * @param new_period   The period in which the element has now been dirtied,
  *                     or 0 if it does not hold a lock
  **/
-void add_to_vdo_dirty_lists(struct dirty_lists *dirty_lists,
+void vdo_add_to_dirty_lists(struct dirty_lists *dirty_lists,
 			    struct list_head *entry,
 			    sequence_number_t old_period,
 			    sequence_number_t new_period)
@@ -192,7 +192,7 @@ void add_to_vdo_dirty_lists(struct dirty_lists *dirty_lists,
  * @param dirty_lists  The dirty_lists to advance
  * @param period       The new current period
  **/
-void advance_vdo_dirty_lists_period(struct dirty_lists *dirty_lists,
+void vdo_advance_dirty_lists_period(struct dirty_lists *dirty_lists,
 				    sequence_number_t period)
 {
 	update_period(dirty_lists, period);
@@ -205,7 +205,7 @@ void advance_vdo_dirty_lists_period(struct dirty_lists *dirty_lists,
  *
  * @param dirty_lists  The dirty_lists to flush
  **/
-void flush_vdo_dirty_lists(struct dirty_lists *dirty_lists)
+void vdo_flush_dirty_lists(struct dirty_lists *dirty_lists)
 {
 	while (dirty_lists->oldest_period < dirty_lists->next_period) {
 		expire_oldest_list(dirty_lists);

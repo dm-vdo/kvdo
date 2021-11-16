@@ -198,7 +198,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_slab_summary(struct vdo *vdo,
+int vdo_make_slab_summary(struct vdo *vdo,
 			 struct partition *partition,
 			 const struct thread_config *thread_config,
 			 unsigned int slab_size_shift,
@@ -246,7 +246,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	result = UDS_ALLOCATE(total_entries, struct slab_summary_entry,
 			      "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
-		free_vdo_slab_summary(summary);
+		vdo_free_slab_summary(summary);
 		return result;
 	}
 
@@ -265,7 +265,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 		};
 	}
 
-	set_vdo_slab_summary_origin(summary, partition);
+	vdo_set_slab_summary_origin(summary, partition);
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, vdo, zone,
@@ -274,7 +274,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 					       summary->entries +
 					       (MAX_VDO_SLABS * zone));
 		if (result != VDO_SUCCESS) {
-			free_vdo_slab_summary(summary);
+			vdo_free_slab_summary(summary);
 			return result;
 		}
 	}
@@ -309,7 +309,7 @@ static void free_summary_zone(struct slab_summary_zone *zone)
  *
  * @param summary  The slab summary to free
  **/
-void free_vdo_slab_summary(struct slab_summary *summary)
+void vdo_free_slab_summary(struct slab_summary *summary)
 {
 	zone_count_t zone;
 
@@ -354,7 +354,7 @@ check_for_drain_complete(struct slab_summary_zone *summary_zone)
 		return;
 	}
 
-	finish_vdo_operation(&summary_zone->state,
+	vdo_finish_operation(&summary_zone->state,
 			     (vdo_is_read_only(summary_zone->summary->read_only_notifier)
 			      ? VDO_READ_ONLY : VDO_SUCCESS));
 }
@@ -480,11 +480,11 @@ static void initiate_drain(struct admin_state *state)
  * @param operation     The type of drain to perform
  * @param parent        The object to notify when the suspend is complete
  **/
-void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+void vdo_drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				 const struct admin_state_code *operation,
 				 struct vdo_completion *parent)
 {
-	start_vdo_draining(&summary_zone->state, operation, parent,
+	vdo_start_draining(&summary_zone->state, operation, parent,
 			   initiate_drain);
 }
 
@@ -494,11 +494,11 @@ void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
  * @param summary_zone  The zone to resume
  * @param parent        The object to notify when the zone is resumed
  **/
-void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+void vdo_resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				  struct vdo_completion *parent)
 {
 	vdo_finish_completion(parent,
-			      resume_vdo_if_quiescent(&summary_zone->state));
+			      vdo_resume_if_quiescent(&summary_zone->state));
 }
 
 /* READ/UPDATE FUNCTIONS */
@@ -662,17 +662,17 @@ void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
  * @param summary    The slab_summary to update
  * @param partition  The slab summary partition
  **/
-void set_vdo_slab_summary_origin(struct slab_summary *summary,
+void vdo_set_slab_summary_origin(struct slab_summary *summary,
 				 struct partition *partition)
 {
-	summary->origin = get_vdo_fixed_layout_partition_offset(partition);
+	summary->origin = vdo_get_fixed_layout_partition_offset(partition);
 }
 
 /* COMBINING FUNCTIONS (LOAD) */
 
 /**
  * Clean up after saving out the combined slab summary. This callback is
- * registered in finish_loading_summary() and load_vdo_slab_summary().
+ * registered in finish_loading_summary() and vdo_load_slab_summary().
  *
  * @param completion  The extent which was used to write the summary data
  **/
@@ -681,8 +681,8 @@ static void finish_combining_zones(struct vdo_completion *completion)
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
 
-	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
-	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
+	vdo_free_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
+	vdo_finish_loading_with_result(&summary->zones[0]->state, result);
 }
 
 /**
@@ -730,7 +730,7 @@ static void combine_zones(struct slab_summary *summary)
  * Combine the slab summary data from all the previously written zones
  * and copy the combined summary to each partition's data region. Then write
  * the combined summary back out to disk. This callback is registered in
- * load_vdo_slab_summary().
+ * vdo_load_slab_summary().
  *
  * @param completion  The extent which was used to read the summary data
  **/
@@ -759,7 +759,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
  *                          all of the summary will be initialized as new.
  * @param parent            The parent of this operation
  **/
-void load_vdo_slab_summary(struct slab_summary *summary,
+void vdo_load_slab_summary(struct slab_summary *summary,
 			   const struct admin_state_code *operation,
 			   zone_count_t zones_to_combine,
 			   struct vdo_completion *parent)
@@ -770,16 +770,16 @@ void load_vdo_slab_summary(struct slab_summary *summary,
 
 	struct slab_summary_zone *zone = summary->zones[0];
 
-	if (!start_vdo_loading(&zone->state, operation, parent, NULL)) {
+	if (!vdo_start_loading(&zone->state, operation, parent, NULL)) {
 		return;
 	}
 
 	blocks = summary->blocks_per_zone * MAX_VDO_PHYSICAL_ZONES;
-	result = create_vdo_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
+	result = vdo_create_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
 				   VIO_PRIORITY_METADATA, blocks,
 				   (char *)summary->entries, &extent);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_loading_with_result(&zone->state, result);
+		vdo_finish_loading_with_result(&zone->state, result);
 		return;
 	}
 
@@ -806,7 +806,7 @@ void load_vdo_slab_summary(struct slab_summary *summary,
  * @return the cumulative slab summary statistics for the summary
  **/
 struct slab_summary_statistics
-get_vdo_slab_summary_statistics(const struct slab_summary *summary)
+vdo_get_slab_summary_statistics(const struct slab_summary *summary)
 {
 	const struct atomic_slab_summary_statistics *atoms =
 		&summary->statistics;

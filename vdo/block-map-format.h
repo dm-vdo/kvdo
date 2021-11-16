@@ -69,16 +69,16 @@ vdo_compute_slot(logical_block_number_t lbn)
 }
 
 int __must_check
-decode_vdo_block_map_state_2_0(struct buffer *buffer,
+vdo_decode_block_map_state_2_0(struct buffer *buffer,
 			       struct block_map_state_2_0 *state);
 
-size_t __must_check get_vdo_block_map_encoded_size(void);
+size_t __must_check vdo_get_block_map_encoded_size(void);
 
 int __must_check
-encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
+vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state,
 			       struct buffer *buffer);
 
-page_count_t compute_vdo_block_map_page_count(block_count_t entries);
+page_count_t vdo_compute_block_map_page_count(block_count_t entries);
 
 block_count_t __must_check
 vdo_compute_new_forest_pages(root_count_t root_count,

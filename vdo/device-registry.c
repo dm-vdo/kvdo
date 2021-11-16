@@ -49,7 +49,7 @@ static struct device_registry registry;
 /**
  * Initialize the necessary structures for the device registry.
  **/
-void initialize_vdo_device_registry_once(void)
+void vdo_initialize_device_registry_once(void)
 {
 	INIT_LIST_HEAD(&registry.links);
 	rwlock_init(&registry.lock);
@@ -93,7 +93,7 @@ filter_vdos_locked(vdo_filter_t *filter, void *context)
  *
  * @return VDO_SUCCESS or an error
  **/
-int register_vdo(struct vdo *vdo)
+int vdo_register(struct vdo *vdo)
 {
 	int result;
 
@@ -114,7 +114,7 @@ int register_vdo(struct vdo *vdo)
  *
  * @param vdo  The vdo to remove
  **/
-void unregister_vdo(struct vdo *vdo)
+void vdo_unregister(struct vdo *vdo)
 {
 	write_lock(&registry.lock);
 	if (filter_vdos_locked(vdo_is_equal, vdo) == vdo) {
@@ -130,7 +130,7 @@ void unregister_vdo(struct vdo *vdo)
  * @param filter   The filter function to apply to vdos
  * @param context  A bit of context to provide the filter
  **/
-struct vdo *find_vdo_matching(vdo_filter_t *filter, void *context)
+struct vdo *vdo_find_matching(vdo_filter_t *filter, void *context)
 {
 	struct vdo *vdo;
 
