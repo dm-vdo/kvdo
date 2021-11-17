@@ -133,53 +133,12 @@ as_simple_work_queue(struct vdo_work_queue *queue)
 		 container_of(queue, struct simple_work_queue, common));
 }
 
-static inline const struct simple_work_queue *
-as_const_simple_work_queue(const struct vdo_work_queue *queue)
-{
-	return ((queue == NULL) ?
-		 NULL :
-		 container_of(queue, struct simple_work_queue, common));
-}
-
 static inline struct round_robin_work_queue *
 as_round_robin_work_queue(struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :
 		 container_of(queue, struct round_robin_work_queue, common));
-}
-
-/* Finding the simple_work_queue to actually operate on. */
-
-/*
- * Pick the subordinate service queue to use
- */
-static inline struct simple_work_queue *
-next_service_queue(struct round_robin_work_queue *queue)
-{
-	/*
-	 * It shouldn't be a big deal if the same rotor gets used for multiple
-	 * work queues. Any patterns that might develop are likely to be
-	 * disrupted by random ordering of multiple work items and migration
-	 * between cores, unless the load is so light as to be regular in
-	 * ordering of tasks and the threads are confined to individual cores;
-	 * with a load that light we won't care.
-	 */
-	unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
-	unsigned int index = rotor % queue->num_service_queues;
-
-	return queue->service_queues[index];
-}
-
-/*
- * Find the simple work queue on which to operate, for any queue type.
- */
-static inline struct simple_work_queue *
-pick_simple_queue(struct vdo_work_queue *queue)
-{
-	return (queue->round_robin_mode ?
-			next_service_queue(as_round_robin_work_queue(queue)) :
-			as_simple_work_queue(queue));
 }
 
 /* Processing normal work items. */
@@ -781,7 +740,6 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 }
 
 /* Work submission */
-
 /*
  * If the work item has a timeout that has already passed, the timeout
  * handler function may be invoked by this function.
@@ -789,7 +747,32 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item)
 {
-	enqueue_work_queue_item(pick_simple_queue(queue), item);
+	/*
+	 * Convert the provided generic vdo_work_queue to the simple_work_queue
+	 * to actually queue on.
+	 */
+	struct simple_work_queue *simple_queue = NULL;
+	if (!queue->round_robin_mode) {
+		simple_queue = as_simple_work_queue(queue);
+	} else {
+		struct round_robin_work_queue *round_robin
+			= as_round_robin_work_queue(queue);
+
+		/*
+		 * It shouldn't be a big deal if the same rotor gets used for multiple
+		 * work queues. Any patterns that might develop are likely to be
+		 * disrupted by random ordering of multiple work items and migration
+		 * between cores, unless the load is so light as to be regular in
+		 * ordering of tasks and the threads are confined to individual cores;
+		 * with a load that light we won't care.
+		 */
+		unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
+		unsigned int index = rotor % round_robin->num_service_queues;
+
+		simple_queue = round_robin->service_queues[index];
+	}
+
+	enqueue_work_queue_item(simple_queue, item);
 }
 
 /* Misc */
