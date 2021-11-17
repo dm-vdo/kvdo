@@ -203,6 +203,18 @@ void add_to_batch_processor(struct batch_processor *batch,
 	schedule_batch_processing(batch);
 }
 
+struct vdo_work_item *next_batch_item(struct batch_processor *batch)
+{
+	struct funnel_queue_entry *fq_entry = funnel_queue_poll(batch->queue);
+
+	if (fq_entry == NULL) {
+		return NULL;
+	}
+	return container_of(fq_entry,
+			    struct vdo_work_item,
+			    work_queue_entry_link);
+}
+
 /*
  * Yield control to the scheduler, if the kernel has indicated that other work
  * needs to run.
