@@ -20,10 +20,10 @@
 #include "buffer.h"
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**********************************************************************/
 int wrap_buffer(byte *bytes,

@@ -23,7 +23,7 @@
 #include <linux/types.h>
 #include <linux/spinlock.h>
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "kernel-types.h"

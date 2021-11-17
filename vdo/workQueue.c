@@ -24,10 +24,10 @@
 #include <linux/percpu.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 
 #include "status-codes.h"
 

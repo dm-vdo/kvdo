@@ -21,7 +21,7 @@
 #define CPU_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * The number of bytes in a CPU cache line. In the future, we'll probably need

@@ -21,7 +21,7 @@
 #define WAIT_QUEUE_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * A wait queue is a circular list of entries waiting to be notified of a

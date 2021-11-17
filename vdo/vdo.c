@@ -29,7 +29,7 @@
 #include <linux/module.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "block-map.h"

@@ -20,7 +20,7 @@
 #include "read-only-rebuild.h"
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "block-map.h"
 #include "block-map-recovery.h"

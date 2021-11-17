@@ -22,8 +22,8 @@
 #include <linux/device-mapper.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
-#include "stringUtils.h"
+#include "memory-alloc.h"
+#include "string-utils.h"
 
 #include "constants.h"
 #include "types.h"

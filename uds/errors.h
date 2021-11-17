@@ -21,7 +21,7 @@
 #define ERRORS_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * Valid return status codes for internal UDS functions.

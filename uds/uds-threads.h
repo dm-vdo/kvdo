@@ -25,11 +25,11 @@
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
-#include "eventCount.h"
+#include "event-count.h"
 
 #include "compiler.h"
 #include "errors.h"
-#include "timeUtils.h"
+#include "time-utils.h"
 
 struct cond_var {
 	struct event_count *event_count;

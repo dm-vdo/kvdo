@@ -21,7 +21,7 @@
 #define INT_MAP_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * An int_map associates pointers (<code>void *</code>) with integer keys

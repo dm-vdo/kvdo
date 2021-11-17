@@ -21,7 +21,7 @@
 #define GEOMETRY_H 1
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 #include "uds.h"
 
 /**

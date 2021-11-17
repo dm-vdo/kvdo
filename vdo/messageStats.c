@@ -19,10 +19,10 @@
 
 #include "dedupeIndex.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "messageStats.h"
 #include "statistics.h"
-#include "threadDevice.h"
+#include "thread-device.h"
 #include "vdo.h"
 
 int write_uint64_t(char *prefix,

@@ -25,7 +25,7 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 
-#include "threadRegistry.h"
+#include "thread-registry.h"
 
 #include "admin-completion.h"
 #include "admin-state.h"

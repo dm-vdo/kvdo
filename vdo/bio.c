@@ -22,7 +22,7 @@
 #include <linux/version.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
 

@@ -21,8 +21,8 @@
 
 #include "errors.h"
 #include "logger.h"
-#include "memoryAlloc.h"
-#include "stringUtils.h"
+#include "memory-alloc.h"
+#include "string-utils.h"
 
 #include "status-codes.h"
 

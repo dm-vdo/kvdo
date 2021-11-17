@@ -20,7 +20,7 @@
 #include "priority-table.h"
 
 #include "errors.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "num-utils.h"
 #include "permassert.h"
 

@@ -19,7 +19,7 @@
 
 #include "pool-sysfs.h"
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "vdo.h"
 

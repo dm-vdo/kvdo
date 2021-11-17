@@ -20,18 +20,18 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
-#include "cacheCounters.h"
+#include "cache-counters.h"
 #include "common.h"
 #include "config.h"
-#include "chapterIndex.h"
-#include "indexLayout.h"
-#include "indexPageMap.h"
-#include "pageCache.h"
-#include "radixSort.h"
+#include "chapter-index.h"
+#include "index-layout.h"
+#include "index-page-map.h"
+#include "page-cache.h"
+#include "radix-sort.h"
 #include "request.h"
-#include "sparseCache.h"
+#include "sparse-cache.h"
 #include "uds.h"
-#include "volumeStore.h"
+#include "volume-store.h"
 
 enum reader_state {
 	READER_STATE_RUN = 1,

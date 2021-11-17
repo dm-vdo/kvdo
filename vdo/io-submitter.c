@@ -22,7 +22,7 @@
 #include <linux/mutex.h>
 #include <linux/version.h>
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "atomic-stats.h"

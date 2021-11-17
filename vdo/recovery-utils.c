@@ -20,7 +20,7 @@
 #include "recovery-utils.h"
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "completion.h"
 #include "extent.h"

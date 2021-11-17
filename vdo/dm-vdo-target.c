@@ -20,9 +20,9 @@
 #include <linux/module.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
-#include "threadDevice.h"
-#include "threadRegistry.h"
+#include "memory-alloc.h"
+#include "thread-device.h"
+#include "thread-registry.h"
 
 #include "bio.h"
 #include "constants.h"
@@ -33,7 +33,7 @@
 #include "instance-number.h"
 #include "io-submitter.h"
 #include "messageStats.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 #include "thread-config.h"
 #include "vdo.h"
 #include "vdo-init.h"

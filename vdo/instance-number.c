@@ -22,7 +22,7 @@
 #include <linux/bitops.h>
 #include <linux/mutex.h>
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "num-utils.h"
 #include "permassert.h"
 

@@ -19,7 +19,7 @@
 
 #include "extent.h"
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "completion.h"

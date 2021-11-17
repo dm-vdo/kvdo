@@ -22,9 +22,9 @@
 #include <linux/atomic.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 
 #include "admin-state.h"
 #include "allocating-vio.h"

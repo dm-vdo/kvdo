@@ -21,7 +21,7 @@
 
 #include "buffer.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "header.h"

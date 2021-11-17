@@ -19,7 +19,7 @@
 
 #include "allocation-selector.h"
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "types.h"
 

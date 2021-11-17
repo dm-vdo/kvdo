@@ -24,7 +24,7 @@
 #include <linux/sched.h>
 
 #include "errors.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "logger.h"
 
 static struct hlist_head kernel_thread_list;

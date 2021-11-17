@@ -22,7 +22,7 @@
 
 #include "compiler.h"
 #include "numeric.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /*
  * These bit stream and bit field utility routines are used for the

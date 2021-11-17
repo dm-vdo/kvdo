@@ -21,7 +21,7 @@
 #define POINTER_MAP_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * A pointer_map associates pointer values (<code>void *</code>) with the data

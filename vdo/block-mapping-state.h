@@ -20,7 +20,7 @@
 #ifndef BLOCK_MAPPING_STATE_H
 #define BLOCK_MAPPING_STATE_H
 
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * Four bits of each five-byte block map entry contain a mapping state value

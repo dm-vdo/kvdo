@@ -24,7 +24,7 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 
-#include "threadDevice.h"
+#include "thread-device.h"
 #include "uds-threads.h"
 
 typedef struct {

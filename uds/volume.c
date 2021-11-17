@@ -19,20 +19,20 @@
 
 #include "volume.h"
 
-#include "cacheCounters.h"
-#include "chapterIndex.h"
+#include "cache-counters.h"
+#include "chapter-index.h"
 #include "compiler.h"
 #include "config.h"
 #include "errors.h"
 #include "geometry.h"
-#include "hashUtils.h"
+#include "hash-utils.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
-#include "recordPage.h"
+#include "record-page.h"
 #include "request.h"
-#include "sparseCache.h"
-#include "stringUtils.h"
+#include "sparse-cache.h"
+#include "string-utils.h"
 #include "uds-threads.h"
 
 enum {

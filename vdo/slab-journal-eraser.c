@@ -19,7 +19,7 @@
 
 #include "slab-journal-eraser.h"
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "completion.h"
 #include "constants.h"

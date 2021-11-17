@@ -20,7 +20,7 @@
 #include "ref-counts.h"
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
 
@@ -40,7 +40,7 @@
 #include "slab-journal.h"
 #include "slab-summary.h"
 #include "status-codes.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 #include "vdo.h"
 #include "vio-pool.h"
 #include "wait-queue.h"

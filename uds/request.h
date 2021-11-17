@@ -20,11 +20,11 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
-#include "cacheCounters.h"
+#include "cache-counters.h"
 #include "common.h"
 #include "compiler.h"
 #include "uds-threads.h"
-#include "timeUtils.h"
+#include "time-utils.h"
 #include "uds.h"
 
 /**

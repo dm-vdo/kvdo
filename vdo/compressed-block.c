@@ -20,7 +20,7 @@
 #include "compressed-block.h"
 
 #include "permassert.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 
 #include "status-codes.h"
 

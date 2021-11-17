@@ -21,8 +21,8 @@
 
 #include <linux/module.h>
 
-#include "memoryAlloc.h"
-#include "typeDefs.h"
+#include "memory-alloc.h"
+#include "type-defs.h"
 
 #include "bufferPool.h"
 #include "constants.h"

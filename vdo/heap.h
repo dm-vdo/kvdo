@@ -20,7 +20,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "typeDefs.h"
+#include "type-defs.h"
 
 /**
  * Prototype for functions which compare two array elements. All the time

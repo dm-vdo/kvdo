@@ -20,11 +20,11 @@
 #include "request.h"
 
 #include "index.h"
-#include "indexSession.h"
+#include "index-session.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
-#include "requestQueue.h"
+#include "request-queue.h"
 
 /**********************************************************************/
 int uds_start_chunk_operation(struct uds_request *request)

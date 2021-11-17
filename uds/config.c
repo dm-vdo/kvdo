@@ -21,8 +21,8 @@
 
 #include "buffer.h"
 #include "logger.h"
-#include "memoryAlloc.h"
-#include "stringUtils.h"
+#include "memory-alloc.h"
+#include "string-utils.h"
 #include "uds-threads.h"
 
 static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";

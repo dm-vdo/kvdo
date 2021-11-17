@@ -21,7 +21,7 @@
 #define TYPES_H
 
 #include "compiler.h"
-#include "typeDefs.h"
+#include "type-defs.h"
 
 #include "block-mapping-state.h"
 

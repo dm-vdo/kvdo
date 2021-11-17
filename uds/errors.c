@@ -21,7 +21,7 @@
 
 #include "common.h"
 #include "permassert.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 
 #include <linux/errno.h>
 

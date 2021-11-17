@@ -20,7 +20,7 @@
 #ifndef NONCE_H
 #define NONCE_H
 
-#include "typeDefs.h"
+#include "type-defs.h"
 
 enum { NONCE_INFO_SIZE = 32 };
 

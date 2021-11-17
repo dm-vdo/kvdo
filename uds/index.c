@@ -20,11 +20,11 @@
 
 #include "index.h"
 
-#include "hashUtils.h"
-#include "indexStateData.h"
+#include "hash-utils.h"
+#include "index-state-data.h"
 #include "logger.h"
-#include "openChapter.h"
-#include "requestQueue.h"
+#include "open-chapter.h"
+#include "request-queue.h"
 
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 static const uint64_t NO_LAST_SAVE = UINT_MAX;

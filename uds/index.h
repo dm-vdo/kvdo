@@ -20,12 +20,12 @@
 #ifndef INDEX_H
 #define INDEX_H
 
-#include "chapterWriter.h"
-#include "indexLayout.h"
-#include "indexSession.h"
-#include "indexZone.h"
-#include "loadType.h"
-#include "volumeIndexOps.h"
+#include "chapter-writer.h"
+#include "index-layout.h"
+#include "index-session.h"
+#include "index-zone.h"
+#include "load-type.h"
+#include "volume-index-ops.h"
 #include "request.h"
 #include "volume.h"
 

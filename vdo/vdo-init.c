@@ -26,7 +26,7 @@
 #include <linux/mutex.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 
 #include "admin-completion.h"
 #include "device-registry.h"

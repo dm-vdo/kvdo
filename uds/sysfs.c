@@ -24,8 +24,8 @@
 #include <linux/slab.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
-#include "stringUtils.h"
+#include "memory-alloc.h"
+#include "string-utils.h"
 #include "uds.h"
 
 #if defined(MODULE)

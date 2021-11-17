@@ -19,7 +19,7 @@
 
 #include "slab-summary.h"
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "admin-state.h"

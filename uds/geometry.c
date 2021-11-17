@@ -19,11 +19,11 @@
 
 #include "geometry.h"
 
-#include "deltaIndex.h"
+#include "delta-index.h"
 #include "errors.h"
-#include "hashUtils.h"
+#include "hash-utils.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 #include "uds.h"
 

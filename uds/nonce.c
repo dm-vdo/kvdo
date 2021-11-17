@@ -23,8 +23,8 @@
 
 #include "numeric.h"
 #include "random.h"
-#include "stringUtils.h"
-#include "timeUtils.h"
+#include "string-utils.h"
+#include "time-utils.h"
 
 /**********************************************************************/
 static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)

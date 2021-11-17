@@ -20,7 +20,7 @@
 #include "recovery-journal-block.h"
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "data-vio.h"

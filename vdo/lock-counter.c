@@ -21,7 +21,7 @@
 
 #include <linux/atomic.h>
 
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "permassert.h"
 
 #include "vdo.h"

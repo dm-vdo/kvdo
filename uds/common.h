@@ -20,8 +20,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "stringUtils.h"
-#include "typeDefs.h"
+#include "string-utils.h"
+#include "type-defs.h"
 #include "uds.h"
 
 enum {

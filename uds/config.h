@@ -20,8 +20,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "bufferedReader.h"
-#include "bufferedWriter.h"
+#include "buffered-reader.h"
+#include "buffered-writer.h"
 #include "geometry.h"
 #include "nonce.h"
 #include "uds.h"
