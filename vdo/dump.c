@@ -66,7 +66,7 @@ enum {
 
 static inline bool is_arg_string(const char *arg, const char *this_option)
 {
-	/* device-mapper convention seems to be case-independent options */
+	/* convention seems to be case-independent options */
 	return strncasecmp(arg, this_option, strlen(this_option)) == 0;
 }
 
@@ -78,7 +78,7 @@ static void do_dump(struct vdo *vdo,
 	int64_t outstanding;
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
-	/* XXX Add in number of outstanding requests being processed by vdo */
+	/* FIXME: Add in number of outstanding requests being processed by vdo */
 
 	active = READ_ONCE(vdo->request_limiter.active);
 	maximum = READ_ONCE(vdo->request_limiter.maximum);
@@ -103,10 +103,6 @@ static void do_dump(struct vdo *vdo,
 	dump_buffer_pool(vdo->data_vio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
-		/*
-		 * Options should become more fine-grained when we have more to 
-		 * display here. 
-		 */
 		vdo_dump_status(vdo);
 	}
 
@@ -124,10 +120,6 @@ static int parse_dump_options(unsigned int argc,
 		const char *name;
 		unsigned int flags;
 	} option_names[] = {
-		/*
-		 * Should "index" mean sending queue + receiving thread + 
-		 * outstanding? 
-		 */
 		{ "viopool", FLAG_SKIP_DEFAULT | FLAG_SHOW_VIO_POOL },
 		{ "vdo", FLAG_SKIP_DEFAULT | FLAG_SHOW_VDO_STATUS },
 		{ "pools", FLAG_SKIP_DEFAULT | FLAGS_ALL_POOLS },
@@ -166,15 +158,9 @@ static int parse_dump_options(unsigned int argc,
 	return 0;
 }
 
-/**
- * Dump internal state and/or statistics to the kernel log, as specified by
- * zero or more string arguments.
- *
- * @param vdo   The vdo
- * @param argc  Number of arguments
- * @param argv  The argument list
- * @param why   Reason for doing the dump
- **/
+/*
+ * Dump as specified by zero or more string arguments.
+ */
 int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,
 	     char *const *argv,
@@ -191,24 +177,18 @@ int vdo_dump(struct vdo *vdo,
 	return 0;
 }
 
-/**
- * Dump lots of internal state and statistics to the kernel log. Identical to
- * "dump all", without each caller needing to set up the argument list.
- *
- * @param vdo  The vdo
- * @param why  Reason for doing the dump
- **/
+/*
+ * Dump everything we know how to dump
+ */
 void vdo_dump_all(struct vdo *vdo, const char *why)
 {
 	do_dump(vdo, ~0, why);
 }
 
-/**
- * Dump out the waiters on each data_vio in the data_vio buffer pool.
- *
- * @param queue    The queue to check (logical or physical)
- * @param wait_on  The label to print for queue (logical or physical)
- **/
+/*
+ * Dump out the data_vio waiters on a wait queue.
+ * wait_on should be the label to print for queue (e.g. logical or physical)
+ */
 static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 {
 	struct waiter *waiter, *first = get_first_waiter(queue);
@@ -236,22 +216,18 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	}
 }
 
-/**
- * Encode various attributes of a data_vio as a string of one-character flags
- * for dump logging. This encoding is for logging brevity:
+/*
+ * Encode various attributes of a data_vio as a string of one-character flags.
+ * This encoding is for logging brevity:
  *
  * R => vio completion result not VDO_SUCCESS
  * W => vio is on a wait queue
  * D => vio is a duplicate
  *
- * <p>The common case of no flags set will result in an empty, null-terminated
+ * The common case of no flags set will result in an empty, null-terminated
  * buffer. If any flags are encoded, the first character in the string will be
  * a space character.
- *
- * @param data_vio  The vio to encode
- * @param buffer    The buffer to receive a null-terminated string of encoded
- *                  flag character
- **/
+ */
 static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 {
 	char *p_flag = buffer;
@@ -272,13 +248,9 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	*p_flag = '\0';
 }
 
-/**
- * Dump out a data_vio.
- *
- * <p>Implements buffer_dump_function.
- *
- * @param data  The data_vio to dump
- **/
+/*
+ * Implements buffer_dump_function.
+ */
 void dump_data_vio(void *data)
 {
 	struct data_vio *data_vio = (struct data_vio *) data;
@@ -337,10 +309,6 @@ void dump_data_vio(void *data)
 			 data_vio->flush_generation);
 	}
 
-	/*
-	 * Encode vio attributes as a string of one-character flags, usually 
-	 * empty. 
-	 */
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
 	uds_log_info("  vio %px %s%s %s %s%s", data_vio,

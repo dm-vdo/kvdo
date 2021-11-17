@@ -46,48 +46,16 @@ int vdo_message_dedupe_index(struct dedupe_index *index, const char *name);
 void vdo_enqueue_index_operation(struct data_vio *data_vio,
 				 enum uds_request_type operation);
 
-/**
- * Look up the chunkname of the data_vio and identify duplicated chunks.
- *
- * @param data_vio  The data_vio. These fields are used:
- *                  data_vio.chunk_name is the chunk name. The advice to
- *                  offer to the index will be obtained via
- *                  vdo_get_dedupe_advice(). The advice found in the index (or
- *                  NULL if none) will be returned via vdo_set_dedupe_advice().
- *                  dedupe_context.status is set to the return status code of
- *                  any asynchronous index processing.
- **/
 static inline void vdo_post_dedupe_advice(struct data_vio *data_vio)
 {
 	vdo_enqueue_index_operation(data_vio, UDS_POST);
 }
 
-/**
- * Look up the chunk_name of the data_vio and identify duplicated chunks.
- *
- * @param data_vio  The data_vio. These fields are used:
- *                  data_vio.chunk_name is the chunk name. The advice
- *                  found in the index (or NULL if none) will be returned via
- *                  vdo_set_dedupe_advice(). dedupe_context.status is set to
- *                  the return status code of any asynchronous index
- *                  processing.
- **/
 static inline void vdo_query_dedupe_advice(struct data_vio *data_vio)
 {
 	vdo_enqueue_index_operation(data_vio, UDS_QUERY);
 }
 
-/**
- * Look up the chunk_name of the data_vio and associate the new PBN with the
- * name.
- *
- * @param data_vio  The data_vio. These fields are used:
- *                  data_vio.chunk_name is the chunk name. The advice to
- *                  offer to the index will be obtained via
- *                  vdo_get_dedupe_advice(). dedupe_context.status is set to
- *                  the return status code of any asynchronous index
- *                  processing.
- **/
 static inline void vdo_update_dedupe_advice(struct data_vio *data_vio)
 {
 	vdo_enqueue_index_operation(data_vio, UDS_UPDATE);
@@ -103,23 +71,21 @@ void vdo_suspend_dedupe_index(struct dedupe_index *index, bool save_flag);
 void vdo_resume_dedupe_index(struct dedupe_index *index,
 			     bool dedupe,
 			     bool create);
-
 void vdo_finish_dedupe_index(struct dedupe_index *index);
 
 /*
- * Interval (in milliseconds or jiffies) from submission until switching to 
- * fast path and skipping UDS. 
+ * Interval (in milliseconds) from submission until switching to fast path and
+ * skipping UDS.
  */
 extern unsigned int vdo_dedupe_index_timeout_interval;
 
 /*
- * Minimum time interval (in milliseconds) between timer invocations to 
- * check for requests waiting for UDS that should now time out. 
+ * Minimum time interval (in milliseconds) between timer invocations to
+ * check for requests waiting for UDS that should now time out.
  */
 extern unsigned int vdo_dedupe_index_min_timer_interval;
 
 void vdo_set_dedupe_index_timeout_interval(unsigned int value);
-
 void vdo_set_dedupe_index_min_timer_interval(unsigned int value);
 
 #endif /* DEDUPE_INDEX_H */

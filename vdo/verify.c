@@ -25,20 +25,22 @@
 #include <asm/unaligned.h>
 
 /**
- * Verify the deduplication advice from the UDS index, and invoke a
- * callback once the answer is available.
+ * DOC: Verification and why we need it
  *
- * After we've compared the stored data with the data to be written,
- * or after we've failed to be able to do so, the stored VIO callback
- * is queued to be run in the main (kvdoReqQ) thread.
+ * FIXME: actually write this doc
+ */
+
+/*
+ * Verify the deduplication advice from the UDS index, and invoke a callback
+ * once the answer is available.
  *
- * If the advice turns out to be stale and the deduplication session
- * is still active, submit a correction.  (Currently the correction
- * must be sent before the callback can be invoked, if the dedupe
- * session is still live.)
+ * After we've compared the stored data with the data to be written, or after
+ * we've failed to be able to do so, the stored VIO callback is queued.
  *
- * @param item  The workitem from the queue
- **/
+ * If the advice turns out to be stale and the deduplication session is still
+ * active, submit a correction.  (Currently the correction must be sent before
+ * the callback can be invoked, if the dedupe session is still live.)
+ */
 static void verify_duplication_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
@@ -54,12 +56,10 @@ static void verify_duplication_work(struct vdo_work_item *item)
 	enqueue_data_vio_callback(data_vio);
 }
 
-/**
+/*
  * Verify the deduplication advice from the UDS index, and invoke a
  * callback once the answer is available.
- *
- * @param completion  The data_vio that we are looking to dedupe.
- **/
+ */
 static void verify_read_block_callback(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -77,7 +77,6 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
-/**********************************************************************/
 void verify_data_vio_duplication(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
@@ -96,7 +95,6 @@ void verify_data_vio_duplication(struct data_vio *data_vio)
 		       verify_read_block_callback);
 }
 
-/**********************************************************************/
 bool compare_data_vios(struct data_vio *first, struct data_vio *second)
 {
 	return memory_equal(first->data_block, second->data_block,

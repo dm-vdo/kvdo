@@ -34,21 +34,19 @@ int __must_check make_buffer_pool(const char *pool_name,
 				  buffer_free_function *free_function,
 				  buffer_dump_function *dump_function,
 				  struct buffer_pool **pool_ptr);
-
 void free_buffer_pool(struct buffer_pool *pool);
-
 void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements);
-
 int __must_check
 alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr);
-
 void free_buffer_to_pool(struct buffer_pool *pool, void *data);
-
 void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count);
 
 /**
- * Control structure for freeing (releasing back to the pool) pointers
- * in batches.
+ * struct free_buffer_pointers - Control structure for freeing to a
+ * &struct buffer_pool in batches.
+ * @pool: The pool to return the buffers to
+ * @index: The number of items in this batch so far
+ * @pointers: Pointers to the items to be freed
  *
  * Since the objects stored in a buffer pool are completely opaque,
  * some external data structure is needed to manage a collection of
@@ -60,45 +58,29 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count);
  * We collect pointers until the array is full or until there are no
  * more available, and we call free_buffers_to_pool to release a batch
  * all at once.
- **/
+ */
 struct free_buffer_pointers {
 	struct buffer_pool *pool;
 	int index;
 	void *pointers[30]; /* size is arbitrary */
 };
 
-/**
- * Initialize the control structure for batching buffer pointers to be
- * released to their pool.
- *
- * @param [out] fbp   The (caller-allocated) control structure
- * @param [in]  pool  The buffer pool to return objects to.
- **/
 static inline void init_free_buffer_pointers(struct free_buffer_pointers *fbp,
 					     struct buffer_pool *pool)
 {
 	fbp->index = 0;
 	fbp->pool = pool;
 }
-
-/**
- * Release any buffers left in the collection.
- *
- * @param [in]  fbp  The control structure
- **/
 static inline void free_buffer_pointers(struct free_buffer_pointers *fbp)
 {
 	free_buffers_to_pool(fbp->pool, fbp->pointers, fbp->index);
 	fbp->index = 0;
 }
 
-/**
- * Add another buffer pointer to the collection, and if we're full,
+/*
+ * Add another buffer pointer to the collection, and if the batch is full,
  * release the whole batch to the pool.
- *
- * @param [in]  fbp      The control structure
- * @param [in]  pointer  The buffer pointer to release
- **/
+ */
 static inline void add_free_buffer_pointer(struct free_buffer_pointers *fbp,
 					   void *pointer)
 {

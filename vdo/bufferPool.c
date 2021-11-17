@@ -28,7 +28,13 @@
 
 #include "status-codes.h"
 
-/*
+/**
+ * DOC: The buffer pool
+ *
+ * The buffer pool is a generic pool containing buffers which are allocated up
+ * front and placed on a free list, which manages the reuse of individual
+ * buffers in the pool.
+ *
  * For list nodes on the free-object list, the data field describes
  * the object available for reuse.
  *
@@ -39,43 +45,25 @@
  * These are both "free lists", in a sense; don't get confused!
  */
 struct buffer_element {
-	struct list_head list;	/* links in current list */
-	void *data;		/* element data, if on free list */
+	struct list_head list;
+	void *data;
 };
 
 struct buffer_pool {
-	const char *name; /* Pool name */
+	const char *name;
 	spinlock_t lock; /* Locks this object */
-	unsigned int size; /* Total number of buffers */
-	struct list_head free_object_list; /* List of free buffers */
+	unsigned int size; /* number of buffers */
+	struct list_head free_object_list;
 	struct list_head spare_list_nodes; /* Unused list nodes */
-	unsigned int num_busy; /* Number of buffers in use */
-	unsigned int max_busy; /* Maximum value of the above */
-	buffer_allocate_function *alloc; /* Allocate function for buffer data */
-	buffer_free_function *free; /* Free function for buffer data */
-	buffer_dump_function *dump; /* Dump function for buffer data */
-	struct buffer_element *bhead; /* Array of buffer_element */
+	unsigned int num_busy;
+	unsigned int max_busy;
+	buffer_allocate_function *alloc;
+	buffer_free_function *free;
+	buffer_dump_function *dump;
+	struct buffer_element *bhead;
 	void **objects;
 };
 
-/**
- * Creates a generic pool of buffer data. The elements in the pool are
- * allocated up front and placed on a free list, which manages the
- * reuse of the individual buffers in the pool.
- *
- * @param [in]  pool_name          Name of the pool
- * @param [in]  size               The number of elements to create for this
- *                                 pool
- * @param [in]  allocate_function  The function to call to create the actual
- *                                 data for each element
- * @param [in]  free_function      The function to call to free the actual
- *                                 data for each element
- * @param [in]  dump_function      The function to call to dump the actual
- *                                 data for each element into the log
- * @param [out] pool_ptr           A pointer to hold the pool that was created
- *
- * @return a success or error code
- */
 int make_buffer_pool(const char *pool_name,
 		     unsigned int size,
 		     buffer_allocate_function *allocate_function,
@@ -139,11 +127,6 @@ int make_buffer_pool(const char *pool_name,
 	return VDO_SUCCESS;
 }
 
-/**
- * Free a buffer pool. This will free all the elements of the pool as well.
- *
- * @param [in]  pool   The pool to free
- **/
 void free_buffer_pool(struct buffer_pool *pool)
 {
 	if (pool == NULL) {
@@ -168,7 +151,6 @@ void free_buffer_pool(struct buffer_pool *pool)
 	UDS_FREE(pool);
 }
 
-/*************************************************************************/
 static bool in_free_list(struct buffer_pool *pool, void *data)
 {
 	struct list_head *node;
@@ -183,19 +165,12 @@ static bool in_free_list(struct buffer_pool *pool, void *data)
 	return false;
 }
 
-/**
- * Dump a buffer pool to the log.
- *
- * @param [in] pool           The buffer pool to allocate from
- * @param [in] dump_elements  True for complete output, or false for a
- *                            one-line summary
- **/
 void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 {
 	/*
-	 * In order that syslog can empty its buffer, sleep after 35 elements
-	 * for 4ms (till the second clock tick).  These numbers chosen in
-	 * October 2012 running on an lfarm.
+	 * This is only used for debugging, so it's important that everything
+	 * actually makes it to the kernel log. So, sleep after 35 elements
+	 * for 4ms (till the second clock tick), which worked well in 2012.
 	 */
 	enum { ELEMENTS_PER_BATCH = 35 };
 	enum { SLEEP_FOR_SYSLOG = 4000 };
@@ -225,15 +200,6 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 	spin_unlock(&pool->lock);
 }
 
-/**
- * Acquires a free buffer from the free list of the pool and
- * returns it's associated data.
- *
- * @param [in]  pool       The buffer pool to allocate from
- * @param [out] data_ptr   A pointer to hold the buffer data
- *
- * @return a success or error code
- */
 int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 {
 	struct buffer_element *bh;
@@ -276,12 +242,6 @@ static bool free_buffer_to_pool_internal(struct buffer_pool *pool, void *data)
 	return true;
 }
 
-/**
- * Returns a buffer to the free list of a pool
- *
- * @param [in] pool   The buffer pool to return the buffer to
- * @param [in] data   The buffer data to return
- */
 void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 {
 	bool success;
@@ -295,13 +255,6 @@ void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 	}
 }
 
-/**
- * Returns a set of buffers to the free list of a pool
- *
- * @param [in] pool   The buffer pool to return the buffer to
- * @param [in] data   The buffer data to return
- * @param [in] count  Number of entries in the data array
- */
 void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 {
 	bool success = true;

@@ -43,6 +43,8 @@
 #include "kvio.h"
 
 /**
+ * DOC: Bio flags.
+ *
  * For certain flags set on user bios, if the user bio has not yet been
  * acknowledged, setting those flags on our own bio(s) for that request may
  * help underlying layers better fulfill the user bio's needs. This constant
@@ -58,29 +60,32 @@
  * the following list explains the action taken with each of those flags VDO
  * could receive:
  *
- * REQ_SYNC: Passed down if the user bio is not yet completed, since it
- * indicates the user bio completion is required for further work to be
- * done by the issuer.
- * REQ_META: Passed down if the user bio is not yet completed, since it may
- * mean the lower layer treats it as more urgent, similar to REQ_SYNC.
- * REQ_PRIO: Passed down if the user bio is not yet completed, since it
- * indicates the user bio is important.
- * REQ_NOMERGE: Set only if the incoming bio was split; irrelevant to VDO IO.
- * REQ_IDLE: Set if the incoming bio had more IO quickly following; VDO's IO
- * pattern doesn't match incoming IO, so this flag is incorrect for it.
- * REQ_FUA: Handled separately, and irrelevant to VDO IO otherwise.
- * REQ_RAHEAD: Passed down, as, for reads, it indicates trivial importance.
- * REQ_BACKGROUND: Not passed down, as VIOs are a limited resource and VDO
- * needs them recycled ASAP to service heavy load, which is the only place
- * where REQ_BACKGROUND might aid in load prioritization.
- **/
+ * * REQ_SYNC: Passed down if the user bio is not yet completed, since it
+ *   indicates the user bio completion is required for further work to be
+ *   done by the issuer.
+ * * REQ_META: Passed down if the user bio is not yet completed, since it may
+ *   mean the lower layer treats it as more urgent, similar to REQ_SYNC.
+ * * REQ_PRIO: Passed down if the user bio is not yet completed, since it
+ *   indicates the user bio is important.
+ * * REQ_NOMERGE: Set only if the incoming bio was split; irrelevant to VDO IO.
+ * * REQ_IDLE: Set if the incoming bio had more IO quickly following; VDO's IO
+ *   pattern doesn't match incoming IO, so this flag is incorrect for it.
+ * * REQ_FUA: Handled separately, and irrelevant to VDO IO otherwise.
+ * * REQ_RAHEAD: Passed down, as, for reads, it indicates trivial importance.
+ * * REQ_BACKGROUND: Not passed down, as VIOs are a limited resource and VDO
+ *   needs them recycled ASAP to service heavy load, which is the only place
+ *   where REQ_BACKGROUND might aid in load prioritization.
+ */
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
 static const unsigned int VDO_SECTORS_PER_BLOCK_MASK =
 	VDO_SECTORS_PER_BLOCK - 1;
 
-/**********************************************************************/
+/*
+ * Prepare to return a data vio to the pool, by acknowledging the user bio
+ * if it's not already, and then adding it to the batch to free.
+ */
 static noinline void clean_data_vio(struct data_vio *data_vio,
 				    struct free_buffer_pointers *fbp)
 {
@@ -88,14 +93,10 @@ static noinline void clean_data_vio(struct data_vio *data_vio,
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
-/**
- * Return a batch of data_vio objects to the pool.
- *
- * <p>Implements batch_processor_callback.
- *
- * @param batch    The batch processor
- * @param closure  The kernal layer
- **/
+/*
+ * Implements batch_processor_callback.
+ * closure should be a pointer to this VDO.
+ */
 void return_data_vio_batch_to_pool(struct batch_processor *batch,
 				   void *closure)
 {
@@ -126,7 +127,6 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 	}
 }
 
-/**********************************************************************/
 static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -135,22 +135,21 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 	add_to_batch_processor(vdo->data_vio_releaser, &completion->work_item);
 }
 
-/**
+/*
+ * Initiate copying read data to its final buffer.
+ * 
  * For a read, dispatch the freshly uncompressed data to its destination:
- * - for a 4k read, copy it into the user bio for later acknowlegement;
- *
- * - for a partial read, invoke its callback; vdo_complete_partial_read will
+ * * for a 4k read, copy it into the user bio for later acknowlegement;
+ * * for a partial read, invoke its callback; vdo_complete_partial_read will
  *   copy the data into the user bio for acknowledgement;
- *
- * - for a partial write, copy it into the data block, so that we can later
+ * * for a partial write, copy it into the data block, so that we can later
  *   copy data from the user bio atop it in vdo_apply_partial_write and treat
  *   it as a full-block write.
  *
- * This is called from read_data_vio_read_block_callback, registered only in
- * read_data_vio() and therefore never called on a 4k write.
- *
- * @param work_item  The data_vio which requested the read
- **/
+ * At present, this is called from read_data_vio_read_block_callback,
+ * registered only in read_data_vio(). Therefore it is never called on a 4k
+ * write, which it cannot handle.
+ */
 static void copy_read_block_data(struct vdo_work_item *work_item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(work_item);
@@ -181,13 +180,11 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 	enqueue_data_vio_callback(data_vio);
 }
 
-/**
+/*
  * Finish reading data for a compressed block. This callback is registered
  * in read_data_vio() when trying to read compressed data for a 4k read or
  * a partial read or write.
- *
- * @param completion  The data_vio which requested the read
- **/
+ */
 static void
 read_data_vio_read_block_callback(struct vdo_completion *completion)
 {
@@ -204,12 +201,10 @@ read_data_vio_read_block_callback(struct vdo_completion *completion)
 				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 
-/**
+/*
  * Uncompress the data that's just been read and then call back the requesting
  * data_vio.
- *
- * @param work_item  The data_vio requesting the data
- **/
+ */
 static void uncompress_read_block(struct vdo_work_item *work_item)
 {
 	struct vdo_completion *completion = container_of(work_item,
@@ -250,12 +245,10 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 	read_block->callback(completion);
 }
 
-/**
+/*
  * Now that we have gotten the data from storage, uncompress the data if
  * necessary and then call back the requesting data_vio.
- *
- * @param data_vio  The data_vio requesting the data
- **/
+ */
 static void complete_read(struct data_vio *data_vio)
 {
 	struct read_block *read_block = &data_vio->read_block;
@@ -274,11 +267,6 @@ static void complete_read(struct data_vio *data_vio)
 	read_block->callback(vio_as_completion(vio));
 }
 
-/**
- * Callback for a bio doing a read.
- *
- * @param bio     The bio
- */
 static void read_bio_callback(struct bio *bio)
 {
 	struct data_vio *data_vio = (struct data_vio *) bio->bi_private;
@@ -289,17 +277,11 @@ static void read_bio_callback(struct bio *bio)
 }
 
 /**
- * Fetch the data for a block from storage. The fetched data will be
- * uncompressed when the callback is called, and the result of the read
- * operation will be stored in the read_block's status field. On success,
- * the data will be in the read_block's data pointer.
- *
- * @param data_vio       The data_vio to read a block in for
- * @param location       The physical block number to read from
- * @param mapping_state  The mapping state of the block to read
- * @param priority       The priority of this read
- * @param callback       The function to call when the read is done
- **/
+ * Fetch the data for a block from storage.
+ * The fetched data will be uncompressed when the callback is called, and the
+ * result of the read operation will be stored in data_vio->read_block.status.
+ * On success, the data will be in data_vio->read_block.data.
+ */
 void vdo_read_block(struct data_vio *data_vio,
 		    physical_block_number_t location,
 		    enum block_mapping_state mapping_state,
@@ -314,7 +296,6 @@ void vdo_read_block(struct data_vio *data_vio,
 	read_block->status = VDO_SUCCESS;
 	read_block->mapping_state = mapping_state;
 
-	/* Read the data using the read block buffer. */
 	result = prepare_data_vio_for_io(data_vio,
 					 read_block->buffer,
 					 read_bio_callback,
@@ -328,7 +309,6 @@ void vdo_read_block(struct data_vio *data_vio,
 	vdo_submit_bio(vio->bio, priority);
 }
 
-/**********************************************************************/
 static void acknowledge_user_bio(struct bio *bio)
 {
 	int error = vdo_get_bio_result(bio);
@@ -342,7 +322,6 @@ static void acknowledge_user_bio(struct bio *bio)
 	continue_vio(vio, error);
 }
 
-/**********************************************************************/
 void read_data_vio(struct data_vio *data_vio)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
@@ -385,10 +364,7 @@ void read_data_vio(struct data_vio *data_vio)
 		 */
 		set_vio_physical(vio, data_vio->mapped.pbn);
 		bio_reset(bio);
-		/*
-		 * Use __bio_clone_fast() to copy over the original bio iovec 
-		 * information and opflags. 
-		 */
+		/* Copy over the original bio iovec and opflags. */
 		__bio_clone_fast(bio, data_vio->user_bio);
 		vdo_set_bio_properties(bio,
 				       vio,
@@ -400,7 +376,6 @@ void read_data_vio(struct data_vio *data_vio)
 	vdo_submit_bio(bio, BIO_Q_DATA_PRIORITY);
 }
 
-/**********************************************************************/
 void vdo_apply_partial_write(struct data_vio *data_vio)
 {
 	struct bio *bio = data_vio->user_bio;
@@ -417,14 +392,14 @@ void vdo_apply_partial_write(struct data_vio *data_vio)
 	data_vio->is_zero_block = is_zero_block(data_vio->data_block);
 }
 
-/**
+/*
  * Reset a data_vio which has just been acquired from the pool.
- **/
+ */
 static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	/*
-	 * XXX We save the bio out of the vio so that we don't forget it. 
+	 * FIXME We save the bio out of the vio so that we don't forget it. 
 	 * Maybe we should just not zero that field somehow. 
 	 */
 	struct bio *bio = vio->bio;
@@ -446,11 +421,9 @@ static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 		       NULL);
 }
 
-/**
- * Finish a partial read.
- *
- * @param completion  The partial read vio
- **/
+/*
+ * Finish a sub-4k read IO.
+ */
 static void vdo_complete_partial_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -460,14 +433,6 @@ static void vdo_complete_partial_read(struct vdo_completion *completion)
 	vdo_complete_data_vio(completion);
 }
 
-/**
- * Initialize a newly acquiered data_vio based on an incoming bio and initiate
- * processing of the request.
- *
- * @param vdo       The vdo
- * @param data_vio  The data_vio which will process the bio
- * @param bio       The incoming bio to be processed
- **/
 void launch_data_vio(struct vdo *vdo,
 		     struct data_vio *data_vio,
 		     struct bio *bio)
@@ -556,15 +521,15 @@ void vdo_update_dedupe_index(struct data_vio *data_vio)
 	vdo_update_dedupe_advice(data_vio);
 }
 
-/**
- * Get the state needed to generate UDS metadata from the data_vio
- * associated with a dedupe_context.
+/*
+ * Get the state needed to generate UDS metadata from the data_vio wrapping a
+ * dedupe_context.
  *
- * @param context  The dedupe_context
- *
- * @return the advice to store in the UDS index
- **/
-struct data_location vdo_get_dedupe_advice(const struct dedupe_context *context)
+ * FIXME: the name says nothing about data vios or dedupe_contexts or data
+ * locations, just about VDOs, maybe too generic.
+ */
+struct data_location
+vdo_get_dedupe_advice(const struct dedupe_context *context)
 {
 	struct data_vio *data_vio = container_of(context,
 						 struct data_vio,
@@ -575,14 +540,6 @@ struct data_location vdo_get_dedupe_advice(const struct dedupe_context *context)
 	};
 }
 
-/**
- * Set the result of a dedupe query for the data_vio associated with a
- * dedupe_context.
- *
- * @param context  The context receiving advice
- * @param advice   A data location at which the chunk named in the context
- *                 might be stored (will be NULL if no advice was found)
- **/
 void vdo_set_dedupe_advice(struct dedupe_context *context,
 			   const struct data_location *advice)
 {

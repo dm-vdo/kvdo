@@ -29,26 +29,12 @@
 #include "kernelVDO.h"
 #include "kvio.h"
 
-/**
- * Returns a pointer to the data_vio wrapping a work item.
- *
- * @param item  the work item
- *
- * @return the data_vio
- **/
 static inline struct data_vio *
 work_item_as_data_vio(struct vdo_work_item *item)
 {
 	return vio_as_data_vio(work_item_as_vio(item));
 }
 
-/**
- * Set up and enqueue a data_vio on the CPU queue.
- *
- * @param data_vio        The data_vio to set up
- * @param work            The function pointer to execute
- * @param priority        The priority for this work
- **/
 static inline void
 launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 			     vdo_work_function work,
@@ -62,11 +48,9 @@ launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 		   vdo->threads[vdo->thread_config->cpu_thread].queue);
 }
 
-/**
- * Move a data_vio back to the base threads.
- *
- * @param data_vio The data_vio to enqueue
- **/
+/*
+ * Enqueue a data_vio's completion's callback.
+ */
 static inline void enqueue_data_vio_callback(struct data_vio *data_vio)
 {
 	continue_vio(data_vio_as_vio(data_vio), VDO_SUCCESS);
@@ -85,21 +69,12 @@ void vdo_read_block(struct data_vio *data_vio,
 		    enum vdo_work_item_priority priority,
 		    vdo_action *callback);
 
-/**
- * Allocate a buffer pool of data_vio objects.
- *
- * @param [in]  pool_size        The number of data_vio objects in the pool
- * @param [out] buffer_pool_ptr  A pointer to hold the new buffer pool
- *
- * @return VDO_SUCCESS or an error
- **/
 int __must_check
 make_data_vio_buffer_pool(uint32_t pool_size,
 			  struct buffer_pool **buffer_pool_ptr);
 
 struct data_location __must_check
 vdo_get_dedupe_advice(const struct dedupe_context *context);
-
 void vdo_set_dedupe_advice(struct dedupe_context *context,
 			   const struct data_location *advice);
 

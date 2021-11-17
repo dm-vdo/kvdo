@@ -33,12 +33,11 @@
 #include "bio.h"
 #include "dataKVIO.h"
 
-/**********************************************************************/
 void write_compressed_block_vio(struct vio *vio)
 {
 	/*
-	 * This method assumes that compressed writes never set the flush or 
-	 * FUA bits. 
+	 * This method assumes that compressed writes never set the flush or
+	 * FUA bits.
 	 */
 	int result = ASSERT(is_compressed_write_vio(vio),
 			    "Compressed write vio has correct type");
@@ -47,7 +46,6 @@ void write_compressed_block_vio(struct vio *vio)
 		return;
 	}
 
-	/* Write the compressed block, using the compressed vio's own bio. */
 	set_vio_physical(vio, vio_as_allocating_vio(vio)->allocation);
 	result = prepare_vio_for_io(vio,
 				    vio->data,
@@ -61,7 +59,6 @@ void write_compressed_block_vio(struct vio *vio)
 	vdo_submit_bio(vio->bio, BIO_Q_COMPRESSED_DATA_PRIORITY);
 }
 
-/**********************************************************************/
 void submit_metadata_vio(struct vio *vio)
 {
 	int result;
@@ -92,7 +89,7 @@ void submit_metadata_vio(struct vio *vio)
 	 *
 	 * Additionally, recovery journal IO is directly critical to user
 	 * bio latency, so we tag them with REQ_SYNC.
-	 **/
+	 */
 	bi_opf |= REQ_META;
 	if ((vio->type == VIO_TYPE_BLOCK_MAP_INTERIOR) ||
 	    (vio->type == VIO_TYPE_BLOCK_MAP) ||
@@ -117,6 +114,5 @@ void submit_metadata_vio(struct vio *vio)
 		return;
 	}
 
-	/* Perform the metadata IO, using the metadata vio's own bio. */
 	vdo_submit_bio(vio->bio, get_metadata_priority(vio));
 }

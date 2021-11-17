@@ -32,31 +32,40 @@
 
 #include "types.h"
 
+/**
+ * DOC: The dedupe index interface
+ *
+ * FIXME: actually write a summary of how this works with UDS.
+ */
+
 struct uds_attribute {
 	struct attribute attr;
 	const char *(*show_string)(struct dedupe_index *);
 };
 
-/* These are the values in the atomic dedupe_context.request_state field */
+/*
+ * Possible values stored in the atomic dedupe_context.request_state,
+ * recording the state of the uds_request member. Note that when the
+ * state is UR_TIMED_OUT, the uds_request member is still in use.
+ */
 enum {
-	/* The uds_request object is not in use. */
 	UR_IDLE,
-	/* The uds_request object is in use, and VDO is waiting for the result. */
 	UR_BUSY,
-	/* The uds_request object is in use, but has timed out. */
 	UR_TIMED_OUT,
 };
 
+/*
+ * Possible index states: closed, opened, or transitioning between those two.
+ */
 enum index_state {
-	/* The UDS index is closed */
 	IS_CLOSED,
-	/* The UDS index session is opening or closing */
 	IS_CHANGING,
-	/* The UDS index is open. */
 	IS_OPENED,
 };
 
-/* Data managing the reporting of UDS timeouts */
+/*
+ * A structure to manage the reporting of UDS timeouts
+ */
 struct periodic_event_reporter {
 	uint64_t last_reported_value;
 	atomic64_t value;
@@ -69,11 +78,10 @@ struct dedupe_index {
 	struct uds_parameters parameters;
 	struct uds_index_session *index_session;
 	atomic_t active;
-	/* for reporting UDS timeouts */
 	struct periodic_event_reporter timeout_reporter;
 	/*
-	 * This spinlock protects the state fields and the starting of dedupe 
-	 * requests. 
+	 * This spinlock protects the state fields and the starting of dedupe
+	 * requests.
 	 */
 	spinlock_t state_lock;
 	struct vdo_work_item work_item; /* protected by state_lock */
@@ -87,9 +95,10 @@ struct dedupe_index {
 	bool deduping; /* protected by state_lock */
 	bool error_flag; /* protected by state_lock */
 	bool suspended; /* protected by state_lock */
+
 	/*
-	 * This spinlock protects the pending list, the pending flag in each 
-	 * vio, and the timeout list. 
+	 * This spinlock protects the pending list, the pending flag in each
+	 * vio, and the timeout list.
 	 */
 	spinlock_t pending_lock;
 	struct list_head pending_head; /* protected by pending_lock */
@@ -97,17 +106,13 @@ struct dedupe_index {
 	bool started_timer; /* protected by pending_lock */
 };
 
-/*
- * Version 1:  user space UDS index (limited to 32 bytes) 
- * Version 2:  kernel space UDS index (limited to 16 bytes) 
- */
+/* Version 2 uses the kernel space UDS index and is limited to 16 bytes */
 enum {
 	UDS_ADVICE_VERSION = 2,
 	/* version byte + state byte + 64-bit little-endian PBN */
 	UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
 };
 
-/* We want to ensure that there is only one copy of the following constants. */
 static const char *CLOSED = "closed";
 static const char *CLOSING = "closing";
 static const char *ERROR = "error";
@@ -117,15 +122,13 @@ static const char *OPENING = "opening";
 static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
-/* These times are in milliseconds, and these are the default values. */
+/* These are in milliseconds. */
 unsigned int vdo_dedupe_index_timeout_interval = 5000;
 unsigned int vdo_dedupe_index_min_timer_interval = 100;
-
-/* These times are in jiffies */
+/* Same two variables, in jiffies for easier consumption. */
 static uint64_t vdo_dedupe_index_timeout_jiffies;
 static uint64_t vdo_dedupe_index_min_timer_jiffies;
 
-/**********************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
 					 enum index_state state)
 {
@@ -135,28 +138,19 @@ static const char *index_state_to_string(struct dedupe_index *index,
 
 	switch (state) {
 	case IS_CLOSED:
-		/* Closed. The error_flag tells if it is because of an error. */
 		return index->error_flag ? ERROR : CLOSED;
 	case IS_CHANGING:
-		/*
-		 * The index_target tells if we are opening or closing the 
-		 * index. 
-		 */
 		return index->index_target == IS_OPENED ? OPENING : CLOSING;
 	case IS_OPENED:
-		/* Opened. The dedupe_flag tells if we are online or offline. */
 		return index->dedupe_flag ? ONLINE : OFFLINE;
 	default:
 		return UNKNOWN;
 	}
 }
 
-/**
+/*
  * Encode VDO duplicate advice into the new_metadata field of a UDS request.
- *
- * @param request  The UDS request to receive the encoding
- * @param advice   The advice to encode
- **/
+ */
 static void encode_uds_advice(struct uds_request *request,
 			      struct data_location advice)
 {
@@ -170,14 +164,10 @@ static void encode_uds_advice(struct uds_request *request,
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 }
 
-/**
+/*
  * Decode VDO duplicate advice from the old_metadata field of a UDS request.
- *
- * @param request  The UDS request containing the encoding
- * @param advice   The data_location to receive the decoded advice
- *
- * @return <code>true</code> if valid advice was found and decoded
- **/
+ * Returns true if valid advice was found and decoded
+ */
 static bool decode_uds_advice(const struct uds_request *request,
 			      struct data_location *advice)
 {
@@ -203,26 +193,16 @@ static bool decode_uds_advice(const struct uds_request *request,
 	return true;
 }
 
-/**
+/*
  * Calculate the actual end of a timer, taking into account the absolute start
  * time and the present time.
- *
- * @param start_jiffies  The absolute start time, in jiffies
- *
- * @return the absolute end time for the timer, in jiffies
- **/
+ */
 static uint64_t get_dedupe_index_timeout(uint64_t start_jiffies)
 {
 	return max(start_jiffies + vdo_dedupe_index_timeout_jiffies,
 		   jiffies + vdo_dedupe_index_min_timer_jiffies);
 }
 
-/**
- * Set the interval from submission until switching to fast path and
- * skipping UDS.
- *
- * @param value  The number of milliseconds
- **/
 void vdo_set_dedupe_index_timeout_interval(unsigned int value)
 {
 	uint64_t alb_jiffies;
@@ -242,12 +222,6 @@ void vdo_set_dedupe_index_timeout_interval(unsigned int value)
 	vdo_dedupe_index_timeout_jiffies = alb_jiffies;
 }
 
-/**
- * Set the minimum time interval between timer invocations to check for
- * requests waiting for UDS that should now time out.
- *
- * @param value  The number of milliseconds
- **/
 void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 {
 	uint64_t min_jiffies;
@@ -270,7 +244,6 @@ void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 }
 
 
-/**********************************************************************/
 static void finish_index_operation(struct uds_request *uds_request)
 {
 	struct data_vio *data_vio = container_of(uds_request,
@@ -311,9 +284,9 @@ static void finish_index_operation(struct uds_request *uds_request)
 	}
 }
 
-/**
+/*
  * Must be called holding pending_lock
- **/
+ */
 static void start_expiration_timer(struct dedupe_index *index,
 				   unsigned long expiration)
 {
@@ -323,9 +296,9 @@ static void start_expiration_timer(struct dedupe_index *index,
 	}
 }
 
-/**
+/*
  * Must be called holding pending_lock
- **/
+ */
 static void start_expiration_timer_for_vio(struct dedupe_index *index,
 					   struct data_vio *data_vio)
 {
@@ -335,7 +308,6 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 	start_expiration_timer(index, get_dedupe_index_timeout(start_time));
 }
 
-/**********************************************************************/
 static void start_index_operation(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
@@ -358,19 +330,11 @@ static void start_index_operation(struct vdo_work_item *item)
 	}
 }
 
-/**
- * Get the dedupe timeout count.
- *
- * @param index  The dedupe index
- *
- * @return The number of dedupe timeouts noted
- **/
 uint64_t vdo_get_dedupe_index_timeout_count(struct dedupe_index *index)
 {
 	return atomic64_read(&index->timeout_reporter.value);
 }
 
-/**********************************************************************/
 static void report_events(struct periodic_event_reporter *reporter,
 			  bool ratelimit)
 {
@@ -383,12 +347,12 @@ static void report_events(struct periodic_event_reporter *reporter,
 				      difference);
 			reporter->last_reported_value = new_value;
 		} else {
-			/**
+			/*
 			 * Turn on a backup timer that will fire after the
 			 * current interval. Just in case the last index
 			 * request in a while times out; we want to report
 			 * the dedupe timeouts in a timely manner in such cases
-			 **/
+			 */
 			struct dedupe_index *index =
 				container_of(reporter,
 					     struct dedupe_index,
@@ -401,7 +365,6 @@ static void report_events(struct periodic_event_reporter *reporter,
 	}
 }
 
-/**********************************************************************/
 static void report_events_work(struct work_struct *work)
 {
 	struct periodic_event_reporter *reporter =
@@ -409,7 +372,6 @@ static void report_events_work(struct work_struct *work)
 	report_events(reporter, true);
 }
 
-/**********************************************************************/
 static void
 init_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
@@ -422,16 +384,13 @@ init_periodic_event_reporter(struct periodic_event_reporter *reporter)
 	ratelimit_set_flags(&reporter->ratelimiter, RATELIMIT_MSG_ON_RELEASE);
 }
 
-/**
+/*
  * Record and eventually report that some dedupe requests reached their
  * expiration time without getting answers, so we timed them out.
  *
  * This is called in a timer context, so it shouldn't do the reporting
  * directly.
- *
- * @param reporter       The periodic event reporter
- * @param timeouts       How many requests were timed out.
- **/
+ */
 static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
 				   unsigned int timeouts)
 {
@@ -440,7 +399,6 @@ static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
 	schedule_work(&reporter->work);
 }
 
-/**********************************************************************/
 static void
 stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
@@ -449,7 +407,6 @@ stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 	ratelimit_state_exit(&reporter->ratelimiter);
 }
 
-/**********************************************************************/
 static void timeout_index_operations(struct timer_list *t)
 {
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
@@ -497,12 +454,13 @@ static void timeout_index_operations(struct timer_list *t)
 	report_dedupe_timeouts(&index->timeout_reporter, timed_out);
 }
 
-/**
- * Enqueue operation for submission to the index.
- *
- * @param data_vio   The data_vio requesting the operation
- * @param operation  The index operation to perform
- **/
+/*
+ * The index operation will inquire about data_vio.chunk_name, providing (if
+ * the operation is appropriate) advice from via vdo_get_dedupe_advice(). The
+ * advice found in the index (or NULL if none) will be returned via
+ * vdo_set_dedupe_advice().  dedupe_context.status is set to the return status
+ * code of any asynchronous index processing.
+ */
 void vdo_enqueue_index_operation(struct data_vio *data_vio,
 				 enum uds_request_type operation)
 {
@@ -561,7 +519,6 @@ void vdo_enqueue_index_operation(struct data_vio *data_vio,
 	}
 }
 
-/**********************************************************************/
 static void close_index(struct dedupe_index *index)
 {
 	int result;
@@ -584,7 +541,6 @@ static void close_index(struct dedupe_index *index)
 	/* ASSERTION: We leave in IS_CLOSED state. */
 }
 
-/**********************************************************************/
 static void open_index(struct dedupe_index *index)
 {
 	/* ASSERTION: We enter in IS_CLOSED state. */
@@ -638,7 +594,6 @@ static void open_index(struct dedupe_index *index)
 	 */
 }
 
-/**********************************************************************/
 static void change_dedupe_state(struct vdo_work_item *item)
 {
 	struct dedupe_index *index = container_of(item,
@@ -647,8 +602,8 @@ static void change_dedupe_state(struct vdo_work_item *item)
 	spin_lock(&index->state_lock);
 
 	/*
-	 * Loop until the index is in the target state and the create flag is 
-	 * clear. 
+	 * Loop until the index is in the target state and the create flag is
+	 * clear.
 	 */
 	while (!index->suspended &&
 	       ((index->index_state != index->index_target) ||
@@ -665,14 +620,13 @@ static void change_dedupe_state(struct vdo_work_item *item)
 	spin_unlock(&index->state_lock);
 }
 
-/**********************************************************************/
 static void launch_dedupe_state_change(struct dedupe_index *index)
 {
 	/* ASSERTION: We enter with the state_lock held. */
 	if (index->changing || index->suspended) {
 		/*
-		 * Either a change is already in progress, or changes are 
-		 * not allowed. 
+		 * Either a change is already in progress, or changes are
+		 * not allowed.
 		 */
 		return;
 	}
@@ -695,7 +649,6 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 	/* ASSERTION: We exit with the state_lock held. */
 }
 
-/**********************************************************************/
 static void set_target_state(struct dedupe_index *index,
 			     enum index_state target,
 			     bool change_dedupe,
@@ -723,13 +676,10 @@ static void set_target_state(struct dedupe_index *index,
 	}
 }
 
-/**
- * Wait until the dedupe index has completed all its outstanding I/O.
- * May be called from any thread,
- *
- * @param index      The dedupe index
- * @param save_flag  True if we should save the index
- **/
+/*
+ * May be called from any thread.
+ * save_flag should be true to save the index instead of just suspend.
+ */
 void vdo_suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	enum index_state state;
@@ -749,13 +699,9 @@ void vdo_suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 	}
 }
 
-/**
- * Resume a suspended dedupe index. May be called from any thread.
- *
- * @param index   The dedupe index
- * @param dedupe  Whether dedupe should be on or off.
- * @param create  Whether to create the index or not.
- **/
+/*
+ * May be called from any thread.
+ */
 void vdo_resume_dedupe_index(struct dedupe_index *index,
 			     bool dedupe,
 			     bool create)
@@ -784,11 +730,9 @@ void vdo_resume_dedupe_index(struct dedupe_index *index,
 	spin_unlock(&index->state_lock);
 }
 
-/**
+/*
  * Do the dedupe section of dmsetup message vdo0 0 dump ...
- *
- * @param index       The dedupe index
- **/
+ */
 void vdo_dump_dedupe_index(struct dedupe_index *index)
 {
 	const char *state, *target;
@@ -806,11 +750,6 @@ void vdo_dump_dedupe_index(struct dedupe_index *index)
 	}
 }
 
-/**
- * Finish the dedupe index.
- *
- * @param index  The dedupe index
- **/
 void vdo_finish_dedupe_index(struct dedupe_index *index)
 {
 	if (index == NULL) {
@@ -822,11 +761,6 @@ void vdo_finish_dedupe_index(struct dedupe_index *index)
 	finish_work_queue(index->uds_queue);
 }
 
-/**
- * Free the dedupe index
- *
- * @param index  The dedupe index
- **/
 void vdo_free_dedupe_index(struct dedupe_index *index)
 {
 	if (index == NULL) {
@@ -834,8 +768,8 @@ void vdo_free_dedupe_index(struct dedupe_index *index)
 	}
 
 	/*
-	 * The queue will get freed along with all the others, but give up 
-	 * our reference to it. 
+	 * The queue will get freed along with all the others, but give up
+	 * our reference to it.
 	 */
 	UDS_FORGET(index->uds_queue);
 	stop_periodic_event_reporter(&index->timeout_reporter);
@@ -847,13 +781,6 @@ void vdo_free_dedupe_index(struct dedupe_index *index)
 	kobject_put(&index->dedupe_directory);
 }
 
-/**
- * Get the name of the deduplication state
- *
- * @param index  The dedupe index
- *
- * @return the dedupe state name
- **/
 const char *vdo_get_dedupe_index_state_name(struct dedupe_index *index)
 {
 	const char *state;
@@ -865,12 +792,6 @@ const char *vdo_get_dedupe_index_state_name(struct dedupe_index *index)
 	return state;
 }
 
-/**
- * Get the index statistics
- *
- * @param index  The dedupe index
- * @param stats  The index statistics
- **/
 void vdo_get_dedupe_index_statistics(struct dedupe_index *index,
 				     struct index_statistics *stats)
 {
@@ -904,14 +825,9 @@ void vdo_get_dedupe_index_statistics(struct dedupe_index *index,
 }
 
 
-/**
- * Process a dmsetup message directed to the index.
- *
- * @param index  The dedupe index
- * @param name   The message name
- *
- * @return 0 or an error code
- **/
+/*
+ * Handle a dmsetup message relevant to the index.
+ */
 int vdo_message_dedupe_index(struct dedupe_index *index, const char *name)
 {
 	if (strcasecmp(name, "index-close") == 0) {
@@ -930,33 +846,21 @@ int vdo_message_dedupe_index(struct dedupe_index *index, const char *name)
 	return -EINVAL;
 }
 
-/**
- * Add the sysfs nodes for the dedupe index.
- *
- * @param index        The dedupe index
- * @param parent  The kobject to attach the sysfs nodes to
- *
- * @return 0 or an error code
- **/
 int vdo_add_dedupe_index_sysfs(struct dedupe_index *index,
 			       struct kobject *parent)
 {
 	return kobject_add(&index->dedupe_directory, parent, "dedupe");
 }
 
-/**
- * Start the dedupe index.
- *
- * @param index        The dedupe index
- * @param create_flag  If true, create a new index without first attempting
- *                     to load an existing index
- **/
+/*
+ * If create_flag, create a new index without first attempting to load an
+ * existing index.
+ */
 void vdo_start_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
 }
 
-/**********************************************************************/
 static void dedupe_kobj_release(struct kobject *directory)
 {
 	struct dedupe_index *index = container_of(directory,
@@ -965,7 +869,6 @@ static void dedupe_kobj_release(struct kobject *directory)
 	UDS_FREE(index);
 }
 
-/**********************************************************************/
 static ssize_t dedupe_status_show(struct kobject *directory,
 				  struct attribute *attr,
 				  char *buf)
@@ -981,7 +884,6 @@ static ssize_t dedupe_status_show(struct kobject *directory,
 	}
 }
 
-/**********************************************************************/
 static ssize_t dedupe_status_store(struct kobject *kobj,
 				   struct attribute *attr,
 				   const char *buf,
@@ -990,7 +892,7 @@ static ssize_t dedupe_status_store(struct kobject *kobj,
 	return -EINVAL;
 }
 
-/**********************************************************************/
+/*----------------------------------------------------------------------*/
 
 static struct sysfs_ops dedupe_sysfs_ops = {
 	.show = dedupe_status_show,
@@ -1013,7 +915,6 @@ static struct kobj_type dedupe_directory_type = {
 	.default_attrs = dedupe_attributes,
 };
 
-/**********************************************************************/
 static void start_uds_queue(void *ptr)
 {
 	/*
@@ -1030,21 +931,14 @@ static void start_uds_queue(void *ptr)
 	uds_register_allocating_thread(&thread->allocating_thread, NULL);
 }
 
-/**********************************************************************/
 static void finish_uds_queue(void *ptr __always_unused)
 {
 	uds_unregister_allocating_thread();
 }
 
-/**
- * Make a dedupe index
- *
- * @param index_ptr           dedupe index returned here
- * @param vdo                 the vdo to which the index will belong
- * @param thread_name_prefix  The per-device prefix to use in thread names
- *
- * @return VDO_SUCCESS or an error code
- **/
+/*
+ * thread_name_prefix should be a per-device prefix
+ */
 int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 			  struct vdo *vdo,
 			  const char *thread_name_prefix)
@@ -1105,7 +999,6 @@ int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 	spin_lock_init(&index->state_lock);
 	timer_setup(&index->pending_timer, timeout_index_operations, 0);
 
-	/* UDS Timeout Reporter */
 	init_periodic_event_reporter(&index->timeout_reporter);
 
 	*index_ptr = index;

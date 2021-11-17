@@ -44,13 +44,6 @@
 
 #include "kvio.h"
 
-/**
- * Enqueue a work item to be processed in the base code context.
- *
- * @param vdo        The vdo object in which to run the work item
- * @param item       The work item to be run
- * @param thread_id  The thread on which to run the work item
- **/
 void vdo_enqueue_work(struct vdo *vdo,
 		      struct vdo_work_item *item,
 		      thread_id_t thread_id)
@@ -58,14 +51,6 @@ void vdo_enqueue_work(struct vdo *vdo,
 	enqueue_work_queue(vdo->threads[thread_id].queue, item);
 }
 
-/**
- * Set up and enqueue a vio's work item to be processed in the base code
- * context.
- *
- * @param vio             The vio with the work item to be run
- * @param work            The function pointer to execute
- * @param priority        The priority of the work
- **/
 void enqueue_vio(struct vio *vio,
 		 vdo_work_function work,
 		 enum vdo_work_item_priority priority)

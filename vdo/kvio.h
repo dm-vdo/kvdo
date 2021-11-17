@@ -24,25 +24,12 @@
 
 #include "workQueue.h"
 
-/**
- * Enqueue a vio on a work queue.
- *
- * @param queue  The queue
- * @param vio    The vio
- **/
 static inline void enqueue_vio_work(struct vdo_work_queue *queue,
 				    struct vio *vio)
 {
 	enqueue_work_queue(queue, work_item_from_vio(vio));
 }
 
-/**
- * Set up the work item for a vio.
- *
- * @param vio             The vio to set up
- * @param work            The function pointer to execute
- * @param priority        The priority of the work
- **/
 static inline void setup_vio_work(struct vio *vio,
 				  vdo_work_function work,
 				  enum vdo_work_item_priority priority)
@@ -52,14 +39,6 @@ static inline void setup_vio_work(struct vio *vio,
 			priority);
 }
 
-/**
- * Set up and enqueue a vio.
- *
- * @param vio             The vio to set up
- * @param work            The function pointer to execute
- * @param priority        The priority of the work
- * @param queue           The queue on which to enqueue the vio
- **/
 static inline void launch_vio(struct vio *vio,
 			      vdo_work_function work,
 			      enum vdo_work_item_priority priority,

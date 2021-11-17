@@ -41,45 +41,11 @@
 #include "vdo-resume.h"
 #include "vdo-suspend.h"
 
-/**
- * Get the vdo associated with a dm target structure.
- *
- * @param ti  The dm target structure
- *
- * @return The vdo NULL.
- **/
 static struct vdo *get_vdo_for_target(struct dm_target *ti)
 {
 	return ((struct device_config *) ti->private)->vdo;
 }
 
-/**
- * Begin VDO processing of a bio.  This is called by the device mapper
- * through the "map" function, and has resulted from a bio being
- * submitted.
- *
- * @param ti   The dm_target. We only need the "private" member to access
- *             the vdo
- * @param bio  The bio.
- *
- * @return One of these values:
- *
- *         negative            A negative value is an error code.
- *                             Usually -EIO.
- *
- *         DM_MAPIO_SUBMITTED  VDO will take care of this I/O, either
- *                             processing it completely and calling
- *                             bio_endio, or forwarding it onward by
- *                             submitting it to the next layer.
- *
- *         DM_MAPIO_REMAPPED   VDO has modified the bio and the device
- *                             mapper will immediately forward the bio
- *                             onward by submitting it to the next layer.
- *
- *         DM_MAPIO_REQUEUE    We do not use this.  It is used by device
- *                             mapper devices to defer an I/O request
- *                             during suspend/resume processing.
- **/
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
 	int result;
@@ -239,13 +205,6 @@ static void vdo_status(struct dm_target *ti,
 	}
 }
 
-/**
- * Get the size of a vdo's underlying device, in blocks.
- *
- * @param vdo  The vdo
- *
- * @return The size in blocks
- **/
 static block_count_t __must_check
 get_underlying_device_block_count(const struct vdo *vdo)
 {
@@ -253,17 +212,6 @@ get_underlying_device_block_count(const struct vdo *vdo)
 		/ VDO_BLOCK_SIZE);
 }
 
-/**
- * Process a dmsetup message now that we know no other message is being
- * processed.
- *
- * @param vdo    The vdo to which the message was sent
- * @param argc   The argument count of the message
- * @param argv   The arguments to the message
- *
- * @return -EINVAL if the message is unrecognized or the result of processing
- *                 the message
- **/
 static int __must_check
 process_vdo_message_locked(struct vdo *vdo,
 			   unsigned int argc,
@@ -291,17 +239,11 @@ process_vdo_message_locked(struct vdo *vdo,
 	return -EINVAL;
 }
 
-/**
- * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
- * check that no other message is being processed, and only proceed if so.
- *
- * @param vdo    The vdo to which the message was sent
- * @param argc   The argument count of the message
- * @param argv   The arguments to the message
- *
- * @return -EBUSY if another message is being processed or the result of
- *                processsing the message
- **/
+/*
+ * If the message is a dump, just do it. Otherwise, check that no other message
+ * is being processed, and only proceed if so.
+ * Returns -EBUSY if another message is being processed
+ */
 static int __must_check
 process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 {
@@ -384,11 +326,6 @@ static int vdo_message(struct dm_target *ti,
 	return result;
 }
 
-/**
- * Configure the dm_target with our capabilities.
- *
- * @param ti   The device mapper target representing our device
- **/
 static void configure_target_capabilities(struct dm_target *ti)
 {
 	ti->discards_supported = 1;
@@ -403,9 +340,9 @@ static void configure_target_capabilities(struct dm_target *ti)
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 }
 
-/**
+/*
  * Implements vdo_filter_t.
- **/
+ */
 static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
@@ -414,16 +351,6 @@ static bool vdo_uses_device(struct vdo *vdo, void *context)
 		== config->owned_device->bdev->bd_dev);
 }
 
-/**
- * Initializes a single VDO instance and loads the data from disk
- *
- * @param ti        The device mapper target representing our device
- * @param instance  The device instantiation counter
- * @param config    The parsed config for the instance
- *
- * @return VDO_SUCCESS or an error code
- *
- **/
 static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
@@ -487,9 +414,9 @@ static int vdo_initialize(struct dm_target *ti,
 	return VDO_SUCCESS;
 }
 
-/**
+/*
  * Implements vdo_filter_t.
- **/
+ */
 static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
 {
 	struct dm_target *ti = vdo->device_config->owning_target;
@@ -638,7 +565,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
-		/* XXX: can this still happen? */
+		/* FIXME: can this still happen? */
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name,
 			      (unsigned long long) backing_blocks,

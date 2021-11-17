@@ -32,43 +32,21 @@ enum {
 };
 
 struct vdo_work_item {
-	/** Entry link for lock-free work queue */
+	/* Entry link for lock-free work queue */
 	struct funnel_queue_entry work_queue_entry_link;
-	/** Function to be called */
+	/* Function to be called */
 	vdo_work_function work;
-	/**
-	 * An index into the statistics table; filled in by workQueueStats code
-	 */
+	/* FIXME: unused? */
 	unsigned int stat_table_index;
-	/** The priority of the work to be done */
 	enum vdo_work_item_priority priority;
-	/**
-	 * The work queue in which the item is enqueued, or NULL if not
-	 * enqueued.
-	 */
 	struct vdo_work_queue *my_queue;
-	/**
-	 * Time of enqueueing, in ns, for recording queue (waiting) time stats
-	 */
 	uint64_t enqueue_time;
 };
 
-/**
- * Static attributes of a work queue that are fixed at compile time
- * for a given call site. (Attributes that may be computed at run time
- * are passed as separate arguments.)
- **/
 struct vdo_work_queue_type {
-	/** A function to call in the new thread before servicing requests */
 	void (*start)(void *);
-
-	/** A function to call in the new thread when shutting down */
 	void (*finish)(void *);
-
-	/** The largest priority value used by this queue */
 	enum vdo_work_item_priority max_priority;
-
-	/** The default priority for this queue */
 	enum vdo_work_item_priority default_priority;
 };
 
@@ -80,17 +58,11 @@ int make_work_queue(const char *thread_name_prefix,
 		    void *thread_privates[],
 		    struct vdo_work_queue **queue_ptr);
 
-/**
- * Set up the fields of a work queue item.
- *
- * Before the first setup call (setup_work_item), the work item must
- * have been initialized to all-zero. Resetting a previously-used work
- * item does not require another memset.
- *
- * @param item            The work item to initialize
- * @param work            The function pointer to execute
- * @param priority        The priority of the work to be done
- **/
+/*
+ * Before the first setup call (setup_work_item), the work item must have been
+ * initialized to all-zero. Resetting a previously-used work item does not
+ * require another memset.
+ */
 void setup_work_item(struct vdo_work_item *item,
 		     vdo_work_function work,
 		     enum vdo_work_item_priority priority);
@@ -109,9 +81,7 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      size_t length);
 
 void *get_work_queue_private_data(void);
-
 struct vdo_work_queue *get_current_work_queue(void);
-
 struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue);
 
 bool __must_check
