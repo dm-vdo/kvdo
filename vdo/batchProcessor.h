@@ -23,22 +23,22 @@
 #include "kernel-types.h"
 
 /**
- * Control data for managing collections of objects to be operated on
- * by a specified function. May be used when the work function is
- * lightweight enough or cache-contentious enough that it makes sense
- * to try to accumulate multiple objects and operate on them all at
- * once in one thread.
+ * DOC: The batch processor.
  *
- * The work function is run in one of the kernel layer's "CPU queues",
- * and care is taken to ensure that only one invocation can be running
- * or scheduled at any given time. It can loop calling next_batch_item
- * repeatedly until there are no more objects to operate on. It should
- * also call cond_resched_batch_processor now and then, to play nicely
- * with the OS scheduler.
+ * This object collects and operates on batches of objects.
+ * It may be used when the work function is lightweight enough or
+ * cache-contentious enough that it makes sense to try to accumulate
+ * multiple objects and operate on them all at once in one thread.
+ *
+ * The work function is run in one of the CPU queues, and care is taken
+ * to ensure that only one invocation can be running or scheduled at any
+ * given time. It can loop calling next_batch_item repeatedly until there
+ * are no more objects to operate on. It should also, now and then, call
+ * cond_resched_batch_processor(), to play nicely with the scheduler.
  *
  * Objects to operate on are manipulated through a funnel_queue_entry
  * object which must be contained within them.
- **/
+ */
 struct batch_processor;
 
 typedef void (*batch_processor_callback)(struct batch_processor *batch,
