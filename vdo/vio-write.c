@@ -287,12 +287,9 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 		fallthrough;
 
 	case VIO_RELEASE_LOGICAL:
-		if (!is_compressed_write_data_vio(data_vio)) {
-			launch_data_vio_logical_callback(data_vio,
-							 release_logical_lock);
-			return;
-		}
-		fallthrough;
+		launch_data_vio_logical_callback(data_vio,
+						 release_logical_lock);
+		return;
 
 	default:
 		finish_cleanup(data_vio);
@@ -506,6 +503,9 @@ static void decrement_for_dedupe(struct vdo_completion *completion)
 		 * If we are about to release the reference on the allocated
 		 * block, we must release the PBN lock on it first so that the
 		 * allocator will not allocate a write-locked block.
+                 *
+                 * FIXME: now that we don't have sync mode, can this ever
+                 *        happen?
 		 */
 		vio_release_allocation_lock(allocating_vio);
 	}
@@ -592,6 +592,7 @@ static void increment_for_compression(struct vdo_completion *completion)
 
 /**
  * Add a recovery journal entry for the increment resulting from compression.
+ * This callback is registered in continue_write_after_compression().
  *
  * @param completion  The data_vio which has been compressed
  **/
@@ -601,20 +602,29 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_journal_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
-		return;
-	}
-
-	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
-		abort_deduplication(data_vio);
-		return;
-	}
 
 	set_data_vio_new_mapped_zone_callback(data_vio,
 					      increment_for_compression);
 	data_vio->last_async_operation =
 		VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_COMPRESSION;
 	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
+}
+
+/**
+ * Continue a write after the data_vio has been released from the packer. It
+ * may or may not have been written as part of a compressed write.
+ *
+ * @param data_vio  The data_vio which has returned from the packer
+ **/
+void continue_write_after_compression(struct data_vio *data_vio)
+{
+	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
+		abort_deduplication(data_vio);
+		return;
+	}
+
+	launch_data_vio_journal_callback(data_vio,
+					 add_recovery_journal_entry_for_compression);
 }
 
 /**
@@ -639,8 +649,6 @@ static void pack_compressed_data(struct vdo_completion *completion)
 		return;
 	}
 
-	set_data_vio_journal_callback(data_vio,
-				      add_recovery_journal_entry_for_compression);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_PACKING;
 	vdo_attempt_packing(data_vio);
 }
@@ -950,7 +958,8 @@ static void increment_for_write(struct vdo_completion *completion)
 	 * the block. Downgrade the allocation lock to a read lock so it can be
 	 * used later by the hash lock.
 	 */
-	vdo_downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
+	vdo_downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock,
+				     false);
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE;
 	set_data_vio_logical_callback(data_vio,

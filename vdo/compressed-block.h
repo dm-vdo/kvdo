@@ -23,6 +23,7 @@
 #include "compiler.h"
 
 #include "block-mapping-state.h"
+#include "constants.h"
 #include "header.h"
 #include "types.h"
 
@@ -43,6 +44,16 @@ struct compressed_block_header {
 	__le16 sizes[VDO_MAX_COMPRESSION_SLOTS];
 } __packed;
 
+enum {
+	/*
+	 * A compressed block is only written if we can pack at least two
+	 * fragments into it, so a fragment which fills the entire data portion
+	 * of a compressed block is too big.
+	 */
+	VDO_MAX_COMPRESSED_FRAGMENT_SIZE =
+		VDO_BLOCK_SIZE - sizeof(struct compressed_block_header) - 1,
+};
+
 /**
  * The compressed block overlay.
  **/
@@ -51,16 +62,19 @@ struct compressed_block {
 	char data[];
 } __packed;
 
-void vdo_reset_compressed_block_header(struct compressed_block_header *header);
-
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      char *buffer,
 				      block_size_t block_size,
 				      uint16_t *fragment_offset,
 				      uint16_t *fragment_size);
 
+void vdo_initialize_compressed_block(struct compressed_block *block,
+				     uint16_t size);
+
 void vdo_put_compressed_block_fragment(struct compressed_block *block,
-				       unsigned int fragment, uint16_t offset,
-				       const char *data, uint16_t size);
+				       unsigned int fragment,
+				       uint16_t offset,
+				       const char *data,
+				       uint16_t size);
 
 #endif /* COMPRESSED_BLOCK_H */

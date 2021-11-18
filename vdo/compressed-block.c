@@ -33,33 +33,36 @@ enum {
 	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS),
 };
 
-/**
- * Initializes/resets a compressed block header.
- *
- * @param header        the header
- *
- * When done, the version number is set to the current version, and all
- * fragments are empty.
- **/
-void vdo_reset_compressed_block_header(struct compressed_block_header *header)
-{
-	/*
-	 * Make sure the block layout isn't accidentally changed by changing 
-	 * the length of the block header. 
-	 */
-	STATIC_ASSERT_SIZEOF(struct compressed_block_header,
-			     COMPRESSED_BLOCK_1_0_SIZE);
-
-	header->version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
-	memset(header->sizes, 0, sizeof(header->sizes));
-}
-
 /**********************************************************************/
 static uint16_t
 get_compressed_fragment_size(const struct compressed_block_header *header,
 			     byte slot)
 {
 	return __le16_to_cpu(header->sizes[slot]);
+}
+
+/**
+ * This method initializes the compressed block in the compressed write
+ * agent. Because the compressor already put the agent's compressed fragment at
+ * the start of the compressed block's data field, it needn't be copied. So all
+ * we need do is initialize the header and set the size of the agent's
+ * fragment.
+ *
+ * @param block  The compressed block to initialize
+ * @param size   The size of the agent's fragment
+ **/
+void vdo_initialize_compressed_block(struct compressed_block *block,
+				     uint16_t size)
+{
+	/*
+	 * Make sure the block layout isn't accidentally changed by changing
+	 * the length of the block header.
+	 */
+	STATIC_ASSERT_SIZEOF(struct compressed_block_header,
+			     COMPRESSED_BLOCK_1_0_SIZE);
+
+	block->header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
+	block->header.sizes[0] = __cpu_to_le16(size);
 }
 
 /**

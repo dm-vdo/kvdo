@@ -215,16 +215,6 @@ static inline bool is_data_vio(struct vio *vio)
 }
 
 /**
- * Check whether a vio is for compressed block writes
- *
- * @param vio  The vio to check
- **/
-static inline bool is_compressed_write_vio(struct vio *vio)
-{
-	return vdo_is_compressed_write_vio_type(vio->type);
-}
-
-/**
  * Check whether a vio is for metadata
  *
  * @param vio  The vio to check
@@ -394,13 +384,6 @@ static inline void launch_flush_vio(struct vio *vio,
  * @param vio  The vio to read or write
  **/
 void submit_metadata_vio(struct vio *vio);
-
-/**
- * A function to write a single compressed block to the layer
- *
- * @param vio  The compressed write vio to write
- **/
-void write_compressed_block_vio(struct vio *vio);
 
 /**
  * Convert a vio's priority to a work item priority.

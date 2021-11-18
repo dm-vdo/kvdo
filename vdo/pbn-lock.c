@@ -45,11 +45,6 @@ static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
 		.name = "write",
 		.release_reason = "newly allocated",
 	},
-	[VIO_COMPRESSED_WRITE_LOCK] = {
-		.type = VIO_COMPRESSED_WRITE_LOCK,
-		.name = "compressed write",
-		.release_reason = "failed compression",
-	},
 	[VIO_BLOCK_MAP_WRITE_LOCK] = {
 		.type = VIO_BLOCK_MAP_WRITE_LOCK,
 		.name = "block map write",
@@ -101,7 +96,7 @@ void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
  *
  * @param lock  The PBN write lock to downgrade
  **/
-void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock)
+void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write)
 {
 	ASSERT_LOG_ONLY(!vdo_is_pbn_read_lock(lock),
 			"PBN lock must not already have been downgraded");
@@ -110,22 +105,14 @@ void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock)
 	ASSERT_LOG_ONLY(lock->holder_count == 1,
 			"PBN write lock should have one holder but has %u",
 			lock->holder_count);
-	if (has_lock_type(lock, VIO_WRITE_LOCK)) {
-		/*
-		 * data_vio write locks are downgraded in place--the writer 
-		 * retains the hold on the lock. They've already had a single 
-		 * incRef journaled.
-		 */
-		lock->increment_limit = MAXIMUM_REFERENCE_COUNT - 1;
-	} else {
-		/*
-		 * Compressed block write locks are downgraded when they are 
-		 * shared with all their hash locks. The writer is releasing 
-		 * its hold on the lock.
-		 */
-		lock->holder_count = 0;
-		lock->increment_limit = MAXIMUM_REFERENCE_COUNT;
-	}
+	/*
+	 * data_vio write locks are downgraded in place--the writer
+	 * retains the hold on the lock. If this was a compressed write, the
+         * holder has not yet journaled its own inc ref, otherwise, it has.
+	 */
+	lock->increment_limit = (compressed_write ?
+				 MAXIMUM_REFERENCE_COUNT :
+				 MAXIMUM_REFERENCE_COUNT - 1);
 	set_pbn_lock_type(lock, VIO_READ_LOCK);
 }
 

@@ -31,7 +31,6 @@
 enum pbn_lock_type {
 	VIO_READ_LOCK,
 	VIO_WRITE_LOCK,
-	VIO_COMPRESSED_WRITE_LOCK,
 	VIO_BLOCK_MAP_WRITE_LOCK,
 };
 
@@ -77,7 +76,8 @@ void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type);
 
 bool __must_check vdo_is_pbn_read_lock(const struct pbn_lock *lock);
 
-void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock);
+void
+vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write);
 
 bool __must_check vdo_claim_pbn_lock_increment(struct pbn_lock *lock);
 

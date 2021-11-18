@@ -27,6 +27,7 @@
 #include "bio.h"
 #include "block-map.h"
 #include "bufferPool.h"
+#include "compressed-block.h"
 #include "compression-state.h"
 #include "dump.h"
 #include "int-map.h"
@@ -621,13 +622,20 @@ void acknowledge_data_vio(struct data_vio *data_vio)
  **/
 void compress_data_vio(struct data_vio *data_vio)
 {
-	char *context = get_work_queue_private_data();
 	int size;
+	char *context = get_work_queue_private_data();
+	struct compressed_block *block
+		= (struct compressed_block *) data_vio->scratch_block;
 
+	/*
+         * By putting the compressed data at the start of the compressed
+         * block data field, we won't need to copy it if this data_vio
+         * becomes a compressed write agent.
+         */
 	size = LZ4_compress_default(data_vio->data_block,
-				    data_vio->scratch_block,
+				    block->data,
 				    VDO_BLOCK_SIZE,
-				    VDO_BLOCK_SIZE,
+				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
 				    context);
 	if (size > 0) {
 		/*

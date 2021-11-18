@@ -24,7 +24,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "allocating-vio.h"
 #include "io-submitter.h"
 #include "num-utils.h"
 #include "vdo.h"
@@ -32,32 +31,6 @@
 
 #include "bio.h"
 #include "dataKVIO.h"
-
-void write_compressed_block_vio(struct vio *vio)
-{
-	/*
-	 * This method assumes that compressed writes never set the flush or
-	 * FUA bits.
-	 */
-	int result = ASSERT(is_compressed_write_vio(vio),
-			    "Compressed write vio has correct type");
-	if (result != VDO_SUCCESS) {
-		continue_vio(vio, result);
-		return;
-	}
-
-	set_vio_physical(vio, vio_as_allocating_vio(vio)->allocation);
-	result = prepare_vio_for_io(vio,
-				    vio->data,
-				    vdo_complete_async_bio,
-				    REQ_OP_WRITE);
-	if (result != VDO_SUCCESS) {
-		continue_vio(vio, result);
-		return;
-	}
-
-	vdo_submit_bio(vio->bio, BIO_Q_COMPRESSED_DATA_PRIORITY);
-}
 
 void submit_metadata_vio(struct vio *vio)
 {

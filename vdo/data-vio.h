@@ -148,11 +148,11 @@ struct compression_state {
 	 */
 	slot_number_t slot;
 
-	/*
-	 * The packer input bin to which the enclosing data_vio has been
-	 * assigned
-	 */
-	struct input_bin *bin;
+	/* The packer bin to which the enclosing data_vio has been assigned */
+	struct packer_bin *bin;
+
+	/* A link in the chain of data_vios which have been packed together */
+	struct data_vio *next_in_batch;
 
 	/* A pointer to the compressed form of this block */
 	char *data;
@@ -473,18 +473,6 @@ static inline bool is_read_data_vio(struct data_vio *data_vio)
 static inline bool is_write_data_vio(struct data_vio *data_vio)
 {
 	return is_write_vio(data_vio_as_vio(data_vio));
-}
-
-/**
- * Check whether a data_vio is a compressed block write.
- *
- * @param data_vio  The data_vio to check
- *
- * @return <code>true</code> if the data_vio is a compressed block write
- **/
-static inline bool is_compressed_write_data_vio(struct data_vio *data_vio)
-{
-	return is_compressed_write_vio(data_vio_as_vio(data_vio));
 }
 
 /**

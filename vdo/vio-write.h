@@ -26,6 +26,8 @@ void launch_write_data_vio(struct data_vio *data_vio);
 
 void cleanup_write_data_vio(struct data_vio *data_vio);
 
+void continue_write_after_compression(struct data_vio *data_vio);
+
 void launch_compress_data_vio(struct data_vio *data_vio);
 
 void launch_deduplicate_data_vio(struct data_vio *data_vio);

@@ -76,8 +76,7 @@ struct allocating_vio {
  **/
 static inline struct allocating_vio *vio_as_allocating_vio(struct vio *vio)
 {
-	ASSERT_LOG_ONLY(((vio->type == VIO_TYPE_DATA) ||
-			 (vio->type == VIO_TYPE_COMPRESSED_BLOCK)),
+	ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA),
 			"vio is an allocating_vio");
 	return container_of(vio, struct allocating_vio, vio);
 }
@@ -223,11 +222,5 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 void vio_release_allocation_lock(struct allocating_vio *allocating_vio);
 
 void vio_reset_allocation(struct allocating_vio *allocating_vio);
-
-int __must_check
-create_compressed_write_vio(struct vdo *vdo,
-			    void *parent,
-			    char *data,
-			    struct allocating_vio **allocating_vio_ptr);
 
 #endif /* ALLOCATING_VIO_H */

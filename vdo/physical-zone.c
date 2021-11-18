@@ -36,11 +36,8 @@
 #include "vdo.h"
 
 enum {
-	/*
-	 * Each user data_vio needs a PBN read lock and write lock, and each
-	 * packer output bin has an allocating_vio that needs a PBN write lock.
-	 */
-	LOCK_POOL_CAPACITY = 2 * MAXIMUM_VDO_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
+	/* Each user data_vio needs a PBN read lock and write lock. */
+	LOCK_POOL_CAPACITY = 2 * MAXIMUM_VDO_USER_VIOS,
 };
 
 /**

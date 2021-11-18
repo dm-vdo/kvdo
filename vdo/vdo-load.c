@@ -595,10 +595,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		}
 	}
 
-	return vdo_make_packer(vdo,
-			       DEFAULT_PACKER_INPUT_BINS,
-			       DEFAULT_PACKER_OUTPUT_BINS,
-			       &vdo->packer);
+	return vdo_make_packer(vdo, DEFAULT_PACKER_BINS, &vdo->packer);
 }
 
 /**

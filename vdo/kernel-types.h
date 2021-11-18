@@ -87,7 +87,6 @@ enum vio_type {
 	VIO_TYPE_BLOCK_ALLOCATOR,
 	VIO_TYPE_BLOCK_MAP,
 	VIO_TYPE_BLOCK_MAP_INTERIOR,
-	VIO_TYPE_COMPRESSED_BLOCK,
 	VIO_TYPE_PARTITION_COPY,
 	VIO_TYPE_RECOVERY_JOURNAL,
 	VIO_TYPE_SLAB_JOURNAL,
@@ -107,16 +106,6 @@ static inline bool vdo_is_data_vio_type(enum vio_type type)
 }
 
 /**
- * Check whether a vio_type is for compressed block writes
- *
- * @param type  The vio_type to check
- **/
-static inline bool vdo_is_compressed_write_vio_type(enum vio_type type)
-{
-	return (type == VIO_TYPE_COMPRESSED_BLOCK);
-}
-
-/**
  * Check whether a vio_type is for metadata
  *
  * @param type  The vio_type to check
@@ -124,8 +113,7 @@ static inline bool vdo_is_compressed_write_vio_type(enum vio_type type)
 static inline bool vdo_is_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!vdo_is_data_vio_type(type) &&
-		!vdo_is_compressed_write_vio_type(type));
+		!vdo_is_data_vio_type(type));
 }
 
 enum vdo_work_item_priority {
