@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/deviceConfig.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.h#11 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -56,6 +56,7 @@ struct device_config {
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
 	bool deduplication;
+	bool compression;
 	struct thread_count_config thread_counts;
 	block_count_t max_discard_blocks;
 };

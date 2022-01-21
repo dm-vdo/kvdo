@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoInternal.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoInternal.h#21 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -156,8 +156,8 @@ struct vdo {
 	struct vdo_statistics stats_buffer;
 	/* Protects the stats_buffer */
 	struct mutex stats_mutex;
-	/* true if sysfs statistics directory is set up */
-	bool stats_added;
+	/* true if sysfs directory is set up */
+	bool sysfs_added;
 	/* Used when shutting down the sysfs statistics */
 	struct completion stats_shutdown;
 
@@ -174,7 +174,6 @@ struct vdo {
 
 	// For sysfs
 	struct kobject vdo_directory;
-	struct kobject work_queue_directory;
 	struct kobject stats_directory;
 
 	/** Limit the number of requests that are being processed. */

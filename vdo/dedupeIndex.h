@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/dedupeIndex.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#15 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -151,6 +151,17 @@ static inline void update_vdo_dedupe_advice(struct data_vio *data_vio)
 }
 
 /**
+ * Add the sysfs nodes for the dedupe index.
+ *
+ * @param index        The dedupe index
+ * @param parent  The kobject to attach the sysfs nodes to
+ *
+ * @return 0 or an error code
+ **/
+int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
+			       struct kobject *parent);
+
+/**
  * Start the dedupe index.
  *
  * @param index        The dedupe index
@@ -179,9 +190,13 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag);
 /**
  * Resume a suspended dedupe index. May be called from any thread.
  *
- * @param index  The dedupe index
+ * @param index   The dedupe index
+ * @param dedupe  Whether dedupe should be on or off.
+ * @param create  Whether to create the index or not.
  **/
-void resume_vdo_dedupe_index(struct dedupe_index *index);
+void resume_vdo_dedupe_index(struct dedupe_index *index,
+			     bool dedupe,
+			     bool create);
 
 /**
  * Finish the dedupe index.

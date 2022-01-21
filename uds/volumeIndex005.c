@@ -16,9 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/masterIndex005.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeIndex005.c#5 $
  */
-#include "masterIndex005.h"
+#include "volumeIndex005.h"
 
 #include "buffer.h"
 #include "compiler.h"
@@ -1497,7 +1497,7 @@ compute_volume_index_parameters005(const struct configuration *config,
 	 * Set the total memory to be 6% larger than the expected index size.
 	 * We want this number to be large enough that the we do not do a great
 	 * many rebalances as the list when the list is full.  We use
-	 * MasterIndex_p1 to tune this setting.
+	 * VolumeIndex_p1 to tune this setting.
 	 */
 	params->memory_size = expected_index_size * 106 / 100;
 	// Set the target free size to 5% of the expected index size

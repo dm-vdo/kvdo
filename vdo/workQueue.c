@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueue.c#26 $
  */
 
 #include "workQueue.h"
@@ -436,8 +436,6 @@ static int work_queue_runner(void *ptr)
 	struct simple_work_queue *queue = ptr;
 	unsigned long flags;
 
-	kobject_get(&queue->common.kobj);
-
 	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
 
 	spin_lock_irqsave(&queue->lock, flags);
@@ -447,7 +445,6 @@ static int work_queue_runner(void *ptr)
 	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
 
-	kobject_put(&queue->common.kobj);
 	return 0;
 }
 
@@ -490,7 +487,6 @@ static bool queue_started(struct simple_work_queue *queue)
  * @param [in]  thread_name_prefix The per-device prefix to use in
  *                                 thread names
  * @param [in]  name               The queue name
- * @param [in]  parent_kobject     The parent sysfs node
  * @param [in]  owner              The VDO owning the work queue
  * @param [in]  private            Private data of the queue for use by work
  *                                 items or other queue-specific functions
@@ -503,7 +499,6 @@ static bool queue_started(struct simple_work_queue *queue)
  **/
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
-				  struct kobject *parent_kobject,
 				  struct vdo *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
@@ -568,15 +563,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	init_waitqueue_head(&queue->start_waiters);
 	spin_lock_init(&queue->lock);
 
-	kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
-	result = kobject_add(&queue->common.kobj,
-			     parent_kobject,
-			     queue->common.name);
-	if (result != 0) {
-		uds_log_error("Cannot add sysfs node: %d", result);
-		free_simple_work_queue(queue);
-		return result;
-	}
 	queue->num_priority_lists = num_priority_lists;
 	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
@@ -585,8 +571,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			return result;
 		}
 	}
-	result =
-		initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
+	result = initialize_work_queue_stats(&queue->stats, NULL);
 	if (result != 0) {
 		uds_log_error("Cannot initialize statistics tracking: %d",
 			      result);
@@ -626,7 +611,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 /**********************************************************************/
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
-		    struct kobject *parent_kobject,
 		    struct vdo *owner,
 		    void *private,
 		    const struct vdo_work_queue_type *type,
@@ -645,7 +629,6 @@ int make_work_queue(const char *thread_name_prefix,
 							    private;
 		result = make_simple_work_queue(thread_name_prefix,
 					        name,
-					        parent_kobject,
 					        owner,
 					        context,
 					        type,
@@ -682,17 +665,6 @@ int make_work_queue(const char *thread_name_prefix,
 		return -ENOMEM;
 	}
 
-	kobject_init(&queue->common.kobj, &round_robin_work_queue_kobj_type);
-	result = kobject_add(&queue->common.kobj,
-			     parent_kobject,
-			     queue->common.name);
-	if (result != 0) {
-		uds_log_error("Cannot add sysfs node: %d", result);
-		finish_work_queue(&queue->common);
-		kobject_put(&queue->common.kobj);
-		return result;
-	}
-
 	*queue_ptr = &queue->common;
 
 	for (i = 0; i < thread_count; i++) {
@@ -701,7 +673,6 @@ int make_work_queue(const char *thread_name_prefix,
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
-						&queue->common.kobj,
 						owner,
 						context,
 						type,
@@ -783,7 +754,8 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 		free_funnel_queue(queue->priority_lists[i]);
 	}
 	cleanup_work_queue_stats(&queue->stats);
-	kobject_put(&queue->common.kobj);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
 }
 
 /**
@@ -804,7 +776,8 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 		free_simple_work_queue(queue_table[i]);
 	}
 	UDS_FREE(queue_table);
-	kobject_put(&queue->common.kobj);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
 }
 
 /**********************************************************************/

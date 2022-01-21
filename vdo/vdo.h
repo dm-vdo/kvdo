@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdo.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdo.h#43 $
  */
 
 #ifndef VDO_H
@@ -33,6 +33,14 @@
  **/
 void destroy_vdo(struct vdo *vdo);
 
+/**
+ * Add the stats directory to the vdo sysfs directory.
+ *
+ * @param vdo  The vdo
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
 
 /**
  * Get the block device object underlying a vdo.

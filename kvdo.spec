@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.1.0.316
+%define kmod_driver_version	8.1.1.287
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,10 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Mon Aug 09 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.0.316-1
-- Rebased to upstream candidate.
-- Added support for vdo volumes which were created with the vdo script, but
-  have been converted to be managed by LVM.
-- Fixed GCC implicit-fallthrough errors when building for latest kernel.
-
-
+* Fri Jan 21 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.1.287-1
+- See https://github.com/dm-vdo/kvdo.git

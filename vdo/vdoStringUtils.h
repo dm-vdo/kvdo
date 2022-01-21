@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/vdoStringUtils.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/vdoStringUtils.h#6 $
  */
 
 #ifndef VDO_STRING_UTILS_H

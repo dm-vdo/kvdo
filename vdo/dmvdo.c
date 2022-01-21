@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/dmvdo.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dmvdo.c#54 $
  */
 
 #include "dmvdo.h"
 
+#include <linux/bvec.h>
 #include <linux/module.h>
 
 #include "logger.h"
@@ -197,6 +198,14 @@ static void vdo_status(struct dm_target *ti,
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
+// XXX workaround for LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
+#ifndef __LINUX_BVEC_ITER_H
+	// XXX We ought to print more detailed output here, but this is what
+	// thin does.
+	case STATUSTYPE_IMA:
+		*result = '\0';
+		break;
+#endif // 5.15+
 	}
 }
 
@@ -415,6 +424,9 @@ static int vdo_initialize(struct dm_target *ti,
 		      config->block_map_maximum_age);
 	uds_log_debug("Deduplication          = %s",
 		      (config->deduplication ? "on" : "off"));
+	uds_log_debug("Compression            = %s",
+		      (config->compression ? "on" : "off"));
+
 
 	vdo = find_vdo_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
@@ -710,7 +722,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 6, 2, 3 },
+	.version = { 8, 1, 0 },
 	.module = THIS_MODULE,
 	.ctr = vdo_ctr,
 	.dtr = vdo_dtr,

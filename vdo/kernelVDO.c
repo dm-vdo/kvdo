@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/kernelVDO.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelVDO.c#36 $
  */
 
 /*
@@ -120,7 +120,6 @@ int make_vdo_threads(struct vdo *vdo,
 				    sizeof(queue_name));
 		result = make_work_queue(thread_name_prefix,
 					 queue_name,
-					 &vdo->work_queue_directory,
 					 vdo,
 					 thread,
 					 &request_queue_type,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/kernelLayer.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#57 $
  */
 
 #include "kernelLayer.h"
@@ -406,7 +406,6 @@ int make_kernel_layer(unsigned int instance,
 	if (use_bio_ack_queue(&layer->vdo)) {
 		result = make_work_queue(thread_name_prefix,
 					 "ackQ",
-					 &layer->vdo.work_queue_directory,
 					 &layer->vdo,
 					 layer,
 					 &bio_ack_q_type,
@@ -423,7 +422,6 @@ int make_kernel_layer(unsigned int instance,
 	// CPU Queues
 	result = make_work_queue(thread_name_prefix,
 				 "cpuQ",
-				 &layer->vdo.work_queue_directory,
 				 &layer->vdo,
 				 layer,
 				 &cpu_q_type,
@@ -611,20 +609,8 @@ void free_kernel_layer(struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-static void pool_stats_release(struct kobject *directory)
-{
-	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
-	complete(&vdo->stats_shutdown);
-}
-
-/**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
-	static struct kobj_type stats_directory_type = {
-		.release = pool_stats_release,
-		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
-		.default_attrs = vdo_pool_stats_attrs,
-	};
 	int result;
 	const struct admin_state_code *code
 		= get_vdo_admin_state_code(&layer->vdo.admin_state);
@@ -644,16 +630,6 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 
 	set_kernel_layer_state(layer, LAYER_RUNNING);
-	kobject_init(&layer->vdo.stats_directory, &stats_directory_type);
-	result = kobject_add(&layer->vdo.stats_directory,
-			     &layer->vdo.vdo_directory,
-			     "statistics");
-	if (result != 0) {
-		*reason = "Cannot add sysfs statistics node";
-		stop_kernel_layer(layer);
-		return result;
-	}
-	layer->vdo.stats_added = true;
 
 	if (layer->vdo.device_config->deduplication) {
 		// Don't try to load or rebuild the index first (and log
@@ -670,17 +646,6 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 /**********************************************************************/
 void stop_kernel_layer(struct kernel_layer *layer)
 {
-	layer->vdo.allocations_allowed = true;
-
-	// Stop services that need to gather VDO statistics from the worker
-	// threads.
-	if (layer->vdo.stats_added) {
-		layer->vdo.stats_added = false;
-		init_completion(&layer->vdo.stats_shutdown);
-		kobject_put(&layer->vdo.stats_directory);
-		wait_for_completion(&layer->vdo.stats_shutdown);
-	}
-
 	switch (get_kernel_layer_state(layer)) {
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
@@ -727,7 +692,9 @@ int resume_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 
-	resume_vdo_dedupe_index(layer->vdo.dedupe_index);
+	resume_vdo_dedupe_index(layer->vdo.dedupe_index,
+				layer->vdo.device_config->deduplication,
+				layer->vdo.load_state == VDO_NEW);
 	result = resume_vdo(&layer->vdo);
 
 	if (result != VDO_SUCCESS) {

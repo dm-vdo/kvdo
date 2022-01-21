@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/dedupeIndex.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#39 $
  */
 
 #include "dedupeIndex.h"
@@ -707,7 +707,9 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 }
 
 /**********************************************************************/
-void resume_vdo_dedupe_index(struct dedupe_index *index)
+void resume_vdo_dedupe_index(struct dedupe_index *index,
+			     bool dedupe,
+			     bool create)
 {
 	int result = uds_resume_index_session(index->index_session);
 	if (result != UDS_SUCCESS) {
@@ -716,6 +718,18 @@ void resume_vdo_dedupe_index(struct dedupe_index *index)
 
 	spin_lock(&index->state_lock);
 	index->suspended = false;
+
+	if (dedupe) {
+		index->index_target = IS_OPENED;
+		index->dedupe_flag = true;
+	} else {
+		index->index_target = IS_CLOSED;
+	}
+
+	if (create) {
+		index->create_flag = true;
+	}
+
 	launch_dedupe_state_change(index);
 	spin_unlock(&index->state_lock);
 }
@@ -834,6 +848,13 @@ int message_vdo_dedupe_index(struct dedupe_index *index, const char *name)
 		return 0;
 	}
 	return -EINVAL;
+}
+
+/**********************************************************************/
+int add_vdo_dedupe_index_sysfs(struct dedupe_index *index,
+			       struct kobject *parent)
+{
+	return kobject_add(&index->dedupe_directory, parent, "dedupe");
 }
 
 /**********************************************************************/
@@ -992,7 +1013,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = make_work_queue(thread_name_prefix,
 				 "dedupeQ",
-				 &vdo->work_queue_directory,
 				 vdo,
 				 index,
 				 &uds_queue_type,
@@ -1010,18 +1030,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
-	result = kobject_add(&index->dedupe_directory,
-			     &vdo->vdo_directory,
-			     "dedupe");
-	if (result != VDO_SUCCESS) {
-		free_work_queue(UDS_FORGET(index->uds_queue));
-		uds_destroy_index_session(index->index_session);
-		uds_free_configuration(index->configuration);
-		UDS_FREE(index->index_name);
-		UDS_FREE(index);
-		return result;
-	}
-
 	INIT_LIST_HEAD(&index->pending_head);
 	spin_lock_init(&index->pending_lock);
 	spin_lock_init(&index->state_lock);

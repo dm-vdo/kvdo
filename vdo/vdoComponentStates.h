@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoComponentStates.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoComponentStates.h#7 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -89,7 +89,7 @@ decode_vdo_component_states(struct buffer *buffer,
  * @param geometry_nonce  The nonce from the geometry block
  * @param size            The size of underlying storage
  *
- * @return VDO_SUCESS or an error if the configuration is invalid
+ * @return VDO_SUCCESS or an error if the configuration is invalid
  **/
 int __must_check
 validate_vdo_component_states(struct vdo_component_states *states,

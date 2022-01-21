@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoResume.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResume.c#25 $
  */
 
 #include "vdoResume.h"
@@ -41,6 +41,7 @@ enum {
 	RESUME_PHASE_BLOCK_MAP,
 	RESUME_PHASE_LOGICAL_ZONES,
 	RESUME_PHASE_PACKER,
+	RESUME_PHASE_FLUSHER,
 	RESUME_PHASE_END,
 };
 
@@ -52,6 +53,7 @@ static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_BLOCK_MAP",
 	"RESUME_PHASE_LOGICAL_ZONES",
 	"RESUME_PHASE_PACKER",
+	"RESUME_PHASE_FLUSHER",
 	"RESUME_PHASE_END",
 };
 
@@ -68,6 +70,7 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 		return thread_config->journal_thread;
 
 	case RESUME_PHASE_PACKER:
+	case RESUME_PHASE_FLUSHER:
 		return thread_config->packer_thread;
 
 	default:
@@ -156,8 +159,23 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_PACKER:
+	{
+		bool was_enabled = get_vdo_compressing(vdo);
+		bool enable = vdo->device_config->compression;
+
+		if (enable != was_enabled) {
+			WRITE_ONCE(vdo->compressing, enable);
+		}
+		uds_log_info("compression is %s",
+			     (enable ? "enabled" : "disabled"));
+
 		resume_vdo_packer(vdo->packer,
 				  reset_vdo_admin_sub_task(completion));
+		return;
+	}
+	case RESUME_PHASE_FLUSHER:
+		vdo_resume_flusher(vdo->flusher,
+				   reset_vdo_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_END:

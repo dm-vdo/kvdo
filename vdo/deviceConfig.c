@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/deviceConfig.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.c#19 $
  */
 
 #include "deviceConfig.h"
@@ -364,6 +364,10 @@ static int parse_one_key_value_pair(const char *key,
 		return parse_bool(value, "on", "off", &config->deduplication);
 	}
 
+	if (strcmp(key, "compression") == 0) {
+		return parse_bool(value, "on", "off", &config->compression);
+	}
+
 	// The remaining arguments must have integral values.
 	result = vdo_string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
@@ -526,6 +530,7 @@ int parse_vdo_device_config(int argc,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
+	config->compression = false;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;

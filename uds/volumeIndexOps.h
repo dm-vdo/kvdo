@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/masterIndexOps.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeIndexOps.h#4 $
  */
 
-#ifndef MASTERINDEXOPS_H
-#define MASTERINDEXOPS_H 1
+#ifndef VOLUMEINDEXOPS_H
+#define VOLUMEINDEXOPS_H 1
 
 #include "compiler.h"
 #include "deltaIndex.h"
@@ -559,4 +559,4 @@ start_saving_volume_index(const struct volume_index *volume_index,
 						       buffered_writer);
 }
 
-#endif /* MASTERINDEXOPS_H */
+#endif /* VOLUMEINDEXOPS_H */

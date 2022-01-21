@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/workQueueStats.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueueStats.c#7 $
  */
 
 #include "workQueueStats.h"
@@ -32,6 +32,10 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 				struct kobject *queue_kobject)
 {
 	initialize_vdo_work_item_stats(&stats->work_item_stats);
+
+        if (queue_kobject == NULL) {
+		return 0;
+        }
 
 	stats->queue_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "queue_time",

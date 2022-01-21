@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoInit.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoInit.c#28 $
  */
 
 #include "vdoInit.h"
@@ -39,55 +39,10 @@
 #include "vdoInternal.h"
 #include "volumeGeometry.h"
 
-
 /**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *target)
 {
 	return dm_device_name(dm_table_get_md(target->table));
-}
-
-/**
- * Initialize the vdo and work queue sysfs directories.
- *
- * @param vdo     The vdo being initialized
- * @param target  The device-mapper target this vdo is
- * @param reason  A pointer to hold an error message on failure
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int initialize_vdo_kobjects(struct vdo *vdo,
-				   struct dm_target *target,
-				   char **reason)
-{
-	int result;
-	struct mapped_device *md = dm_table_get_md(target->table);
-	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
-	result = kobject_add(&vdo->vdo_directory,
-			     &disk_to_dev(dm_disk(md))->kobj,
-			     "vdo");
-	if (result != 0) {
-		destroy_vdo(vdo);
-		kobject_put(&vdo->vdo_directory);
-		*reason = "Cannot add sysfs node";
-		return result;
-	}
-
-	// Indicate that kobject_put() should now be called on the vdo
-	// directory in order to free the vdo rather than doing so directly.
-	set_vdo_admin_state_code(&vdo->admin_state,
-				 VDO_ADMIN_STATE_INITIALIZED);
-	kobject_init(&vdo->work_queue_directory,
-		     &vdo_work_queue_directory_type);
-	result = kobject_add(&vdo->work_queue_directory,
-			     &vdo->vdo_directory,
-			     "work_queues");
-	if (result != 0) {
-		*reason = "Cannot add sysfs node";
-		destroy_vdo(vdo);
-		return result;
-	}
-
-	return VDO_SUCCESS;
 }
 
 /**
@@ -185,5 +140,7 @@ int initialize_vdo(struct vdo *vdo,
 		return result;
 	}
 
-	return initialize_vdo_kobjects(vdo, config->owning_target, reason);
+	set_vdo_admin_state_code(&vdo->admin_state,
+				 VDO_ADMIN_STATE_INITIALIZED);
+	return result;
 }

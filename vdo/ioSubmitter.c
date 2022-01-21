@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/ioSubmitter.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/ioSubmitter.c#32 $
  */
 
 #include "ioSubmitter.h"
@@ -305,25 +305,22 @@ static void process_bio_map(struct vdo_work_item *item)
  *
  * @param map         The bio map to use for merging
  * @param vio         The vio we want to merge
- * @param merge_type  The type of merging we want to try
+ * @param back_merge  Set to true for a back merge, false for a front merge
  *
  * @return the vio to merge to, NULL if no merging is possible
  */
 static struct vio *get_mergeable_locked(struct int_map *map,
 					struct vio *vio,
-					unsigned int merge_type)
+					bool back_merge)
 {
 	struct bio *bio = vio->bio;
 	sector_t merge_sector = get_bio_sector(bio);
 	struct vio *vio_merge;
 
-	switch (merge_type) {
-	case ELEVATOR_BACK_MERGE:
+	if (back_merge) {
 		merge_sector -= VDO_SECTORS_PER_BLOCK;
-		break;
-	case ELEVATOR_FRONT_MERGE:
+        } else {
 		merge_sector += VDO_SECTORS_PER_BLOCK;
-		break;
 	}
 
 	vio_merge = int_map_get(map, merge_sector);
@@ -345,20 +342,14 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		return NULL;
 	}
 
-	switch (merge_type) {
-	case ELEVATOR_BACK_MERGE:
+	if (back_merge) {
 		if (get_bio_sector(vio_merge->bios_merged.tail) !=
 		    merge_sector) {
 			return NULL;
 		}
-		break;
-
-	case ELEVATOR_FRONT_MERGE:
-		if (get_bio_sector(vio_merge->bios_merged.head) !=
+        } else if (get_bio_sector(vio_merge->bios_merged.head) !=
 		    merge_sector) {
 			return NULL;
-		}
-		break;
 	}
 
 	return vio_merge;
@@ -422,10 +413,8 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 	struct vio *prev_vio, *next_vio;
 
 	mutex_lock(&bio_queue_data->lock);
-	prev_vio = get_mergeable_locked(bio_queue_data->map, vio,
-					ELEVATOR_BACK_MERGE);
-	next_vio = get_mergeable_locked(bio_queue_data->map, vio,
-				        ELEVATOR_FRONT_MERGE);
+	prev_vio = get_mergeable_locked(bio_queue_data->map, vio, true);
+	next_vio = get_mergeable_locked(bio_queue_data->map, vio, false);
 	if (prev_vio == next_vio) {
 		next_vio = NULL;
 	}
@@ -507,7 +496,6 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 
 	return make_work_queue(thread_name_prefix,
 			       queue_name,
-			       &vdo->work_queue_directory,
 			       vdo,
 			       bio_queue_data,
 			       &bio_queue_type,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/indexLayout.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#83 $
  */
 
 #include "indexLayout.h"
@@ -27,7 +27,7 @@
 #include "indexConfig.h"
 #include "layoutRegion.h"
 #include "logger.h"
-#include "masterIndexOps.h"
+#include "volumeIndexOps.h"
 #include "memoryAlloc.h"
 #include "nonce.h"
 #include "openChapter.h"
