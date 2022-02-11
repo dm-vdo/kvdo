@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.6.3
+%define kmod_driver_version	6.2.6.14
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,5 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Wed Nov 03 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.6.3-1
-- Fixed a bug which prevented the resumption of a suspended read-only vdo.
+* Thu Feb 10 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.6.14-1
+- Fixed stack frame warnings when building with the debug kernel.
