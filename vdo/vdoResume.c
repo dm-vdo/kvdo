@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResume.c#25 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResume.c#32 $
  */
 
 #include "vdoResume.h"
@@ -192,9 +192,12 @@ static void resume_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_resume(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo,
-					   VDO_ADMIN_OPERATION_RESUME,
-					   get_thread_id_for_phase,
-					   resume_callback,
-					   preserve_vdo_completion_error_and_continue);
+	int result = perform_vdo_admin_operation(vdo,
+						 VDO_ADMIN_OPERATION_RESUME,
+						 get_thread_id_for_phase,
+						 resume_callback,
+						 preserve_vdo_completion_error_and_continue);
+
+	/* Even if the vdo is read-only, it has still resumed. */
+	return ((result == VDO_READ_ONLY) ? VDO_SUCCESS : result);
 }

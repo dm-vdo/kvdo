@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#21 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -175,6 +175,13 @@ int __must_check make_page_cache(const struct geometry *geometry,
  * @param cache the volumecache
  **/
 void free_page_cache(struct page_cache *cache);
+
+/**
+ * Remove all entries and release all cache data from a page cache.
+ *
+ * @param cache  The page cache
+ **/
+void invalidate_page_cache(struct page_cache *cache);
 
 /**
  * Invalidates a page cache for a particular chapter

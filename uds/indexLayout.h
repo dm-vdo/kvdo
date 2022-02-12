@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#34 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#35 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -83,6 +83,17 @@ make_uds_index_layout_from_factory(struct io_factory *factory,
  * @param layout  The layout to release or free
  **/
 void put_uds_index_layout(struct index_layout *layout);
+
+/**
+ * Replace the backing store for the layout.
+ *
+ * @param layout  The layout
+ * @param name    A name describing the new backing store
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int __must_check replace_index_layout_storage(struct index_layout *layout,
+					      const char *name);
 
 /**********************************************************************/
 int __must_check cancel_uds_index_save(struct index_layout *layout,

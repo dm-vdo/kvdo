@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.h#21 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.h#27 $
  */
 
 #ifndef VIO_H
 #define VIO_H
 
-#include <stdarg.h>
-
+#include <linux/kernel.h>
 #include "kernelLayer.h"
 
 #include "completion.h"

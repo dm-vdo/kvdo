@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#29 $
  */
 
 #ifndef VOLUME_H
@@ -96,6 +96,8 @@ struct volume {
 	enum index_lookup_mode lookup_mode;
 	/* Number of read threads to use (run-time parameter) */
 	unsigned int num_read_threads;
+	/* Number of reserved buffers for the volume store */
+	unsigned int reserved_buffers;
 };
 
 /**
@@ -124,6 +126,19 @@ int __must_check make_volume(const struct configuration *config,
  * @param volume  The volume to destroy.
  **/
 void free_volume(struct volume *volume);
+
+/**
+ * Replace the backing storage for a volume.
+ *
+ * @param volume  The volume to reconfigure
+ * @param layout  The index layout
+ * @param path    The path to the new backing store
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int __must_check replace_volume_storage(struct volume *volume,
+					struct index_layout *layout,
+					const char *path);
 
 /**
  * Enqueue a page read.

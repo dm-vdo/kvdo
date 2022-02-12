@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.h#6 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.h#9 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -90,15 +90,4 @@ next_batch_item(struct batch_processor *batch);
  **/
 void free_batch_processor(struct batch_processor *batch);
 
-/**
- * Yield control to the scheduler if the kernel has indicated that
- * other work needs to run on the current processor.
- *
- * The data structure is needed so that the spin lock can be
- * (conditionally) released and re-acquired.
- *
- * @param [in]  batch  The batch-processor data
- **/
-void cond_resched_batch_processor(struct batch_processor *batch);
-
-#endif // BATCHPROCESSOR_H
+#endif /* BATCHPROCESSOR_H */

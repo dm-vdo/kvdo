@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#57 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#59 $
  */
 
 #include "kernelLayer.h"
@@ -443,6 +443,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 				   struct device_config *config,
 				   char **error_ptr)
 {
+	int result;
 	struct device_config *extant_config = layer->vdo.device_config;
 
 	if (config->owning_target->begin !=
@@ -477,7 +478,6 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 	// changes.
 
 	if (config->owning_target->len != extant_config->owning_target->len) {
-		int result;
 		size_t logical_bytes = to_bytes(config->owning_target->len);
 
 		if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
@@ -494,8 +494,8 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 	}
 
 	if (config->physical_blocks != extant_config->physical_blocks) {
-		int result = prepare_to_resize_physical(
-			layer, config->physical_blocks);
+		result = prepare_to_resize_physical(layer,
+						    config->physical_blocks);
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_TOO_MANY_SLABS) {
 				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
@@ -505,14 +505,23 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 			return result;
 		}
 	}
+
 	if (strcmp(config->parent_device_name,
 		   extant_config->parent_device_name) != 0) {
 		const char *device_name
 			= get_vdo_device_name(config->owning_target);
-	        uds_log_info("Updating backing device of %s from %s to %s",
+		uds_log_info("Updating backing device of %s from %s to %s",
 			     device_name,
-	                     extant_config->parent_device_name,
-	                     config->parent_device_name);
+			     extant_config->parent_device_name,
+			     config->parent_device_name);
+
+		result = make_new_vdo_index_name(layer->vdo.dedupe_index,
+						 config->parent_device_name,
+						 &config->index_name);
+		if (result != VDO_SUCCESS) {
+			*error_ptr = "Allocating new index name failed";
+			return result;
+		}
 	}
 
 	return VDO_SUCCESS;
@@ -693,10 +702,9 @@ int resume_kernel_layer(struct kernel_layer *layer)
 	}
 
 	resume_vdo_dedupe_index(layer->vdo.dedupe_index,
-				layer->vdo.device_config->deduplication,
+				layer->vdo.device_config,
 				layer->vdo.load_state == VDO_NEW);
 	result = resume_vdo(&layer->vdo);
-
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

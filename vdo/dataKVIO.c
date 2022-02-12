@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dataKVIO.c#47 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dataKVIO.c#55 $
  */
 
 #include "dataKVIO.h"
@@ -126,7 +126,6 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 
 	while ((item = next_batch_item(batch)) != NULL) {
 		clean_data_vio(work_item_as_data_vio(item), &fbp);
-		cond_resched_batch_processor(batch);
 		count++;
 	}
 

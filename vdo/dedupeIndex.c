@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#39 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#49 $
  */
 
 #include "dedupeIndex.h"
@@ -707,11 +707,41 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 }
 
 /**********************************************************************/
+int make_new_vdo_index_name(struct dedupe_index *index,
+			    char* new_device_name,
+			    char** new_index_name)
+{
+	int result;
+
+	/* Index parameters in the name can't change so just copy them. */
+	result = uds_alloc_sprintf("index resume name", new_index_name,
+				   "dev=%s%s",
+				   new_device_name,
+				   strstr(index->index_name, " "));
+	if (result != UDS_SUCCESS) {
+		uds_log_error("Creating index name failed (%d)", result);
+	}
+
+	return result;
+}
+
+/**********************************************************************/
 void resume_vdo_dedupe_index(struct dedupe_index *index,
-			     bool dedupe,
+			     struct device_config *config,
 			     bool create)
 {
-	int result = uds_resume_index_session(index->index_session);
+	int result;
+	char *new_index_name = config->index_name;
+
+	if (new_index_name != NULL) {
+		/* Transfer ownership of the index name to the dedupe index */
+		UDS_FREE(index->index_name);
+		index->index_name = config->index_name;
+		config->index_name = NULL;
+	}
+
+	result = uds_resume_index_session(index->index_session,
+					  new_index_name);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error resuming dedupe index");
 	}
@@ -719,7 +749,7 @@ void resume_vdo_dedupe_index(struct dedupe_index *index,
 	spin_lock(&index->state_lock);
 	index->suspended = false;
 
-	if (dedupe) {
+	if (config->deduplication) {
 		index->index_target = IS_OPENED;
 		index->dedupe_flag = true;
 	} else {

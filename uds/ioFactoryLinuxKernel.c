@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#18 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#19 $
  */
 
 #include <linux/atomic.h>
@@ -45,21 +45,35 @@ void get_uds_io_factory(struct io_factory *factory)
 }
 
 /**********************************************************************/
+static int get_block_device_from_name(const char *name,
+				      struct block_device **bdev)
+{
+	dev_t device = name_to_dev_t(name);
+
+	if (device != 0) {
+		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+	} else {
+		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
+	}
+	if (IS_ERR(*bdev)) {
+		uds_log_error_strerror(-PTR_ERR(*bdev),
+				       "%s is not a block device", name);
+		return UDS_INVALID_ARGUMENT;
+	}
+
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 {
 	int result;
 	struct block_device *bdev;
 	struct io_factory *factory;
-	dev_t device = name_to_dev_t(path);
-	if (device != 0) {
-		bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
-	} else {
-		bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
-	}
-	if (IS_ERR(bdev)) {
-		uds_log_error_strerror(-PTR_ERR(bdev),
-				       "%s is not a block device", path);
-		return UDS_INVALID_ARGUMENT;
+
+        result = get_block_device_from_name(path, &bdev);
+	if (result != UDS_SUCCESS) {
+		return result;
 	}
 
 	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
@@ -72,6 +86,22 @@ int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 	atomic_set_release(&factory->ref_count, 1);
 
 	*factory_ptr = factory;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int replace_uds_storage(struct io_factory *factory, const char *path)
+{
+	int result;
+	struct block_device *bdev;
+
+        result = get_block_device_from_name(path, &bdev);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	blkdev_put(factory->bdev, BLK_FMODE);
+	factory->bdev = bdev;
 	return UDS_SUCCESS;
 }
 

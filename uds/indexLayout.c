@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#83 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#84 $
  */
 
 #include "indexLayout.h"
@@ -1964,6 +1964,13 @@ int verify_uds_index_config(struct index_layout *layout,
 
 	*config = stored_config;
 	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int replace_index_layout_storage(struct index_layout *layout,
+				 const char *name)
+{
+	return replace_uds_storage(layout->factory, name);
 }
 
 /**********************************************************************/

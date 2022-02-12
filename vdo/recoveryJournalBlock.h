@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalBlock.h#8 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalBlock.h#11 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#57 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#58 $
  */
 
 #include "volume.h"
@@ -1421,12 +1421,13 @@ static int __must_check allocate_volume(const struct configuration *config,
 	reserved_buffers += 1;
 	// And a buffer for each entry in the sparse cache
 	if (is_sparse(volume->geometry)) {
-		reserved_buffers += config->cache_chapters *
-				    config->geometry->index_pages_per_chapter;
+		reserved_buffers += (config->cache_chapters *
+				     config->geometry->index_pages_per_chapter);
 	}
+	volume->reserved_buffers = reserved_buffers;
 	result = open_volume_store(&volume->volume_store,
 				   layout,
-				   reserved_buffers,
+				   volume->reserved_buffers,
 				   config->geometry->bytes_per_page);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
@@ -1483,6 +1484,30 @@ static int __must_check allocate_volume(const struct configuration *config,
 
 	*new_volume = volume;
 	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int __must_check replace_volume_storage(struct volume *volume,
+					struct index_layout *layout,
+					const char *name)
+{
+	int result;
+
+	result = replace_index_layout_storage(layout, name);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	/* Release all outstanding dm_bufio objects */
+	release_volume_page(&volume->scratch_page);
+	invalidate_page_cache(volume->page_cache);
+	invalidate_sparse_cache(volume->sparse_cache);
+	close_volume_store(&volume->volume_store);
+
+	return open_volume_store(&volume->volume_store,
+				 layout,
+				 volume->reserved_buffers,
+				 volume->geometry->bytes_per_page);
 }
 
 /**********************************************************************/

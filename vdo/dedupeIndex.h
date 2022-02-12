@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#15 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#21 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -188,14 +188,27 @@ void stop_vdo_dedupe_index(struct dedupe_index *index);
 void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag);
 
 /**
+ * Construct a new index name for resume.
+ *
+ * @param index            The dedupe index
+ * @param new_device_name  The name of the new backing device
+ * @param new_index_name   A pointer to the new index name
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+int __must_check make_new_vdo_index_name(struct dedupe_index *index,
+					 char* new_device_name, 
+					 char** new_index_name);
+
+/**
  * Resume a suspended dedupe index. May be called from any thread.
  *
  * @param index   The dedupe index
- * @param dedupe  Whether dedupe should be on or off.
- * @param create  Whether to create the index or not.
+ * @param config  The new device configuration
+ * @param create  Whether to create the index or not
  **/
 void resume_vdo_dedupe_index(struct dedupe_index *index,
-			     bool dedupe,
+			     struct device_config *config,
 			     bool create);
 
 /**

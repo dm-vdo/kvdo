@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.c#19 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.c#27 $
  */
 
 #include "deviceConfig.h"
@@ -698,6 +698,7 @@ void free_vdo_device_config(struct device_config *config)
 	}
 
 	UDS_FREE(config->parent_device_name);
+	UDS_FREE(config->index_name);
 	UDS_FREE(config->original_string);
 
 	// Reduce the chance a use-after-free (as in BZ 1669960) happens to work.

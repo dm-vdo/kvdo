@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#29 $
  */
 
 #ifndef INDEX_H
@@ -125,16 +125,10 @@ int __must_check allocate_index(struct index_layout *layout,
 				struct uds_index **new_index);
 
 /**
- * Save an index.
+ * Save an index. The caller must ensure that there are no index requests in
+ * progress.
  *
- * Before saving an index and while saving an index, the caller must ensure
- * that there are no index requests in progress.
- *
- * Some users follow save_index immediately with a free_index.	But some tests
- * use index_layout to modify the saved index.	The index will then have
- * some cached information that does not reflect these updates.
- *
- * @param index	  The index to save
+ * @param index   The index to save
  *
  * @return	  UDS_SUCCESS if successful
  **/
@@ -146,6 +140,17 @@ int __must_check save_index(struct uds_index *index);
  * @param index	  The index to destroy.
  **/
 void free_index(struct uds_index *index);
+
+/**
+ * Replace the existing index backing store with a different one.
+ *
+ * @param index  The index
+ * @param path   The path to the new backing store
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int __must_check replace_index_storage(struct uds_index *index,
+				       const char *path);
 
 /**
  * Perform the index operation specified by the type field of a UDS request.

@@ -1,5 +1,5 @@
 /*
- * %Copyright%
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#54 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#57 $
  */
 
 #include "indexSession.h"
@@ -216,6 +216,26 @@ int make_empty_index_session(struct uds_index_session **index_session_ptr)
 }
 
 /**********************************************************************/
+static void
+wait_for_no_requests_in_progress(struct uds_index_session *index_session)
+{
+	uds_lock_mutex(&index_session->request_mutex);
+	while (index_session->request_count > 0) {
+		uds_wait_cond(&index_session->request_cond,
+			      &index_session->request_mutex);
+	}
+	uds_unlock_mutex(&index_session->request_mutex);
+}
+
+/**********************************************************************/
+static int __must_check uds_save_index(struct uds_index_session *index_session)
+{
+	wait_for_no_requests_in_progress(index_session);
+	// save_index waits for open chapter writes to complete
+	return save_index(index_session->index);
+}
+
+/**********************************************************************/
 int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
 	int result;
@@ -323,53 +343,70 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 }
 
 /**********************************************************************/
-int uds_resume_index_session(struct uds_index_session *session)
+int uds_resume_index_session(struct uds_index_session *session,
+			     const char *name)
 {
+	int result = UDS_SUCCESS;
+	bool no_work = false;
+	bool resume_replay = false;
+
 	uds_lock_mutex(&session->request_mutex);
 	if (session->state & IS_FLAG_WAITING) {
-		uds_unlock_mutex(&session->request_mutex);
 		uds_log_info("Index session is already changing state");
-		return -EBUSY;
+		no_work = true;
+		result = -EBUSY;
+	} else if (!(session->state & IS_FLAG_SUSPENDED)) {
+		/* If not suspended, just succeed */
+		no_work = true;
+		result = UDS_SUCCESS;
+	} else {
+		session->state |= IS_FLAG_WAITING;
+		if (session->state & IS_FLAG_LOADING) {
+			resume_replay = true;
+		}
 	}
-
-	/* If not suspended, just succeed */
-	if (!(session->state & IS_FLAG_SUSPENDED)) {
-		uds_unlock_mutex(&session->request_mutex);
-		return UDS_SUCCESS;
-	}
-
-	if (!(session->state & IS_FLAG_LOADING)) {
-		session->state &= ~IS_FLAG_SUSPENDED;
-		uds_unlock_mutex(&session->request_mutex);
-		return UDS_SUCCESS;
-	}
-
-	session->state |= IS_FLAG_WAITING;
 	uds_unlock_mutex(&session->request_mutex);
 
-	uds_lock_mutex(&session->load_context.mutex);
-	switch (session->load_context.status) {
-	case INDEX_SUSPENDED:
-		session->load_context.status = INDEX_OPENING;
-		// Notify the index to start replaying again.
-		uds_broadcast_cond(&session->load_context.cond);
-		break;
-
-	case INDEX_READY:
-		// There is no index rebuild to resume.
-		break;
-
-	case INDEX_OPENING:
-	case INDEX_SUSPENDING:
-	case INDEX_FREEING:
-	default:
-		// These cases should not happen; do nothing.
-		ASSERT_LOG_ONLY(false,
-				"Bad load context state %u",
-				session->load_context.status);
-		break;
+	if (no_work) {
+		return result;
 	}
-	uds_unlock_mutex(&session->load_context.mutex);
+
+	if ((name != NULL) && (session->index != NULL)) {
+		result = replace_index_storage(session->index, name);
+		if (result != UDS_SUCCESS) {
+			uds_lock_mutex(&session->request_mutex);
+			session->state &= ~IS_FLAG_WAITING;
+			uds_broadcast_cond(&session->request_cond);
+			uds_unlock_mutex(&session->request_mutex);
+			return uds_map_to_system_error(result);
+		}
+	}
+
+	if (resume_replay) {
+		uds_lock_mutex(&session->load_context.mutex);
+		switch (session->load_context.status) {
+		case INDEX_SUSPENDED:
+			session->load_context.status = INDEX_OPENING;
+			// Notify the index to start replaying again.
+			uds_broadcast_cond(&session->load_context.cond);
+			break;
+
+		case INDEX_READY:
+			// There is no index rebuild to resume.
+			break;
+
+		case INDEX_OPENING:
+		case INDEX_SUSPENDING:
+		case INDEX_FREEING:
+		default:
+			// These cases should not happen; do nothing.
+			ASSERT_LOG_ONLY(false,
+					"Bad load context state %u",
+					session->load_context.status);
+			break;
+		}
+		uds_unlock_mutex(&session->load_context.mutex);
+	}
 
 	uds_lock_mutex(&session->request_mutex);
 	session->state &= ~IS_FLAG_WAITING;
@@ -377,18 +414,6 @@ int uds_resume_index_session(struct uds_index_session *session)
 	uds_broadcast_cond(&session->request_cond);
 	uds_unlock_mutex(&session->request_mutex);
 	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static void
-wait_for_no_requests_in_progress(struct uds_index_session *index_session)
-{
-	uds_lock_mutex(&index_session->request_mutex);
-	while (index_session->request_count > 0) {
-		uds_wait_cond(&index_session->request_cond,
-			      &index_session->request_mutex);
-	}
-	uds_unlock_mutex(&index_session->request_mutex);
 }
 
 /**********************************************************************/
@@ -537,14 +562,6 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 }
 
 /**********************************************************************/
-int uds_save_index(struct uds_index_session *index_session)
-{
-	wait_for_no_requests_in_progress(index_session);
-	// save_index waits for open chapter writes to complete
-	return save_index(index_session->index);
-}
-
-/**********************************************************************/
 int uds_set_checkpoint_frequency(struct uds_index_session *index_session,
 				 unsigned int frequency)
 {
@@ -582,10 +599,10 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 	if (index_session->index != NULL) {
 		get_index_stats(index_session->index, stats);
 	} else {
-          stats->entries_indexed = 0;
-          stats->memory_used = 0;
-          stats->collisions = 0;
-          stats->entries_discarded = 0;
+		stats->entries_indexed = 0;
+		stats->memory_used = 0;
+		stats->collisions = 0;
+		stats->entries_discarded = 0;
 	}
 
 	return UDS_SUCCESS;

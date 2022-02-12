@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#22 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -203,18 +203,6 @@ void release_index_session(struct uds_index_session *index_session);
  **/
 int __must_check
 make_empty_index_session(struct uds_index_session **index_session_ptr);
-
-/**
- * Save an index while the session is quiescent.
- *
- * During the call to #uds_save_index, there should be no other call to
- * #uds_save_index and there should be no calls to #uds_start_chunk_operation.
- *
- * @param index_session  The session to save
- *
- * @return Either #UDS_SUCCESS or an error code
- **/
-int __must_check uds_save_index(struct uds_index_session *index_session);
 
 /**
  * Close the index by saving the underlying index.

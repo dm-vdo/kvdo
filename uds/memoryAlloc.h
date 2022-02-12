@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#21 $
  */
 
 #ifndef MEMORY_ALLOC_H
 #define MEMORY_ALLOC_H 1
-
-#include <stdarg.h>
 
 #include "compiler.h"
 #include "cpu.h"
@@ -30,6 +28,7 @@
 #include "typeDefs.h"
 
 #include <linux/io.h> // for PAGE_SIZE
+#include <linux/kernel.h>
 #include "threadRegistry.h"
 
 /**

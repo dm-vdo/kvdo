@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#73 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#74 $
  */
 
 
@@ -677,6 +677,12 @@ int save_index(struct uds_index *index)
 	return result;
 }
 
+/**********************************************************************/
+int replace_index_storage(struct uds_index *index, const char *path)
+{
+  return replace_volume_storage(index->volume, index->layout, path);
+}
+
 /**
  * Search an index zone. This function is only correct for LRU.
  *
@@ -1261,7 +1267,7 @@ struct uds_request_queue *select_index_queue(struct uds_index *index,
 					     enum request_stage next_stage)
 {
 	switch (next_stage) {
-        case STAGE_TRIAGE:
+	case STAGE_TRIAGE:
 		// The triage queue is only needed for multi-zone sparse
 		// indexes and won't be allocated by the index if not needed,
 		// so simply check for NULL.
@@ -1270,15 +1276,15 @@ struct uds_request_queue *select_index_queue(struct uds_index *index,
 		}
 		// Dense index or single zone, so route it directly to the zone
 		// queue.
-                fallthrough;
+		fallthrough;
 
-        case STAGE_INDEX:
+	case STAGE_INDEX:
 		request->zone_number =
 			get_volume_index_zone(index->volume_index,
 					      &request->chunk_name);
 		fallthrough;
 
-        case STAGE_MESSAGE:
+	case STAGE_MESSAGE:
 		return index->zone_queues[request->zone_number];
 
 	default:

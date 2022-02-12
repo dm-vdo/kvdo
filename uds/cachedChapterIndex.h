@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#16 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -105,6 +105,13 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
 int __must_check
 initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 				const struct geometry *geometry);
+
+/**
+ * Release the all cached page data for a cached_chapter_index.
+ *
+ * @param chapter  the chapter index cache entry to release
+ **/
+void release_cached_chapter_index(struct cached_chapter_index *chapter);
 
 /**
  * Destroy a cached_chapter_index, freeing the memory allocated for the

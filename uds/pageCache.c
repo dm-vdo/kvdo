@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#34 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#35 $
  */
 
 #include "pageCache.h"
@@ -406,6 +406,21 @@ void free_page_cache(struct page_cache *cache)
 	UDS_FREE(cache->search_pending_counters);
 	UDS_FREE(cache->read_queue);
 	UDS_FREE(cache);
+}
+
+/**********************************************************************/
+void invalidate_page_cache(struct page_cache *cache)
+{
+	unsigned int i;
+	for (i = 0; i < cache->num_index_entries; i++) {
+		cache->index[i] = cache->num_cache_entries;
+	}
+
+	for (i = 0; i < cache->num_cache_entries; i++) {
+		struct cached_page *page = &cache->cache[i];
+		release_volume_page(&page->cp_page_data);
+		clear_cache_page(cache, page);
+	}
 }
 
 /**********************************************************************/

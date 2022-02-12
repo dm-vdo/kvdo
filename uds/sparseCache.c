@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#35 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#36 $
  */
 
 /**
@@ -495,6 +495,19 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	return result;
 }
 
+/**********************************************************************/
+void invalidate_sparse_cache(struct sparse_cache *cache)
+{
+	unsigned int i;
+	if (cache == NULL) {
+		return;
+	}
+	for (i = 0; i < cache->capacity; i++) {
+		struct cached_chapter_index *chapter = &cache->chapters[i];
+		chapter->virtual_chapter = UINT64_MAX;
+		release_cached_chapter_index(chapter);
+	}
+}
 
 /**********************************************************************/
 int search_sparse_cache(struct index_zone *zone,

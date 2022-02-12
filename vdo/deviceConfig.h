@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.h#11 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.h#15 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -51,6 +51,7 @@ struct device_config {
 	char *original_string;
 	unsigned int version;
 	char *parent_device_name;
+	char *index_name;
 	block_count_t physical_blocks;
 	unsigned int logical_block_size;
 	unsigned int cache_size;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalFormat.h#8 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalFormat.h#11 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H

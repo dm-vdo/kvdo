@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#36 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#37 $
  */
 
 /**
@@ -519,12 +519,16 @@ int __must_check uds_suspend_index_session(struct uds_index_session *session,
 
 /**
  * Allows new index operations for an index, whether it was suspended or not.
+ * If the index is suspended and the supplied path is different from the
+ * current backing store, the index will start using the new backing store.
  *
  * @param session  The session to resume
+ * @param name     A name describing the new backing store to use
  *
  * @return  Either #UDS_SUCCESS or an error code
  **/
-int __must_check uds_resume_index_session(struct uds_index_session *session);
+int __must_check uds_resume_index_session(struct uds_index_session *session,
+					  const char *name);
 
 /**
  * Waits until all callbacks for index operations are complete.
