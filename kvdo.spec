@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.1.1.360
+%define kmod_driver_version	8.1.1.371
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -24,8 +24,9 @@ Requires:       make
 BuildRequires:  elfutils-libelf-devel
 %endif
 BuildRequires:	glibc
-%if 0%{?rhel}
-# Fedora doesn't have abi whitelists.
+%if 0%{?rhel} && 0%{?rhel} < 9
+# Fedora doesn't have abi whitelists,
+# And RHEL9 doesn't have it yet.
 BuildRequires:	kernel-abi-whitelists
 %endif
 BuildRequires:  libuuid-devel
@@ -96,5 +97,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Fri Feb 11 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.1.360-1
+* Thu Mar 03 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.1.371-1
 - See https://github.com/dm-vdo/kvdo.git

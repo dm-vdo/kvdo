@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#59 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#60 $
  */
 
 #include "kernelLayer.h"
@@ -702,8 +702,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 	}
 
 	resume_vdo_dedupe_index(layer->vdo.dedupe_index,
-				layer->vdo.device_config,
-				layer->vdo.load_state == VDO_NEW);
+				layer->vdo.device_config);
 	result = resume_vdo(&layer->vdo);
 	if (result != VDO_SUCCESS) {
 		return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#49 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#51 $
  */
 
 #include "dedupeIndex.h"
@@ -727,8 +727,7 @@ int make_new_vdo_index_name(struct dedupe_index *index,
 
 /**********************************************************************/
 void resume_vdo_dedupe_index(struct dedupe_index *index,
-			     struct device_config *config,
-			     bool create)
+			     struct device_config *config)
 {
 	int result;
 	char *new_index_name = config->index_name;
@@ -741,7 +740,7 @@ void resume_vdo_dedupe_index(struct dedupe_index *index,
 	}
 
 	result = uds_resume_index_session(index->index_session,
-					  new_index_name);
+					  config->parent_device_name);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error resuming dedupe index");
 	}
@@ -754,10 +753,6 @@ void resume_vdo_dedupe_index(struct dedupe_index *index,
 		index->dedupe_flag = true;
 	} else {
 		index->index_target = IS_CLOSED;
-	}
-
-	if (create) {
-		index->create_flag = true;
 	}
 
 	launch_dedupe_state_change(index);

@@ -199,6 +199,14 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
 /**
+ * Add a trace record for the current source location.
+ *
+ * @param vio      The vio structure to be updated
+ * @param location The source-location descriptor to be recorded
+ **/
+
+
+/**
  * Check whether a vio is servicing an external data request.
  *
  * @param vio  The vio to check

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#21 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#22 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -208,8 +208,7 @@ int __must_check make_new_vdo_index_name(struct dedupe_index *index,
  * @param create  Whether to create the index or not
  **/
 void resume_vdo_dedupe_index(struct dedupe_index *index,
-			     struct device_config *config,
-			     bool create);
+			     struct device_config *config);
 
 /**
  * Finish the dedupe index.
