@@ -813,10 +813,14 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 *
 	 * FIXME: When submitting upstream, make sure kthread_func is fixed
 	 * instead, and drop this check.
+	 *
+	 * Not needed check since kernel 5.13, but breaks kernel 5.17, see:
+	 * https://bugzilla.redhat.com/show_bug.cgi?id=2067184
+	 *
+	 * if (current->set_child_tid == NULL) {
+	 * 	return NULL;
+	 * }
 	 */
-	if (current->set_child_tid == NULL) {
-		return NULL;
-	}
 
 	if (kthread_func(current) != work_queue_runner) {
 		/* Not a VDO work queue thread. */
