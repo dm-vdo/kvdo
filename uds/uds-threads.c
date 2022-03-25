@@ -172,7 +172,7 @@ void uds_thread_exit(void)
 	}
 	mutex_unlock(&kernel_thread_mutex);
 	uds_unregister_allocating_thread();
-	complete_and_exit(completion, 1);
+	kthread_complete_and_exit(completion, 1);
 }
 
 /**********************************************************************/
