@@ -41,10 +41,24 @@ void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr)
 	struct bio_vec biovec;
 	struct bvec_iter iter;
 
+// XXX workaround for LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
+#ifdef __LINUX_BVEC_ITER_H
+	unsigned long flags;
+
+	bio_for_each_segment(biovec, bio, iter) {
+		void *from = bvec_kmap_irq(&biovec, &flags);
+
+		memcpy(data_ptr, from, biovec.bv_len);
+		data_ptr += biovec.bv_len;
+		bvec_kunmap_irq(from, &flags);
+	}
+#else
+
 	bio_for_each_segment(biovec, bio, iter) {
 		memcpy_from_bvec(data_ptr, &biovec);
 		data_ptr += biovec.bv_len;
 	}
+#endif
 }
 
 /**********************************************************************/
@@ -52,11 +66,25 @@ void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
 	struct bvec_iter iter;
+// XXX workaround for LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
+#ifdef __LINUX_BVEC_ITER_H
+	unsigned long flags;
+
+	bio_for_each_segment(biovec, bio, iter) {
+		void *dest = bvec_kmap_irq(&biovec, &flags);
+
+		memcpy(dest, data_ptr, biovec.bv_len);
+		data_ptr += biovec.bv_len;
+		flush_dcache_page(biovec.bv_page);
+		bvec_kunmap_irq(dest, &flags);
+	}
+#else
 
 	bio_for_each_segment(biovec, bio, iter) {
 		memcpy_to_bvec(&biovec, data_ptr);
 		data_ptr += biovec.bv_len;
 	}
+#endif
 }
 
 /**********************************************************************/
