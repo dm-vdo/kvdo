@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -221,8 +222,8 @@ int vdo_make_slab_summary(struct vdo *vdo,
 
 	if (partition == NULL) {
 		/*
-		 * Don't make a slab summary for the formatter since it doesn't 
-		 * need it. 
+		 * Don't make a slab summary for the formatter since it doesn't
+		 * need it.
 		 */
 		return VDO_SUCCESS;
 	}
@@ -254,8 +255,8 @@ int vdo_make_slab_summary(struct vdo *vdo,
 	hint = compute_fullness_hint(summary, maximum_free_blocks_per_slab);
 	for (i = 0; i < total_entries; i++) {
 		/*
-		 * This default tail block offset must be reflected in 
-		 * slabJournal.c::read_slab_journal_tail(). 
+		 * This default tail block offset must be reflected in
+		 * slabJournal.c::read_slab_journal_tail().
 		 */
 		summary->entries[i] = (struct slab_summary_entry) {
 			.tail_block_offset = 0,
@@ -451,8 +452,8 @@ static void launch_write(struct slab_summary_block *block)
 	       sizeof(struct slab_summary_entry) * summary->entries_per_block);
 
 	/*
-	 * Flush before writing to ensure that the slab journal tail blocks and 
-	 * reference updates covered by this summary update are stable 
+	 * Flush before writing to ensure that the slab journal tail blocks and
+	 * reference updates covered by this summary update are stable
 	 * (VDO-2332).
 	 */
 	pbn = summary->origin +
@@ -694,8 +695,8 @@ static void finish_combining_zones(struct vdo_completion *completion)
 static void combine_zones(struct slab_summary *summary)
 {
 	/*
-	 * Combine all the old summary data into the portion of the buffer 
-	 * corresponding to the first zone. 
+	 * Combine all the old summary data into the portion of the buffer
+	 * corresponding to the first zone.
 	 */
 	zone_count_t zone = 0;
 
@@ -744,7 +745,8 @@ static void finish_loading_summary(struct vdo_completion *completion)
 
 	/* Write the combined summary back out. */
 	extent->completion.callback = finish_combining_zones;
-	vdo_write_metadata_extent(extent, summary->origin);
+	vdo_launch_metadata_extent(extent, summary->origin, extent->count,
+				   VIO_WRITE);
 }
 
 /**
@@ -788,14 +790,15 @@ void vdo_load_slab_summary(struct slab_summary *summary,
 		vdo_prepare_completion(&extent->completion,
 				       finish_combining_zones,
 				       finish_combining_zones, 0, summary);
-		vdo_write_metadata_extent(extent, summary->origin);
+		vdo_launch_metadata_extent(extent, summary->origin, blocks,
+					   VIO_WRITE);
 		return;
 	}
 
 	summary->zones_to_combine = zones_to_combine;
 	vdo_prepare_completion(&extent->completion, finish_loading_summary,
 			       finish_combining_zones, 0, summary);
-	vdo_read_metadata_extent(extent, summary->origin);
+	vdo_launch_metadata_extent(extent, summary->origin, blocks, VIO_READ);
 }
 
 /**

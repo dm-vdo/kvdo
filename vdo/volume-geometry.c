@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -26,12 +27,12 @@
 #include "permassert.h"
 
 #include "bio.h"
-#include "checksum.h"
 #include "constants.h"
 #include "header.h"
 #include "release-versions.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo.h"
 
 enum {
 	MAGIC_NUMBER_SIZE = 8,
@@ -41,7 +42,7 @@ enum {
 struct geometry_block {
 	char magic_number[MAGIC_NUMBER_SIZE];
 	struct header header;
-	crc32_checksum_t checksum;
+	uint32_t checksum;
 } __packed;
 
 static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
@@ -51,8 +52,8 @@ static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
 		.minor_version = 0,
 	},
 	/*
-	 * Note: this size isn't just the payload size following the header, 
-	 * like it is everywhere else in VDO. 
+	 * Note: this size isn't just the payload size following the header,
+	 * like it is everywhere else in VDO.
 	 */
 	.size = sizeof(struct geometry_block) + sizeof(struct volume_geometry),
 };
@@ -64,8 +65,8 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 		.minor_version = 0,
 	},
 	/*
-	 * Note: this size isn't just the payload size following the header, 
-	 * like it is everywhere else in VDO. 
+	 * Note: this size isn't just the payload size following the header,
+	 * like it is everywhere else in VDO.
 	 */
 	.size = sizeof(struct geometry_block) +
 		sizeof(struct volume_geometry_4_0),
@@ -277,7 +278,7 @@ static int decode_geometry_block(struct buffer *buffer,
 
 	/* Leave the CRC for the caller to decode and verify. */
 	return ASSERT(header.size == (uncompacted_amount(buffer) +
-				      sizeof(crc32_checksum_t)),
+				      sizeof(uint32_t)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -290,7 +291,7 @@ static int decode_geometry_block(struct buffer *buffer,
 static int __must_check
 vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 {
-	crc32_checksum_t checksum, saved_checksum;
+	uint32_t checksum, saved_checksum;
 	struct buffer *buffer;
 	int result;
 
@@ -306,8 +307,7 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 	}
 
 	/* Checksum everything decoded so far. */
-	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM, block,
-				    uncompacted_amount(buffer));
+	checksum = vdo_crc32(block, uncompacted_amount(buffer));
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));

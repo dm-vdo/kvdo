@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -19,6 +20,8 @@
 
 #include "flush.h"
 
+#include <linux/spinlock.h>
+
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -28,7 +31,6 @@
 #include "completion.h"
 #include "io-submitter.h"
 #include "kernel-types.h"
-#include "kernelVDO.h"
 #include "logical-zone.h"
 #include "num-utils.h"
 #include "read-only-notifier.h"
@@ -323,9 +325,18 @@ static void flush_vdo(struct vdo_completion *completion)
  **/
 static void check_for_drain_complete(struct flusher *flusher)
 {
-	if (vdo_is_state_draining(&flusher->state)
-	    && !has_waiters(&flusher->pending_flushes)
-	    && bio_list_empty(&flusher->waiting_flush_bios)) {
+	bool drained;
+
+	if (!vdo_is_state_draining(&flusher->state)
+	    || has_waiters(&flusher->pending_flushes)) {
+		return;
+	}
+
+	spin_lock(&flusher->lock);
+	drained = bio_list_empty(&flusher->waiting_flush_bios);
+	spin_unlock(&flusher->lock);
+
+	if (drained) {
 		vdo_finish_draining(&flusher->state);
 	}
 }

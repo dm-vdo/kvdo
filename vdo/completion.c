@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -35,13 +36,14 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 	"VDO_UNSET_COMPLETION_TYPE",
 
 	/*
-	 * Keep this block in sorted order. If you add or remove an 
-	 * entry, be sure to update the corresponding list in completion.h. 
+	 * Keep this block in sorted order. If you add or remove an
+	 * entry, be sure to update the corresponding list in completion.h.
 	 */
 	"VDO_ACTION_COMPLETION",
 	"VDO_ADMIN_COMPLETION",
 	"VDO_BLOCK_ALLOCATOR_COMPLETION",
 	"VDO_BLOCK_MAP_RECOVERY_COMPLETION",
+	"VDO_DATA_VIO_POOL_COMPLETION",
 	"VDO_EXTENT_COMPLETION",
 	"VDO_FLUSH_COMPLETION",
 	"VDO_FLUSH_NOTIFICATION_COMPLETION",
@@ -225,8 +227,8 @@ static const char *
 get_completion_type_name(enum vdo_completion_type completion_type)
 {
 	/*
-	 * Try to catch failures to update the array when the enum values 
-	 * change. 
+	 * Try to catch failures to update the array when the enum values
+	 * change.
 	 */
 	STATIC_ASSERT(ARRAY_SIZE(VDO_COMPLETION_TYPE_NAMES) ==
 		      (VDO_MAX_COMPLETION_TYPE - VDO_UNSET_COMPLETION_TYPE));
@@ -243,6 +245,17 @@ get_completion_type_name(enum vdo_completion_type completion_type)
 	}
 
 	return VDO_COMPLETION_TYPE_NAMES[completion_type];
+}
+
+/**
+ * A callback which does nothing. This callback is intended to be set as an
+ * error handler in the case where an error should do nothing.
+ *
+ * @param completion  The completion being called back
+ **/
+void
+vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
+{
 }
 
 /**

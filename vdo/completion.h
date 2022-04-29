@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -32,13 +33,14 @@ enum vdo_completion_type {
 	VDO_UNSET_COMPLETION_TYPE,
 
 	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be 
-	 * sure to update the corresponding list in completion.c. 
+	 * Keep this block in sorted order. If you add or remove an entry, be
+	 * sure to update the corresponding list in completion.c.
 	 */
 	VDO_ACTION_COMPLETION,
 	VDO_ADMIN_COMPLETION,
 	VDO_BLOCK_ALLOCATOR_COMPLETION,
 	VDO_BLOCK_MAP_RECOVERY_COMPLETION,
+	VDO_DATA_VIO_POOL_COMPLETION,
 	VDO_EXTENT_COMPLETION,
 	VDO_FLUSH_COMPLETION,
 	VDO_FLUSH_NOTIFICATION_COMPLETION,
@@ -171,16 +173,7 @@ void vdo_finish_completion_parent_callback(struct vdo_completion *completion);
 void
 vdo_preserve_completion_error_and_continue(struct vdo_completion *completion);
 
-/**
- * A callback which does nothing. This callback is intended to be set as an
- * error handler in the case where an error should do nothing.
- *
- * @param completion  The completion being called back
- **/
-static inline
-void vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
-{
-}
+void vdo_noop_completion_callback(struct vdo_completion *completion);
 
 int vdo_assert_completion_type(enum vdo_completion_type actual,
 			       enum vdo_completion_type expected);

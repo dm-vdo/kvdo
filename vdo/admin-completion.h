@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -41,36 +42,21 @@ enum admin_operation_type {
 
 struct admin_completion;
 
-/**
- * A function which gets the ID of the thread on which the current phase of an
- * admin operation should be run.
- *
- * @param admin_completion The admin_completion
- *
- * @return The ID of the thread on which the current phase should be performed
- **/
 typedef thread_id_t
 vdo_thread_id_getter_for_phase(struct admin_completion *admin_completion);
 
 struct admin_completion {
 	/*
-	 * XXX should be replaced by container_of() when enqueuables go away 
-	 * and this becomes a field of struct vdo. 
+	 * FIXME this field should be replaced by container_of() when
+	 * enqueuables go away and this becomes a field of struct vdo.
 	 */
 	struct vdo *vdo;
-	/** The completion */
 	struct vdo_completion completion;
-	/** The sub-task completion */
 	struct vdo_completion sub_task_completion;
-	/** Whether this completion is in use */
 	atomic_t busy;
-	/** The operation type */
 	enum admin_operation_type type;
-	/** Method to get the thread id for the current phase */
 	vdo_thread_id_getter_for_phase *get_thread_id;
-	/** The current phase of the operation */
 	uint32_t phase;
-	/** The struct completion for waiting on the operation */
 	struct completion callback_sync;
 };
 

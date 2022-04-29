@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -42,8 +43,8 @@ int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 
 	if (queue->last_waiter == NULL) {
 		/*
-		 * The queue is empty, so form the initial circular list by 
-		 * self-linking the initial waiter. 
+		 * The queue is empty, so form the initial circular list by
+		 * self-linking the initial waiter.
 		 */
 		waiter->next_waiter = waiter;
 	} else {
@@ -52,8 +53,8 @@ int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 		queue->last_waiter->next_waiter = waiter;
 	}
 	/*
-	 * In both cases, the waiter we added to the ring becomes the last 
-	 * waiter. 
+	 * In both cases, the waiter we added to the ring becomes the last
+	 * waiter.
 	 */
 	queue->last_waiter = waiter;
 	queue->queue_length += 1;
@@ -78,8 +79,8 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 
 	if (has_waiters(to_queue)) {
 		/*
-		 * Both queues are non-empty. Splice the two circular lists 
-		 * together by swapping the next (head) pointers in the list 
+		 * Both queues are non-empty. Splice the two circular lists
+		 * together by swapping the next (head) pointers in the list
 		 * tails.
 		 */
 		struct waiter *from_head = from_queue->last_waiter->next_waiter;
@@ -109,8 +110,8 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 			void *context)
 {
 	/*
-	 * Copy and empty the queue first, avoiding the possibility of an 
-	 * infinite loop if entries are returned to the queue by the callback 
+	 * Copy and empty the queue first, avoiding the possibility of an
+	 * infinite loop if entries are returned to the queue by the callback
 	 * function.
 	 */
 	struct wait_queue waiters;
@@ -142,8 +143,8 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
 	}
 
 	/*
-	 * The queue is circular, so the last entry links to the head of the 
-	 * queue. 
+	 * The queue is circular, so the last entry links to the head of the
+	 * queue.
 	 */
 	return last_waiter->next_waiter;
 }
@@ -211,14 +212,14 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 
 	if (first_waiter == last_waiter) {
 		/*
-		 * The queue has a single entry, so just empty it out by nulling 
-		 * the tail. 
+		 * The queue has a single entry, so just empty it out by nulling
+		 * the tail.
 		 */
 		queue->last_waiter = NULL;
 	} else {
 		/*
-		 * The queue has more than one entry, so splice the first waiter 
-		 * out of the circular queue. 
+		 * The queue has more than one entry, so splice the first waiter
+		 * out of the circular queue.
 		 */
 		last_waiter->next_waiter = first_waiter->next_waiter;
 	}

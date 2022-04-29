@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -21,12 +22,11 @@
 #define VDO_COMPONENT_STATES_H
 
 #include "block-map-format.h"
-#include "fixed-layout.h"
 #include "recovery-journal-format.h"
 #include "slab-depot-format.h"
 #include "types.h"
 #include "vdo-component.h"
-#include "vdo-state.h"
+#include "vdo-layout.h"
 
 /**
  * The version of the on-disk format of a VDO volume. This should be

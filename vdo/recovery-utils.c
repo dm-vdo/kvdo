@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -61,6 +62,7 @@ void vdo_load_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr)
 {
+	physical_block_number_t pbn;
 	struct vdo_extent *extent;
 	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE, char,
 				  __func__, journal_data_ptr);
@@ -80,8 +82,8 @@ void vdo_load_recovery_journal(struct recovery_journal *journal,
 	vdo_prepare_completion(&extent->completion, finish_journal_load,
 			       finish_journal_load, parent->callback_thread_id,
 			       parent);
-	vdo_read_metadata_extent(extent,
-				 vdo_get_fixed_layout_partition_offset(journal->partition));
+	pbn = vdo_get_fixed_layout_partition_offset(journal->partition);
+	vdo_launch_metadata_extent(extent, pbn, journal->size, VIO_READ);
 }
 
 /**
@@ -145,8 +147,8 @@ bool vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 
 		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
 			/*
-			 * This block is old, unformatted, or doesn't belong at 
-			 * this location. 
+			 * This block is old, unformatted, or doesn't belong at
+			 * this location.
 			 */
 			continue;
 		}

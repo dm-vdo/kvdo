@@ -52,9 +52,9 @@ set -x
 /usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}
 
 %preun
-# Check whether kvdo or uds is loaded, and if so attempt to remove it.  A
-# failure here means there is still something using the module, which should be
-# cleared up before attempting to remove again.
+# Check whether kvdo is loaded, and if so attempt to remove it.  A
+# failure here means there is still something using the module, which
+# should be cleared up before attempting to remove again.
 for module in kvdo uds; do
   if grep -q "^${module}" /proc/modules; then
     modprobe -r ${module}
@@ -77,17 +77,12 @@ PACKAGE_NAME="kvdo"
 PACKAGE_VERSION="%{version}"
 AUTOINSTALL="yes"
 
-BUILT_MODULE_NAME[0]="uds"
-BUILT_MODULE_LOCATION[0]="uds"
+BUILT_MODULE_NAME[0]="kvdo"
+BUILT_MODULE_LOCATION[0]="vdo"
 DEST_MODULE_LOCATION[0]="/kernel/drivers/block/"
+BUILD_DEPENDS[0]=LZ4_COMPRESS
+BUILD_DEPENDS[0]=LZ4_DECOMPRESS
 STRIP[0]="no"
-
-BUILT_MODULE_NAME[1]="kvdo"
-BUILT_MODULE_LOCATION[1]="vdo"
-DEST_MODULE_LOCATION[1]="/kernel/drivers/block/"
-BUILD_DEPENDS[1]=LZ4_COMPRESS
-BUILD_DEPENDS[1]=LZ4_DECOMPRESS
-STRIP[1]="no"
 EOF
 
 %clean
@@ -98,5 +93,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu Nov 18 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.0.0-1
+* Fri Apr 29 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.0.0-1
 - See https://github.com/dm-vdo/kvdo.git

@@ -17,7 +17,7 @@
  * 02110-1301, USA. 
  */
 
-#include "dedupeIndex.h"
+#include "dedupe-index.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "messageStats.h"

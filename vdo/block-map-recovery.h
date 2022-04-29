@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -30,11 +31,9 @@
  * the relative order of journal entries with the same logical block number.
  **/
 struct numbered_block_mapping {
-	/* Block map slot to map */
 	struct block_map_slot block_map_slot;
-	/* The encoded block map entry for the LBN */
 	struct block_map_entry block_map_entry;
-	/* The serial number to use during replay */
+	/* A serial number to use during replay */
 	uint32_t number;
 } __packed;
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -136,8 +137,8 @@ int vdo_make_thread_config(struct thread_count_config counts,
 		config->hash_zone_threads[0] = config->thread_count++;
 	} else {
 		/*
-		 * Add in the admin/recovery journal and packer threads, of 
-		 * which, there are one each. 
+		 * Add in the admin/recovery journal and packer threads, of
+		 * which, there are one each.
 		 */
 		total += 2;
 		result = allocate_thread_config(counts.logical_zones,
@@ -239,8 +240,8 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 		return;
 	} else if (thread_id == thread_config->admin_thread) {
 		/*
-		 * Theoretically this could be different from the journal 
-		 * thread. 
+		 * Theoretically this could be different from the journal
+		 * thread.
 		 */
 		snprintf(buffer, buffer_length, "adminQ");
 		return;

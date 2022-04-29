@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -111,7 +112,6 @@
 #include "logger.h"
 #include "permassert.h"
 
-#include "allocating-vio.h"
 #include "bio.h"
 #include "block-map.h"
 #include "compression-state.h"
@@ -164,7 +164,7 @@ static void release_allocated_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_allocated_zone(data_vio);
-	vio_release_allocation_lock(data_vio_as_allocating_vio(data_vio));
+	release_data_vio_allocation_lock(data_vio, false);
 	perform_cleanup_stage(data_vio, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -210,20 +210,13 @@ static void finish_cleanup(struct data_vio *data_vio)
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	enum vio_operation operation;
 
-	ASSERT_LOG_ONLY(data_vio_as_allocating_vio(data_vio)->allocation_lock ==
-			NULL,
+	ASSERT_LOG_ONLY(data_vio->allocation.lock == NULL,
 			"complete data_vio has no allocation lock");
 	ASSERT_LOG_ONLY(data_vio->hash_lock == NULL,
 			"complete data_vio has no hash lock");
-	if (data_vio->remaining_discard == 0) {
-		vio_done_callback(completion);
-		return;
-	}
-
-	if ((completion->result != VDO_SUCCESS) ||
-	    (data_vio->remaining_discard <= VDO_BLOCK_SIZE)) {
-		limiter_release(&completion->vdo->discard_limiter);
-		vio_done_callback(completion);
+	if ((data_vio->remaining_discard <= VDO_BLOCK_SIZE) ||
+	    (completion->result != VDO_SUCCESS)) {
+		release_data_vio(data_vio);
 		return;
 	}
 
@@ -243,13 +236,8 @@ static void finish_cleanup(struct data_vio *data_vio)
 		operation |= VIO_FLUSH_AFTER;
 	}
 
-	prepare_data_vio(data_vio,
-			 data_vio->logical.lbn + 1,
-			 operation,
-			 data_vio_as_vio(data_vio)->callback);
 	completion->requeue = true;
-	vdo_invoke_completion_callback_with_priority(completion,
-						     VDO_REQ_Q_MAP_BIO_PRIORITY);
+	launch_data_vio(data_vio, data_vio->logical.lbn + 1, operation);
 }
 
 /**
@@ -272,7 +260,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
-		    !vdo_is_or_will_be_read_only(vdo_get_from_data_vio(data_vio)->read_only_notifier) &&
+		    !vdo_is_or_will_be_read_only(vdo_from_data_vio(data_vio)->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
@@ -332,7 +320,7 @@ static bool abort_on_error(int result,
 
 	if ((result == VDO_READ_ONLY) || (action == READ_ONLY)) {
 		struct read_only_notifier *notifier =
-			vdo_get_from_data_vio(data_vio)->read_only_notifier;
+			vdo_from_data_vio(data_vio)->read_only_notifier;
 		if (!vdo_is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
 				uds_log_error_strerror(result,
@@ -440,7 +428,7 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 						 data_vio->new_mapped.state,
 						 lock,
 						 &data_vio->operation);
-	vdo_add_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -456,7 +444,7 @@ static void journal_decrement(struct data_vio *data_vio)
 						 data_vio->mapped.state,
 						 data_vio->mapped.zone,
 						 &data_vio->operation);
-	vdo_add_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
@@ -467,7 +455,7 @@ static void journal_decrement(struct data_vio *data_vio)
  **/
 static void update_reference_count(struct data_vio *data_vio)
 {
-	struct slab_depot *depot = vdo_get_from_data_vio(data_vio)->depot;
+	struct slab_depot *depot = vdo_from_data_vio(data_vio)->depot;
 	physical_block_number_t pbn = data_vio->operation.pbn;
 	int result =
 		ASSERT(vdo_is_physical_data_block(depot, pbn),
@@ -490,15 +478,13 @@ static void update_reference_count(struct data_vio *data_vio)
 static void decrement_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct allocating_vio *allocating_vio =
-		data_vio_as_allocating_vio(data_vio);
 
 	assert_data_vio_in_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	if (allocating_vio->allocation == data_vio->mapped.pbn) {
+	if (data_vio->allocation.pbn == data_vio->mapped.pbn) {
 		/*
 		 * If we are about to release the reference on the allocated
 		 * block, we must release the PBN lock on it first so that the
@@ -507,11 +493,12 @@ static void decrement_for_dedupe(struct vdo_completion *completion)
                  * FIXME: now that we don't have sync mode, can this ever
                  *        happen?
 		 */
-		vio_release_allocation_lock(allocating_vio);
+		release_data_vio_allocation_lock(data_vio, false);
 	}
 
 	set_data_vio_logical_callback(data_vio, update_block_map_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_DECREMENT_FOR_DEDUPE;
+	data_vio->last_async_operation =
+		VIO_ASYNC_OP_JOURNAL_DECREMENT_FOR_DEDUPE;
 	update_reference_count(data_vio);
 }
 
@@ -806,7 +793,7 @@ static void hash_data_vio(struct vdo_completion *completion)
 			&data_vio->chunk_name);
 
 	data_vio->hash_zone =
-		vdo_select_hash_zone(vdo_get_from_data_vio(data_vio),
+		vdo_select_hash_zone(vdo_from_data_vio(data_vio),
 				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio,
@@ -958,10 +945,10 @@ static void increment_for_write(struct vdo_completion *completion)
 	 * the block. Downgrade the allocation lock to a read lock so it can be
 	 * used later by the hash lock.
 	 */
-	vdo_downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock,
-				     false);
+	vdo_downgrade_pbn_write_lock(data_vio->allocation.lock, false);
 
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE;
+	data_vio->last_async_operation =
+		VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE;
 	set_data_vio_logical_callback(data_vio,
 				      read_old_block_mapping_for_write);
 	update_reference_count(data_vio);
@@ -992,8 +979,7 @@ static void finish_block_write(struct vdo_completion *completion)
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_WRITE;
-	journal_increment(data_vio,
-			  data_vio_as_allocating_vio(data_vio)->allocation_lock);
+	journal_increment(data_vio, data_vio->allocation.lock);
 }
 
 /**
@@ -1028,7 +1014,7 @@ static void write_block(struct data_vio *data_vio)
 					 data_vio->data_block,
 					 write_bio_finished,
 					 REQ_OP_WRITE,
-					 data_vio_as_allocating_vio(data_vio)->allocation);
+					 data_vio->allocation.pbn);
 	if (abort_on_error(result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -1039,7 +1025,7 @@ static void write_block(struct data_vio *data_vio)
 
 /**
  * Acknowledge a write to the requestor. This callback is registered in
- * continue_write_after_allocation().
+ * allocate_block() and continue_write_with_block_map_slot().
  *
  * @param completion  The data_vio being acknowledged
  **/
@@ -1055,35 +1041,36 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY(data_vio->has_flush_generation_lock,
 			"write VIO to be acknowledged has a flush generation lock");
 	acknowledge_data_vio(data_vio);
+	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {
+		/* This is a zero write or discard */
+		launch_data_vio_journal_callback(data_vio, finish_block_write);
+		return;
+	}
+
 	prepare_for_dedupe(data_vio);
 }
 
 /**
- * Continue the write path for a data_vio now that block allocation is complete
- * (the data_vio may or may not have actually received an allocation). This
- * callback is registered in continue_write_with_block_map_slot().
+ * Attempt to allocate a block in the current allocation zone. This callback is
+ * registered in continue_write_with_block_map_slot().
  *
- * @param completion  The data_vio which has finished the allocation process
+ * @param completion  The data_vio needing an allocation
  **/
-static void continue_write_after_allocation(struct vdo_completion *completion)
+static void allocate_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct allocating_vio *allocating_vio =
-		data_vio_as_allocating_vio(data_vio);
 
-	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
+	assert_data_vio_in_allocated_zone(data_vio);
+
+	if (!vdo_allocate_block_in_zone(data_vio)) {
 		return;
 	}
 
-	if (!data_vio_has_allocation(data_vio)) {
-		prepare_for_dedupe(data_vio);
-		return;
-	}
-
+	completion->error_handler = NULL;
 	WRITE_ONCE(data_vio->allocation_succeeded, true);
 	data_vio->new_mapped = (struct zoned_pbn) {
-		.zone = allocating_vio->zone,
-		.pbn = allocating_vio->allocation,
+		.zone = data_vio->allocation.zone,
+		.pbn = data_vio->allocation.pbn,
 		.state = VDO_MAPPING_STATE_UNCOMPRESSED,
 	};
 
@@ -1093,8 +1080,32 @@ static void continue_write_after_allocation(struct vdo_completion *completion)
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACKNOWLEDGE_WRITE;
-	launch_data_vio_on_bio_ack_queue(data_vio,
-					 acknowledge_write_callback);
+	launch_data_vio_on_bio_ack_queue(data_vio, acknowledge_write_callback);
+}
+
+/**
+ * Handle an error attempting to allocate a block. This error handler is
+ * registered in continue_write_with_block_map_slot().
+ *
+ * @param completion  The data_vio needing an allocation
+ **/
+static void handle_allocation_error(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+
+	completion->error_handler = NULL;
+	if (completion->result == VDO_NO_SPACE) {
+		/* We failed to get an allocation, but we can try to dedupe. */
+		vdo_reset_completion(completion);
+		prepare_for_dedupe(data_vio);
+		return;
+	}
+
+	/*
+	 * There was an actual error (not just that we didn't get an
+	 * allocation.
+	 */
+	finish_data_vio(data_vio, completion->result);
 }
 
 /**
@@ -1107,6 +1118,7 @@ static void
 continue_write_with_block_map_slot(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	/* We don't care what thread we're on. */
 	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
 		return;
@@ -1129,21 +1141,31 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->is_zero_block || is_trim_data_vio(data_vio)) {
+	if (!data_vio->is_zero_block && !is_trim_data_vio(data_vio)) {
+		data_vio_allocate_data_block(data_vio,
+					     VIO_WRITE_LOCK,
+					     allocate_block,
+					     handle_allocation_error);
+		return;
+	}
+
+
+	/*
+	 * We don't need to write any data, so skip allocation and just
+	 * update the block map and reference counts (via the journal).
+	 */
+	data_vio->new_mapped.pbn = VDO_ZERO_BLOCK;
+	if (data_vio->remaining_discard > VDO_BLOCK_SIZE) {
 		/*
-		 * We don't need to write any data, so skip allocation and just
-		 * update the block map and reference counts (via the journal).
-		 * XXX: should we acknowledge here?
+                 * This is not the final block of a discard so we can't
+                 * acknowledge it yet.
 		 */
-		data_vio->new_mapped.pbn = VDO_ZERO_BLOCK;
 		launch_data_vio_journal_callback(data_vio, finish_block_write);
 		return;
 	}
 
-	vio_allocate_data_block(data_vio_as_allocating_vio(data_vio),
-				data_vio->logical.zone->selector,
-				VIO_WRITE_LOCK,
-				continue_write_after_allocation);
+	data_vio->last_async_operation = VIO_ASYNC_OP_ACKNOWLEDGE_WRITE;
+	launch_data_vio_on_bio_ack_queue(data_vio, acknowledge_write_callback);
 }
 
 /**
@@ -1157,7 +1179,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 {
 	int result;
 
-	if (vdo_is_read_only(vdo_get_from_data_vio(data_vio)->read_only_notifier)) {
+	if (vdo_is_read_only(vdo_from_data_vio(data_vio)->read_only_notifier)) {
 		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
@@ -1169,7 +1191,6 @@ void launch_write_data_vio(struct data_vio *data_vio)
 	}
 
 	/* Go find the block map slot for the LBN mapping. */
-	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
 	vdo_find_block_map_slot(data_vio,
 				continue_write_with_block_map_slot,
 				data_vio->logical.zone->thread_id);

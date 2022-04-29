@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -26,7 +27,8 @@
 #include "admin-completion.h"
 #include "block-map.h"
 #include "completion.h"
-#include "dedupeIndex.h"
+#include "data-vio-pool.h"
+#include "dedupe-index.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"
@@ -48,6 +50,7 @@ enum {
 	RESUME_PHASE_LOGICAL_ZONES,
 	RESUME_PHASE_PACKER,
 	RESUME_PHASE_FLUSHER,
+	RESUME_PHASE_DATA_VIOS,
 	RESUME_PHASE_END,
 };
 
@@ -61,6 +64,7 @@ static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_LOGICAL_ZONES",
 	"RESUME_PHASE_PACKER",
 	"RESUME_PHASE_FLUSHER",
+	"RESUME_PHASE_DATA_VIOS",
 	"RESUME_PHASE_END",
 };
 
@@ -80,6 +84,8 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 	case RESUME_PHASE_FLUSHER:
 		return thread_config->packer_thread;
 
+	case RESUME_PHASE_DATA_VIOS:
+		return thread_config->cpu_thread;
 	default:
 		return thread_config->admin_thread;
 	}
@@ -150,8 +156,7 @@ static void resume_callback(struct vdo_completion *completion)
 	case RESUME_PHASE_INDEX:
 		if (!vdo_is_read_only(vdo->read_only_notifier)) {
 			vdo_resume_dedupe_index(vdo->dedupe_index,
-						vdo->device_config->deduplication,
-						vdo->load_state == VDO_NEW);
+						vdo->device_config);
 		}
 
 		vdo_complete_completion(vdo_reset_admin_sub_task(completion));
@@ -191,9 +196,15 @@ static void resume_callback(struct vdo_completion *completion)
 				  vdo_reset_admin_sub_task(completion));
 		return;
 	}
+
 	case RESUME_PHASE_FLUSHER:
 		vdo_resume_flusher(vdo->flusher,
-				  vdo_reset_admin_sub_task(completion));
+				   vdo_reset_admin_sub_task(completion));
+		return;
+
+	case RESUME_PHASE_DATA_VIOS:
+		resume_data_vio_pool(vdo->data_vio_pool,
+				     vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_END:
@@ -252,13 +263,16 @@ int vdo_preresume_internal(struct vdo *vdo,
 {
 	int result;
 
-	/* The VDO was not in a state to be resumed. This should never happen. */
+	/*
+         * If this fails, the VDO was not in a state to be resumed. This should
+	 * never happen.
+	 */
 	result = apply_new_vdo_configuration(vdo, config);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
 
 	/*
-	 * Now that we've tried to modify the vdo, the new config *is* the 
-	 * config, whether the modifications worked or not. 
+	 * Now that we've tried to modify the vdo, the new config *is* the
+	 * config, whether the modifications worked or not.
 	 */
 	vdo->device_config = config;
 
@@ -286,6 +300,11 @@ int vdo_preresume_internal(struct vdo *vdo,
 					     resume_callback,
 					     vdo_preserve_completion_error_and_continue);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
+	if (result == VDO_READ_ONLY) {
+		/* Even if the vdo is read-only, it has still resumed. */
+		result = VDO_SUCCESS;
+	}
+
 	if (result != VDO_SUCCESS) {
 		uds_log_error("resume of device '%s' failed with error: %d",
 			      device_name,

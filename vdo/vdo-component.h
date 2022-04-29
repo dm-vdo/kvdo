@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -23,7 +24,6 @@
 #include "buffer.h"
 
 #include "types.h"
-#include "vdo-state.h"
 
 /**
  * The configuration of the VDO service.

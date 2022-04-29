@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -17,13 +18,10 @@
  * 02110-1301, USA. 
  */
 
-#include "sysfs.h"
-
 #include <linux/module.h>
 
-#include "dedupeIndex.h"
+#include "dedupe-index.h"
 #include "logger.h"
-#include "vdo-init.h"
 
 static int vdo_log_level_show(char *buf,
 			      const struct kernel_param *kp)

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -127,6 +128,7 @@ enum vdo_work_item_priority {
 	BIO_Q_VERIFY_PRIORITY = 1,
 	BIO_Q_MAX_PRIORITY = 2,
 	CPU_Q_COMPLETE_VIO_PRIORITY = 0,
+	CPU_Q_COMPLETE_READ_PRIORITY = 0,
 	CPU_Q_COMPRESS_BLOCK_PRIORITY = 0,
 	CPU_Q_EVENT_REPORTER_PRIORITY = 0,
 	CPU_Q_HASH_BLOCK_PRIORITY = 0,
@@ -167,7 +169,6 @@ enum vdo_zone_type {
  * Forward declarations of abstract types
  **/
 struct action_manager;
-struct allocating_vio;
 struct allocation_selector;
 struct atomic_bio_stats;
 struct block_allocator;
@@ -175,6 +176,7 @@ struct block_map;
 struct block_map_tree_zone;
 struct block_map_zone;
 struct data_vio;
+struct data_vio_pool;
 struct dedupe_context;
 struct dedupe_index;
 struct device_config;

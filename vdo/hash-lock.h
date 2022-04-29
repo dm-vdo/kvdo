@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -37,8 +38,8 @@ enum hash_lock_state {
 	VDO_HASH_LOCK_UPDATING,
 
 	/*
-	 * The remaining states are typically used on the dedupe path in this 
-	 * order. 
+	 * The remaining states are typically used on the dedupe path in this
+	 * order.
 	 */
 	VDO_HASH_LOCK_LOCKING,
 	VDO_HASH_LOCK_VERIFYING,
@@ -46,8 +47,8 @@ enum hash_lock_state {
 	VDO_HASH_LOCK_UNLOCKING,
 
 	/*
-	 * XXX This is a temporary state denoting a lock which is sending VIOs 
-	 * back to the old dedupe and vioWrite pathways. It won't be in the 
+	 * XXX This is a temporary state denoting a lock which is sending VIOs
+	 * back to the old dedupe and vioWrite pathways. It won't be in the
 	 * final version of VDOSTORY-190.
 	 */
 	VDO_HASH_LOCK_BYPASSING,

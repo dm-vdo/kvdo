@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -38,35 +39,6 @@ struct boundary {
 };
 
 extern const struct header VDO_BLOCK_MAP_HEADER_2_0;
-
-/**
- * Compute the number of the block map page on which the entry for a given
- * logical block resides.
- *
- * @param lbn  The logical block number whose page is desired
- *
- * @return The number of the block map page containing the entry for
- *         the given logical block number
- **/
-static inline page_number_t __must_check
-vdo_compute_page_number(logical_block_number_t lbn)
-{
-	return (lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
-}
-
-/**
- * Find the block map page slot in which the entry for a given logical
- * block resides.
- *
- * @param lbn  The logical block number whose slot
- *
- * @return The slot containing the entry for the given logical block number
- **/
-static inline slot_number_t __must_check
-vdo_compute_slot(logical_block_number_t lbn)
-{
-	return (lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
-}
 
 int __must_check
 vdo_decode_block_map_state_2_0(struct buffer *buffer,

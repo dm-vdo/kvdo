@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -84,8 +85,8 @@ set_vio_compression_state(struct data_vio *data_vio,
 	uint32_t replacement = pack_state(new_state);
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	actual = atomic_cmpxchg(&data_vio->compression.state,
@@ -115,8 +116,8 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 
 		if (state.may_not_compress) {
 			/*
-			 * Compression has been dis-allowed for this VIO, so 
-			 * skip the rest of the path and go to the end. 
+			 * Compression has been dis-allowed for this VIO, so
+			 * skip the rest of the path and go to the end.
 			 */
 			new_state.status = VIO_POST_PACKER;
 		} else {
@@ -129,8 +130,8 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 		}
 
 		/*
-		 * Another thread changed the state out from under us so try 
-		 * again. 
+		 * Another thread changed the state out from under us so try
+		 * again.
 		 */
 	}
 }
@@ -146,7 +147,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio) ||
 	    vio_requires_flush_after(data_vio_as_vio(data_vio)) ||
-	    !vdo_get_compressing(vdo_get_from_data_vio(data_vio))) {
+	    !vdo_get_compressing(vdo_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write
 		 * probably won't either, so don't try compressing it. Also, if
@@ -194,11 +195,11 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
 	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
-	    !vdo_get_compressing(vdo_get_from_data_vio(data_vio)) ||
+	    !vdo_get_compressing(vdo_from_data_vio(data_vio)) ||
 	    get_vio_compression_state(data_vio).may_not_compress) {
 		/*
-		 * If the data in this VIO doesn't compress, or compression is 
-		 * off, or compression for this VIO has been canceled, don't 
+		 * If the data in this VIO doesn't compress, or compression is
+		 * off, or compression for this VIO has been canceled, don't
 		 * send it to the packer.
 		 */
 		set_vio_compression_done(data_vio);
@@ -281,8 +282,8 @@ bool cancel_vio_compression(struct data_vio *data_vio)
 		if (state.may_not_compress ||
 		    (state.status == VIO_POST_PACKER)) {
 			/*
-			 * This data_vio is already set up to not block in the 
-			 * packer. 
+			 * This data_vio is already set up to not block in the
+			 * packer.
 			 */
 			break;
 		}

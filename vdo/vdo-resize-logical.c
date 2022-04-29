@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -83,8 +84,8 @@ static void grow_logical_callback(struct vdo_completion *completion)
 						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
-			vdo->states.vdo.config.logical_blocks =
-				vdo_get_new_entry_count(vdo->block_map);
+			vdo->states.vdo.config.logical_blocks
+				= vdo->block_map->next_entry_count;
 			vdo_save_components(vdo,
 					    vdo_reset_admin_sub_task(completion));
 		}
@@ -123,13 +124,13 @@ static void handle_growth_error(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	if (admin_completion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
 		/*
-		 * We've failed to write the new size in the super block, so set 
-		 * our in memory config back to the old size. 
+		 * We've failed to write the new size in the super block, so set
+		 * our in memory config back to the old size.
 		 */
 		struct vdo *vdo = admin_completion->vdo;
 
-		vdo->states.vdo.config.logical_blocks =
-			vdo_get_number_of_block_map_entries(vdo->block_map);
+		vdo->states.vdo.config.logical_blocks
+			= vdo->block_map->entry_count;
 		vdo_abandon_block_map_growth(vdo->block_map);
 	}
 
@@ -141,7 +142,7 @@ static void handle_growth_error(struct vdo_completion *completion)
  * Grow the logical size of the vdo. This method may only be called when the
  * vdo has been suspended and must not be called from a base thread.
  *
- * @param vdo               	The vdo to grow
+ * @param vdo		The vdo to grow
  * @param new_logical_blocks	The size to which the vdo should be grown
  *
  * @return VDO_SUCCESS or an error
@@ -152,8 +153,8 @@ int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 
 	if (vdo->device_config->logical_blocks == new_logical_blocks) {
 		/*
-		 * A table was loaded for which we prepared to grow, but 
-		 * a table without that growth was what we are resuming with. 
+		 * A table was loaded for which we prepared to grow, but
+		 * a table without that growth was what we are resuming with.
 		 */
 		vdo_abandon_block_map_growth(vdo->block_map);
 		return VDO_SUCCESS;
@@ -162,7 +163,7 @@ int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 	uds_log_info("Resizing logical to %llu",
 		     (unsigned long long) new_logical_blocks);
 
-	if (vdo_get_new_entry_count(vdo->block_map) != new_logical_blocks) {
+	if (vdo->block_map->next_entry_count != new_logical_blocks) {
 		return VDO_PARAMETER_MISMATCH;
 	}
 
@@ -184,7 +185,7 @@ int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
  * Prepare to grow the logical size of vdo. This method may only be called
  * while the vdo is running.
  *
- * @param vdo               	The vdo to prepare for growth
+ * @param vdo		The vdo to prepare for growth
  * @param new_logical_blocks	The size to which the vdo should be grown
  *
  * @return VDO_SUCCESS or an error

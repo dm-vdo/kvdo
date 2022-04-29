@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -19,6 +20,8 @@
 
 #ifndef LOGICAL_ZONE_H
 #define LOGICAL_ZONE_H
+
+#include <linux/list.h>
 
 #include "admin-state.h"
 #include "int-map.h"

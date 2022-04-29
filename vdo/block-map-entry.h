@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -26,18 +27,26 @@
 #include "types.h"
 
 /**
+ * DOC: Block map entries
+ *
  * The entry for each logical block in the block map is encoded into five
  * bytes, which saves space in both the on-disk and in-memory layouts. It
  * consists of the 36 low-order bits of a physical_block_number_t
  * (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of a
  * block_mapping_state.
- **/
+ *
+ * Of the 8 high bits of the 5-byte structure:
+ *
+ * Bits 7..4: The four highest bits of the 36-bit physical block
+ * number
+ * Bits 3..0: The 4-bit block_mapping_state
+ *
+ * The following 4 bytes are the low order bytes of the physical block number,
+ * in little-endian order.
+ *
+ * Conversion functions to and from a data location are provided.
+ */
 struct block_map_entry {
-	/**
-	 * Bits 7..4: The four highest bits of the 36-bit physical block
-	 * number
-	 * Bits 3..0: The 4-bit block_mapping_state
-	 **/
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	unsigned mapping_state : 4;
 	unsigned pbn_high_nibble : 4;
@@ -46,20 +55,9 @@ struct block_map_entry {
 	unsigned mapping_state : 4;
 #endif
 
-	/**
-	 * 32 low-order bits of the 36-bit PBN, in little-endian byte
-	 * order
-	 */
 	__le32 pbn_low_word;
 } __packed;
 
-/**
- * Unpack the fields of a block_map_entry, returning them as a data_location.
- *
- * @param entry   A pointer to the entry to unpack
- *
- * @return the location of the data mapped by the block map entry
- **/
 static inline struct data_location
 vdo_unpack_block_map_entry(const struct block_map_entry *entry)
 {
@@ -72,13 +70,11 @@ vdo_unpack_block_map_entry(const struct block_map_entry *entry)
 	};
 }
 
-/**********************************************************************/
 static inline bool vdo_is_mapped_location(const struct data_location *location)
 {
 	return (location->state != VDO_MAPPING_STATE_UNMAPPED);
 }
 
-/**********************************************************************/
 static inline bool vdo_is_valid_location(const struct data_location *location)
 {
 	if (location->pbn == VDO_ZERO_BLOCK) {
@@ -88,17 +84,7 @@ static inline bool vdo_is_valid_location(const struct data_location *location)
 	}
 }
 
-/**
- * Pack a physical_block_number_t into a block_map_entry.
- *
- * @param pbn             The physical block number to convert to its
- *                        packed five-byte representation
- * @param mapping_state   The mapping state of the block
- *
- * @return the packed representation of the block number and mapping state
- *
- * @note unrepresentable high bits of the unpacked PBN are silently truncated
- **/
+/* FIXME: maybe this should be vdo_pack_block_map_entry() */
 static inline struct block_map_entry
 vdo_pack_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
 {

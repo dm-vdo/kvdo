@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -24,10 +25,10 @@
 #include "permassert.h"
 
 #include "data-vio.h"
-#include "fixed-layout.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
+#include "vdo-layout.h"
 #include "vio.h"
 #include "wait-queue.h"
 
@@ -48,8 +49,8 @@ int vdo_make_recovery_block(struct vdo *vdo,
 	int result;
 
 	/*
-	 * Ensure that a block is large enough to store 
-	 * RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries. 
+	 * Ensure that a block is large enough to store
+	 * RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	 */
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
 		      <= ((VDO_BLOCK_SIZE -
@@ -62,8 +63,8 @@ int vdo_make_recovery_block(struct vdo *vdo,
 	}
 
 	/*
-	 * Allocate a full block for the journal block even though not all of 
-	 * the space is used since the VIO needs to write a full disk block. 
+	 * Allocate a full block for the journal block even though not all of
+	 * the space is used since the VIO needs to write a full disk block.
 	 */
 	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
 			      &block->block);
@@ -183,14 +184,15 @@ int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 				     struct data_vio *data_vio)
 {
 	/*
-	 * First queued entry indicates this is a journal block we've just 
-	 * opened or a committing block we're extending and will have to write 
+	 * First queued entry indicates this is a journal block we've just
+	 * opened or a committing block we're extending and will have to write
 	 * again.
 	 */
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	/* Enqueue the data_vio to wait for its entry to commit. */
 	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -310,8 +312,8 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 bool vdo_can_commit_recovery_block(struct recovery_journal_block *block)
 {
 	/*
-	 * Cannot commit in read-only mode, if already committing the block, 
-	 * or if there are no entries to commit. 
+	 * Cannot commit in read-only mode, if already committing the block,
+	 * or if there are no entries to commit.
 	 */
 	return ((block != NULL)
 		&& !block->committing

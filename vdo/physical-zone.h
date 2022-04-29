@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -55,13 +56,13 @@ vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 				   enum pbn_lock_type type,
 				   struct pbn_lock **lock_ptr);
 
-int __must_check
-vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio);
+bool __must_check vdo_allocate_block_in_zone(struct data_vio *data_vio);
 
 void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 					physical_block_number_t locked_pbn,
 					struct pbn_lock *lock);
 
 void vdo_dump_physical_zone(const struct physical_zone *zone);
+
 
 #endif /* PHYSICAL_ZONE_H */

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -26,13 +27,17 @@
 
 #include <linux/device-mapper.h>
 #include <linux/kernel.h>
+#include <linux/lz4.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 
+#include "bio.h"
 #include "block-map.h"
+#include "data-vio-pool.h"
 #include "device-registry.h"
 #include "hash-zone.h"
 #include "header.h"
@@ -55,16 +60,12 @@
 #include "sync-completion.h"
 #include "thread-config.h"
 #include "vdo-component-states.h"
-#include "vdo-init.h"
 #include "vdo-layout.h"
 #include "vdo-resize.h"
 #include "vdo-resize-logical.h"
-
-#include "bio.h"
-#include "batchProcessor.h"
-#include "bufferPool.h"
-#include "dedupeIndex.h"
 #include "workQueue.h"
+
+#include "dedupe-index.h"
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 
@@ -244,6 +245,93 @@ vdo_make_request_threads(struct vdo *vdo, const char *thread_name_prefix)
 }
 
 /**
+ * Allocate a vdos threads, queues, and other structures which scale with the
+ * thread config.
+ */
+static int allocate_vdo_threads(struct vdo *vdo, char **reason)
+{
+	int i;
+	struct device_config *config = vdo->device_config;
+
+	int result = vdo_make_thread_config(config->thread_counts,
+					    &vdo->thread_config);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot create thread configuration";
+		return result;
+	}
+
+	uds_log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+		     config->thread_counts.logical_zones,
+		     config->thread_counts.physical_zones,
+		     config->thread_counts.hash_zones,
+		     vdo->thread_config->base_thread_count);
+
+	/* Compression context storage */
+	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
+			      char *,
+			      "LZ4 context",
+			      &vdo->compression_context);
+	if (result != VDO_SUCCESS) {
+		*reason = "cannot allocate LZ4 context";
+		return result;
+	}
+
+	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
+		result = UDS_ALLOCATE(LZ4_MEM_COMPRESS,
+				      char,
+				      "LZ4 context",
+				      &vdo->compression_context[i]);
+		if (result != VDO_SUCCESS) {
+			*reason = "cannot allocate LZ4 context";
+			return result;
+		}
+	}
+
+	return VDO_SUCCESS;
+}
+
+static int vdo_initialize_internal(struct vdo *vdo,
+				   struct device_config *config,
+				   unsigned int instance,
+				   char **reason)
+{
+	int result;
+
+	vdo->device_config = config;
+	vdo->starting_sector_offset = config->owning_target->begin;
+	vdo->instance = instance;
+	vdo->allocations_allowed = true;
+	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
+	INIT_LIST_HEAD(&vdo->device_config_list);
+	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
+	mutex_init(&vdo->stats_mutex);
+	result = vdo_read_geometry_block(vdo_get_backing_device(vdo),
+					 &vdo->geometry);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not load geometry block";
+		vdo_destroy(vdo);
+		return result;
+	}
+
+	result = allocate_vdo_threads(vdo, reason);
+	if (result != VDO_SUCCESS) {
+		vdo_destroy(vdo);
+		return result;
+	}
+
+	result = vdo_register(vdo);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot add VDO to device registry";
+		vdo_destroy(vdo);
+		return result;
+	}
+
+	vdo_set_admin_state_code(&vdo->admin_state,
+				 VDO_ADMIN_STATE_INITIALIZED);
+	return result;
+}
+
+/**
  * Allocate and initialize a vdo.
  *
  * @param instance   Device instantiation counter
@@ -295,23 +383,12 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	/* Request threads, etc */
 	result = vdo_make_request_threads(vdo, thread_name_prefix);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot initialize request queues";
 		return result;
 	}
 
-	result = make_batch_processor(vdo,
-				      return_data_vio_batch_to_pool,
-				      vdo,
-				      &vdo->data_vio_releaser);
-	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate vio-freeing batch processor";
-		return result;
-	}
-
-	/* Dedupe Index */
 	result = vdo_make_dedupe_index(&vdo->dedupe_index,
 				       vdo,
 				       thread_name_prefix);
@@ -320,28 +397,21 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	/*
-	 * Part 3 - Do initializations that depend upon other previous
-	 * initializations, but have no order dependencies at freeing time.
-	 * Order dependencies for initialization are identified using BUG_ON.
-	 */
-
-	/* Data vio pool */
 	BUG_ON(vdo->device_config->logical_block_size <= 0);
-	BUG_ON(vdo->request_limiter.limit <= 0);
 	BUG_ON(vdo->device_config->owned_device == NULL);
-	result = make_data_vio_buffer_pool(vdo->request_limiter.limit,
-					   &vdo->data_vio_pool);
+	result = make_data_vio_pool(vdo,
+				    MAXIMUM_VDO_USER_VIOS,
+				    MAXIMUM_VDO_USER_VIOS * 3 / 4,
+				    &vdo->data_vio_pool);
 	if (result != VDO_SUCCESS) {
-		*reason = "Cannot allocate vio data";
+		*reason = "Cannot allocate data_vio pool";
 		return result;
 	}
 
-	/* Bio queue */
 	result = vdo_make_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
-				       vdo->request_limiter.limit,
+				       get_data_vio_pool_request_limit(vdo->data_vio_pool),
 				       vdo,
 				       &vdo->io_submitter);
 	if (result != VDO_SUCCESS) {
@@ -349,7 +419,6 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	/* Bio ack queue */
 	if (vdo_uses_bio_ack_queue(vdo)) {
 		result = vdo_make_thread(vdo,
 					 thread_name_prefix,
@@ -363,7 +432,6 @@ int vdo_make(unsigned int instance,
 		}
 	}
 
-	/* CPU Queues */
 	result = vdo_make_thread(vdo,
 				 thread_name_prefix,
 				 vdo->thread_config->cpu_thread,
@@ -393,8 +461,7 @@ static void finish_vdo(struct vdo *vdo)
 		finish_work_queue(vdo->threads[i].queue);
 	}
 
-	free_buffer_pool(UDS_FORGET(vdo->data_vio_pool));
-	free_batch_processor(UDS_FORGET(vdo->data_vio_releaser));
+	free_data_vio_pool(vdo->data_vio_pool);
 }
 
 /**
@@ -507,6 +574,13 @@ static void pool_stats_release(struct kobject *directory)
 	complete(&vdo->stats_shutdown);
 }
 
+ATTRIBUTE_GROUPS(vdo_pool_stats);
+static struct kobj_type stats_directory_type = {
+	.release = pool_stats_release,
+	.sysfs_ops = &vdo_pool_stats_sysfs_ops,
+	.default_groups = vdo_pool_stats_groups,
+};
+
 /**
  * Add the stats directory to the vdo sysfs directory.
  *
@@ -517,11 +591,6 @@ static void pool_stats_release(struct kobject *directory)
 int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 {
 	int result;
-	static struct kobj_type stats_directory_type = {
-		.release = pool_stats_release,
-		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
-		.default_attrs = vdo_pool_stats_attrs,
-	};
 
 	kobject_init(&vdo->stats_directory, &stats_directory_type);
 	result = kobject_add(&vdo->stats_directory,
@@ -616,6 +685,18 @@ struct block_device *vdo_get_backing_device(const struct vdo *vdo)
 }
 
 /**
+ * Get the device name associated with the vdo target
+ *
+ * @param target  The target device interface
+ *
+ * @return The block device name
+ **/
+const char *vdo_get_device_name(const struct dm_target *target)
+{
+	return dm_device_name(dm_table_get_md(target->table));
+}
+
+/**
  * Issue a flush request and wait for it to complete.
  *
  * @param vdo  The vdo
@@ -627,9 +708,14 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	int result;
 	struct bio bio;
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0)
 	bio_init(&bio, 0, 0);
 	bio_set_dev(&bio, vdo_get_backing_device(vdo));
 	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
+#else
+	bio_init(&bio, vdo_get_backing_device(vdo), 0, 0,
+		 REQ_OP_WRITE | REQ_PREFLUSH);
+#endif
 	submit_bio_wait(&bio);
 	result = blk_status_to_errno(bio.bi_status);
 
@@ -857,7 +943,6 @@ bool vdo_get_compressing(struct vdo *vdo)
 	return READ_ONCE(vdo->compressing);
 }
 
-/**********************************************************************/
 static size_t get_block_map_cache_size(const struct vdo *vdo)
 {
 	return ((size_t) vdo->device_config->cache_size) * VDO_BLOCK_SIZE;
@@ -893,7 +978,6 @@ get_hash_lock_statistics(const struct vdo *vdo)
 	return totals;
 }
 
-/**********************************************************************/
 static struct error_statistics __must_check
 get_vdo_error_statistics(const struct vdo *vdo)
 {
@@ -974,6 +1058,21 @@ vdo_get_physical_blocks_overhead(const struct vdo *vdo)
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
+static const char *vdo_describe_state(enum vdo_state state)
+{
+	/* These strings should all fit in the 15 chars of VDOStatistics.mode. */
+	switch (state) {
+	case VDO_RECOVERING:
+		return "recovering";
+
+	case VDO_READ_ONLY_MODE:
+		return "read-only";
+
+	default:
+		return "normal";
+	}
+}
+
 /**
  * Populate a vdo_statistics structure on the admin thread.
  *
@@ -1030,12 +1129,13 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->instance = vdo->instance;
 
 	stats->current_vios_in_progress =
-		READ_ONCE(vdo->request_limiter.active);
-	stats->max_vios = READ_ONCE(vdo->request_limiter.maximum);
+		get_data_vio_pool_active_requests(vdo->data_vio_pool);
+	stats->max_vios =
+		get_data_vio_pool_maximum_requests(vdo->data_vio_pool);
 
 	/*
-	 * vdo_get_dedupe_index_timeout_count() gives the number of timeouts, 
-	 * and dedupe_context_busy gives the number of queries not made because 
+	 * vdo_get_dedupe_index_timeout_count() gives the number of timeouts,
+	 * and dedupe_context_busy gives the number of queries not made because
 	 * of earlier timeouts.
 	 */
 	stats->dedupe_advice_timeouts =
@@ -1202,6 +1302,14 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 			name);
 }
 
+void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
+{
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo->thread_config->cpu_thread),
+			"%s called on cpu thread",
+			name);
+}
+
 /**
  * Select the hash zone responsible for locking a given chunk name.
  *
@@ -1263,8 +1371,8 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 	}
 
 	/*
-	 * Used because it does a more restrictive bounds check than 
-	 * vdo_get_slab(), and done first because it won't trigger read-only 
+	 * Used because it does a more restrictive bounds check than
+	 * vdo_get_slab(), and done first because it won't trigger read-only
 	 * mode on an invalid PBN.
 	 */
 	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
@@ -1355,5 +1463,3 @@ vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
 		 / vdo->device_config->thread_counts.bio_rotation_interval)
 		% vdo->thread_config->bio_thread_count);
 }
-
-

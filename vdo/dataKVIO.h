@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -24,9 +25,6 @@
 
 #include "data-vio.h"
 
-#include "batchProcessor.h"
-#include "bufferPool.h"
-#include "kernelVDO.h"
 #include "kvio.h"
 
 static inline struct data_vio *
@@ -40,7 +38,7 @@ launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 			     vdo_work_function work,
 			     enum vdo_work_item_priority priority)
 {
-	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
 
 	launch_vio(data_vio_as_vio(data_vio),
 		   work,
@@ -55,23 +53,6 @@ static inline void enqueue_data_vio_callback(struct data_vio *data_vio)
 {
 	continue_vio(data_vio_as_vio(data_vio), VDO_SUCCESS);
 }
-
-void launch_data_vio(struct vdo *vdo,
-		     struct data_vio *data_vio,
-		     struct bio *bio);
-
-void return_data_vio_batch_to_pool(struct batch_processor *batch,
-				   void *closure);
-
-void vdo_read_block(struct data_vio *data_vio,
-		    physical_block_number_t location,
-		    enum block_mapping_state mapping_state,
-		    enum vdo_work_item_priority priority,
-		    vdo_action *callback);
-
-int __must_check
-make_data_vio_buffer_pool(uint32_t pool_size,
-			  struct buffer_pool **buffer_pool_ptr);
 
 struct data_location __must_check
 vdo_get_dedupe_advice(const struct dedupe_context *context);

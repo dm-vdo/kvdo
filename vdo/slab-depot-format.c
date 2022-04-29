@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -400,7 +401,7 @@ int vdo_configure_slab(block_count_t slab_size,
 	 */
 	data_blocks = slab_size - meta_blocks;
 	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {
-		data_blocks = ((block_count_t) 1 << log_base_two(data_blocks));
+		data_blocks = ((block_count_t) 1 << ilog2(data_blocks));
 	}
 
 	/*

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -44,7 +45,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-state.h"
 
 /**
  * Calculate the number of slabs a depot would have.
@@ -129,8 +129,8 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 			return result;
 		}
 		/*
-		 * Increment here to ensure that vdo_abandon_new_slabs will 
-		 * clean up correctly. 
+		 * Increment here to ensure that vdo_abandon_new_slabs will
+		 * clean up correctly.
 		 */
 		depot->new_slab_count++;
 
@@ -313,8 +313,8 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 	int result;
 
 	/*
-	 * Calculate the bit shift for efficiently mapping block numbers to 
-	 * slabs. Using a shift requires that the slab size be a power of two. 
+	 * Calculate the bit shift for efficiently mapping block numbers to
+	 * slabs. Using a shift requires that the slab size be a power of two.
 	 */
 	block_count_t slab_size = state.slab_config.slab_blocks;
 
@@ -322,7 +322,7 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 					      "slab size must be a power of two");
 	}
-	slab_size_shift = log_base_two(slab_size);
+	slab_size_shift = ilog2(slab_size);
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
 				       vdo->thread_config->physical_zone_count,
@@ -596,7 +596,7 @@ block_count_t vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		/* The allocators are responsible for thread safety. */
-		total += vdo_get_allocated_blocks(depot->allocators[zone]);
+		total += READ_ONCE(depot->allocators[zone]->allocated_blocks);
 	}
 	return total;
 }
@@ -630,8 +630,9 @@ slab_count_t vdo_get_slab_depot_unrecovered_slab_count(const struct slab_depot *
 	zone_count_t zone;
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
+		struct block_allocator *allocator = depot->allocators[zone];
 		/* The allocators are responsible for thread safety. */
-		total += vdo_get_unrecovered_slab_count(depot->allocators[zone]);
+		total += vdo_get_scrubber_slab_count(allocator->slab_scrubber);
 	}
 	return total;
 }
@@ -924,8 +925,8 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 	prior_state = atomic_cmpxchg(&depot->vdo->state,
 				     VDO_RECOVERING, VDO_DIRTY);
 	/*
-	 * To be safe, even if the CAS failed, ensure anything that follows is 
-	 * ordered with respect to whatever state change did happen. 
+	 * To be safe, even if the CAS failed, ensure anything that follows is
+	 * ordered with respect to whatever state change did happen.
 	 */
 	smp_mb__after_atomic();
 

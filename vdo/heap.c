@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -51,8 +52,8 @@ void initialize_heap(struct heap *heap, heap_comparator *comparator,
 	};
 	if (array != NULL) {
 		/*
-		 * Calculating child indexes is simplified by pretending the 
-		 * element array is 1-based. 
+		 * Calculating child indexes is simplified by pretending the
+		 * element array is 1-based.
 		 */
 		heap->array = ((byte *) array - element_size);
 	}
@@ -65,8 +66,8 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 
 	while ((left_child = (2 * top_node)) <= last_node) {
 		/*
-		 * If there are two children, select the largest child to swap 
-		 * with. 
+		 * If there are two children, select the largest child to swap
+		 * with.
 		 */
 		size_t swap_node = left_child;
 
@@ -81,8 +82,8 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 		}
 
 		/*
-		 * Stop sifting if top_node is at least as large as its largest 
-		 * child, which means the heap invariant was restored by the 
+		 * Stop sifting if top_node is at least as large as its largest
+		 * child, which means the heap invariant was restored by the
 		 * previous swap.
 		 */
 		if (heap->comparator(&heap->array[top_node],
@@ -91,22 +92,22 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 		}
 
 		/*
-		 * Swap the element we've been sifting down with the larger 
-		 * child. 
+		 * Swap the element we've been sifting down with the larger
+		 * child.
 		 */
 		heap->swapper(&heap->array[top_node], &heap->array[swap_node]);
 
 		/*
-		 * Descend into the sub-heap rooted at that child, going around 
-		 * the loop again in place of a tail-recursive call to 
+		 * Descend into the sub-heap rooted at that child, going around
+		 * the loop again in place of a tail-recursive call to
 		 * sift_heap_down().
 		 */
 		top_node = swap_node;
 	}
 
 	/*
-	 * We sifted the element all the way to a leaf node of the heap, so the 
-	 * heap invariant has now been restored. 
+	 * We sifted the element all the way to a leaf node of the heap, so the
+	 * heap invariant has now been restored.
 	 */
 }
 
@@ -179,16 +180,16 @@ bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 	last_node = (heap->element_size * heap->count);
 
 	/*
-	 * Return the maximum element (the root of the heap) if the caller 
-	 * wanted it. 
+	 * Return the maximum element (the root of the heap) if the caller
+	 * wanted it.
 	 */
 	if (element_ptr != NULL) {
 		memcpy(element_ptr, &heap->array[root_node], heap->element_size);
 	}
 
 	/*
-	 * Move the right-most leaf node to the vacated root node, reducing the 
-	 * number of elements by one and violating the heap invariant. 
+	 * Move the right-most leaf node to the vacated root node, reducing the
+	 * number of elements by one and violating the heap invariant.
 	 */
 	if (root_node != last_node) {
 		memcpy(&heap->array[root_node], &heap->array[last_node],
@@ -198,8 +199,8 @@ bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 	last_node -= heap->element_size;
 
 	/*
-	 * Restore the heap invariant by sifting the root back down into the 
-	 * heap. 
+	 * Restore the heap invariant by sifting the root back down into the
+	 * heap.
 	 */
 	sift_heap_down(heap, root_node, last_node);
 	return true;
@@ -219,13 +220,13 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node,
 	 */
 	heap->swapper(&heap->array[root_node], &heap->array[last_node]);
 	/*
-	 * The sorted list is now one element larger and valid. The heap is 
-	 * one element smaller, and invalid. 
+	 * The sorted list is now one element larger and valid. The heap is
+	 * one element smaller, and invalid.
 	 */
 	last_node -= heap->element_size;
 	/*
-	 * Restore the heap invariant by sifting the swapped element back down 
-	 * into the heap. 
+	 * Restore the heap invariant by sifting the swapped element back down
+	 * into the heap.
 	 */
 	sift_heap_down(heap, root_node, last_node);
 	return last_node;
@@ -251,16 +252,16 @@ size_t sort_heap(struct heap *heap)
 	size_t root_node, last_node, count;
 
 	/*
-	 * All zero-length records are identical and therefore already sorted, 
-	 * as are empty or singleton arrays. 
+	 * All zero-length records are identical and therefore already sorted,
+	 * as are empty or singleton arrays.
 	 */
 	if ((heap->count < 2) || (heap->element_size == 0)) {
 		return heap->count;
 	}
 
 	/*
-	 * Get the byte array offset of the root node, and the right-most leaf 
-	 * node in the 1-based array of records that will form the heap. 
+	 * Get the byte array offset of the root node, and the right-most leaf
+	 * node in the 1-based array of records that will form the heap.
 	 */
 	root_node = (heap->element_size * 1);
 	last_node = (heap->element_size * heap->count);
@@ -291,8 +292,8 @@ void *sort_next_heap_element(struct heap *heap)
 	}
 
 	/*
-	 * Get the byte array offset of the root node, and the right-most leaf 
-	 * node in the 1-based array of records that will form the heap. 
+	 * Get the byte array offset of the root node, and the right-most leaf
+	 * node in the 1-based array of records that will form the heap.
 	 */
 	root_node = (heap->element_size * 1);
 	last_node = (heap->element_size * heap->count);

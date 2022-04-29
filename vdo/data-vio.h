@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -27,9 +28,9 @@
 #include "permassert.h"
 #include "uds.h"
 
-#include "allocating-vio.h"
 #include "block-mapping-state.h"
 #include "completion.h"
+#include "compressed-block.h"
 #include "constants.h"
 #include "hash-zone.h"
 #include "journal-point.h"
@@ -54,6 +55,7 @@ enum async_operation_number {
 	VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK,
 	VIO_ASYNC_OP_LOCK_DUPLICATE_PBN,
 	VIO_ASYNC_OP_CHECK_FOR_DUPLICATION,
+	VIO_ASYNC_OP_CLEANUP,
 	VIO_ASYNC_OP_COMPRESS_DATA_VIO,
 	VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT,
 	VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ,
@@ -154,14 +156,43 @@ struct compression_state {
 	/* A link in the chain of data_vios which have been packed together */
 	struct data_vio *next_in_batch;
 
-	/* A pointer to the compressed form of this block */
-	char *data;
-
 	/*
 	 * A vio which is blocked in the packer while holding a lock this vio
 	 * needs.
 	 */
 	struct data_vio *lock_holder;
+
+	/*
+	 * The compressed block used to hold the compressed form of this block
+         * and that of any other blocks for which this data_vio is the
+         * compressed write agent.
+	 */
+	struct compressed_block *block;
+};
+
+/* Fields supporting allocation of data blocks. */
+struct allocation {
+	/** The physical zone in which to allocate a physical block */
+	struct physical_zone *zone;
+
+	/** The block allocated to this vio */
+	physical_block_number_t pbn;
+
+	/**
+	 * If non-NULL, the pooled PBN lock held on the allocated block. Must
+	 * be a write lock until the block has been written, after which it
+	 * will become a read lock.
+	 **/
+	struct pbn_lock *lock;
+
+	/** The type of write lock to obtain on the allocated block */
+	enum pbn_lock_type write_lock_type;
+
+	/** The zone which was the start of the current allocation cycle */
+	zone_count_t first_allocation_zone;
+
+	/** Whether this vio should wait for a clean slab */
+	bool wait_for_clean_slab;
 };
 
 /* Dedupe support */
@@ -174,37 +205,15 @@ struct dedupe_context {
 	bool is_pending;
 };
 
-struct read_block {
-	/**
-	 * A pointer to a block that holds the data from the last read
-	 * operation.
-	 **/
-	char *data;
-	/**
-	 * Temporary storage for doing reads from the underlying device.
-	 **/
-	char *buffer;
-	/**
-	 * Callback to invoke after completing the read I/O operation.
-	 **/
-	vdo_action *callback;
-	/**
-	 * Mapping state passed to vdo_read_block(), used to determine whether
-	 * the data must be uncompressed.
-	 **/
-	enum block_mapping_state mapping_state;
-	/**
-	 * The result code of the read attempt.
-	 **/
-	int status;
-};
-
 /**
  * A vio for processing user data requests.
  **/
 struct data_vio {
-	/* The underlying struct allocating_vio */
-	struct allocating_vio allocating_vio;
+	/* The underlying struct vio */
+	struct vio vio;
+
+	/** The wait_queue entry structure */
+	struct waiter waiter;
 
 	/* The logical block of this request */
 	struct lbn_lock logical;
@@ -232,6 +241,9 @@ struct data_vio {
 
 	/* Whether this vio write is a duplicate */
 	bool is_duplicate;
+
+	/* Data block allocation */
+	struct allocation allocation;
 
 	/*
 	 * Whether this vio has received an allocation. This field is examined
@@ -292,9 +304,6 @@ struct data_vio {
 	/* The completion to use for fetching block map pages for this vio */
 	struct vdo_page_completion page_completion;
 
-	/* All of the fields necessary for the compression path */
-	struct compression_state compression;
-
 	/* The user bio that initiated this VIO */
 	struct bio *user_bio;
 
@@ -318,6 +327,9 @@ struct data_vio {
 	/* Dedupe */
 	struct dedupe_context dedupe_context;
 
+	/* All of the fields necessary for the compression path */
+	struct compression_state compression;
+
 	/**
 	 * A copy of user data written, so we can do additional processing
 	 * (dedupe, compression) after acknowledging the I/O operation and
@@ -327,27 +339,13 @@ struct data_vio {
 	 * emulating smaller-than-blockSize I/O operations.
 	 **/
 	char *data_block;
+
 	/** A block used as output during compression or uncompression */
 	char *scratch_block;
-	/* For data and verification reads */
-	struct read_block read_block;
-};
 
-/**
- * Convert an allocating_vio to a data_vio.
- *
- * @param allocating_vio  The allocating_vio to convert
- *
- * @return The allocating_vio as a data_vio
- **/
-static inline struct data_vio *
-allocating_vio_as_data_vio(struct allocating_vio *allocating_vio)
-{
-	ASSERT_LOG_ONLY((allocating_vio_as_vio(allocating_vio)->type ==
-			 VIO_TYPE_DATA),
-			"allocating_vio is a struct data_vio");
-	return container_of(allocating_vio, struct data_vio, allocating_vio);
-}
+	/* The data_vio pool list entry */
+	struct list_head pool_entry;
+};
 
 /**
  * Convert a vio to a data_vio.
@@ -359,22 +357,7 @@ allocating_vio_as_data_vio(struct allocating_vio *allocating_vio)
 static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 {
 	ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
-	return container_of(container_of(vio, struct allocating_vio, vio),
-			    struct data_vio,
-			    allocating_vio);
-}
-
-/**
- * Convert a data_vio to an allocating_vio.
- *
- * @param data_vio  The data_vio to convert
- *
- * @return The data_vio as an allocating_vio
- **/
-static inline
-struct allocating_vio *data_vio_as_allocating_vio(struct data_vio *data_vio)
-{
-	return &data_vio->allocating_vio;
+	return container_of(vio, struct data_vio, vio);
 }
 
 /**
@@ -386,7 +369,7 @@ struct allocating_vio *data_vio_as_allocating_vio(struct data_vio *data_vio)
  **/
 static inline struct vio *data_vio_as_vio(struct data_vio *data_vio)
 {
-	return allocating_vio_as_vio(data_vio_as_allocating_vio(data_vio));
+	return &data_vio->vio;
 }
 
 /**
@@ -411,7 +394,17 @@ static inline struct data_vio *as_data_vio(struct vdo_completion *completion)
 static inline struct vdo_completion *
 data_vio_as_completion(struct data_vio *data_vio)
 {
-	return allocating_vio_as_completion(data_vio_as_allocating_vio(data_vio));
+	return vio_as_completion(data_vio_as_vio(data_vio));
+}
+
+static inline struct data_vio *
+data_vio_from_funnel_queue_entry(struct funnel_queue_entry *entry)
+{
+	return as_data_vio(container_of(container_of(entry,
+						     struct vdo_work_item,
+						     work_queue_entry_link),
+					struct vdo_completion,
+					work_item));
 }
 
 /**
@@ -436,7 +429,7 @@ work_item_from_data_vio(struct data_vio *data_vio)
  **/
 static inline struct waiter *data_vio_as_waiter(struct data_vio *data_vio)
 {
-	return allocating_vio_as_waiter(data_vio_as_allocating_vio(data_vio));
+	return &data_vio->waiter;
 }
 
 /**
@@ -452,7 +445,7 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 		return NULL;
 	}
 
-	return allocating_vio_as_data_vio(waiter_as_allocating_vio(waiter));
+	return container_of(waiter, struct data_vio, waiter);
 }
 
 /**
@@ -511,7 +504,7 @@ get_data_vio_new_advice(const struct data_vio *data_vio)
  *
  * @return The vdo to which a data_vio belongs
  **/
-static inline struct vdo *vdo_get_from_data_vio(struct data_vio *data_vio)
+static inline struct vdo *vdo_from_data_vio(struct data_vio *data_vio)
 {
 	return data_vio_as_completion(data_vio)->vdo;
 }
@@ -526,7 +519,7 @@ static inline struct vdo *vdo_get_from_data_vio(struct data_vio *data_vio)
 static inline const struct thread_config *
 get_thread_config_from_data_vio(struct data_vio *data_vio)
 {
-	return vdo_get_from_data_vio(data_vio)->thread_config;
+	return vdo_from_data_vio(data_vio)->thread_config;
 }
 
 /**
@@ -539,7 +532,7 @@ get_thread_config_from_data_vio(struct data_vio *data_vio)
 static inline
 physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
 {
-	return data_vio_as_allocating_vio(data_vio)->allocation;
+	return data_vio->allocation.pbn;
 }
 
 /**
@@ -554,10 +547,13 @@ static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 	return (get_data_vio_allocation(data_vio) != VDO_ZERO_BLOCK);
 }
 
-void prepare_data_vio(struct data_vio *data_vio,
-		      logical_block_number_t lbn,
-		      enum vio_operation operation,
-		      vdo_action *callback);
+void destroy_data_vio(struct data_vio *data_vio);
+
+int __must_check initialize_data_vio(struct data_vio *data_vio);
+
+void launch_data_vio(struct data_vio *data_vio,
+		     logical_block_number_t lbn,
+		     enum vio_operation operation);
 
 void complete_data_vio(struct vdo_completion *completion);
 
@@ -700,7 +696,14 @@ launch_data_vio_logical_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
 {
-	assert_vio_in_physical_zone(data_vio_as_allocating_vio(data_vio));
+	thread_id_t expected = data_vio->allocation.zone->thread_id;
+	thread_id_t thread_id = vdo_get_callback_thread_id();
+
+	ASSERT_LOG_ONLY((expected == thread_id),
+			"struct data_vio for allocated physical block %llu on thread %u, should be on thread %u",
+			(unsigned long long) data_vio->allocation.pbn,
+			thread_id,
+			expected);
 }
 
 /**
@@ -713,8 +716,9 @@ static inline void
 set_data_vio_allocated_zone_callback(struct data_vio *data_vio,
 				     vdo_action *callback)
 {
-	vio_set_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
-				       callback);
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    data_vio->allocation.zone->thread_id);
 }
 
 /**
@@ -728,8 +732,8 @@ static inline void
 launch_data_vio_allocated_zone_callback(struct data_vio *data_vio,
 					vdo_action *callback)
 {
-	vio_launch_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
-					  callback);
+	set_data_vio_allocated_zone_callback(data_vio, callback);
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -1044,7 +1048,7 @@ static inline void
 launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 				 vdo_action *callback)
 {
-	struct vdo *vdo = vdo_get_from_data_vio(data_vio);
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
 	if (!vdo_uses_bio_ack_queue(vdo)) {
@@ -1073,6 +1077,21 @@ int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
 
 void vdo_release_logical_block_lock(struct data_vio *data_vio);
 
+void data_vio_allocate_data_block(struct data_vio *data_vio,
+				  enum pbn_lock_type write_lock_type,
+				  vdo_action *callback,
+				  vdo_action *error_handler);
+
+/**
+ * Release the PBN lock on a data_vio's allocated block. If the reference to
+ * the locked block is still provisional, it will be released as well.
+ *
+ * @param data_vio  The lock holder
+ * @param reset     If true, the allocation will be reset (i.e. any allocated
+ *                  pbn will be forgotten)
+ **/
+void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
+
 /**
  * A function to determine whether a block is a duplicate. This function
  * expects the 'physical' field of the data_vio to be set to the physical block
@@ -1086,56 +1105,19 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio);
 void check_data_vio_for_duplication(struct data_vio *data_vio);
 
 /**
- * A function to verify the duplication advice by examining an already-stored
- * data block. This function expects the 'physical' field of the data_vio to be
- * set to the physical block where the block will be written if it is not a
- * duplicate, and the 'duplicate' field to be set to the physical block and
- * mapping state where a copy of the data may already exist. If the block is
- * not a duplicate, the data_vio's 'isDuplicate' field will be cleared.
- *
- * @param data_vio  The data_vio containing the block to check.
- **/
-void verify_data_vio_duplication(struct data_vio *data_vio);
-
-/**
  * Update the index with new dedupe advice.
  *
  * @param data_vio  The data_vio which needs to change the entry for its data
  **/
 void vdo_update_dedupe_index(struct data_vio *data_vio);
 
-/**
- * A function to apply a partial write to a data_vio which has completed the
- * read portion of a read-modify-write operation.
- *
- * @param data_vio  The data_vio to modify
- **/
-void vdo_apply_partial_write(struct data_vio *data_vio);
-
 void acknowledge_data_vio(struct data_vio *data_vio);
 
 void compress_data_vio(struct data_vio *data_vio);
 
-/**
- * A function to read a single data_vio from the layer.
- *
- * If the data_vio does not describe a read-modify-write operation, the
- * physical layer may safely acknowledge the related user I/O request
- * as complete.
- *
- * @param data_vio  The data_vio to read
- **/
-void read_data_vio(struct data_vio *data_vio);
-
-/**
- * A function to compare the contents of a data_vio to another data_vio.
- *
- * @param first   The first data_vio to compare
- * @param second  The second data_vio to compare
- *
- * @return <code>true</code> if the contents of the two DataVIOs are the same
- **/
-bool compare_data_vios(struct data_vio *first, struct data_vio *second);
+int __must_check uncompress_data_vio(struct data_vio *data_vio,
+				     enum block_mapping_state mapping_state,
+				     char *buffer);
 
 /**
  * Prepare a data_vio's vio and bio to submit I/O.

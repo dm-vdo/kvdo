@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -603,8 +604,8 @@ static void finish_simple_work_queue(struct simple_work_queue *queue)
 	}
 
 	/*
-	 * Reduces (but does not eliminate) the chance of the sysfs support 
-	 * reporting the pid even after the thread is gone. 
+	 * Reduces (but does not eliminate) the chance of the sysfs support
+	 * reporting the pid even after the thread is gone.
 	 */
 	WRITE_ONCE(queue->thread_pid, 0);
 
@@ -661,8 +662,8 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		     task_state_report);
 
 	/*
-	 * ->lock spin lock status? 
-	 * ->waiting_worker_threads wait queue status? anyone waiting? 
+	 * ->lock spin lock status?
+	 * ->waiting_worker_threads wait queue status? anyone waiting?
 	 */
 }
 
@@ -691,35 +692,35 @@ static void get_function_name(void *pointer,
 			      char *buffer,
 			      size_t buffer_length)
 {
-        if (pointer == NULL) {
+	if (pointer == NULL) {
                 /*
                  * Format "%ps" logs a null pointer as "(null)" with a bunch of
                  * leading spaces. We sometimes use this when logging lots of
                  * data; don't be so verbose.
                  */
-                strncpy(buffer, "-", buffer_length);
-        } else {
+		strncpy(buffer, "-", buffer_length);
+	} else {
                 /*
                  * Use a non-const array instead of a string literal below to
                  * defeat gcc's format checking, which doesn't understand that
                  * "%ps" actually does support a precision spec in Linux kernel
                  * code.
                  */
-                static char truncated_function_name_format_string[] = "%.*ps";
-                char *space;
+		static char truncated_function_name_format_string[] = "%.*ps";
+		char *space;
 
-                snprintf(buffer,
-                         buffer_length,
-                         truncated_function_name_format_string,
-                         buffer_length - 1,
-                         pointer);
+		snprintf(buffer,
+			 buffer_length,
+			 truncated_function_name_format_string,
+			 buffer_length - 1,
+			 pointer);
 
-                space = strchr(buffer, ' ');
+		space = strchr(buffer, ' ');
 
-                if (space != NULL) {
-                        *space = '\0';
-                }
-        }
+		if (space != NULL) {
+			*space = '\0';
+		}
+	}
 }
 
 void dump_work_item_to_buffer(struct vdo_work_item *item,
@@ -752,6 +753,7 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 	 * to actually queue on.
 	 */
 	struct simple_work_queue *simple_queue = NULL;
+
 	if (!queue->round_robin_mode) {
 		simple_queue = as_simple_work_queue(queue);
 	} else {
@@ -795,6 +797,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 		return NULL;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
 	/*
 	 * The kthreadd process has the PF_KTHREAD flag set but a null "struct
 	 * kthread" pointer, which breaks the (initial) implementation of
@@ -806,17 +809,27 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 * usermodehelper code path before exec is called, and/or kthread setup
 	 * when allocating the kthread struct itself.
 	 *
-	 * So we check for the null pointer first. The kthread code overloads
-	 * the set_child_tid field to use for its pointer in PF_KTHREAD
-	 * processes. (If PF_KTHREAD is clear, kthread_func will return null
-	 * anyway so we needn't worry about that case.)
+	 * So we check for the null pointer first, on older kernels. The
+	 * kthread code initially overloaded the set_child_tid field to use for
+	 * its pointer in PF_KTHREAD processes. (If PF_KTHREAD is clear,
+	 * kthread_func will return null anyway so we needn't worry about that
+	 * case.)
 	 *
-	 * FIXME: When submitting upstream, make sure kthread_func is fixed
-	 * instead, and drop this check.
+	 * This bug was fixed in the 5.13 kernel release, but the 5.17 kernel
+	 * release changed the task structure field used such that this
+	 * workaround will break things on newer kernels. It shows up as a null
+	 * pointer returned for the current work queue even when running in the
+	 * work queue thread.
+	 *
+	 * Any backports of the 5.13 fix to custom pre-5.13 kernels should have
+	 * no problem with this. Backports of the 5.17 change to 5.13 and later
+	 * should be okay with this #if check; backports to pre-5.13 will need
+	 * further protection.
 	 */
 	if (current->set_child_tid == NULL) {
 		return NULL;
 	}
+#endif
 
 	if (kthread_func(current) != work_queue_runner) {
 		/* Not a VDO work queue thread. */

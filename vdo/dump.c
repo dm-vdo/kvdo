@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -24,15 +25,13 @@
 #include "memory-alloc.h"
 #include "type-defs.h"
 
-#include "bufferPool.h"
 #include "constants.h"
-#include "dedupeIndex.h"
+#include "dedupe-index.h"
 #include "io-submitter.h"
 #include "kernel-types.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-init.h"
 
 enum dump_options {
 	/* Work queues */
@@ -42,8 +41,8 @@ enum dump_options {
 	/* Others */
 	SHOW_VDO_STATUS,
 	/*
-	 * This one means an option overrides the "default" choices, instead 
-	 * of altering them. 
+	 * This one means an option overrides the "default" choices, instead
+	 * of altering them.
 	 */
 	SKIP_DEFAULT
 };
@@ -78,11 +77,8 @@ static void do_dump(struct vdo *vdo,
 	int64_t outstanding;
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
-	/* FIXME: Add in number of outstanding requests being processed by vdo */
-
-	active = READ_ONCE(vdo->request_limiter.active);
-	maximum = READ_ONCE(vdo->request_limiter.maximum);
-
+	active = get_data_vio_pool_active_requests(vdo->data_vio_pool);
+	maximum = get_data_vio_pool_maximum_requests(vdo->data_vio_pool);
 	outstanding = (atomic64_read(&vdo->stats.bios_submitted) -
 		       atomic64_read(&vdo->stats.bios_completed));
 	uds_log_info("%u device requests outstanding (max %u), %lld bio requests outstanding, device '%s'",
@@ -100,8 +96,8 @@ static void do_dump(struct vdo *vdo,
 	}
 
 	vdo_dump_dedupe_index(vdo->dedupe_index);
-	dump_buffer_pool(vdo->data_vio_pool,
-			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
+	dump_data_vio_pool(vdo->data_vio_pool,
+			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
 		vdo_dump_status(vdo);
 	}
@@ -235,7 +231,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	if (data_vio_as_completion(data_vio)->result != VDO_SUCCESS) {
 		*p_flag++ = 'R';
 	}
-	if (data_vio_as_allocating_vio(data_vio)->waiter.next_waiter != NULL) {
+	if (data_vio->waiter.next_waiter != NULL) {
 		*p_flag++ = 'W';
 	}
 	if (data_vio->is_duplicate) {
@@ -266,8 +262,8 @@ void dump_data_vio(void *data)
 	 */
 	static char vio_work_item_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
 	/*
-	 * Another static buffer... 
-	 * log10(256) = 2.408+, round up: 
+	 * Another static buffer...
+	 * log10(256) = 2.408+, round up:
 	 */
 	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
 	static char vio_block_number_dump_buffer[sizeof("P L D")
@@ -317,8 +313,8 @@ void dump_data_vio(void *data)
 		     vio_work_item_dump_buffer,
 		     flags_dump_buffer);
 	/*
-	 * might want info on: wantUDSAnswer / operation / status 
-	 * might want info on: bio / bios_merged 
+	 * might want info on: wantUDSAnswer / operation / status
+	 * might want info on: bio / bios_merged
 	 */
 
 	dump_vio_waiters(&data_vio->logical.waiters, "lbn");

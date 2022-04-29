@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -26,7 +27,7 @@
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
-#include "dedupeIndex.h"
+#include "dedupe-index.h"
 #include "device-config.h"
 #include "hash-zone.h"
 #include "header.h"
@@ -43,7 +44,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-init.h"
 #include "vdo-recovery.h"
 #include "vdo-suspend.h"
 
@@ -627,7 +627,7 @@ static void vdo_load_components(struct vdo_completion *completion)
 }
 
 /**
- * Callback to initiate a pre-load, registered in prepare_to_vdo_load().
+ * Callback to initiate a pre-load, registered in vdo_prepare_to_load().
  *
  * @param completion  The sub-task completion
  **/
@@ -660,7 +660,7 @@ static void pre_load_callback(struct vdo_completion *completion)
  * whereas perform_vdo_load() will be called during pre-resume if the vdo has
  * not been resumed before.
  **/
-int prepare_to_vdo_load(struct vdo *vdo)
+int vdo_prepare_to_load(struct vdo *vdo)
 {
 	return vdo_perform_admin_operation(vdo,
 					   VDO_ADMIN_OPERATION_PRE_LOAD,

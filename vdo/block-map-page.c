@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -34,16 +35,6 @@ static const struct version_number BLOCK_MAP_4_1 = {
 	.minor_version = 1,
 };
 
-/**
- * Format a block map page in memory.
- *
- * @param buffer       The buffer which holds the page
- * @param nonce        The VDO nonce
- * @param pbn          The absolute PBN of the page
- * @param initialized  Whether the page should be marked as initialized
- *
- * @return the buffer pointer, as a block map page (for convenience)
- **/
 struct block_map_page *vdo_format_block_map_page(void *buffer,
 						 nonce_t nonce,
 						 physical_block_number_t pbn,
@@ -59,26 +50,11 @@ struct block_map_page *vdo_format_block_map_page(void *buffer,
 	return page;
 }
 
-/**
- * Check whether a newly read page is valid, upgrading its in-memory format if
- * possible and necessary. If the page is valid, clear fields which are not
- * meaningful on disk.
- *
- * @param page   The page to validate
- * @param nonce  The VDO nonce
- * @param pbn    The expected absolute PBN of the page
- *
- * @return The validity of the page
- **/
 enum block_map_page_validity
 vdo_validate_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn)
 {
-	/*
-	 * Make sure the page layout isn't accidentally changed by changing the 
-	 * length of the page header. 
-	 */
 	STATIC_ASSERT_SIZEOF(struct block_map_page_header,
 			     PAGE_HEADER_4_1_SIZE);
 

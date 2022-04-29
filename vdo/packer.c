@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -27,7 +28,6 @@
 #include "string-utils.h"
 
 #include "admin-state.h"
-#include "allocating-vio.h"
 #include "allocation-selector.h"
 #include "completion.h"
 #include "constants.h"
@@ -144,6 +144,7 @@ int vdo_make_packer(struct vdo *vdo,
 	block_count_t i;
 
 	int result = UDS_ALLOCATE(1, struct packer, __func__, &packer);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -216,7 +217,7 @@ void vdo_free_packer(struct packer *packer)
 static inline struct packer *
 get_packer_from_data_vio(struct data_vio *data_vio)
 {
-	return vdo_get_from_data_vio(data_vio)->packer;
+	return vdo_from_data_vio(data_vio)->packer;
 }
 
 /**
@@ -279,16 +280,15 @@ static void abort_packing(struct data_vio *data_vio)
  * @param allocation  The allocation to which the compressed block was written
  **/
 static void release_compressed_write_waiter(struct data_vio *data_vio,
-					    struct allocating_vio *allocation)
+					    struct allocation *allocation)
 {
 	data_vio->new_mapped = (struct zoned_pbn) {
-		.pbn = allocation->allocation,
+		.pbn = allocation->pbn,
 		.zone = allocation->zone,
 		.state = vdo_get_state_for_slot(data_vio->compression.slot),
 	};
 
-	vdo_share_compressed_write_lock(data_vio,
-					allocation->allocation_lock);
+	vdo_share_compressed_write_lock(data_vio, allocation->lock);
 	continue_write_after_compression(data_vio);
 }
 
@@ -301,7 +301,6 @@ static void release_compressed_write_waiter(struct data_vio *data_vio,
 static void finish_compressed_write(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
-	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 	struct data_vio *client, *next;
 
 	assert_data_vio_in_allocated_zone(agent);
@@ -315,30 +314,29 @@ static void finish_compressed_write(struct vdo_completion *completion)
 	     client != NULL;
 	     client = next) {
 		next = client->compression.next_in_batch;
-		release_compressed_write_waiter(client, allocating_vio);
+		release_compressed_write_waiter(client, &agent->allocation);
 	}
 
 	completion->error_handler = NULL;
-	release_compressed_write_waiter(agent, allocating_vio);
+	release_compressed_write_waiter(agent, &agent->allocation);
 }
 
 /**********************************************************************/
 static void handle_compressed_write_error(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
-	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
+	struct allocation *allocation = &agent->allocation;
 	struct data_vio *client, *next;
 
-	if (vdo_get_callback_thread_id() != allocating_vio->zone->thread_id) {
-		completion->callback_thread_id =
-			allocating_vio->zone->thread_id;
+	if (vdo_get_callback_thread_id() != allocation->zone->thread_id) {
+		completion->callback_thread_id = allocation->zone->thread_id;
 		vdo_continue_completion(completion, VDO_SUCCESS);
 		return;
 	}
 
 	update_vio_error_stats(as_vio(completion),
 			       "Completing compressed write vio for physical block %llu with error",
-			       (unsigned long long) allocating_vio->allocation);
+			       (unsigned long long) allocation->pbn);
 
 	for (client = agent->compression.next_in_batch;
 	     client != NULL;
@@ -417,7 +415,7 @@ static block_size_t pack_fragment(struct compression_state *compression,
 				  struct compressed_block *block)
 {
 	struct compression_state *to_pack = &data_vio->compression;
-	char *fragment = ((struct compressed_block *) to_pack->data)->data;
+	char *fragment = to_pack->block->data;
 
 	to_pack->next_in_batch = compression->next_in_batch;
 	compression->next_in_batch = data_vio;
@@ -469,7 +467,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 
 	compression = &agent->compression;
 	compression->slot = 0;
-	block = (struct compressed_block *) agent->scratch_block;
+	block = compression->block;
 	vdo_initialize_compressed_block(block, compression->size);
 	offset = compression->size;
 
@@ -491,19 +489,20 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		return;
 	}
 
+	vdo_clear_unused_compression_slots(block, slot);
 	data_vio_as_completion(agent)->error_handler =
 		handle_compressed_write_error;
-	vdo = vdo_get_from_data_vio(agent);
+	vdo = vdo_from_data_vio(agent);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		continue_data_vio(agent, VDO_READ_ONLY);
 		return;
 	}
 
 	result = prepare_data_vio_for_io(agent,
-					 agent->scratch_block,
+					 (char *) block,
 					 compressed_write_end_io,
 					 REQ_OP_WRITE,
-					 data_vio_as_allocating_vio(agent)->allocation);
+					 agent->allocation.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio(agent, result);
 		return;
@@ -846,7 +845,7 @@ void vdo_dump_packer(const struct packer *packer)
 	uds_log_info("packer");
 	uds_log_info("  flushGeneration=%llu state %s  packer_bin_count=%llu",
 		     (unsigned long long) packer->flush_generation,
-		     vdo_get_admin_state_name(&packer->state),
+		     vdo_get_admin_state_code(&packer->state)->name,
 		     (unsigned long long) packer->size);
 	for (bin = vdo_get_packer_fullest_bin(packer);
 	     bin != NULL;

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -22,10 +23,10 @@
 
 #include <linux/atomic.h>
 #include "admin-state.h"
-#include "fixed-layout.h"
 #include "slab-depot-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-layout.h"
 
 /**
  * A slab_depot is responsible for managing all of the slabs and block

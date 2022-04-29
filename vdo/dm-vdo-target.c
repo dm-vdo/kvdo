@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -19,24 +20,24 @@
 
 #include <linux/module.h>
 
-#include "logger.h"
-#include "memory-alloc.h"
-#include "thread-device.h"
-#include "thread-registry.h"
-
 #include "bio.h"
 #include "constants.h"
-#include "dedupeIndex.h"
+#include "data-vio-pool.h"
+#include "dedupe-index.h"
 #include "device-registry.h"
 #include "dump.h"
 #include "flush.h"
 #include "instance-number.h"
 #include "io-submitter.h"
+#include "logger.h"
+#include "memory-alloc.h"
 #include "messageStats.h"
 #include "string-utils.h"
 #include "thread-config.h"
+#include "thread-device.h"
+#include "thread-registry.h"
+#include "uds-sysfs.h"
 #include "vdo.h"
-#include "vdo-init.h"
 #include "vdo-load.h"
 #include "vdo-resume.h"
 #include "vdo-suspend.h"
@@ -48,9 +49,7 @@ static struct vdo *get_vdo_for_target(struct dm_target *ti)
 
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-	int result;
 	struct vdo *vdo = get_vdo_for_target(ti);
-	struct data_vio *data_vio;
 	struct vdo_work_queue *current_work_queue;
 	const struct admin_state_code *code
 		= vdo_get_admin_state_code(&vdo->admin_state);
@@ -74,25 +73,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	current_work_queue = get_current_work_queue();
 	BUG_ON((current_work_queue != NULL)
 	       && (vdo == get_work_queue_owner(current_work_queue)->vdo));
-
-	if (bio_op(bio) == REQ_OP_DISCARD) {
-		limiter_wait_for_one_free(&vdo->discard_limiter);
-	}
-	limiter_wait_for_one_free(&vdo->request_limiter);
-
-
-	result = alloc_buffer_from_pool(vdo->data_vio_pool,
-					(void **) &data_vio);
-	if (unlikely(result != VDO_SUCCESS)) {
-		uds_log_info("%s: vio allocation failure", __func__);
-		if (bio_op(bio) == REQ_OP_DISCARD) {
-			limiter_release(&vdo->discard_limiter);
-		}
-		limiter_release(&vdo->request_limiter);
-		return vdo_map_to_system_error(result);
-	}
-
-	launch_data_vio(vdo, data_vio, bio);
+	vdo_launch_bio(vdo->data_vio_pool, bio);
 	return DM_MAPIO_SUBMITTED;
 }
 
@@ -129,8 +110,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 				       * VDO_SECTORS_PER_BLOCK);
 
 	/*
-	 * Force discards to not begin or end with a partial block by stating 
-	 * the granularity is 4k. 
+	 * Force discards to not begin or end with a partial block by stating
+	 * the granularity is 4k.
 	 */
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
@@ -165,8 +146,8 @@ static void vdo_status(struct dm_target *ti,
 	struct device_config *device_config;
 	char name_buffer[BDEVNAME_SIZE];
 	/*
-	 * N.B.: The DMEMIT macro uses the variables named "sz", "result", 
-	 * "maxlen". 
+	 * N.B.: The DMEMIT macro uses the variables named "sz", "result",
+	 * "maxlen".
 	 */
 	int sz = 0;
 
@@ -193,15 +174,13 @@ static void vdo_status(struct dm_target *ti,
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
 	/*
-	 * XXX We ought to print more detailed output here, but this is what 
-	 * thin does. 
+	 * FIXME: We ought to print more detailed output here, but this is what
+	 * thin does.
 	 */
 	case STATUSTYPE_IMA:
 		*result = '\0';
 		break;
-#endif /* 5.15+ */
 	}
 }
 
@@ -308,8 +287,8 @@ static int vdo_message(struct dm_target *ti,
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
 	/*
-	 * Must be done here so we don't map return codes. The code in 
-	 * dm-ioctl expects a 1 for a return code to look at the buffer 
+	 * Must be done here so we don't map return codes. The code in
+	 * dm-ioctl expects a 1 for a return code to look at the buffer
 	 * and see if it is full or not.
 	 */
 	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
@@ -334,8 +313,8 @@ static void configure_target_capabilities(struct dm_target *ti)
 	ti->num_flush_bios = 1;
 
 	/*
-	 * If this value changes, please make sure to update the 
-	 * value for max_discard_sectors accordingly. 
+	 * If this value changes, please make sure to update the
+	 * value for max_discard_sectors accordingly.
 	 */
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 }
@@ -395,7 +374,7 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	result = prepare_to_vdo_load(vdo);
+	result = vdo_prepare_to_load(vdo);
 	if (result != VDO_SUCCESS) {
 		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
 			     ? "Pre-load is only valid immediately after initialization"
@@ -522,8 +501,8 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
 		/*
-		 * The VDO still references this config. Give it a reference 
-		 * to a config that isn't being destroyed. 
+		 * The VDO still references this config. Give it a reference
+		 * to a config that isn't being destroyed.
 		 */
 		vdo->device_config =
 			vdo_as_device_config(vdo->device_config_list.next);
@@ -597,9 +576,9 @@ static int vdo_preresume(struct dm_target *ti)
 static void vdo_resume(struct dm_target *ti)
 {
 	struct registered_thread instance_thread;
+
 	uds_register_thread_device_id(&instance_thread,
 				      &get_vdo_for_target(ti)->instance);
-
 	uds_log_info("device '%s' resumed", vdo_get_device_name(ti));
 	uds_unregister_thread_device_id();
 }
@@ -613,7 +592,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 8, 1, 0 },
+	.version = { 8, 2, 0 },
 	.module = THIS_MODULE,
 	.ctr = vdo_ctr,
 	.dtr = vdo_dtr,
@@ -647,6 +626,14 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
+	/*
+	 * UDS module level initialization must be done first, as VDO
+	 * initialization depends on it
+	 */
+	uds_initialize_thread_device_registry();
+	uds_memory_init();
+	uds_init_sysfs();
+
 	vdo_initialize_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
@@ -674,6 +661,12 @@ static int __init vdo_init(void)
 static void __exit vdo_exit(void)
 {
 	vdo_module_destroy();
+	/*
+	 * UDS module level exit processing must be done after all VDO
+	 * module exit processing is complete.
+	 */
+	uds_put_sysfs();
+	uds_memory_exit();
 }
 
 module_init(vdo_init);

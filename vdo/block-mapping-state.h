@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -37,28 +38,22 @@ enum block_mapping_state {
 	VDO_MAPPING_STATE_COMPRESSED_MAX = 15, /* Compressed in slot 13 */
 };
 
-/**
- * The total number of compressed blocks that can live in a physical block.
- **/
 enum {
 	VDO_MAX_COMPRESSION_SLOTS = (VDO_MAPPING_STATE_COMPRESSED_MAX
 				     - VDO_MAPPING_STATE_COMPRESSED_BASE + 1),
 };
 
-/**********************************************************************/
 static inline enum block_mapping_state vdo_get_state_for_slot(byte slot_number)
 {
 	return (slot_number + VDO_MAPPING_STATE_COMPRESSED_BASE);
 }
 
-/**********************************************************************/
 static inline byte
 vdo_get_slot_from_state(enum block_mapping_state mapping_state)
 {
 	return (mapping_state - VDO_MAPPING_STATE_COMPRESSED_BASE);
 }
 
-/**********************************************************************/
 static inline bool
 vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {

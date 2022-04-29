@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -26,44 +27,24 @@
 #include "header.h"
 #include "types.h"
 
-/**
- * The packed, on-disk representation of a block map page header.
- **/
 struct block_map_page_header {
-	/**
-	 * The 64-bit nonce of the current VDO, in little-endian byte order.
-	 * Used to determine whether or not a page has been formatted.
-	 **/
 	__le64 nonce;
-
-	/** The 64-bit PBN of this page, in little-endian byte order */
 	__le64 pbn;
 
-	/** Formerly recovery_sequence_number; may be non-zero on disk */
+	/** May be non-zero on disk */
 	byte unused_long_word[8];
 
-	/**
-	 * Whether this page has been initialized on disk (i.e. written twice)
-	 */
+	/* Whether this page has been written twice to disk */
 	bool initialized;
 
-	/**
-	 * Formerly entry_offset; now unused since it should always be zero
-	 */
+	/* Always zero on disk */
 	byte unused_byte1;
 
-	/** Formerly interior_tree_page_writing; may be non-zero on disk */
+	/* May be non-zero on disk */
 	byte unused_byte2;
-
-	/**
-	 * Formerly generation (for dirty tree pages); may be non-zero on disk
-	 */
 	byte unused_byte3;
 } __packed;
 
-/**
- * The format of a block map page.
- **/
 struct block_map_page {
 	struct packed_version_number version;
 	struct block_map_page_header header;
@@ -71,35 +52,18 @@ struct block_map_page {
 } __packed;
 
 enum block_map_page_validity {
-	/* A block map page is correctly initialized */
 	VDO_BLOCK_MAP_PAGE_VALID,
-	/* A block map page is uninitialized */
 	VDO_BLOCK_MAP_PAGE_INVALID,
-	/* A block map page is intialized, but is the wrong page */
+	/* Valid page found in the wrong location on disk */
 	VDO_BLOCK_MAP_PAGE_BAD,
 };
 
-/**
- * Check whether a block map page has been initialized.
- *
- * @param page  The page to check
- *
- * @return <code>true</code> if the page has been initialized
- **/
 static inline bool __must_check
 vdo_is_block_map_page_initialized(const struct block_map_page *page)
 {
 	return page->header.initialized;
 }
 
-/**
- * Mark whether a block map page has been initialized.
- *
- * @param page         The page to mark
- * @param initialized  The state to set
- *
- * @return <code>true</code> if the initialized flag was modified
- **/
 static inline bool
 vdo_mark_block_map_page_initialized(struct block_map_page *page,
 				    bool initialized)
@@ -112,13 +76,6 @@ vdo_mark_block_map_page_initialized(struct block_map_page *page,
 	return true;
 }
 
-/**
- * Get the physical block number where a block map page is stored.
- *
- * @param page  The page to query
- *
- * @return the page's physical block number
- **/
 static inline physical_block_number_t __must_check
 vdo_get_block_map_page_pbn(const struct block_map_page *page)
 {

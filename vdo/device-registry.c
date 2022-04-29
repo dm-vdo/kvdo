@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -38,8 +39,8 @@
 struct device_registry {
 	struct list_head links;
 	/*
-	 * XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of 
-	 * RCU, please don't add more. Should we switch? 
+	 * XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of
+	 * RCU, please don't add more. Should we switch?
 	 */
 	rwlock_t lock;
 };

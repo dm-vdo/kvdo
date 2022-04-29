@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -26,7 +27,6 @@
 
 #include "admin-state.h"
 #include "completion.h"
-#include "fixed-layout.h"
 #include "flush.h"
 #include "journal-point.h"
 #include "lock-counter.h"
@@ -35,6 +35,7 @@
 #include "recovery-journal-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-layout.h"
 #include "wait-queue.h"
 
 /**
@@ -213,8 +214,8 @@ vdo_get_recovery_journal_block_number(const struct recovery_journal *journal,
 				      sequence_number_t sequence)
 {
 	/*
-	 * Since journal size is a power of two, the block number modulus can 
-	 * just be extracted from the low-order bits of the sequence. 
+	 * Since journal size is a power of two, the block number modulus can
+	 * just be extracted from the low-order bits of the sequence.
 	 */
 	return vdo_compute_recovery_journal_block_number(journal->size, sequence);
 }

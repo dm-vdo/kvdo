@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -31,12 +32,6 @@
 #include "types.h"
 #include "vdo.h"
 
-/**
- * Check that an admin_completion's type is as expected.
- *
- * @param completion  The admin_completion to check
- * @param expected    The expected type
- **/
 void vdo_assert_admin_operation_type(struct admin_completion *completion,
 				     enum admin_operation_type expected)
 {
@@ -46,14 +41,6 @@ void vdo_assert_admin_operation_type(struct admin_completion *completion,
 			expected);
 }
 
-/**
- * Convert the sub-task completion of an admin_completion to an
- * admin_completion.
- *
- * @param completion  the admin_completion's sub-task completion
- *
- * @return The sub-task completion as its enclosing admin_completion
- **/
 struct admin_completion *
 vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 {
@@ -64,13 +51,9 @@ vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 	return container_of(parent, struct admin_completion, completion);
 }
 
-/**
+/*
  * Assert that we are operating on the correct thread for the current phase.
- *
- * @param admin_completion  The admin_completion to check
- * @param what              The method doing the phase check
- * @param phase_names       The names of the phases of the current operation
- **/
+ */
 void vdo_assert_admin_phase_thread(struct admin_completion *admin_completion,
 				   const char *what,
 				   const char *phase_names[])
@@ -83,14 +66,6 @@ void vdo_assert_admin_phase_thread(struct admin_completion *admin_completion,
 			phase_names[admin_completion->phase]);
 }
 
-/**
- * Get the vdo from the sub-task completion of its admin_completion.
- *
- * @param completion  the sub-task completion
- * @param expected    the expected operation type of the admin_completion
- *
- * @return The vdo
- **/
 struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
 				    enum admin_operation_type expected)
 {
@@ -100,12 +75,6 @@ struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
 	return admin_completion->vdo;
 }
 
-/**
- * Initialize an admin completion.
- *
- * @param vdo                The vdo which owns the completion
- * @param admin_completion   The admin_completion to initialize
- **/
 void vdo_initialize_admin_completion(struct vdo *vdo,
 				     struct admin_completion *admin_completion)
 {
@@ -118,13 +87,6 @@ void vdo_initialize_admin_completion(struct vdo *vdo,
 	atomic_set(&admin_completion->busy, 0);
 }
 
-/**
- * Reset an admin_completion's sub-task completion.
- *
- * @param completion  The admin_completion's sub-task completion
- *
- * @return The sub-task completion for the convenience of callers
- **/
 struct vdo_completion *
 vdo_reset_admin_sub_task(struct vdo_completion *completion)
 {
@@ -137,14 +99,6 @@ vdo_reset_admin_sub_task(struct vdo_completion *completion)
 	return completion;
 }
 
-/**
- * Prepare the sub-task completion of a vdo's admin_completion
- *
- * @param vdo            The vdo
- * @param callback       The callback for the sub-task
- * @param error_handler  The error handler for the sub-task
- * @param thread_id      The ID of the thread on which to run the callback
- **/
 static void vdo_prepare_admin_sub_task_on_thread(struct vdo *vdo,
 						 vdo_action *callback,
 						 vdo_action *error_handler,
@@ -157,14 +111,10 @@ static void vdo_prepare_admin_sub_task_on_thread(struct vdo *vdo,
 					   &vdo->admin_completion.completion);
 }
 
-/**
- * Prepare the sub-task completion of a vdo's admin_completion to run on the
- * same thread as the admin_completion's main completion.
- *
- * @param vdo            The vdo
- * @param callback       The callback for the sub-task
- * @param error_handler  The error handler for the sub-task
- **/
+/*
+ * Prepare the sub-task completion to run on the same thread as its enclosing
+ * completion.
+ */
 void vdo_prepare_admin_sub_task(struct vdo *vdo,
 				vdo_action *callback,
 				vdo_action *error_handler)
@@ -176,12 +126,6 @@ void vdo_prepare_admin_sub_task(struct vdo *vdo,
 					     admin_completion->completion.callback_thread_id);
 }
 
-/**
- * Callback for admin operations which will notify the layer that the operation
- * is complete.
- *
- * @param vdo_completion  The vdo_completion within the admin completion
- **/
 static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
 	struct admin_completion *completion;
@@ -193,21 +137,14 @@ static void admin_operation_callback(struct vdo_completion *vdo_completion)
 	complete(&completion->callback_sync);
 }
 
-/**
+/*
  * Perform an administrative operation (load, suspend, grow logical, or grow
  * physical). This method should not be called from base threads unless it is
  * certain the calling thread won't be needed to perform the operation. It may
  * (and should) be called from non-base threads.
  *
- * @param vdo               The vdo on which to perform the operation
- * @param type              The type of operation to perform
- * @param thread_id_getter  A function for getting the ID of the thread on
- *                          which a given phase should be run
- * @param action            The action which starts the operation
- * @param error_handler     The error handler for the operation
- *
- * @return The result of the operation
- **/
+ * FIXME: does this base thread note apply anymore?
+ */
 int
 vdo_perform_admin_operation(struct vdo *vdo,
 			    enum admin_operation_type type,
@@ -237,13 +174,13 @@ vdo_perform_admin_operation(struct vdo *vdo,
 	vdo_enqueue_completion(&admin_completion->sub_task_completion);
 
 	/*
-	 * Using the "interruptible" interface means that Linux will not log a 
-	 * message when we wait for more than 120 seconds. 
+	 * Using the "interruptible" interface means that Linux will not log a
+	 * message when we wait for more than 120 seconds.
 	 */
 	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0) {
 		/*
-		 * However, if we get a signal in a user-mode process, we could 
-		 * spin... 
+		 * However, if we get a signal in a user-mode process, we could
+		 * spin...
 		 */
 		fsleep(1000);
 	}

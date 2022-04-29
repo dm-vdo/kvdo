@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -88,9 +89,6 @@ struct admin_state {
  * A method to be called once an admin operation may be initiated.
  **/
 typedef void vdo_admin_initiator(struct admin_state *state);
-
-const char * __must_check
-vdo_get_admin_state_name(const struct admin_state *state);
 
 /**
  * Get the current admin state code.

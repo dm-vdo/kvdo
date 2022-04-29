@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -227,8 +228,8 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	notify = has_waiters(&scrubber->waiters);
 
 	/*
-	 * Note that the scrubber has stopped, and inform anyone who might be 
-	 * waiting for that to happen. 
+	 * Note that the scrubber has stopped, and inform anyone who might be
+	 * waiting for that to happen.
 	 */
 	if (!vdo_finish_draining(&scrubber->admin_state)) {
 		WRITE_ONCE(scrubber->admin_state.current_state,
@@ -410,8 +411,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	/*
-	 * At the end of rebuild, the ref_counts should be accurate to the end 
-	 * of the journal we just applied. 
+	 * At the end of rebuild, the ref_counts should be accurate to the end
+	 * of the journal we just applied.
 	 */
 	result = ASSERT(!vdo_before_journal_point(&last_entry_applied,
 						  &ref_counts_point),
@@ -453,7 +454,8 @@ static void start_scrubbing(struct vdo_completion *completion)
 			       handle_scrubber_error,
 			       completion->callback_thread_id,
 			       completion->parent);
-	vdo_read_metadata_extent(scrubber->extent, slab->journal_origin);
+	vdo_launch_metadata_extent(scrubber->extent, slab->journal_origin,
+				   scrubber->extent->count, VIO_READ);
 }
 
 /**
@@ -467,8 +469,8 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	struct vdo_slab *slab;
 
 	/*
-	 * Note: this notify call is always safe only because scrubbing can 
-	 * only be started when the VDO is quiescent. 
+	 * Note: this notify call is always safe only because scrubbing can
+	 * only be started when the VDO is quiescent.
 	 */
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (vdo_is_read_only(scrubber->read_only_notifier)) {
@@ -638,6 +640,6 @@ void vdo_dump_slab_scrubber(const struct slab_scrubber *scrubber)
 	uds_log_info("slab_scrubber slab_count %u waiters %zu %s%s",
 		     vdo_get_scrubber_slab_count(scrubber),
 		     count_waiters(&scrubber->waiters),
-		     vdo_get_admin_state_name(&scrubber->admin_state),
+		     vdo_get_admin_state_code(&scrubber->admin_state)->name,
 		     scrubber->high_priority_only ? ", high_priority_only " : "");
 }

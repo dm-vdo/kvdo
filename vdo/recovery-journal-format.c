@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -22,7 +23,6 @@
 #include "buffer.h"
 #include "permassert.h"
 
-#include "fixed-layout.h"
 #include "header.h"
 #include "status-codes.h"
 #include "types.h"

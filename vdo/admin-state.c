@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -185,31 +186,6 @@ const struct admin_state_code *VDO_ADMIN_STATE_RESUMING =
 	&VDO_CODE_RESUMING;
 
 /**
- * Get the name of an admin_state_code for logging purposes.
- *
- * @param code  The admin_state_code
- *
- * @return The name of the state's code
- **/
-static const char *
-vdo_get_admin_state_code_name(const struct admin_state_code *code)
-{
-	return code->name;
-}
-
-/**
- * Get the name of an admin_state's code for logging purposes.
- *
- * @param state  The admin_state
- *
- * @return The name of the state's code
- **/
-const char *vdo_get_admin_state_name(const struct admin_state *state)
-{
-	return vdo_get_admin_state_code_name(vdo_get_admin_state_code(state));
-}
-
-/**
  * Check whether an admin_state is operating.
  *
  * @param state  The admin_state to query
@@ -335,13 +311,13 @@ begin_operation(struct admin_state *state,
 		result =
 		  uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 					 "Can't start %s from %s",
-					 vdo_get_admin_state_code_name(operation),
-					 vdo_get_admin_state_name(state));
+					 operation->name,
+					 vdo_get_admin_state_code(state)->name);
 	} else if (state->waiter != NULL) {
 		result =
 		  uds_log_error_strerror(VDO_COMPONENT_BUSY,
 					 "Can't start %s with extant waiter",
-					 vdo_get_admin_state_code_name(operation));
+					 operation->name);
 	} else {
 		state->waiter = waiter;
 		state->next_state = next_state;
@@ -409,9 +385,7 @@ static bool check_code(bool valid,
 	}
 
 	result = uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
-					"%s is not a %s",
-					vdo_get_admin_state_code_name(code),
-					what);
+					"%s is not a %s", code->name, what);
 	if (waiter != NULL) {
 		vdo_finish_completion(waiter, result);
 	}

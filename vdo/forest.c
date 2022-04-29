@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -430,8 +431,8 @@ static void traverse(struct cursor *cursor)
 				vdo_unpack_block_map_entry(&page->entries[level->slot]);
 			if (!vdo_is_valid_location(&location)) {
 				/*
-				 * This entry is invalid, so remove it from the 
-				 * page. 
+				 * This entry is invalid, so remove it from the
+				 * page.
 				 */
 				page->entries[level->slot] =
 					vdo_pack_pbn(VDO_ZERO_BLOCK,
@@ -446,8 +447,8 @@ static void traverse(struct cursor *cursor)
 			}
 
 			/*
-			 * Erase mapped entries past the end of the logical 
-			 * space. 
+			 * Erase mapped entries past the end of the logical
+			 * space.
 			 */
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
@@ -579,7 +580,7 @@ void vdo_traverse_forest(struct block_map *map,
 	}
 
 	cursors->map = map;
-	cursors->zone = &(vdo_get_block_map_zone(map, 0)->tree_zone);
+	cursors->zone = &map->zones[0].tree_zone;
 	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = callback;
 	cursors->parent = parent;

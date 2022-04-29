@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -33,6 +34,7 @@
 #include "pbn-lock.h"
 #include "pbn-lock-pool.h"
 #include "slab-depot.h"
+#include "slab-scrubber.h"
 #include "vdo.h"
 
 enum {
@@ -159,27 +161,28 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
  * Attempt to allocate a block from this zone. If a block is allocated, the
  * recipient will also hold a lock on it.
  *
- * @param allocating_vio  The allocating_vio attempting an allocation
+ * @param allocation  The struct allocation of the data_vio attempting to
+ *                    allocate
  *
- * @return VDO_SUCCESS or an error code
+ * @return VDO_SUCESSS if a block was allocated, or an error code
  **/
-int vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio)
+static int allocate_and_lock_block(struct allocation *allocation)
 {
 	int result;
 	struct pbn_lock *lock;
 
-	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
+	ASSERT_LOG_ONLY(allocation->lock == NULL,
 			"must not allocate a block while already holding a lock on one");
 
-	result = vdo_allocate_block(allocating_vio->zone->allocator,
-				    &allocating_vio->allocation);
+	result = vdo_allocate_block(allocation->zone->allocator,
+				    &allocation->pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = vdo_attempt_physical_zone_pbn_lock(allocating_vio->zone,
-						    allocating_vio->allocation,
-						    allocating_vio->write_lock_type,
+	result = vdo_attempt_physical_zone_pbn_lock(allocation->zone,
+						    allocation->pbn,
+						    allocation->write_lock_type,
 						    &lock);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -189,15 +192,113 @@ int vdo_allocate_and_lock_block(struct allocating_vio *allocating_vio)
 		/* This block is already locked, which should be impossible. */
 		return uds_log_error_strerror(VDO_LOCK_ERROR,
 					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
-					      (unsigned long long) allocating_vio->allocation,
+					      (unsigned long long) allocation->pbn,
 					      lock->holder_count);
 	}
 
 	/* We've successfully acquired a new lock, so mark it as ours. */
 	lock->holder_count += 1;
-	allocating_vio->allocation_lock = lock;
+	allocation->lock = lock;
 	vdo_assign_pbn_lock_provisional_reference(lock);
 	return VDO_SUCCESS;
+}
+
+/**
+ * Retry allocating a block now that we're done waiting for scrubbing.
+ *
+ * @param waiter  The allocating_vio that was waiting to allocate
+ * @param context The context (unused)
+ **/
+static void retry_allocation(struct waiter *waiter,
+			     void *context __always_unused)
+{
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+
+	/* Now that some slab has scrubbed, restart the allocation process. */
+	data_vio->allocation.wait_for_clean_slab = false;
+	data_vio->allocation.first_allocation_zone =
+		data_vio->allocation.zone->zone_number;
+	continue_data_vio(data_vio, VDO_SUCCESS);
+}
+
+/**
+ * Continue searching for an allocation by enqueuing to wait for scrubbing or
+ * switching to the next zone. This method should only be called from the error
+ * handler set in data_vio_allocate_data_block.
+ *
+ * @param data_vio  The data_vio attempting to get an allocation
+ *
+ * @return true if the allocation process has continued in another zone
+ **/
+static bool continue_allocating(struct data_vio *data_vio)
+{
+	struct allocation *allocation = &data_vio->allocation;
+	struct physical_zone *zone = allocation->zone;
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+	int result = VDO_SUCCESS;
+	bool was_waiting = allocation->wait_for_clean_slab;
+	bool tried_all =
+		(allocation->first_allocation_zone == zone->next->zone_number);
+
+	vdo_reset_completion(completion);
+
+	if (tried_all && !was_waiting) {
+		/*
+		 * We've already looked in all the zones, and found nothing.
+		 * So go through the zones again, and wait for each to scrub
+		 * before trying to allocate.
+		 */
+		allocation->wait_for_clean_slab = true;
+		allocation->first_allocation_zone = zone->zone_number;
+	}
+
+	if (allocation->wait_for_clean_slab) {
+		struct waiter *waiter = data_vio_as_waiter(data_vio);
+		struct slab_scrubber *scrubber
+			= zone->allocator->slab_scrubber;
+
+		waiter->callback = retry_allocation;
+		result = vdo_enqueue_clean_slab_waiter(scrubber, waiter);
+
+		if (result == VDO_SUCCESS) {
+			/* We've enqueued to wait for a slab to be scrubbed. */
+			return true;
+		}
+
+		if ((result != VDO_NO_SPACE) || (was_waiting && tried_all)) {
+			vdo_set_completion_result(completion, result);
+			return false;
+		}
+	}
+
+	allocation->zone = zone->next;
+	completion->callback_thread_id = allocation->zone->thread_id;
+	vdo_continue_completion(completion, VDO_SUCCESS);
+	return true;
+}
+
+/**
+ * Attempt to allocate a block in the current physical zone, and if that fails
+ * try the next if possible.
+ *
+ * @param data_vio  The data_vio needing an allocation
+ *
+ * @return true if a block was allocated, if not the data_vio will have been
+ *         dispatched so the caller must not touch it
+ **/
+bool vdo_allocate_block_in_zone(struct data_vio *data_vio)
+{
+	int result = allocate_and_lock_block(&data_vio->allocation);
+
+	if (result == VDO_SUCCESS) {
+		return true;
+	}
+
+	if ((result != VDO_NO_SPACE) || !continue_allocating(data_vio)) {
+		continue_data_vio(data_vio, result);
+	}
+
+	return false;
 }
 
 /**

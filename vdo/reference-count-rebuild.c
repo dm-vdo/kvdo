@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -266,8 +267,8 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	}
 
 	/*
-	 * Remove any bogus entries which exist beyond the end of the logical 
-	 * space. 
+	 * Remove any bogus entries which exist beyond the end of the logical
+	 * space.
 	 */
 	if (vdo_get_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		slot_number_t slot;
@@ -310,8 +311,8 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 
 		if (!vdo_is_physical_data_block(rebuild->depot, mapping.pbn)) {
 			/*
-			 * This is a nonsense mapping. Remove it from the map so 
-			 * we're at least consistent and mark the page dirty. 
+			 * This is a nonsense mapping. Remove it from the map so
+			 * we're at least consistent and mark the page dirty.
 			 */
 			page->entries[slot] = vdo_pack_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
@@ -366,8 +367,8 @@ static void page_loaded(struct vdo_completion *completion)
 	}
 
 	/*
-	 * Advance progress to the next page, and fetch the next page we 
-	 * haven't yet requested. 
+	 * Advance progress to the next page, and fetch the next page we
+	 * haven't yet requested.
 	 */
 	fetch_page(rebuild, completion);
 }
@@ -424,8 +425,8 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	*rebuild->logical_blocks_used = 0;
 
 	/*
-	 * The PBN calculation doesn't work until the tree pages have been 
-	 * loaded, so we can't set this value at the start of rebuild. 
+	 * The PBN calculation doesn't work until the tree pages have been
+	 * loaded, so we can't set this value at the start of rebuild.
 	 */
 	rebuild->last_slot = (struct block_map_slot){
 		.slot = rebuild->block_map->entry_count
@@ -435,8 +436,8 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	};
 
 	/*
-	 * Prevent any page from being processed until all pages have been 
-	 * launched. 
+	 * Prevent any page from being processed until all pages have been
+	 * launched.
 	 */
 	rebuild->launching = true;
 	for (i = 0; i < rebuild->page_count; i++) {
@@ -512,8 +513,8 @@ void vdo_rebuild_reference_counts(struct vdo *vdo,
 	}
 
 	/*
-	 * Completion chaining from page cache hits can lead to stack overflow 
-	 * during the rebuild, so clear out the cache before this rebuild phase. 
+	 * Completion chaining from page cache hits can lead to stack overflow
+	 * during the rebuild, so clear out the cache before this rebuild phase.
 	 */
 	result =
 		vdo_invalidate_page_cache(rebuild->block_map->zones[0].page_cache);

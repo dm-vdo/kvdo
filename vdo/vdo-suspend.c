@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -25,7 +26,8 @@
 #include "admin-completion.h"
 #include "block-map.h"
 #include "completion.h"
-#include "dedupeIndex.h"
+#include "data-vio-pool.h"
+#include "dedupe-index.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"
@@ -34,7 +36,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-init.h"
 
 enum {
 	SUSPEND_PHASE_START,
@@ -76,6 +77,9 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 	case SUSPEND_PHASE_PACKER:
 	case SUSPEND_PHASE_FLUSHES:
 		return thread_config->packer_thread;
+
+	case SUSPEND_PHASE_DATA_VIOS:
+		return thread_config->cpu_thread;
 
 	case SUSPEND_PHASE_JOURNAL:
 		return thread_config->journal_thread;
@@ -162,8 +166,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_DATA_VIOS:
-		vdo_drain_limiter(&vdo->request_limiter,
-				  vdo_reset_admin_sub_task(completion));
+		drain_data_vio_pool(vdo->data_vio_pool,
+				    vdo_reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_FLUSHES:
@@ -216,8 +220,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		if (vdo_is_state_suspending(admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
 			/*
-			 * If we didn't save the VDO or there was an error, 
-			 * we're done. 
+			 * If we didn't save the VDO or there was an error,
+			 * we're done.
 			 */
 			break;
 		}
@@ -266,8 +270,8 @@ int vdo_suspend(struct vdo *vdo)
 					     vdo_preserve_completion_error_and_continue);
 
 	/*
-	 * Treat VDO_READ_ONLY as a success since a read-only suspension still 
-	 * leaves the VDO suspended. 
+	 * Treat VDO_READ_ONLY as a success since a read-only suspension still
+	 * leaves the VDO suspended.
 	 */
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
 		uds_log_info("device '%s' suspended", device_name);

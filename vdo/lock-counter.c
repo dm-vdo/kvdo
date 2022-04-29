@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -343,8 +344,8 @@ void vdo_acquire_lock_count_reference(struct lock_counter *counter,
 
 	if (*current_value == 0) {
 		/*
-		 * This zone is acquiring this lock for the first time. 
-		 * Extra barriers because this was original developed using 
+		 * This zone is acquiring this lock for the first time.
+		 * Extra barriers because this was original developed using
 		 * an atomic add operation that implicitly had them.
 		 */
 		smp_mb__before_atomic();
@@ -391,8 +392,8 @@ static void attempt_notification(struct lock_counter *counter)
 	int prior_state;
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,
@@ -433,8 +434,8 @@ void vdo_release_lock_count_reference(struct lock_counter *counter,
 	zone_count = get_zone_count_ptr(counter, lock_number, zone_type);
 	if (atomic_add_return(-1, zone_count) == 0) {
 		/*
-		 * This zone was the last lock holder of its type, so try to 
-		 * notify the owner. 
+		 * This zone was the last lock holder of its type, so try to
+		 * notify the owner.
 		 */
 		attempt_notification(counter);
 	}
@@ -471,8 +472,8 @@ vdo_release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 						   block_count_t lock_number)
 {
 	/*
-	 * Extra barriers because this was original developed using 
-	 * an atomic add operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * an atomic add operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	atomic_inc(&(counter->journal_decrement_counts[lock_number]));
@@ -506,8 +507,8 @@ bool vdo_suspend_lock_counter(struct lock_counter *counter)
 	assert_on_journal_thread(counter, __func__);
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,
@@ -533,8 +534,8 @@ bool vdo_resume_lock_counter(struct lock_counter *counter)
 	assert_on_journal_thread(counter, __func__);
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	prior_state = atomic_cmpxchg(&counter->state,

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -24,11 +25,11 @@
 
 #include "admin-state.h"
 #include "completion.h"
-#include "fixed-layout.h"
 #include "slab.h"
 #include "slab-summary-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-layout.h"
 #include "wait-queue.h"
 
 /**

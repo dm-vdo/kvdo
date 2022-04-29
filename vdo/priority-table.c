@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -112,8 +113,8 @@ void free_priority_table(struct priority_table *table)
 	}
 
 	/*
-	 * Unlink the buckets from any entries still in the table so the entries 
-	 * won't be left with dangling pointers to freed memory. 
+	 * Unlink the buckets from any entries still in the table so the entries
+	 * won't be left with dangling pointers to freed memory.
 	 */
 	reset_priority_table(table);
 
@@ -178,17 +179,18 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 {
 	struct bucket *bucket;
 	struct list_head *entry;
+	int top_priority;
 
-	/*
-	 * Find the highest priority non-empty bucket by finding the 
-	 * highest-order non-zero bit in the search vector. 
-	 */
-	int top_priority = log_base_two(table->search_vector);
-
-	if (top_priority < 0) {
+	if (table->search_vector == 0) {
 		/* All buckets are empty. */
 		return NULL;
 	}
+
+	/*
+	 * Find the highest priority non-empty bucket by finding the
+	 * highest-order non-zero bit in the search vector.
+	 */
+	top_priority = ilog2(table->search_vector);
 
 	/* Dequeue the first entry in the bucket. */
 	bucket = &table->buckets[top_priority];
@@ -215,8 +217,8 @@ void priority_table_remove(struct priority_table *table,
 	struct list_head *next_entry;
 
 	/*
-	 * We can't guard against calls where the entry is on a list for a 
-	 * different table, but it's easy to deal with an entry not in any table 
+	 * We can't guard against calls where the entry is on a list for a
+	 * different table, but it's easy to deal with an entry not in any table
 	 * or list.
 	 */
 	if (list_empty(entry)) {
@@ -224,15 +226,15 @@ void priority_table_remove(struct priority_table *table,
 	}
 
 	/*
-	 * Remove the entry from the bucket list, remembering a pointer to 
-	 * another entry in the ring. 
+	 * Remove the entry from the bucket list, remembering a pointer to
+	 * another entry in the ring.
 	 */
 	next_entry = entry->next;
 	list_del_init(entry);
 
 	/*
-	 * If the rest of the list is now empty, the next node must be the list 
-	 * head in the bucket and we can use it to update the search vector. 
+	 * If the rest of the list is now empty, the next node must be the list
+	 * head in the bucket and we can use it to update the search vector.
 	 */
 	if (list_empty(next_entry)) {
 		mark_bucket_empty(table, list_entry(next_entry,

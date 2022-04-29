@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -21,9 +22,9 @@
 
 #include "memory-alloc.h"
 
+#include "data-vio-pool.h"
+#include "dedupe-index.h"
 #include "vdo.h"
-
-#include "dedupeIndex.h"
 
 struct pool_attribute {
 	struct attribute attr;
@@ -79,13 +80,17 @@ static ssize_t pool_compressing_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static ssize_t pool_discards_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->discard_limiter.active);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_active_discards(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
 static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->discard_limiter.limit);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_discard_limit(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
@@ -94,18 +99,26 @@ static ssize_t pool_discards_limit_store(struct vdo *vdo,
 					 size_t length)
 {
 	unsigned int value;
+	int result;
 
 	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
 		return -EINVAL;
 	}
-	vdo->discard_limiter.limit = value;
+
+	result = set_data_vio_pool_discard_limit(vdo->data_vio_pool, value);
+	if (result != VDO_SUCCESS) {
+		return -EINVAL;
+	}
+
 	return length;
 }
 
 /**********************************************************************/
 static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->discard_limiter.maximum);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_maximum_discards(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
@@ -117,19 +130,25 @@ static ssize_t pool_instance_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static ssize_t pool_requests_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->request_limiter.active);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_active_requests(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->request_limiter.limit);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_request_limit(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo->request_limiter.maximum);
+	return sprintf(buf,
+		       "%u\n",
+		       get_data_vio_pool_maximum_requests(vdo->data_vio_pool));
 }
 
 /**********************************************************************/
@@ -214,9 +233,10 @@ static struct attribute *pool_attrs[] = {
 	&vdo_pool_requests_maximum_attr.attr,
 	NULL,
 };
+ATTRIBUTE_GROUPS(pool);
 
 struct kobj_type vdo_directory_type = {
 	.release = vdo_pool_release,
 	.sysfs_ops = &vdo_pool_sysfs_ops,
-	.default_attrs = pool_attrs,
+	.default_groups = pool_groups,
 };

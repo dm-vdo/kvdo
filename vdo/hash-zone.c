@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -225,8 +226,8 @@ int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 	struct hash_lock *lock, *new_lock;
 
 	/*
-	 * Borrow and prepare a lock from the pool so we don't have to do two 
-	 * pointer_map accesses in the common case of no lock contention. 
+	 * Borrow and prepare a lock from the pool so we don't have to do two
+	 * pointer_map accesses in the common case of no lock contention.
 	 */
 	int result = ASSERT(!list_empty(&zone->lock_pool),
 			    "never need to wait for a free hash lock");
@@ -238,8 +239,8 @@ int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 	list_del_init(&new_lock->pool_node);
 
 	/*
-	 * Fill in the hash of the new lock so we can map it, since we have to 
-	 * use the hash as the map key. 
+	 * Fill in the hash of the new lock so we can map it, since we have to
+	 * use the hash as the map key.
 	 */
 	new_lock->hash = *hash;
 
@@ -252,8 +253,8 @@ int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 
 	if (replace_lock != NULL) {
 		/*
-		 * XXX on mismatch put the old lock back and return a severe 
-		 * error 
+		 * XXX on mismatch put the old lock back and return a severe
+		 * error
 		 */
 		ASSERT_LOG_ONLY(lock == replace_lock,
 				"old lock must have been in the lock map");
@@ -268,8 +269,8 @@ int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 		lock->registered = true;
 	} else {
 		/*
-		 * There's already a lock for the hash, so we don't need the 
-		 * borrowed lock. 
+		 * There's already a lock for the hash, so we don't need the
+		 * borrowed lock.
 		 */
 		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
 	}
@@ -332,8 +333,8 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	}
 
 	/*
-	 * Necessarily cryptic since we can log a lot of these. First three 
-	 * chars of state is unambiguous. 'U' indicates a lock not registered in 
+	 * Necessarily cryptic since we can log a lot of these. First three
+	 * chars of state is unambiguous. 'U' indicates a lock not registered in
 	 * the map.
 	 */
 	state = vdo_get_hash_lock_state_name(lock->state);
@@ -352,8 +353,8 @@ static void dump_hash_lock(const struct hash_lock *lock)
 static void increment_stat(uint64_t *stat)
 {
 	/*
-	 * Must only be mutated on the hash zone thread. Prevents any compiler 
-	 * shenanigans from affecting other threads reading stats. 
+	 * Must only be mutated on the hash zone thread. Prevents any compiler
+	 * shenanigans from affecting other threads reading stats.
 	 */
 	WRITE_ONCE(*stat, *stat + 1);
 }

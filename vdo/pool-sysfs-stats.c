@@ -21,8 +21,7 @@
 
 #include "logger.h"
 
-#include "dedupeIndex.h"
-
+#include "dedupe-index.h"
 #include "pool-sysfs.h"
 #include "statistics.h"
 #include "vdo.h"

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -24,13 +25,13 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "checksum.h"
 #include "constants.h"
 #include "header.h"
 #include "status-codes.h"
+#include "vdo.h"
 
 enum {
-	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + VDO_CHECKSUM_SIZE,
+	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(uint32_t),
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
@@ -67,8 +68,8 @@ int vdo_initialize_super_block_codec(struct super_block_codec *codec)
 	}
 
 	/*
-	 * Even though the buffer is a full block, to avoid the potential 
-	 * corruption from a torn write, the entire encoding must fit in the 
+	 * Even though the buffer is a full block, to avoid the potential
+	 * corruption from a torn write, the entire encoding must fit in the
 	 * first sector.
 	 */
 	return wrap_buffer(codec->encoded_super_block,
@@ -99,8 +100,8 @@ void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 int vdo_encode_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
+	uint32_t checksum;
 	struct header header = SUPER_BLOCK_HEADER_12_0;
-	crc32_checksum_t checksum;
 	struct buffer *buffer = codec->block_buffer;
 	int result = reset_buffer_end(buffer, 0);
 
@@ -125,9 +126,8 @@ int vdo_encode_super_block(struct super_block_codec *codec)
 	}
 
 	/* Compute and encode the checksum. */
-	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
-				    codec->encoded_super_block,
-				    content_length(buffer));
+	checksum = vdo_crc32(codec->encoded_super_block,
+			     content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -148,7 +148,7 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 	struct header header;
 	int result;
 	size_t component_data_size;
-	crc32_checksum_t checksum, saved_checksum;
+	uint32_t checksum, saved_checksum;
 
 	/* Reset the block buffer to start decoding the entire first sector. */
 	struct buffer *buffer = codec->block_buffer;
@@ -169,8 +169,8 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 
 	if (header.size > content_length(buffer)) {
 		/*
-		 * We can't check release version or checksum until we know the 
-		 * content size, so we have to assume a version mismatch on 
+		 * We can't check release version or checksum until we know the
+		 * content size, so we have to assume a version mismatch on
 		 * unexpected values.
 		 */
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
@@ -186,8 +186,7 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 	}
 
 	/* The component data is all the rest, except for the checksum. */
-	component_data_size =
-		content_length(buffer) - sizeof(crc32_checksum_t);
+	component_data_size = content_length(buffer) - sizeof(uint32_t);
 	result = put_buffer(codec->component_buffer, buffer,
 			    component_data_size);
 	if (result != VDO_SUCCESS) {
@@ -195,12 +194,11 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 	}
 
 	/*
-	 * Checksum everything up to but not including the saved checksum 
-	 * itself. 
+	 * Checksum everything up to but not including the saved checksum
+	 * itself.
 	 */
-	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
-				    codec->encoded_super_block,
-				    uncompacted_amount(buffer));
+	checksum = vdo_crc32(codec->encoded_super_block,
+			     uncompacted_amount(buffer));
 
 	/* Decode and verify the saved checksum. */
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -247,8 +248,8 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 	}
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state,
@@ -263,8 +264,8 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 
 	if (state == MAY_NOTIFY) {
 		/*
-		 * A notification was not in progress, and now they are 
-		 * disallowed. 
+		 * A notification was not in progress, and now they are
+		 * disallowed.
 		 */
 		vdo_complete_completion(parent);
 		return;
@@ -317,8 +318,8 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		listener = thread_data->listeners;
 		if (thread_id == 0) {
 			/*
-			 * Note: This message must be recognizable by 
-			 * Permabit::UserMachine. 
+			 * Note: This message must be recognizable by
+			 * Permabit::UserMachine.
 			 */
 			uds_log_error_strerror(atomic_read(&notifier->read_only_error),
 					       "Unrecoverable error, entering read-only mode");
@@ -383,8 +384,8 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	}
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state,
@@ -407,8 +408,8 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	/* There may have been a pending notification */
 
 	/*
-	 * Extra barriers because this was original developed using 
-	 * a CAS operation that implicitly had them. 
+	 * Extra barriers because this was original developed using
+	 * a CAS operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
@@ -457,8 +458,8 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 	}
 
 	/*
-	 * Extra barriers because this was original developed using a CAS 
-	 * operation that implicitly had them. 
+	 * Extra barriers because this was original developed using a CAS
+	 * operation that implicitly had them.
 	 */
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->read_only_error,
@@ -473,8 +474,8 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 
 	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
 	/*
-	 * Extra barrier because this was original developed using a CAS 
-	 * operation that implicitly had them. 
+	 * Extra barrier because this was original developed using a CAS
+	 * operation that implicitly had them.
 	 */
 	smp_mb__after_atomic();
 

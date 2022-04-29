@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -135,10 +136,10 @@ static void handle_vio_completion(struct vdo_completion *completion)
  * @param count        The number of blocks to write
  * @param operation    The operation to perform on the extent
  **/
-static void launch_metadata_extent(struct vdo_extent *extent,
-				   physical_block_number_t start_block,
-				   block_count_t count,
-				   enum vio_operation operation)
+void vdo_launch_metadata_extent(struct vdo_extent *extent,
+				physical_block_number_t start_block,
+				block_count_t count,
+				enum vio_operation operation)
 {
 	block_count_t i;
 
@@ -157,36 +158,4 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 		launch_metadata_vio(vio, start_block++, handle_vio_completion,
 				    handle_vio_completion, operation);
 	}
-}
-
-/**
- * Read metadata from the underlying storage.
- *
- * @param extent       The extent to read
- * @param start_block  The physical block number of the first block
- *                     in the extent
- * @param count        The number of blocks to read (must be less than or
- *                     equal to the length of the extent)
- **/
-void vdo_read_partial_metadata_extent(struct vdo_extent *extent,
-				      physical_block_number_t start_block,
-				      block_count_t count)
-{
-	launch_metadata_extent(extent, start_block, count, VIO_READ);
-}
-
-/**
- * Write metadata to the underlying storage.
- *
- * @param extent       The extent to write
- * @param start_block  The physical block number of the first block in the
- *                     extent
- * @param count        The number of blocks to read (must be less than or
- *                     equal to the length of the extent)
- **/
-void vdo_write_partial_metadata_extent(struct vdo_extent *extent,
-				       physical_block_number_t start_block,
-				       block_count_t count)
-{
-	launch_metadata_extent(extent, start_block, count, VIO_WRITE);
 }

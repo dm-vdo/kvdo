@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -69,8 +70,7 @@ void vdo_initialize_compressed_block(struct compressed_block *block,
  * Get a reference to a compressed fragment from a compression block.
  *
  * @param [in]  mapping_state    the mapping state for the look up
- * @param [in]  buffer           buffer that contains compressed data
- * @param [in]  block_size       size of a data block
+ * @param [in]  compressed_block the compressed block that was read from disk
  * @param [out] fragment_offset  the offset of the fragment within a
  *                               compressed block
  * @param [out] fragment_size    the size of the fragment
@@ -79,23 +79,21 @@ void vdo_initialize_compressed_block(struct compressed_block *block,
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
  **/
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
-				      char *buffer,
-				      block_size_t block_size,
+				      struct compressed_block *block,
 				      uint16_t *fragment_offset,
 				      uint16_t *fragment_size)
 {
-	uint16_t compressed_size, offset;
+	uint16_t compressed_size;
+	uint16_t offset = 0;
 	unsigned int i;
 	byte slot;
 	struct version_number version;
-	struct compressed_block_header *header =
-		(struct compressed_block_header *) buffer;
 
 	if (!vdo_is_state_compressed(mapping_state)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	version = vdo_unpack_version_number(header->version);
+	version = vdo_unpack_version_number(block->header.version);
 	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
 	}
@@ -105,16 +103,15 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	compressed_size = get_compressed_fragment_size(header, slot);
-	offset = sizeof(struct compressed_block_header);
+	compressed_size = get_compressed_fragment_size(&block->header, slot);
 	for (i = 0; i < slot; i++) {
-		offset += get_compressed_fragment_size(header, i);
-		if (offset >= block_size) {
+		offset += get_compressed_fragment_size(&block->header, i);
+		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE) {
 			return VDO_INVALID_FRAGMENT;
 		}
 	}
 
-	if ((offset + compressed_size) > block_size) {
+	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE) {
 		return VDO_INVALID_FRAGMENT;
 	}
 

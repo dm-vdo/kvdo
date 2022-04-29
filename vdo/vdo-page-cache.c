@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -983,8 +984,8 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	/*
-	 * We are doing a read-only rebuild, so treat this as a successful read 
-	 * of an uninitialized page. 
+	 * We are doing a read-only rebuild, so treat this as a successful read
+	 * of an uninitialized page.
 	 */
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
@@ -1171,8 +1172,8 @@ static void allocate_free_page(struct page_info *info)
 	pbn = page_completion_from_waiter(oldest_waiter)->pbn;
 
 	/*
-	 * Remove all entries which match the page number in question 
-	 * and push them onto the page info's wait queue. 
+	 * Remove all entries which match the page number in question
+	 * and push them onto the page info's wait queue.
 	 */
 	dequeue_matching_waiters(&cache->free_waiters, completion_needs_page,
 				 &pbn, &info->waiting);
@@ -1412,8 +1413,8 @@ static void write_pages(struct vdo_completion *flush_completion)
 
 	if (has_unflushed_pages) {
 		/*
-		 * If there are unflushed pages, the cache can't have been 
-		 * freed, so this call is safe. 
+		 * If there are unflushed pages, the cache can't have been
+		 * freed, so this call is safe.
 		 */
 		save_pages(cache);
 	}
@@ -1461,8 +1462,8 @@ void vdo_release_page_completion(struct vdo_completion *completion)
 			launch_page_save(discard_info);
 		}
 		/*
-		 * if there are excess requests for pages (that have not already 
-		 * started discards) we need to discard some page (which may be 
+		 * if there are excess requests for pages (that have not already
+		 * started discards) we need to discard some page (which may be
 		 * this one)
 		 */
 		discard_page_if_needed(cache);

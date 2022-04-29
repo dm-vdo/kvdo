@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -107,10 +108,12 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
+#include "comparisons.h"
 #include "compression-state.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "hash-zone.h"
+#include "io-submitter.h"
 #include "packer.h"
 #include "pbn-lock.h"
 #include "physical-zone.h"
@@ -406,6 +409,7 @@ static void wait_on_hash_lock(struct hash_lock *lock,
 			      struct data_vio *data_vio)
 {
 	int result = enqueue_data_vio(&lock->waiters, data_vio);
+
 	if (result != VDO_SUCCESS) {
 		/*
 		 * This should be impossible, but if it somehow happens, give
@@ -1005,6 +1009,58 @@ static void finish_verifying(struct vdo_completion *completion)
 	}
 }
 
+/**********************************************************************/
+static void verify_callback(struct vdo_completion *completion)
+{
+	struct data_vio *agent = as_data_vio(completion);
+
+	agent->is_duplicate = memory_equal(agent->data_block,
+					   agent->scratch_block,
+					   VDO_BLOCK_SIZE);
+	launch_data_vio_hash_zone_callback(agent, finish_verifying);
+}
+
+/**********************************************************************/
+static void uncompress_and_verify(struct vdo_completion *completion)
+{
+	struct data_vio *agent = as_data_vio(completion);
+	int result = uncompress_data_vio(agent,
+					 agent->duplicate.state,
+					 agent->scratch_block);
+
+	if (result == VDO_SUCCESS) {
+		verify_callback(completion);
+		return;
+	}
+
+	agent->is_duplicate = false;
+	launch_data_vio_hash_zone_callback(agent, finish_verifying);
+}
+
+/**********************************************************************/
+static void verify_endio(struct bio *bio)
+{
+	struct data_vio *agent = vio_as_data_vio(bio->bi_private);
+	int result = blk_status_to_errno(bio->bi_status);
+
+	vdo_count_completed_bios(bio);
+	if (result != VDO_SUCCESS) {
+		launch_data_vio_hash_zone_callback(agent, finish_verifying);
+		return;
+	}
+
+	if (vdo_is_state_compressed(agent->duplicate.state)) {
+		launch_data_vio_cpu_callback(agent,
+					     uncompress_and_verify,
+					     CPU_Q_COMPRESS_BLOCK_PRIORITY);
+		return;
+	}
+
+	launch_data_vio_cpu_callback(agent,
+				     verify_callback,
+				     CPU_Q_COMPLETE_READ_PRIORITY);
+}
+
 /**
  * Continue the deduplication path for a hash lock by using the agent to read
  * (and possibly decompress) the data at the candidate duplicate location,
@@ -1018,13 +1074,28 @@ static void finish_verifying(struct vdo_completion *completion)
  **/
 static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 {
+	int result;
+	char *buffer = (vdo_is_state_compressed(agent->duplicate.state)
+			? (char *) agent->compression.block
+			: agent->scratch_block);
+
 	set_hash_lock_state(lock, VDO_HASH_LOCK_VERIFYING);
 	ASSERT_LOG_ONLY(!lock->verified,
 			"hash lock only verifies advice once");
 
 	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
-	set_data_vio_hash_zone_callback(agent, finish_verifying);
-	verify_data_vio_duplication(agent);
+	result = prepare_data_vio_for_io(agent,
+					 buffer,
+					 verify_endio,
+					 REQ_OP_READ,
+					 agent->duplicate.pbn);
+	if (result != VDO_SUCCESS) {
+		set_data_vio_hash_zone_callback(agent, finish_verifying);
+		continue_data_vio(agent, result);
+		return;
+	}
+
+	vdo_submit_bio(data_vio_as_vio(agent)->bio, BIO_Q_VERIFY_PRIORITY);
 }
 
 /**
@@ -1118,7 +1189,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	int result;
 
 	struct data_vio *agent = as_data_vio(completion);
-	struct slab_depot *depot = vdo_get_from_data_vio(agent)->depot;
+	struct slab_depot *depot = vdo_from_data_vio(agent)->depot;
 	struct physical_zone *zone = agent->duplicate.zone;
 
 	assert_data_vio_in_duplicate_zone(agent);
@@ -1688,7 +1759,9 @@ static bool is_hash_collision(struct hash_lock *lock,
 	}
 
 	lock_holder = data_vio_from_lock_entry(lock->duplicate_ring.next);
-	collides = !compare_data_vios(lock_holder, candidate);
+	collides = !memory_equal(lock_holder->data_block,
+				 candidate->data_block,
+				 VDO_BLOCK_SIZE);
 
 	if (collides) {
 		vdo_bump_hash_zone_collision_count(candidate->hash_zone);
@@ -1794,19 +1867,15 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
  **/
 static void transfer_allocation_lock(struct data_vio *data_vio)
 {
-	struct allocating_vio *allocating_vio =
-		data_vio_as_allocating_vio(data_vio);
-	struct pbn_lock *pbn_lock = allocating_vio->allocation_lock;
+	struct allocation *allocation = &data_vio->allocation;
 	struct hash_lock *hash_lock = data_vio->hash_lock;
 
-	ASSERT_LOG_ONLY(data_vio->new_mapped.pbn ==
-				get_data_vio_allocation(data_vio),
+	ASSERT_LOG_ONLY(data_vio->new_mapped.pbn == allocation->pbn,
 			"transferred lock must be for the block written");
 
-	allocating_vio->allocation_lock = NULL;
-	allocating_vio->allocation = VDO_ZERO_BLOCK;
+	allocation->pbn = VDO_ZERO_BLOCK;
 
-	ASSERT_LOG_ONLY(vdo_is_pbn_read_lock(pbn_lock),
+	ASSERT_LOG_ONLY(vdo_is_pbn_read_lock(allocation->lock),
 			"must have downgraded the allocation lock before transfer");
 
 	hash_lock->duplicate = data_vio->new_mapped;
@@ -1816,7 +1885,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 	 * Since the lock is being transferred, the holder count doesn't change
 	 * (and isn't even safe to examine on this thread).
 	 */
-	hash_lock->duplicate_lock = pbn_lock;
+	hash_lock->duplicate_lock = UDS_FORGET(allocation->lock);
 }
 
 /**

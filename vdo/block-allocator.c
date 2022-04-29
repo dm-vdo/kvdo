@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -26,6 +27,7 @@
 #include "admin-state.h"
 #include "action-manager.h"
 #include "completion.h"
+#include "constants.h"
 #include "heap.h"
 #include "num-utils.h"
 #include "priority-table.h"
@@ -34,7 +36,6 @@
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-iterator.h"
-#include "slab-journal-eraser.h"
 #include "slab-journal.h"
 #include "slab-scrubber.h"
 #include "slab-summary.h"
@@ -43,12 +44,13 @@
 #include "vio.h"
 #include "vio-pool.h"
 
-/**
- * Assert that a block allocator function was called from the correct thread.
- *
- * @param thread_id      The allocator's thread id
- * @param function_name  The name of the function
- **/
+struct slab_journal_eraser {
+	struct vdo_completion *parent;
+	struct dm_kcopyd_client *client;
+	block_count_t blocks;
+	struct slab_iterator slabs;
+};
+
 static inline void assert_on_allocator_thread(thread_id_t thread_id,
 					      const char *function_name)
 {
@@ -57,16 +59,11 @@ static inline void assert_on_allocator_thread(thread_id_t thread_id,
 			function_name);
 }
 
-/**
- * Get the priority for a slab in the allocator's slab queue. Slabs are
- * essentially prioritized by an approximation of the number of free blocks in
- * the slab so slabs with lots of free blocks with be opened for allocation
- * before slabs that have few free blocks.
- *
- * @param slab  The slab whose queue priority is desired
- *
- * @return the queue priority of the slab
- **/
+/*
+ * Slabs are essentially prioritized by an approximation of the number of free
+ * blocks in the slab so slabs with lots of free blocks with be opened for
+ * allocation before slabs that have few free blocks.
+ */
 static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 {
 	block_count_t free_blocks = get_slab_free_block_count(slab);
@@ -75,42 +72,38 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 	unsigned int priority;
 
 	/*
-	 * Slabs that are completely full must be the only ones with the lowest 
-	 * priority: zero. 
-	 */
-	if (free_blocks == 0) {
-		return 0;
-	}
-
-	/*
-	 * Slabs that have never been opened (empty, newly initialized, never
-	 * been written to) have lower priority than previously opened slabs
-	 * that have a signficant number of free blocks. This ranking causes
-	 * VDO to avoid writing physical blocks for the first time until there
-	 * are very few free blocks that have been previously written to. That
-	 * policy makes VDO a better client of any underlying storage that is
-	 * thinly-provisioned [VDOSTORY-123].
-	 */
-	if (vdo_is_slab_journal_blank(slab->journal)) {
-		return unopened_slab_priority;
-	}
-
-	/*
+	 * Wholly full slabs must be the only ones with lowest priority, 0.
+	 *
+	 * Slabs that have never been opened (empty, newly initialized, and
+	 * never been written to) have lower priority than previously opened
+	 * slabs that have a significant number of free blocks. This ranking
+	 * causes VDO to avoid writing physical blocks for the first time
+	 * unless there are very few free blocks that have been previously
+	 * written to.
+	 *
+	 * Since VDO doesn't discard blocks currently, reusing previously
+	 * written blocks makes VDO a better client of any underlying storage
+	 * that is thinly-provisioned (though discarding would be better).
+	 *
 	 * For all other slabs, the priority is derived from the logarithm of
 	 * the number of free blocks. Slabs with the same order of magnitude of
 	 * free blocks have the same priority. With 2^23 blocks, the priority
 	 * will range from 1 to 25. The reserved unopened_slab_priority divides
 	 * the range and is skipped by the logarithmic mapping.
 	 */
-	priority = (1 + log_base_two(free_blocks));
+
+	if (free_blocks == 0) {
+		return 0;
+	}
+
+	if (vdo_is_slab_journal_blank(slab->journal)) {
+		return unopened_slab_priority;
+	}
+
+	priority = (1 + ilog2(free_blocks));
 	return ((priority < unopened_slab_priority) ? priority : priority + 1);
 }
 
-/**
- * Add a slab to the priority queue of slabs available for allocation.
- *
- * @param slab  The slab to prioritize
- **/
 static void prioritize_slab(struct vdo_slab *slab)
 {
 	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
@@ -121,12 +114,6 @@ static void prioritize_slab(struct vdo_slab *slab)
 			       &slab->allocq_entry);
 }
 
-/**
- * Register a slab with the allocator, ready for use.
- *
- * @param allocator  The allocator to use
- * @param slab       The slab in question
- **/
 void vdo_register_slab_with_allocator(struct block_allocator *allocator,
 				      struct vdo_slab *slab)
 {
@@ -134,13 +121,6 @@ void vdo_register_slab_with_allocator(struct block_allocator *allocator,
 	allocator->last_slab = slab->slab_number;
 }
 
-/**
- * Get an iterator over all the slabs in the allocator.
- *
- * @param allocator  The allocator
- *
- * @return An iterator over the allocator's slabs
- **/
 static struct slab_iterator
 get_slab_iterator(const struct block_allocator *allocator)
 {
@@ -150,15 +130,9 @@ get_slab_iterator(const struct block_allocator *allocator)
 				 allocator->depot->zone_count);
 }
 
-/**
- * Notify a block allocator that the VDO has entered read-only mode.
- *
+/*
  * Implements vdo_read_only_notification.
- *
- * @param listener  The block allocator
- * @param parent    The completion to notify in order to acknowledge the
- *                  notification
- **/
+ */
 static void
 notify_block_allocator_of_read_only_mode(void *listener,
 					 struct vdo_completion *parent)
@@ -177,11 +151,9 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	vdo_complete_completion(parent);
 }
 
-/**
- * Construct allocator metadata vios.
- *
+/*
  * Implements vio_constructor
- **/
+ */
 static int __must_check
 vdo_make_block_allocator_pool_vios(struct vdo *vdo,
 				   void *parent,
@@ -196,29 +168,15 @@ vdo_make_block_allocator_pool_vios(struct vdo *vdo,
 				   vio_ptr);
 }
 
-/**
- * Allocate those component of the block allocator which are needed only at
- * load time, not at format time.
- *
- * @param allocator             The allocator
- * @param vdo                   The VDO
- * @param vio_pool_size         The vio pool size
- *
- * @return VDO_SUCCESS or an error
- **/
 static int allocate_components(struct block_allocator *allocator,
 			       struct vdo *vdo,
 			       block_count_t vio_pool_size)
 {
 	struct slab_depot *depot = allocator->depot;
-	/*
-	 * The number of data blocks is the maximum number of free blocks that 
-	 * could be used in calculate_slab_priority(). 
-	 */
 	block_count_t slab_journal_size =
 		depot->slab_config.slab_journal_blocks;
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
-	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
+	unsigned int max_priority = (2 + ilog2(max_free_blocks));
 	int result;
 
 	result = vdo_register_read_only_listener(allocator->read_only_notifier,
@@ -260,43 +218,28 @@ static int allocate_components(struct block_allocator *allocator,
 	}
 
 	/*
-	 * VDOSTORY-123 requires that we try to open slabs that already have
-	 * allocated blocks in preference to slabs that have never been opened.
-	 * For reasons we have not been able to fully understand, performance
-	 * tests on SSD harvards have been very sensitive (50% reduction in
-	 * test throughput) to very slight differences in the timing and
-	 * locality of block allocation. Assigning a low priority to unopened
-	 * slabs (max_priority/2, say) would be ideal for the story, but
-	 * anything less than a very high threshold (max_priority - 1) hurts
-	 * PMI results.
+	 * Performing well atop thin provisioned storage requires either that
+	 * VDO discards freed blocks, or that the block allocator try to use
+	 * slabs that already have allocated blocks in preference to slabs that
+	 * have never been opened.  For reasons we have not been able to fully
+	 * understand, some SSD machines have been have been very sensitive
+	 * (50% reduction in test throughput) to very slight differences in the
+	 * timing and locality of block allocation.  Assigning a low priority
+	 * to unopened slabs (max_priority/2, say) would be ideal for the
+	 * story, but anything less than a very high threshold (max_priority -
+	 * 1) hurts on these machines.
 	 *
 	 * This sets the free block threshold for preferring to open an
 	 * unopened slab to the binary floor of 3/4ths the total number of
-	 * datablocks in a slab, which will generally evaluate to about half
-	 * the slab size, but avoids degenerate behavior in unit tests where
-	 * the number of data blocks is artificially constrained to a power of
-	 * two.
+	 * data blocks in a slab, which will generally evaluate to about half
+	 * the slab size.
 	 */
 	allocator->unopened_slab_priority =
-		(1 + log_base_two((max_free_blocks * 3) / 4));
+		(1 + ilog2((max_free_blocks * 3) / 4));
 
 	return VDO_SUCCESS;
 }
 
-/**
- * Create a block allocator.
- *
- * @param [in]  depot               The slab depot for this allocator
- * @param [in]  zone_number         The physical zone number for this allocator
- * @param [in]  thread_id           The thread ID for this allocator's zone
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vio_pool_size       The size of the VIO pool
- * @param [in]  vdo                 The VDO
- * @param [in]  read_only_notifier  The context for entering read-only mode
- * @param [out] allocator_ptr       A pointer to hold the allocator
- *
- * @return A success or error code
- **/
 int vdo_make_block_allocator(struct slab_depot *depot,
 			     zone_count_t zone_number,
 			     thread_id_t thread_id,
@@ -332,15 +275,14 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 	return VDO_SUCCESS;
 }
 
-/**
- * Destroy a block allocator.
- *
- * @param allocator  The allocator to destroy
- **/
 void vdo_free_block_allocator(struct block_allocator *allocator)
 {
 	if (allocator == NULL) {
 		return;
+	}
+
+	if (allocator->eraser != NULL) {
+		dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
 	}
 
 	vdo_free_slab_scrubber(UDS_FORGET(allocator->slab_scrubber));
@@ -349,52 +291,9 @@ void vdo_free_block_allocator(struct block_allocator *allocator)
 	UDS_FREE(allocator);
 }
 
-
-/**
- * Get the maximum number of data blocks that can be allocated.
- *
- * @param allocator  The block allocator to query
- *
- * @return The number of data blocks that can be allocated
- **/
-static inline block_count_t __must_check
-get_data_block_count(const struct block_allocator *allocator)
-{
-	return (allocator->slab_count *
-		allocator->depot->slab_config.data_blocks);
-}
-
-/**
- * Get the number of allocated blocks, which is the total number of
- * blocks in all slabs that have a non-zero reference count.
- *
- * @param allocator  The block allocator
- *
- * @return The number of blocks with a non-zero reference count
- **/
-block_count_t vdo_get_allocated_blocks(const struct block_allocator *allocator)
-{
-	return READ_ONCE(allocator->allocated_blocks);
-}
-
-/**
- * Get the number of unrecovered slabs.
- *
- * @param allocator  The block allocator
- *
- * @return The number of slabs that are unrecovered
- **/
-block_count_t
-vdo_get_unrecovered_slab_count(const struct block_allocator *allocator)
-{
-	return vdo_get_scrubber_slab_count(allocator->slab_scrubber);
-}
-
-/**
+/*
  * Queue a slab for allocation or scrubbing.
- *
- * @param slab  The slab to queue
- **/
+ */
 void vdo_queue_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
@@ -423,8 +322,9 @@ void vdo_queue_slab(struct vdo_slab *slab)
 
 	if (!vdo_is_slab_resuming(slab)) {
 		/*
-		 * If the slab is resuming, we've already accounted for it 
-		 * here, so don't do it again. 
+		 * If the slab is resuming, we've already accounted for it
+		 * here, so don't do it again.
+		 * FIXME: under what situation would the slab be resuming here?
 		 */
 		WRITE_ONCE(allocator->allocated_blocks,
 			   allocator->allocated_blocks - free_blocks);
@@ -434,26 +334,17 @@ void vdo_queue_slab(struct vdo_slab *slab)
 		}
 	}
 
-	/* All slabs are kept in a priority queue for allocation. */
 	prioritize_slab(slab);
 }
 
-/**
- * Update the block allocator to reflect an increment or decrement of the free
- * block count in a slab. This adjusts the allocated block count and
- * reprioritizes the slab when appropriate.
- *
- * @param slab       The slab whose free block count changed
- * @param increment  True if the free block count went up by one,
- *                   false if it went down by one
- **/
+/*
+ * Adjust the free block count and (if needed) reprioritize the slab.
+ * @increment should be true if the free block count went up.
+ */
 void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 {
 	struct block_allocator *allocator = slab->allocator;
-	/*
-	 * The sense of increment is reversed since allocations are being 
-	 * counted. 
-	 */
+
 	WRITE_ONCE(allocator->allocated_blocks,
 		   allocator->allocated_blocks + (increment ? -1 : 1));
 
@@ -463,16 +354,15 @@ void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	}
 
 	/*
-	 * The slab priority rarely changes; if no change, then don't requeue 
-	 * it. 
+	 * Don't bother adjusting the priority table if unneeded.
 	 */
 	if (slab->priority == calculate_slab_priority(slab)) {
 		return;
 	}
 
 	/*
-	 * Reprioritize the slab to reflect the new free block count by 
-	 * removing it from the table and re-enqueuing it with the new 
+	 * Reprioritize the slab to reflect the new free block count by
+	 * removing it from the table and re-enqueuing it with the new
 	 * priority.
 	 */
 	priority_table_remove(allocator->prioritized_slabs,
@@ -480,19 +370,6 @@ void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	prioritize_slab(slab);
 }
 
-/**
- * Allocate the next free physical block in a slab.
- *
- * The block allocated will have a provisional reference and the
- * reference must be either confirmed with a subsequent increment
- * or vacated with a subsequent decrement of the reference count.
- *
- * @param [in]  slab              The slab
- * @param [out] block_number_ptr  A pointer to receive the allocated block
- *                                number
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int allocate_slab_block(struct vdo_slab *slab,
 			       physical_block_number_t *block_number_ptr)
 {
@@ -509,19 +386,11 @@ static int allocate_slab_block(struct vdo_slab *slab,
 	return VDO_SUCCESS;
 }
 
-/**
- * Allocate a physical block.
- *
+/*
  * The block allocated will have a provisional reference and the reference
  * must be either confirmed with a subsequent increment or vacated with a
- * subsequent decrement of the reference count.
- *
- * @param [in]  allocator         The block allocator
- * @param [out] block_number_ptr  A pointer to receive the allocated block
- *                                number
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * subsequent decrement via vdo_release_block_reference().
+ */
 int vdo_allocate_block(struct block_allocator *allocator,
 		       physical_block_number_t *block_number_ptr)
 {
@@ -538,27 +407,23 @@ int vdo_allocate_block(struct block_allocator *allocator,
 	}
 
 	/*
-	 * Remove the highest priority slab from the priority table and make it 
-	 * the open slab. 
+	 * Remove the highest priority slab from the priority table and make it
+	 * the open slab.
 	 */
 	allocator->open_slab =
 		vdo_slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
 	vdo_open_slab(allocator->open_slab);
 
 	/*
-	 * Try allocating again. If we're out of space immediately after 
-	 * opening a slab, then every slab must be fully allocated. 
+	 * Try allocating again. If we're out of space immediately after
+	 * opening a slab, then every slab must be fully allocated.
 	 */
 	return allocate_slab_block(allocator->open_slab, block_number_ptr);
 }
 
-/**
+/*
  * Release an unused provisional reference.
- *
- * @param allocator  The block allocator
- * @param pbn        The block to dereference
- * @param why        Why the block was referenced (for logging)
- **/
+ */
 void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why)
@@ -584,7 +449,7 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 	}
 }
 
-/**
+/*
  * This is a heap_comparator function that orders slab_status
  * structures using the 'is_clean' field as the primary key and the
  * 'emptiness' field as the secondary key.
@@ -601,7 +466,7 @@ void vdo_release_block_reference(struct block_allocator *allocator,
  * @return  1 if the first item is cleaner or emptier than the second;
  *          0 if the two items are equally clean and empty;
 	   -1 otherwise
- **/
+ */
 static int compare_slab_statuses(const void *item1, const void *item2)
 {
 	const struct slab_status *info1 = (const struct slab_status *) item1;
@@ -616,9 +481,9 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	return ((info1->slab_number < info2->slab_number) ? 1 : -1);
 }
 
-/**
- * Swap two slab_status structures. Implements heap_swapper.
- **/
+/*
+ * Implements heap_swapper.
+ */
 static void swap_slab_statuses(void *item1, void *item2)
 {
 	struct slab_status *info1 = item1;
@@ -628,13 +493,6 @@ static void swap_slab_statuses(void *item1, void *item2)
 	*info2 = temp;
 }
 
-/**
- * Convert a generic vdo_completion to the block_allocator containing it.
- *
- * @param completion  The completion to convert
- *
- * @return The block allocator containing the completion
- **/
 static struct block_allocator *
 as_block_allocator(struct vdo_completion *completion)
 {
@@ -643,12 +501,10 @@ as_block_allocator(struct vdo_completion *completion)
 	return container_of(completion, struct block_allocator, completion);
 }
 
-/**
- * Inform the allocator that a slab action has finished on some slab. This
- * callback is registered in apply_to_slabs().
- *
- * @param completion  The allocator completion
- **/
+/*
+ * Inform the slab actor that a action has finished on some slab; used by
+ * apply_to_slabs().
+ */
 static void slab_action_callback(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
@@ -662,11 +518,9 @@ static void slab_action_callback(struct vdo_completion *completion)
 	vdo_reset_completion(completion);
 }
 
-/**
- * Preserve the error from part of an administrative action and continue.
- *
- * @param completion  The allocator completion
- **/
+/*
+ * Preserve the error from part of an action and continue.
+ */
 static void handle_operation_error(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
@@ -675,14 +529,9 @@ static void handle_operation_error(struct vdo_completion *completion)
 	completion->callback(completion);
 }
 
-/**
- * Perform an administrative action on each of an allocator's slabs in
- * parallel.
- *
- * @param allocator   The allocator
- * @param callback    The method to call when the action is complete on every
- *                    slab
- **/
+/*
+ * Perform an action on each of an allocator's slabs in parallel.
+ */
 static void apply_to_slabs(struct block_allocator *allocator,
 			   vdo_action *callback)
 {
@@ -696,8 +545,8 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	allocator->completion.requeue = false;
 
 	/*
-	 * Since we are going to dequeue all of the slabs, the open slab will 
-	 * become invalid, so clear it. 
+	 * Since we are going to dequeue all of the slabs, the open slab will
+	 * become invalid, so clear it.
 	 */
 	allocator->open_slab = NULL;
 
@@ -721,16 +570,15 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	slab_action_callback(&allocator->completion);
 }
 
-/**
- * Inform the allocator that all load I/O has finished.
- *
- * @param completion  The allocator completion
- **/
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 	const struct admin_state_code *operation =
 		vdo_get_admin_state_code(&allocator->state);
+
+	if (allocator->eraser != NULL) {
+		dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
+	}
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
@@ -742,11 +590,52 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	vdo_finish_loading(&allocator->state);
 }
 
+static void erase_next_slab_journal(struct block_allocator *allocator);
+
+static void copy_callback(int read_err, unsigned long write_err, void *context)
+{
+	struct block_allocator *allocator = context;
+	int result = (((read_err == 0) && (write_err == 0))
+		      ? VDO_SUCCESS : -EIO );
+
+	if (result != VDO_SUCCESS) {
+		vdo_finish_completion(&allocator->completion, result);
+		return;
+	}
+
+	erase_next_slab_journal(allocator);
+}
+
 /**
- * Initiate a load.
- *
- * Implements vdo_admin_initiator.
+ * Erase the next slab journal.
  **/
+static void erase_next_slab_journal(struct block_allocator *allocator)
+{
+	struct vdo_slab *slab;
+	physical_block_number_t pbn;
+	struct dm_io_region regions[1];
+	struct slab_depot *depot = allocator->depot;
+	block_count_t blocks = depot->slab_config.slab_journal_blocks;
+
+	if (!vdo_has_next_slab(&allocator->slabs_to_erase)) {
+		vdo_finish_completion(&allocator->completion, VDO_SUCCESS);
+		return;
+	}
+
+	slab = vdo_next_slab(&allocator->slabs_to_erase);
+	pbn = slab->journal_origin - depot->vdo->geometry.bio_offset;
+	regions[0] = (struct dm_io_region) {
+		.bdev = vdo_get_backing_device(depot->vdo),
+		.sector = pbn * VDO_SECTORS_PER_BLOCK,
+		.count = blocks * VDO_SECTORS_PER_BLOCK,
+	};
+	dm_kcopyd_zero(allocator->eraser, 1, regions, 0, copy_callback,
+		       allocator);
+}
+
+/*
+ * Implements vdo_admin_initiator.
+ */
 static void initiate_load(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -754,25 +643,33 @@ static void initiate_load(struct admin_state *state)
 	const struct admin_state_code *operation = vdo_get_admin_state_code(state);
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD) {
-		vdo_prepare_completion(&allocator->completion,
-				       finish_loading_allocator,
-				       handle_operation_error,
-				       allocator->thread_id,
-				       NULL);
-		vdo_erase_slab_journals(allocator->depot,
-					get_slab_iterator(allocator),
-					&allocator->completion);
+		/*
+		 * Must requeue because the kcopyd client cannot be freed in
+		 * the same stack frame as the kcopyd callback, lest it
+		 * deadlock.
+		 */
+		vdo_prepare_completion_for_requeue(&allocator->completion,
+						   finish_loading_allocator,
+						   handle_operation_error,
+						   allocator->thread_id,
+						   NULL);
+		allocator->eraser = dm_kcopyd_client_create(NULL);
+		if (allocator->eraser == NULL) {
+			vdo_finish_completion(&allocator->completion, -ENOMEM);
+			return;
+		}
+		allocator->slabs_to_erase = get_slab_iterator(allocator);
+
+		erase_next_slab_journal(allocator);
 		return;
 	}
 
 	apply_to_slabs(allocator, finish_loading_allocator);
 }
 
-/**
- * Load the state of an allocator from disk.
- *
- * <p>Implements vdo_zone_action.
- **/
+/*
+ * Implements vdo_zone_action.
+ */
 void vdo_load_block_allocator(void *context,
 			      zone_count_t zone_number,
 			      struct vdo_completion *parent)
@@ -786,26 +683,19 @@ void vdo_load_block_allocator(void *context,
 		initiate_load);
 }
 
-/**
+/*
  * Inform a block allocator that its slab journals have been recovered from the
  * recovery journal.
- *
- * @param allocator  The allocator to inform
- * @param result     The result of the recovery operation
- **/
+ */
 void vdo_notify_slab_journals_are_recovered(struct block_allocator *allocator,
 					    int result)
 {
 	vdo_finish_loading_with_result(&allocator->state, result);
 }
 
-/**
+/*
  * Prepare slabs for allocation or scrubbing.
- *
- * @param allocator  The allocator to prepare
- *
- * @return VDO_SUCCESS or an error code
- **/
+ */
 static int __must_check
 vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
@@ -816,8 +706,9 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 	struct slab_depot *depot = allocator->depot;
 	slab_count_t slab_count = depot->slab_count;
 
-	WRITE_ONCE(allocator->allocated_blocks,
-		   get_data_block_count(allocator));
+	block_count_t allocated_count
+		= (allocator->slab_count * depot->slab_config.data_blocks);
+	WRITE_ONCE(allocator->allocated_blocks, allocated_count);
 
 	result = UDS_ALLOCATE(slab_count, struct slab_status, __func__,
 			      &slab_statuses);
@@ -866,11 +757,9 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 	return VDO_SUCCESS;
 }
 
-/**
- * Prepare the block allocator to come online and start allocating blocks.
- *
- * <p>Implements vdo_zone_action.
- **/
+/*
+ * Implements vdo_zone_action.
+ */
 void vdo_prepare_block_allocator_to_allocate(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent)
@@ -891,11 +780,9 @@ void vdo_prepare_block_allocator_to_allocate(void *context,
 				      vdo_finish_completion_parent_callback);
 }
 
-/**
- * Register the new slabs belonging to this allocator.
- *
- * <p>Implements vdo_zone_action.
- **/
+/*
+ * Implements vdo_zone_action.
+ */
 void vdo_register_new_slabs_for_allocator(void *context,
 					  zone_count_t zone_number,
 					  struct vdo_completion *parent)
@@ -915,11 +802,6 @@ void vdo_register_new_slabs_for_allocator(void *context,
 	vdo_complete_completion(parent);
 }
 
-/**
- * Perform a step in draining the allocator. This method is its own callback.
- *
- * @param completion  The allocator's completion
- **/
 static void do_drain_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
@@ -958,11 +840,9 @@ static void do_drain_step(struct vdo_completion *completion)
 	}
 }
 
-/**
- * Initiate a drain.
- *
+/*
  * Implements vdo_admin_initiator.
- **/
+ */
 static void initiate_drain(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -971,13 +851,13 @@ static void initiate_drain(struct admin_state *state)
 	do_drain_step(&allocator->completion);
 }
 
-/**
+/*
  * Drain all allocator I/O. Depending upon the type of drain, some or all
  * dirty metadata may be written to disk. The type of drain will be determined
  * from the state of the allocator's depot.
  *
- * <p>Implements vdo_zone_action.
- **/
+ * Implements vdo_zone_action.
+ */
 void vdo_drain_block_allocator(void *context,
 			       zone_count_t zone_number,
 			       struct vdo_completion *parent)
@@ -991,12 +871,6 @@ void vdo_drain_block_allocator(void *context,
 		initiate_drain);
 }
 
-/**
- * Perform a step in resuming a quiescent allocator. This method is its own
- * callback.
- *
- * @param completion  The allocator's completion
- **/
 static void do_resume_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
@@ -1030,11 +904,9 @@ static void do_resume_step(struct vdo_completion *completion)
 	}
 }
 
-/**
- * Initiate a resume.
- *
+/*
  * Implements vdo_admin_initiator.
- **/
+ */
 static void initiate_resume(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -1043,11 +915,9 @@ static void initiate_resume(struct admin_state *state)
 	do_resume_step(&allocator->completion);
 }
 
-/**
- * Resume a quiescent allocator.
- *
- * <p>Implements vdo_zone_action.
- **/
+/*
+ * Implements vdo_zone_action.
+ */
 void vdo_resume_block_allocator(void *context,
 				zone_count_t zone_number,
 				struct vdo_completion *parent)
@@ -1060,12 +930,12 @@ void vdo_resume_block_allocator(void *context,
 			   initiate_resume);
 }
 
-/**
- * Request a commit of all dirty tail blocks which are locking a given recovery
- * journal block.
+/*
+ * Request a commit of all dirty tail blocks which are locking the recovery
+ * journal block the depot is seeking to release.
  *
- * <p>Implements vdo_zone_action.
- **/
+ * Implements vdo_zone_action.
+ */
 void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent)
@@ -1083,50 +953,21 @@ void vdo_release_tail_block_locks(void *context,
 	vdo_complete_completion(parent);
 }
 
-/**
- * Get the slab summary zone for an allocator.
- *
- * @param allocator  The allocator
- *
- * @return The slab_summary_zone for that allocator
- **/
-struct slab_summary_zone *
-vdo_get_slab_summary_zone(const struct block_allocator *allocator)
-{
-	return allocator->summary;
-}
-
-/**
- * Acquire a VIO from a block allocator's VIO pool (asynchronous).
- *
- * @param allocator  The allocator from which to get a VIO
- * @param waiter     The object requesting the VIO
- *
- * @return VDO_SUCCESS or an error
- **/
 int vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
 				    struct waiter *waiter)
 {
 	return acquire_vio_from_pool(allocator->vio_pool, waiter);
 }
 
-/**
- * Return a VIO to a block allocator's VIO pool
- *
- * @param allocator  The block allocator which owns the VIO
- * @param entry      The VIO being returned
- **/
 void vdo_return_block_allocator_vio(struct block_allocator *allocator,
 				    struct vio_pool_entry *entry)
 {
 	return_vio_to_pool(allocator->vio_pool, entry);
 }
 
-/**
- * Initiate scrubbing all unrecovered slabs.
- *
- * <p>Implements vdo_zone_action.
- **/
+/*
+ * Implements vdo_zone_action.
+ */
 void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent)
@@ -1140,39 +981,7 @@ void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 	vdo_complete_completion(parent);
 }
 
-/**
- * Queue a waiter for a clean slab.
- *
- * @param allocator  The allocator to wait on
- * @param waiter     The waiter
- *
- * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
- *         slabs to scrub, and some other error otherwise
- **/
-int vdo_enqueue_for_clean_slab(struct block_allocator *allocator,
-			       struct waiter *waiter)
-{
-	return vdo_enqueue_clean_slab_waiter(allocator->slab_scrubber, waiter);
-}
 
-/**
- * Increase the scrubbing priority of a slab.
- *
- * @param slab  The slab
- **/
-void vdo_increase_slab_scrubbing_priority(struct vdo_slab *slab)
-{
-	vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
-}
-
-
-/**
- * Get the statistics for this allocator.
- *
- * @param allocator  The allocator to query
- *
- * @return A copy of the current statistics for the allocator
- **/
 struct block_allocator_statistics
 vdo_get_block_allocator_statistics(const struct block_allocator *allocator)
 {
@@ -1185,13 +994,6 @@ vdo_get_block_allocator_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**
- * Get the aggregated slab journal statistics for the slabs in this allocator.
- *
- * @param allocator  The allocator to query
- *
- * @return A copy of the current statistics for the allocator
- **/
 struct slab_journal_statistics
 vdo_get_slab_journal_statistics(const struct block_allocator *allocator)
 {
@@ -1206,13 +1008,6 @@ vdo_get_slab_journal_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**
- * Get the cumulative ref_counts statistics for the slabs in this allocator.
- *
- * @param allocator  The allocator to query
- *
- * @return A copy of the current statistics for the allocator
- **/
 struct ref_counts_statistics
 vdo_get_ref_counts_statistics(const struct block_allocator *allocator)
 {
@@ -1223,11 +1018,6 @@ vdo_get_ref_counts_statistics(const struct block_allocator *allocator)
 	};
 }
 
-/**
- * Dump information about a block allocator to the log for debugging.
- *
- * @param allocator  The allocator to dump
- **/
 void vdo_dump_block_allocator(const struct block_allocator *allocator)
 {
 	unsigned int pause_counter = 0;
@@ -1238,9 +1028,9 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 		vdo_dump_slab(vdo_next_slab(&iterator));
 
 		/*
-		 * Wait for a while after each batch of 32 slabs dumped, 
-		 * allowing the kernel log a chance to be flushed instead of 
-		 * being overrun.
+		 * Wait for a while after each batch of 32 slabs dumped, an
+		 * arbitrary number, allowing the kernel log a chance to be
+		 * flushed instead of being overrun.
 		 */
 		if (pause_counter++ == 31) {
 			pause_counter = 0;

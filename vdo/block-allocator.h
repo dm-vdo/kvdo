@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -20,9 +21,12 @@
 #ifndef BLOCK_ALLOCATOR_H
 #define BLOCK_ALLOCATOR_H
 
+#include <linux/dm-kcopyd.h>
+
 #include "admin-state.h"
 #include "priority-table.h"
 #include "slab-scrubber.h"
+#include "slab-iterator.h"
 #include "statistics.h"
 #include "types.h"
 #include "vio-pool.h"
@@ -120,6 +124,10 @@ struct block_allocator {
 
 	/** The vio pool for reading and writing block allocator metadata */
 	struct vio_pool *vio_pool;
+	/** The dm_kcopyd client for erasing slab journals */
+	struct dm_kcopyd_client *eraser;
+	/** Iterator over the slabs to be erased */
+	struct slab_iterator slabs_to_erase;
 };
 
 int __must_check
@@ -144,12 +152,6 @@ int __must_check vdo_allocate_block(struct block_allocator *allocator,
 void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why);
-
-block_count_t __must_check
-vdo_get_allocated_blocks(const struct block_allocator *allocator);
-
-block_count_t __must_check
-vdo_get_unrecovered_slab_count(const struct block_allocator *allocator);
 
 void vdo_load_block_allocator(void *context,
 			      zone_count_t zone_number,
@@ -181,9 +183,6 @@ void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent);
 
-struct slab_summary_zone * __must_check
-vdo_get_slab_summary_zone(const struct block_allocator *allocator);
-
 int __must_check
 vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
 				struct waiter *waiter);
@@ -194,11 +193,6 @@ void vdo_return_block_allocator_vio(struct block_allocator *allocator,
 void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent);
-
-int __must_check vdo_enqueue_for_clean_slab(struct block_allocator *allocator,
-					    struct waiter *waiter);
-
-void vdo_increase_slab_scrubbing_priority(struct vdo_slab *slab);
 
 struct block_allocator_statistics __must_check
 vdo_get_block_allocator_statistics(const struct block_allocator *allocator);

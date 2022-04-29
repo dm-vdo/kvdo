@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -27,6 +28,7 @@
 #include "permassert.h"
 
 #include "atomic-stats.h"
+#include "kernel-types.h"
 #include "kvio.h"
 #include "vdo.h"
 
@@ -39,23 +41,11 @@ void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
 	struct bvec_iter iter;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
-	unsigned long flags;
-
-	bio_for_each_segment(biovec, bio, iter) {
-		void *from = bvec_kmap_irq(&biovec, &flags);
-
-		memcpy(data_ptr, from, biovec.bv_len);
-		data_ptr += biovec.bv_len;
-		bvec_kunmap_irq(from, &flags);
-	}
-#else
 
 	bio_for_each_segment(biovec, bio, iter) {
 		memcpy_from_bvec(data_ptr, &biovec);
 		data_ptr += biovec.bv_len;
 	}
-#endif
 }
 
 /*
@@ -65,24 +55,11 @@ void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
 	struct bvec_iter iter;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
-	unsigned long flags;
-
-	bio_for_each_segment(biovec, bio, iter) {
-		void *dest = bvec_kmap_irq(&biovec, &flags);
-
-		memcpy(dest, data_ptr, biovec.bv_len);
-		data_ptr += biovec.bv_len;
-		flush_dcache_page(biovec.bv_page);
-		bvec_kunmap_irq(dest, &flags);
-	}
-#else
 
 	bio_for_each_segment(biovec, bio, iter) {
 		memcpy_to_bvec(&biovec, data_ptr);
 		data_ptr += biovec.bv_len;
 	}
-#endif
 }
 
 void vdo_free_bio(struct bio *bio)
@@ -120,8 +97,8 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 		atomic64_inc(&bio_stats->discard);
 		break;
 		/*
-		 * All other operations are filtered out in dmvdo.c, or 
-		 * not created by VDO, so shouldn't exist. 
+		 * All other operations are filtered out in dmvdo.c, or
+		 * not created by VDO, so shouldn't exist.
 		 */
 	default:
 		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
@@ -210,11 +187,13 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      unsigned int bi_opf,
 			      physical_block_number_t pbn)
 {
-	int bvec_count, result;
-	struct page *page;
-	int bytes_added;
+	int bvec_count, result, offset, len, i;
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0)
 	bio_reset(bio);
+#else
+	bio_reset(bio, bio->bi_bdev, bi_opf);
+#endif
 	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
 	if (data == NULL) {
 		return VDO_SUCCESS;
@@ -223,8 +202,9 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	bio->bi_io_vec = bio->bi_inline_vecs;
 	bio->bi_max_vecs = INLINE_BVEC_COUNT;
 
-	bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
-		      PAGE_SIZE - 1) >> PAGE_SHIFT;
+	len = VDO_BLOCK_SIZE;
+	offset = offset_in_page(data);
+	bvec_count = (offset + len + PAGE_SIZE - 1) >> PAGE_SHIFT;
 	result = ASSERT(bvec_count <= INLINE_BVEC_COUNT,
 			"VDO-allocated buffers lie on max %d pages, not %d",
 			INLINE_BVEC_COUNT, bvec_count);
@@ -232,15 +212,34 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		return result;
 	}
 
-	page = is_vmalloc_addr(data) ? vmalloc_to_page(data) :
-				       virt_to_page(data);
-	bytes_added = bio_add_page(bio, page, VDO_BLOCK_SIZE,
-				   offset_in_page(data));
+	/*
+	 * If we knew that data was always on one page, or contiguous pages,
+	 * we wouldn't need the loop. But if we're using vmalloc, it's not
+	 * impossible that the data is in different pages that can't be
+	 * merged in bio_add_page...
+	 */
+	for (i = 0; (i < bvec_count) && (len > 0); i++) {
+		struct page *page;
+		int bytes_added;
+		int bytes = PAGE_SIZE - offset;
 
-	if (bytes_added != VDO_BLOCK_SIZE) {
-		return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
-					      "Could only add %i bytes to bio",
-					      bytes_added);
+		if (bytes > len) {
+			bytes = len;
+		}
+
+		page = is_vmalloc_addr(data) ? vmalloc_to_page(data)
+					     : virt_to_page(data);
+		bytes_added = bio_add_page(bio, page, bytes, offset);
+
+		if (bytes_added != bytes) {
+			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
+						      "Could only add %i bytes to bio",
+						       bytes_added);
+		}
+
+		data += bytes;
+		len -= bytes;
+		offset = 0;
 	}
 
 	return VDO_SUCCESS;

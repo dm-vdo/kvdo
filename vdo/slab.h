@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -25,7 +26,6 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "fixed-layout.h"
 #include "journal-point.h"
 #include "reference-operation.h"
 #include "types.h"

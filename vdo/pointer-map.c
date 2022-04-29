@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -136,8 +137,8 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
 	map->capacity = capacity;
 
 	/*
-	 * Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a 
-	 * full neighborhood without have to wrap back around to element zero. 
+	 * Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a
+	 * full neighborhood without have to wrap back around to element zero.
 	 */
 	map->bucket_count = capacity + (NEIGHBORHOOD - 1);
 	return UDS_ALLOCATE(map->bucket_count,
@@ -195,8 +196,8 @@ int make_pointer_map(size_t initial_capacity,
 		(initial_capacity > 0) ? initial_capacity : DEFAULT_CAPACITY;
 
 	/*
-	 * Scale up the capacity by the specified initial load factor. 
-	 * (i.e to hold 1000 entries at 80% load we need a capacity of 1250) 
+	 * Scale up the capacity by the specified initial load factor.
+	 * (i.e to hold 1000 entries at 80% load we need a capacity of 1250)
 	 */
 	capacity = capacity * 100 / initial_load;
 
@@ -283,8 +284,8 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 	}
 
 	/*
-	 * Search the hop list for the insertion point that maintains the sort 
-	 * order. 
+	 * Search the hop list for the insertion point that maintains the sort
+	 * order.
 	 */
 	for (;;) {
 		struct bucket *bucket = dereference_hop(neighborhood, next_hop);
@@ -345,8 +346,8 @@ static struct bucket *search_hop_list(struct pointer_map *map,
 
 	while (next_hop != NULL_HOP_OFFSET) {
 		/*
-		 * Check the neighboring bucket indexed by the offset for the 
-		 * desired key. 
+		 * Check the neighboring bucket indexed by the offset for the
+		 * desired key.
 		 */
 		struct bucket *entry = dereference_hop(bucket, next_hop);
 
@@ -420,8 +421,8 @@ static int resize_buckets(struct pointer_map *map)
 					 true, NULL);
 		if (result != UDS_SUCCESS) {
 			/*
-			 * Destroy the new partial map and restore the map from 
-			 * the stack. 
+			 * Destroy the new partial map and restore the map from
+			 * the stack.
 			 */
 			UDS_FREE(UDS_FORGET(map->buckets));
 			*map = old_map;
@@ -451,8 +452,8 @@ static struct bucket *find_empty_bucket(struct pointer_map *map,
 					unsigned int max_probes)
 {
 	/*
-	 * Limit the search to either the nearer of the end of the bucket array 
-	 * or a fixed distance beyond the initial bucket. 
+	 * Limit the search to either the nearer of the end of the bucket array
+	 * or a fixed distance beyond the initial bucket.
 	 */
 	ptrdiff_t remaining = &map->buckets[map->bucket_count] - bucket;
 	struct bucket *sentinel =
@@ -496,24 +497,24 @@ static struct bucket *move_empty_bucket(struct pointer_map *map
 
 	for (bucket = &hole[1 - NEIGHBORHOOD]; bucket < hole; bucket++) {
 		/*
-		 * Find the entry that is nearest to the bucket, which means it 
-		 * will be nearest to the hash bucket whose neighborhood is 
+		 * Find the entry that is nearest to the bucket, which means it
+		 * will be nearest to the hash bucket whose neighborhood is
 		 * full.
 		 */
 		struct bucket *new_hole =
 			dereference_hop(bucket, bucket->first_hop);
 		if (new_hole == NULL) {
 			/*
-			 * There are no buckets in this neighborhood that are in 
-			 * use by this one (they must all be owned by 
+			 * There are no buckets in this neighborhood that are in
+			 * use by this one (they must all be owned by
 			 * overlapping neighborhoods).
 			 */
 			continue;
 		}
 
 		/*
-		 * Skip this bucket if its first entry is actually further away 
-		 * than the hole that we're already trying to fill. 
+		 * Skip this bucket if its first entry is actually further away
+		 * than the hole that we're already trying to fill.
 		 */
 		if (hole < new_hole) {
 			continue;
@@ -526,8 +527,8 @@ static struct bucket *move_empty_bucket(struct pointer_map *map
 		 */
 
 		/*
-		 * The entry that will be the new hole is the first bucket in 
-		 * the list, so setting first_hop is all that's needed remove it 
+		 * The entry that will be the new hole is the first bucket in
+		 * the list, so setting first_hop is all that's needed remove it
 		 * from the list.
 		 */
 		bucket->first_hop = new_hole->next_hop;
@@ -539,8 +540,8 @@ static struct bucket *move_empty_bucket(struct pointer_map *map
 		new_hole->value = NULL;
 
 		/*
-		 * Insert the filled hole into the hop list for the 
-		 * neighborhood. 
+		 * Insert the filled hole into the hop list for the
+		 * neighborhood.
 		 */
 		insert_in_hop_list(bucket, hole);
 		return new_hole;
@@ -581,16 +582,16 @@ static bool update_mapping(struct pointer_map *map,
 	}
 
 	/*
-	 * Return the value of the current mapping (if desired) and update the 
-	 * mapping with the new value (if desired). 
+	 * Return the value of the current mapping (if desired) and update the
+	 * mapping with the new value (if desired).
 	 */
 	if (old_value_ptr != NULL) {
 		*old_value_ptr = bucket->value;
 	}
 	if (update) {
 		/*
-		 * We're dropping the old key pointer on the floor here, 
-		 * assuming it's a property of the value or that it's otherwise 
+		 * We're dropping the old key pointer on the floor here,
+		 * assuming it's a property of the value or that it's otherwise
 		 * safe to just forget.
 		 */
 		bucket->key = key;
@@ -619,8 +620,8 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map,
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
 
 	/*
-	 * Keep trying until the empty bucket is in the bucket's neighborhood or 
-	 * we are unable to move it any closer by swapping it with a filled 
+	 * Keep trying until the empty bucket is in the bucket's neighborhood or
+	 * we are unable to move it any closer by swapping it with a filled
 	 * bucket.
 	 */
 	while (hole != NULL) {
@@ -628,16 +629,16 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map,
 
 		if (distance < NEIGHBORHOOD) {
 			/*
-			 * We've found or relocated an empty bucket close enough 
-			 * to the initial hash bucket to be referenced by its 
+			 * We've found or relocated an empty bucket close enough
+			 * to the initial hash bucket to be referenced by its
 			 * hop vector.
 			 */
 			return hole;
 		}
 
 		/*
-		 * The nearest empty bucket isn't within the neighborhood that 
-		 * must contain the new entry, so try to swap it with bucket 
+		 * The nearest empty bucket isn't within the neighborhood that
+		 * must contain the new entry, so try to swap it with bucket
 		 * that is closer.
 		 */
 		hole = move_empty_bucket(map, hole);
@@ -685,14 +686,14 @@ int pointer_map_put(struct pointer_map *map,
 	}
 
 	/*
-	 * Select the bucket at the start of the neighborhood that must contain 
-	 * any entry for the provided key. 
+	 * Select the bucket at the start of the neighborhood that must contain
+	 * any entry for the provided key.
 	 */
 	neighborhood = select_bucket(map, key);
 
 	/*
-	 * Check whether the neighborhood already contains an entry for the key, 
-	 * in which case we optionally update it, returning the old value. 
+	 * Check whether the neighborhood already contains an entry for the key,
+	 * in which case we optionally update it, returning the old value.
 	 */
 	if (update_mapping(map, neighborhood, key, new_value, update,
 			  old_value_ptr)) {
@@ -720,8 +721,8 @@ int pointer_map_put(struct pointer_map *map,
 		}
 
 		/*
-		 * Resizing the map invalidates all pointers to buckets, so 
-		 * recalculate the neighborhood pointer. 
+		 * Resizing the map invalidates all pointers to buckets, so
+		 * recalculate the neighborhood pointer.
 		 */
 		neighborhood = select_bucket(map, key);
 	}
@@ -733,8 +734,8 @@ int pointer_map_put(struct pointer_map *map,
 	map->size += 1;
 
 	/*
-	 * There was no existing entry, so there was no old value to be 
-	 * returned. 
+	 * There was no existing entry, so there was no old value to be
+	 * returned.
 	 */
 	if (old_value_ptr != NULL) {
 		*old_value_ptr = NULL;
@@ -767,8 +768,8 @@ void *pointer_map_remove(struct pointer_map *map, const void *key)
 	}
 
 	/*
-	 * We found an entry to remove. Save the mapped value to return later 
-	 * and empty the bucket. 
+	 * We found an entry to remove. Save the mapped value to return later
+	 * and empty the bucket.
 	 */
 	map->size -= 1;
 	value = victim->value;
@@ -776,8 +777,8 @@ void *pointer_map_remove(struct pointer_map *map, const void *key)
 	victim->key = 0;
 
 	/*
-	 * The victim bucket is now empty, but it still needs to be spliced out 
-	 * of the hop list. 
+	 * The victim bucket is now empty, but it still needs to be spliced out
+	 * of the hop list.
 	 */
 	if (previous == NULL) {
 		/* The victim is the head of the list, so swing first_hop. */

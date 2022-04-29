@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -86,8 +87,7 @@ static int initialize_zone(struct logical_zones *zones,
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_logical_zone_thread(vdo->thread_config,
 						      zone_number);
-	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map,
-						      zone_number);
+	zone->block_map_zone = &vdo->block_map->zones[zone_number];
 	INIT_LIST_HEAD(&zone->write_vios);
 	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);

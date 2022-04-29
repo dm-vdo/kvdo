@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -100,8 +101,8 @@ struct packed_journal_sector {
 
 enum {
 	/*
-	 * Allowing more than 311 entries in each block changes the math 
-	 * concerning the amortization of metadata writes and recovery speed. 
+	 * Allowing more than 311 entries in each block changes the math
+	 * concerning the amortization of metadata writes and recovery speed.
 	 */
 	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
 	/**

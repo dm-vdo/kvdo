@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /**
  * Copyright Red Hat
  *
@@ -21,14 +22,15 @@
 
 #include <linux/device-mapper.h>
 
+#include "errors.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 
 #include "constants.h"
+#include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdoStringUtils.h"
 
 enum {
 	/* If we bump this, update the arrays below */
@@ -67,8 +69,8 @@ static int get_version_number(int argc,
 	}
 
 	/*
-	 * V0 and V1 have no optional parameters. There will always be 
-	 * a parameter for thread config, even if it's a "." to show 
+	 * V0 and V1 have no optional parameters. There will always be
+	 * a parameter for thread config, even if it's a "." to show
 	 * it's an empty list.
 	 */
 	if (*version_ptr <= 1) {
@@ -91,7 +93,149 @@ static int get_version_number(int argc,
 	return VDO_SUCCESS;
 }
 
-/**
+/*
+ * Free a list of non-NULL string pointers, and then the list itself.
+ */
+static void free_string_array(char **string_array)
+{
+	unsigned int offset;
+
+	for (offset = 0; string_array[offset] != NULL; offset++) {
+		UDS_FREE(string_array[offset]);
+	}
+	UDS_FREE(string_array);
+}
+
+/*
+ * Split the input string into substrings, separated at occurrences of
+ * the indicated character, returning a null-terminated list of string
+ * pointers.
+ *
+ * The string pointers and the pointer array itself should both be
+ * freed with UDS_FREE() when no longer needed. This can be done with
+ * vdo_free_string_array (below) if the pointers in the array are not
+ * changed. Since the array and copied strings are allocated by this
+ * function, it may only be used in contexts where allocation is
+ * permitted.
+ *
+ * Empty substrings are not ignored; that is, returned substrings may
+ * be empty strings if the separator occurs twice in a row.
+ */
+static int split_string(const char *string,
+			char separator,
+			char ***substring_array_ptr)
+{
+	unsigned int current_substring = 0, substring_count = 1;
+	const char *s;
+	char **substrings;
+	int result;
+	ptrdiff_t length;
+
+	for (s = string; *s != 0; s++) {
+		if (*s == separator) {
+			substring_count++;
+		}
+	}
+
+	result = UDS_ALLOCATE(substring_count + 1,
+			      char *,
+			      "string-splitting array",
+			      &substrings);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	for (s = string; *s != 0; s++) {
+		if (*s == separator) {
+			ptrdiff_t length = s - string;
+
+			result = UDS_ALLOCATE(length + 1,
+					      char,
+					      "split string",
+					      &substrings[current_substring]);
+			if (result != UDS_SUCCESS) {
+				free_string_array(substrings);
+				return result;
+			}
+			/*
+			 * Trailing NUL is already in place after allocation;
+			 * deal with the zero or more non-NUL bytes in the
+			 * string.
+			 */
+			if (length > 0) {
+				memcpy(substrings[current_substring],
+				       string,
+				       length);
+			}
+			string = s + 1;
+			current_substring++;
+			BUG_ON(current_substring >= substring_count);
+		}
+	}
+	/* Process final string, with no trailing separator. */
+	BUG_ON(current_substring != (substring_count - 1));
+	length = strlen(string);
+
+	result = UDS_ALLOCATE(length + 1,
+			      char,
+			      "split string",
+			      &substrings[current_substring]);
+	if (result != UDS_SUCCESS) {
+		free_string_array(substrings);
+		return result;
+	}
+	memcpy(substrings[current_substring], string, length);
+	current_substring++;
+	/* substrings[current_substring] is NULL already */
+	*substring_array_ptr = substrings;
+	return UDS_SUCCESS;
+}
+
+/*
+ * Join the input substrings into one string, joined with the indicated
+ * character, returning a string.
+ * array_length is a bound on the number of valid elements in
+ * substring_array, in case it is not NULL-terminated.
+ */
+static int join_strings(char **substring_array, size_t array_length,
+		        char separator, char **string_ptr)
+{
+	size_t string_length = 0;
+	size_t i;
+	int result;
+	char *output, *current_position;
+
+	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
+		string_length += strlen(substring_array[i]) + 1;
+	}
+
+	result = UDS_ALLOCATE(string_length, char, __func__, &output);
+
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	current_position = &output[0];
+
+	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
+		current_position = uds_append_to_buffer(current_position,
+							output + string_length,
+							"%s",
+							substring_array[i]);
+		*current_position = separator;
+		current_position++;
+	}
+
+	/* We output one too many separators; replace the last with a zero byte. */
+	if (current_position != output) {
+		*(current_position - 1) = '\0';
+	}
+
+	*string_ptr = output;
+	return UDS_SUCCESS;
+}
+
+/*
  * Parse a two-valued option into a bool.
  *
  * @param [in]  bool_str   The string value to convert to a bool
@@ -101,7 +245,7 @@ static int get_version_number(int argc,
  *
  * @return VDO_SUCCESS or an error if bool_str is neither true_str
  *                        nor false_str
- **/
+ */
 static inline int __must_check
 parse_bool(const char *bool_str,
 	   const char *true_str,
@@ -201,8 +345,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	}
 
 	/*
-	 * Don't fail, just log. This will handle version mismatches between 
-	 * user mode tools and kernel. 
+	 * Don't fail, just log. This will handle version mismatches between
+	 * user mode tools and kernel.
 	 */
 	uds_log_info("unknown thread parameter type \"%s\"",
 		     thread_param_type);
@@ -221,7 +365,7 @@ static int parse_one_thread_config_spec(const char *spec,
 {
 	unsigned int count;
 	char **fields;
-	int result = vdo_split_string(spec, '=', &fields);
+	int result = split_string(spec, '=', &fields);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -229,20 +373,20 @@ static int parse_one_thread_config_spec(const char *spec,
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
 		uds_log_error("thread config string error: expected thread parameter assignment, saw \"%s\"",
 			      spec);
-		vdo_free_string_array(fields);
+		free_string_array(fields);
 		return -EINVAL;
 	}
 
-	result = vdo_string_to_uint(fields[1], &count);
+	result = kstrtouint(fields[1], 10, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("thread config string error: integer value needed, found \"%s\"",
 			      fields[1]);
-		vdo_free_string_array(fields);
+		free_string_array(fields);
 		return result;
 	}
 
 	result = process_one_thread_config_spec(fields[0], count, config);
-	vdo_free_string_array(fields);
+	free_string_array(fields);
 	return result;
 }
 
@@ -277,7 +421,7 @@ static int parse_thread_config_string(const char *string,
 	if (strcmp(".", string) != 0) {
 		unsigned int i;
 
-		result = vdo_split_string(string, ',', &specs);
+		result = split_string(string, ',', &specs);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -288,7 +432,7 @@ static int parse_thread_config_string(const char *string,
 				break;
 			}
 		}
-		vdo_free_string_array(specs);
+		free_string_array(specs);
 	}
 	return result;
 }
@@ -357,7 +501,7 @@ static int parse_one_key_value_pair(const char *key,
 	}
 
 	/* The remaining arguments must have integral values. */
-	result = vdo_string_to_uint(value, &count);
+	result = kstrtouint(value, 10, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("optional config string error: integer value needed, found \"%s\"",
 			      value);
@@ -511,7 +655,7 @@ int vdo_parse_device_config(int argc,
 	INIT_LIST_HEAD(&config->config_list);
 
 	/* Save the original string. */
-	result = vdo_join_strings(argv, argc, ' ', &config->original_string);
+	result = join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -521,12 +665,12 @@ int vdo_parse_device_config(int argc,
 
 	/* Set defaults.
 	 *
-	 * XXX Defaults for bio_threads and bio_rotation_interval are currently 
-	 * defined using the old configuration scheme of constants.  These 
-	 * values are relied upon for performance testing on MGH machines 
-	 * currently. This should be replaced with the normally used testing 
-	 * defaults being defined in the file-based thread-configuration 
-	 * settings.  The values used as defaults internally should really be 
+	 * XXX Defaults for bio_threads and bio_rotation_interval are currently
+	 * defined using the old configuration scheme of constants.  These
+	 * values are relied upon for performance testing on MGH machines
+	 * currently. This should be replaced with the normally used testing
+	 * defaults being defined in the file-based thread-configuration
+	 * settings.  The values used as defaults internally should really be
 	 * those needed for VDO in its default shipped-product state.
 	 */
 	config->thread_counts = (struct thread_count_config) {
@@ -599,7 +743,7 @@ int vdo_parse_device_config(int argc,
 	}
 
 	/* Get the page cache size. */
-	result = vdo_string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
+	result = kstrtouint(dm_shift_arg(&arg_set), 10, &config->cache_size);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -608,8 +752,8 @@ int vdo_parse_device_config(int argc,
 	}
 
 	/* Get the block map era length. */
-	result = vdo_string_to_uint(dm_shift_arg(&arg_set),
-				    &config->block_map_maximum_age);
+	result = kstrtouint(dm_shift_arg(&arg_set), 10,
+			    &config->block_map_maximum_age);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -630,8 +774,8 @@ int vdo_parse_device_config(int argc,
 	/* Skip past the no longer used pool name for older table lines */
 	if (config->version <= 2) {
 		/*
-		 * Make sure the enum to get the pool name from argv directly 
-		 * is still in sync with the parsing of the table line. 
+		 * Make sure the enum to get the pool name from argv directly
+		 * is still in sync with the parsing of the table line.
 		 */
 		if (&arg_set.argv[0] !=
 		    &argv[POOL_NAME_ARG_INDEX[config->version]]) {

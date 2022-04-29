@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -25,13 +26,13 @@
 
 #include "block-map-format.h"
 #include "constants.h"
-#include "fixed-layout.h"
 #include "num-utils.h"
 #include "recovery-journal-format.h"
 #include "slab-depot-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component.h"
+#include "vdo-layout.h"
 
 const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.major_version = 67,

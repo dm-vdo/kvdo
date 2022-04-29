@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -272,8 +273,8 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 								 &entry);
 		if (result != VDO_SUCCESS) {
 			/*
-			 * When recovering from read-only mode, ignore damaged 
-			 * entries. 
+			 * When recovering from read-only mode, ignore damaged
+			 * entries.
 			 */
 			continue;
 		}
@@ -341,8 +342,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		}
 
 		/*
-		 * Don't extract more than the expected maximum entries per 
-		 * block. 
+		 * Don't extract more than the expected maximum entries per
+		 * block.
 		 */
 		block_entries = min(journal->entries_per_block,
 				    header.entry_count);
@@ -352,8 +353,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			struct packed_journal_sector *sector =
 				vdo_get_journal_block_sector(packed_header, j);
 			/*
-			 * Stop when all entries counted in the header are 
-			 * applied or skipped. 
+			 * Stop when all entries counted in the header are
+			 * applied or skipped.
 			 */
 			if (block_entries == 0) {
 				break;
@@ -367,8 +368,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			}
 
 			/*
-			 * Don't extract more than the expected maximum entries 
-			 * per sector. 
+			 * Don't extract more than the expected maximum entries
+			 * per sector.
 			 */
 			sector_entries =
 				min(sector->entry_count,
@@ -377,8 +378,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			sector_entries = min(sector_entries, block_entries);
 			append_sector_entries(rebuild, sector, sector_entries);
 			/*
-			 * Even if the sector wasn't full, count it as full 
-			 * when counting up to the entry count the block 
+			 * Even if the sector wasn't full, count it as full
+			 * when counting up to the entry count the block
 			 * header claims.
 			 */
 			block_entries -=

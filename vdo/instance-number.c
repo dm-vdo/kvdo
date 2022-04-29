@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -107,15 +108,15 @@ static int vdo_allocate_instance_locked(unsigned int *instance_ptr)
 	}
 
 	/*
-	 * There must be a zero bit somewhere now. Find it, starting just after 
-	 * the last instance allocated. 
+	 * There must be a zero bit somewhere now. Find it, starting just after
+	 * the last instance allocated.
 	 */
 	instance = find_next_zero_bit(words, bit_count, next_instance);
 	if (instance >= bit_count) {
 		int result;
 		/*
-		 * Nothing free after next_instance, so wrap around to instance 
-		 * zero. 
+		 * Nothing free after next_instance, so wrap around to instance
+		 * zero.
 		 */
 		instance = find_first_zero_bit(words, bit_count);
 		result = ASSERT(instance < bit_count,

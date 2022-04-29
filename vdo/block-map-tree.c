@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -31,6 +32,7 @@
 #include "forest.h"
 #include "kernel-types.h"
 #include "num-utils.h"
+#include "physical-zone.h"
 #include "recovery-journal.h"
 #include "reference-operation.h"
 #include "slab-depot.h"
@@ -61,34 +63,24 @@ struct write_if_not_dirtied_context {
 	uint8_t generation;
 };
 
-/**
- * An invalid PBN used to indicate that the page holding the location of a
- * tree root has been "loaded".
- **/
+/*
+ * Used to indicate that the page holding the location of a tree root has been
+ * "loaded".
+ */
 const physical_block_number_t VDO_INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
-/**
- * Convert a list entry to a tree_page.
- *
- * @param entry   The list entry to convert
- *
- * @return The tree_page which owns the list entry
- **/
 static inline struct tree_page *
 tree_page_from_list_entry(struct list_head *entry)
 {
 	return list_entry(entry, struct tree_page, entry);
 }
 
-/**********************************************************************/
 static void write_dirty_pages_callback(struct list_head *expired,
 				       void *context);
 
-/**
- * Make vios for reading, writing, and allocating the arboreal block map.
- *
+/*
  * Implements vio_constructor.
- **/
+ */
 static int __must_check
 make_block_map_vios(struct vdo *vdo,
 		    void *parent,
@@ -103,16 +95,6 @@ make_block_map_vios(struct vdo *vdo,
 				   vio_ptr);
 }
 
-/**
- * Intialize a block_map_tree_zone.
- *
- * @param zone         The block_map_zone of the tree zone to intialize
- * @param vdo          The vdo
- * @param maximum_age  The number of journal blocks before a dirtied page is
- *                     considered old and may be written out
- *
- * @return VDO_SUCCESS or an error
- **/
 int vdo_initialize_tree_zone(struct block_map_zone *zone,
 			     struct vdo *vdo,
 			     block_count_t era_length)
@@ -145,11 +127,6 @@ int vdo_initialize_tree_zone(struct block_map_zone *zone,
 }
 
 
-/**
- * Clean up a block_map_tree_zone.
- *
- * @param tree_zone  The zone to clean up
- **/
 void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 {
 	UDS_FREE(UDS_FORGET(tree_zone->dirty_lists));
@@ -157,40 +134,21 @@ void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 	free_int_map(UDS_FORGET(tree_zone->loading_pages));
 }
 
-/**
- * Set the initial dirty period for a tree zone.
- *
- * @param tree_zone  The tree zone
- * @param period     The initial dirty period to set
- **/
 void vdo_set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
 				      sequence_number_t period)
 {
 	vdo_set_dirty_lists_current_period(tree_zone->dirty_lists, period);
 }
 
-/**
- * Get the block_map_tree_zone in which a data_vio is operating.
- *
- * @param data_vio  The data_vio
- *
- * @return The block_map_tree_zone
- **/
 static inline struct block_map_tree_zone * __must_check
 get_block_map_tree_zone(struct data_vio *data_vio)
 {
 	return &(data_vio->logical.zone->block_map_zone->tree_zone);
 }
 
-/**
- * Get the tree_page for a given lock. This will be the page referred to by the
- * lock's tree slot for the lock's current height.
- *
- * @param zone  The tree zone of the tree
- * @param lock  The lock describing the page to get
- *
- * @return The requested page
- **/
+/*
+ * Get the page referred to by the lock's tree slot at its current height.
+ */
 static inline struct tree_page *
 get_tree_page(const struct block_map_tree_zone *zone,
 	      const struct tree_lock *lock)
@@ -200,17 +158,10 @@ get_tree_page(const struct block_map_tree_zone *zone,
 					  lock->tree_slots[lock->height].page_index);
 }
 
-/**
- * Check whether a buffer contains a valid page. If the page is bad, log an
- * error. If the page is valid, copy it to the supplied page.
- *
- * @param buffer  The buffer to validate (and copy)
- * @param nonce   The VDO nonce
- * @param pbn     The absolute PBN of the page
- * @param page    The page to copy into if valid
- *
- * @return <code>true</code> if the page was copied (valid)
- **/
+/*
+ * Validate and copy a buffer to a page.
+ * @pbn: the expected PBN
+ */
 bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 			 physical_block_number_t pbn,
 			 struct block_map_page *page)
@@ -233,14 +184,6 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 	return false;
 }
 
-/**
- * Check whether a tree zone is active (i.e. has any active lookups,
- * outstanding I/O, or pending I/O).
- *
- * @param zone  The zone to check
- *
- * @return <code>true</code> if the zone is active
- **/
 bool vdo_is_tree_zone_active(struct block_map_tree_zone *zone)
 {
 	return ((zone->active_lookups != 0) ||
@@ -248,12 +191,6 @@ bool vdo_is_tree_zone_active(struct block_map_tree_zone *zone)
 		is_vio_pool_busy(zone->vio_pool));
 }
 
-/**
- * Put the vdo in read-only mode and wake any vios waiting for a flush.
- *
- * @param zone    The zone
- * @param result  The error which is causing read-only mode
- **/
 static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 				      int result)
 {
@@ -270,17 +207,40 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
-/**
+/*
+ * Check whether the given value is between the lower and upper bounds,
+ * within a cyclic range of values from 0 to (modulus - 1). The value
+ * and both bounds must be smaller than the modulus.
+ *
+ * @lower: The lowest value to accept
+ * @value: The value to check
+ * @upper: The highest value to accept
+ * @modulus: The size of the cyclic space, no more than 2^15
+ * @return whether the value is in range
+ */
+static bool in_cyclic_range(uint16_t lower, uint16_t value,
+				     uint16_t upper, uint16_t modulus)
+{
+	if (value < lower) {
+		value += modulus;
+	}
+	if (upper < lower) {
+		upper += modulus;
+	}
+	return (value <= upper);
+}
+
+/*
  * Check whether a generation is strictly older than some other generation in
  * the context of a zone's current generation range.
  *
- * @param zone  The zone in which to do the comparison
- * @param a     The generation in question
- * @param b     The generation to compare to
+ * @zone: The zone in which to do the comparison
+ * @a: The generation in question
+ * @b: The generation to compare to
  *
- * @return <code>true</code> if generation a is not strictly older than
- *         generation b in the context of the zone
- **/
+ * @return if generation @a is not strictly older than generation @b in the
+ *	   context of @zone
+ */
 static bool __must_check
 is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 {
@@ -298,13 +258,6 @@ is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 	return in_cyclic_range(b, a, zone->generation, 1 << 8);
 }
 
-/**
- * Decrement the count for a generation and roll the oldest generation if there
- * are no longer any active pages in it.
- *
- * @param zone        The zone
- * @param generation  The generation to release
- **/
 static void release_generation(struct block_map_tree_zone *zone,
 			       uint8_t generation)
 {
@@ -323,21 +276,12 @@ static void release_generation(struct block_map_tree_zone *zone,
 	}
 }
 
-/**
- * Set the generation of a page and update the dirty page count in the zone.
- *
- * @param zone            The zone which owns the page
- * @param page            The page
- * @param new_generation  The generation to set
- * @param decrement_old   Whether to decrement the count of the page's old
- *                        generation
- **/
 static void set_generation(struct block_map_tree_zone *zone,
-			   struct tree_page *page, uint8_t new_generation,
-			   bool decrement_old)
+			   struct tree_page *page, uint8_t new_generation)
 {
 	uint32_t new_count;
 	int result;
+	bool decrement_old = is_waiting(&page->waiter);
 
 	uint8_t old_generation = page->generation;
 
@@ -360,31 +304,18 @@ static void set_generation(struct block_map_tree_zone *zone,
 	}
 }
 
-/**********************************************************************/
 static void write_page(struct tree_page *tree_page,
 		       struct vio_pool_entry *entry);
 
-/**
- * Write out a dirty page if it is still covered by the most recent flush
- * or if it is the flusher.
- *
- * <p>Implements waiter_callback
- *
- * @param waiter   The page to write
- * @param context  The vio_pool_entry with which to do the write
- **/
+/*
+ * Implements waiter_callback
+ */
 static void write_page_callback(struct waiter *waiter, void *context)
 {
 	write_page(container_of(waiter, struct tree_page, waiter),
 		   (struct vio_pool_entry *) context);
 }
 
-/**
- * Acquire a vio for writing a dirty page.
- *
- * @param waiter  The page which needs a vio
- * @param zone    The zone
- **/
 static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
 	int result;
@@ -396,14 +327,9 @@ static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 	}
 }
 
-/**
- * Attempt to increment the generation.
- *
- * @param zone  The zone whose generation is to be incremented
- *
- * @return <code>true</code> if all possible generations were not already
- *         active
- **/
+/*
+ * @return true if all possible generations were not already active
+ */
 static bool attempt_increment(struct block_map_tree_zone *zone)
 {
 	uint8_t generation = zone->generation + 1;
@@ -416,13 +342,9 @@ static bool attempt_increment(struct block_map_tree_zone *zone)
 	return true;
 }
 
-/**
- * Enqueue a page to either launch a flush or wait for the current flush which
- * is already in progress.
- *
- * @param page  The page to enqueue
- * @param zone  The zone
- **/
+/*
+ * Launches a flush if one is not already in progress.
+ */
 static void enqueue_page(struct tree_page *page,
 			 struct block_map_tree_zone *zone)
 {
@@ -440,15 +362,6 @@ static void enqueue_page(struct tree_page *page,
 	}
 }
 
-/**
- * Write pages which were waiting for a flush and have not been redirtied.
- * Requeue those pages which were redirtied.
- *
- * <p>Implements waiter_callback.
- *
- * @param waiter   The dirty page
- * @param context  The zone and generation
- **/
 static void write_page_if_not_dirtied(struct waiter *waiter, void *context)
 {
 	struct tree_page *page = container_of(waiter, struct tree_page, waiter);
@@ -462,12 +375,6 @@ static void write_page_if_not_dirtied(struct waiter *waiter, void *context)
 	enqueue_page(page, write_context->zone);
 }
 
-/**
- * Return a vio to the zone's pool.
- *
- * @param zone   The zone which owns the pool
- * @param entry  The pool entry to return
- **/
 static void return_to_pool(struct block_map_tree_zone *zone,
 			   struct vio_pool_entry *entry)
 {
@@ -475,12 +382,9 @@ static void return_to_pool(struct block_map_tree_zone *zone,
 	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
-/**
- * Handle the successful write of a tree page. This callback is registered in
- * write_initialized_page().
- *
- * @param completion  The vio doing the write
- **/
+/*
+ * This callback is registered in write_initialized_page().
+ */
 static void finish_page_write(struct vdo_completion *completion)
 {
 	bool dirty;
@@ -529,12 +433,6 @@ static void finish_page_write(struct vdo_completion *completion)
 	return_to_pool(zone, entry);
 }
 
-/**
- * Handle an error writing a tree page. This error handler is registered in
- * write_page() and write_initialized_page().
- *
- * @param completion  The vio doing the write
- **/
 static void handle_write_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
@@ -545,12 +443,6 @@ static void handle_write_error(struct vdo_completion *completion)
 	return_to_pool(zone, entry);
 }
 
-/**
- * Write a page which has been written at least once. This callback is
- * registered in (or called directly from) write_page().
- *
- * @param completion  The vio which will do the write
- **/
 static void write_initialized_page(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
@@ -574,12 +466,6 @@ static void write_initialized_page(struct vdo_completion *completion)
 					     false);
 }
 
-/**
- * Write a dirty tree page now that we have a vio with which to write it.
- *
- * @param tree_page  The page to write
- * @param entry      The vio_pool_entry with which to write
- **/
 static void write_page(struct tree_page *tree_page,
 		       struct vio_pool_entry *entry)
 {
@@ -620,13 +506,10 @@ static void write_page(struct tree_page *tree_page,
 				  write_initialized_page, handle_write_error);
 }
 
-/**
+/*
  * Schedule a batch of dirty pages for writing.
  *
- * <p>Implements vdo_dirty_callback.
- *
- * @param expired  The pages to write
- * @param context  The zone
+ * Implements vdo_dirty_callback.
  **/
 static void write_dirty_pages_callback(struct list_head *expired, void *context)
 {
@@ -648,31 +531,21 @@ static void write_dirty_pages_callback(struct list_head *expired, void *context)
 			continue;
 		}
 
-		set_generation(zone, page, generation, false);
+		set_generation(zone, page, generation);
 		if (!page->writing) {
 			enqueue_page(page, zone);
 		}
 	}
 }
 
-/**
- * Advance the dirty period for a tree zone.
- *
- * @param zone    The block_map_tree_zone to advance
- * @param period  The new dirty period
- **/
 void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone,
 				  sequence_number_t period)
 {
 	vdo_advance_dirty_lists_period(zone->dirty_lists, period);
 }
 
-/**
- * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by
- * the drain type, all dirty block map trees will be written to disk. This
- * method must not be called when lookups are active.
- *
- * @param zone  The block_map_tree_zone to drain
+/*
+ * This method must not be called when lookups are active.
  **/
 void vdo_drain_zone_trees(struct block_map_tree_zone *zone)
 {
@@ -683,12 +556,9 @@ void vdo_drain_zone_trees(struct block_map_tree_zone *zone)
 	}
 }
 
-/**
+/*
  * Release a lock on a page which was being loaded or allocated.
- *
- * @param data_vio  The data_vio releasing the page lock
- * @param what      What the data_vio was doing (for logging)
- **/
+ */
 static void release_page_lock(struct data_vio *data_vio, char *what)
 {
 	struct block_map_tree_zone *zone;
@@ -710,12 +580,6 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 	lock->locked = false;
 }
 
-/**
- * Continue a data_vio now that the lookup is complete.
- *
- * @param data_vio  The data_vio
- * @param result    The result of the lookup
- **/
 static void finish_lookup(struct data_vio *data_vio, int result)
 {
 	struct block_map_tree_zone *zone;
@@ -732,13 +596,6 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 				       data_vio->tree_lock.thread_id);
 }
 
-/**
- * Abort a block map PBN lookup due to an error in the load or allocation on
- * which we were waiting.
- *
- * @param waiter   The data_vio which was waiting for a page load or allocation
- * @param context  The error which caused the abort
- **/
 static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
@@ -755,13 +612,6 @@ static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 	finish_lookup(data_vio, result);
 }
 
-/**
- * Abort a block map PBN lookup due to an error loading or allocating a page.
- *
- * @param data_vio  The data_vio which was loading or allocating a page
- * @param result    The error code
- * @param what      What the data_vio was doing (for logging)
- **/
 static void abort_lookup(struct data_vio *data_vio, int result, char *what)
 {
 	if (result != VDO_NO_SPACE) {
@@ -778,26 +628,11 @@ static void abort_lookup(struct data_vio *data_vio, int result, char *what)
 	finish_lookup(data_vio, result);
 }
 
-/**
- * Abort a block map PBN lookup due to an error loading a page.
- *
- * @param data_vio  The data_vio doing the page load
- * @param result    The error code
- **/
 static void abort_load(struct data_vio *data_vio, int result)
 {
 	abort_lookup(data_vio, result, "load");
 }
 
-/**
- * Determine if a location represents a valid mapping for a tree page.
- *
- * @param vdo      The vdo
- * @param mapping  The data_location to check
- * @param height   The height of the entry in the tree
- *
- * @return <code>true</code> if the entry represents a invalid page mapping
- **/
 static bool __must_check
 is_invalid_tree_entry(const struct vdo *vdo,
 		      const struct data_location *mapping,
@@ -818,20 +653,12 @@ is_invalid_tree_entry(const struct vdo *vdo,
 	return !vdo_is_physical_data_block(vdo->depot, mapping->pbn);
 }
 
-/**********************************************************************/
 static void load_block_map_page(struct block_map_tree_zone *zone,
 				struct data_vio *data_vio);
 
 static void allocate_block_map_page(struct block_map_tree_zone *zone,
 				    struct data_vio *data_vio);
 
-/**
- * Continue a block map PBN lookup now that a page has been loaded by
- * descending one level in the tree.
- *
- * @param data_vio  The data_vio doing the lookup
- * @param page      The page which was just loaded
- **/
 static void continue_with_loaded_page(struct data_vio *data_vio,
 				      struct block_map_page *page)
 {
@@ -839,7 +666,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	struct block_map_tree_slot slot = lock->tree_slots[lock->height];
 	struct data_location mapping =
 		vdo_unpack_block_map_entry(&page->entries[slot.block_map_slot.slot]);
-	if (is_invalid_tree_entry(vdo_get_from_data_vio(data_vio), &mapping,
+	if (is_invalid_tree_entry(vdo_from_data_vio(data_vio), &mapping,
 				  lock->height)) {
 		uds_log_error_strerror(VDO_BAD_MAPPING,
 				       "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
@@ -868,13 +695,6 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	load_block_map_page(get_block_map_tree_zone(data_vio), data_vio);
 }
 
-/**
- * Continue a block map PBN lookup now that the page load we were waiting on
- * has finished.
- *
- * @param waiter   The data_vio waiting for a page to be loaded
- * @param context  The page which was just loaded
- **/
 static void continue_load_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
@@ -883,12 +703,6 @@ static void continue_load_for_waiter(struct waiter *waiter, void *context)
 	continue_with_loaded_page(data_vio, (struct block_map_page *) context);
 }
 
-/**
- * Finish loading a page now that it has been read in from disk. This callback
- * is registered in load_page().
- *
- * @param completion  The vio doing the page read
- **/
 static void finish_block_map_page_load(struct vdo_completion *completion)
 {
 	physical_block_number_t pbn;
@@ -919,11 +733,6 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	continue_with_loaded_page(data_vio, page);
 }
 
-/**
- * Handle an error loading a tree page.
- *
- * @param completion  The vio doing the page read
- **/
 static void handle_io_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
@@ -935,13 +744,6 @@ static void handle_io_error(struct vdo_completion *completion)
 	abort_load(data_vio, result);
 }
 
-/**
- * Read a tree page from disk now that we've gotten a vio with which to do the
- * read. This waiter_callback is registered in load_block_map_page().
- *
- * @param waiter   The data_vio which requires a page load
- * @param context  The vio pool entry with which to do the read
- **/
 static void load_page(struct waiter *waiter, void *context)
 {
 	struct vio_pool_entry *entry = context;
@@ -958,16 +760,10 @@ static void load_page(struct waiter *waiter, void *context)
 				 handle_io_error);
 }
 
-/**
- * Attempt to acquire a lock on a page in the block map tree. If the page is
- * already locked, queue up to wait for the lock to be released. If the lock is
- * acquired, the data_vio's tree_lock.locked field will be set to true.
- *
- * @param zone      The block_map_tree_zone in which the data_vio operates
- * @param data_vio  The data_vio which desires a page lock
- *
- * @return VDO_SUCCESS or an error
- **/
+/*
+ * If the page is already locked, queue up to wait for the lock to be released.
+ * If the lock is acquired, @data_vio->tree_lock.locked will be true.
+ */
 static int attempt_page_lock(struct block_map_tree_zone *zone,
 			     struct data_vio *data_vio)
 {
@@ -1003,12 +799,10 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	return enqueue_data_vio(&lock_holder->waiters, data_vio);
 }
 
-/**
- * Load a block map tree page from disk.
- *
- * @param zone      The block_map_tree_zone in which the data_vio operates
- * @param data_vio  The data_vio which requires a page to be loaded
- **/
+/*
+ * Load a block map tree page from disk, for the next level in the data vio
+ * tree lock.
+ */
 static void load_block_map_page(struct block_map_tree_zone *zone,
 				struct data_vio *data_vio)
 {
@@ -1030,11 +824,6 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 	}
 }
 
-/**
- * Set the callback of a data_vio after it has allocated a block map page.
- *
- * @param data_vio  The data_vio
- **/
 static void set_post_allocation_callback(struct data_vio *data_vio)
 {
 	vdo_set_completion_callback(data_vio_as_completion(data_vio),
@@ -1042,40 +831,26 @@ static void set_post_allocation_callback(struct data_vio *data_vio)
 				    data_vio->tree_lock.thread_id);
 }
 
-/**
- * Abort a block map PBN lookup due to an error allocating a page.
- *
- * @param data_vio  The data_vio doing the page allocation
- * @param result    The error code
- **/
 static void abort_allocation(struct data_vio *data_vio, int result)
 {
 	set_post_allocation_callback(data_vio);
 	abort_lookup(data_vio, result, "allocation");
 }
 
-/**
- * Callback to handle an error while attempting to allocate a page. This
- * callback is used to transfer back to the logical zone along the block map
- * page allocation path.
- *
- * @param completion  The data_vio doing the allocation
- **/
 static void allocation_failure(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
-	assert_data_vio_in_logical_zone(data_vio);
+	if (vdo_get_callback_thread_id() !=
+	    data_vio->logical.zone->thread_id) {
+		launch_data_vio_logical_callback(data_vio, allocation_failure);
+		return;
+	}
+
+	completion->error_handler = NULL;
 	abort_allocation(data_vio, completion->result);
 }
 
-/**
- * Continue with page allocations now that a parent page has been allocated.
- *
- * @param waiter   The data_vio which was waiting for a page to be allocated
- * @param context  The physical block number of the page which was just
- *                 allocated
- **/
 static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
@@ -1094,13 +869,10 @@ static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 	allocate_block_map_page(get_block_map_tree_zone(data_vio), data_vio);
 }
 
-/**
- * Finish the page allocation process by recording the allocation in the tree
- * and waking any waiters now that the write lock has been released. This
- * callback is registered in release_block_map_write_lock().
- *
- * @param completion  The data_vio doing the allocation
- **/
+/*
+ * Record the allocation in the tree and wake any waiters now that the write
+ * lock has been released.
+ */
 static void finish_block_map_allocation(struct vdo_completion *completion)
 {
 	physical_block_number_t pbn;
@@ -1114,10 +886,8 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	height_t height = tree_lock->height;
 
 	assert_data_vio_in_logical_zone(data_vio);
-	if (completion->result != VDO_SUCCESS) {
-		allocation_failure(completion);
-		return;
-	}
+
+	completion->error_handler = NULL;
 
 	tree_page = get_tree_page(zone, tree_lock);
 
@@ -1137,7 +907,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 			 * The outstanding flush won't cover the update we just
 			 * made, so mark the page as needing another flush.
 			 */
-			set_generation(zone, tree_page, zone->generation, true);
+			set_generation(zone, tree_page, zone->generation);
 		}
 	} else {
 		/* Put the page on a dirty list */
@@ -1172,38 +942,22 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	allocate_block_map_page(zone, data_vio);
 }
 
-/**
- * Release the write lock on a newly allocated block map page now that we
- * have made its journal entries and reference count updates. This callback
- * is registered in set_block_map_page_reference_count().
- *
- * @param completion  The data_vio doing the allocation
- **/
 static void release_block_map_write_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct allocating_vio *allocating_vio =
-		data_vio_as_allocating_vio(data_vio);
-	assert_data_vio_in_allocated_zone(data_vio);
-	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
-		return;
-	}
 
-	vio_release_allocation_lock(allocating_vio);
-	vio_reset_allocation(allocating_vio);
+	assert_data_vio_in_allocated_zone(data_vio);
+
+	release_data_vio_allocation_lock(data_vio, true);
 	launch_data_vio_logical_callback(data_vio,
 					 finish_block_map_allocation);
 }
 
-/**
- * Set the reference count of a newly allocated block map page to
- * MAXIMUM_REFERENCES now that we have made a recovery journal entry for it.
- * MAXIMUM_REFERENCES is used to prevent deduplication against the block after
+/*
+ * Newly allocated block map pages are set to have to MAXIMUM_REFERENCES after
+ * they are journaled, to prevent deduplication against the block after
  * we release the write lock on it, but before we write out the page.
- *
- * @param completion  The data_vio doing the allocation
- **/
+ */
 static void
 set_block_map_page_reference_count(struct vdo_completion *completion)
 {
@@ -1213,77 +967,49 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 	struct tree_lock *lock = &data_vio->tree_lock;
 
 	assert_data_vio_in_allocated_zone(data_vio);
-	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
-		return;
-	}
 
 	pbn = lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 	completion->callback = release_block_map_write_lock;
-	vdo_add_slab_journal_entry(vdo_get_slab_journal(vdo_get_from_data_vio(data_vio)->depot,
+	vdo_add_slab_journal_entry(vdo_get_slab_journal(completion->vdo->depot,
 							pbn),
 				   data_vio);
 }
 
-/**
- * Make a recovery journal entry for a newly allocated block map page.
- * This callback is registered in continue_block_map_page_allocation().
- *
- * @param completion  The data_vio doing the allocation
- **/
 static void journal_block_map_allocation(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_journal_zone(data_vio);
-	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
-		return;
-	}
 
 	set_data_vio_allocated_zone_callback(data_vio,
 					     set_block_map_page_reference_count);
-	vdo_add_recovery_journal_entry(vdo_get_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
 
-/**
- * Continue the process of allocating a block map page now that the
- * block_allocator has given us a block. This callback is registered in
- * allocate_block_map_page().
- *
- * @param completion  The data_vio which is doing the allocation
- **/
-static void
-continue_block_map_page_allocation(struct vdo_completion *completion)
+static void allocate_block(struct vdo_completion *completion)
 {
-	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct tree_lock *lock = &data_vio->tree_lock;
-	physical_block_number_t pbn = allocating_vio->allocation;
+	physical_block_number_t pbn;
 
-	if (pbn == VDO_ZERO_BLOCK) {
-		set_data_vio_logical_callback(data_vio, allocation_failure);
-		continue_data_vio(data_vio, VDO_NO_SPACE);
+	assert_data_vio_in_allocated_zone(data_vio);
+
+	if (!vdo_allocate_block_in_zone(data_vio)) {
 		return;
 	}
 
+	pbn = data_vio->allocation.pbn;
 	lock->tree_slots[lock->height - 1].block_map_slot.pbn = pbn;
 	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_BLOCK_MAP_INCREMENT,
 						 pbn,
 						 VDO_MAPPING_STATE_UNCOMPRESSED,
-						 allocating_vio->allocation_lock,
+						 data_vio->allocation.lock,
 						 &data_vio->operation);
 	launch_data_vio_journal_callback(data_vio,
 					 journal_block_map_allocation);
 }
 
-/**
- * Allocate a block map page.
- *
- * @param zone      The zone in which the data_vio is operating
- * @param data_vio  The data_vio which needs to allocate a page
- **/
 static void allocate_block_map_page(struct block_map_tree_zone *zone,
 				    struct data_vio *data_vio)
 {
@@ -1308,19 +1034,16 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 		return;
 	}
 
-	vio_allocate_data_block(data_vio_as_allocating_vio(data_vio),
-				data_vio->logical.zone->selector,
-				VIO_BLOCK_MAP_WRITE_LOCK,
-				continue_block_map_page_allocation);
+	data_vio_allocate_data_block(data_vio,
+				     VIO_BLOCK_MAP_WRITE_LOCK,
+				     allocate_block,
+				     allocation_failure);
 }
 
-/**
- * Look up the PBN of the block map page for a data_vio's LBN in the arboreal
- * block map. If necessary, the block map page will be allocated. Also, the
- * ancestors of the block map page will be allocated or loaded if necessary.
- *
- * @param data_vio  The data_vio requesting the lookup
- **/
+/*
+ * Look up the PBN of the block map page containing the mapping for a data_vio's LBN.
+ * All ancestors in the tree will be allocated or loaded, as needed.
+ */
 void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 {
 	page_number_t page_index;
@@ -1369,7 +1092,7 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 	/* The page at this height has been allocated and loaded. */
 	mapping =
 		vdo_unpack_block_map_entry(&page->entries[tree_slot.block_map_slot.slot]);
-	if (is_invalid_tree_entry(vdo_get_from_data_vio(data_vio), &mapping,
+	if (is_invalid_tree_entry(vdo_from_data_vio(data_vio), &mapping,
 				  lock->height)) {
 		uds_log_error_strerror(VDO_BAD_MAPPING,
 				       "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
@@ -1401,16 +1124,11 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 	load_block_map_page(zone, data_vio);
 }
 
-/**
+/*
  * Find the PBN of a leaf block map page. This method may only be used after
  * all allocated tree pages have been loaded, otherwise, it may give the wrong
  * answer (0).
- *
- * @param map          The block map containing the forest
- * @param page_number  The page number of the desired block map page
- *
- * @return The PBN of the page
- **/
+ */
 physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
 						    page_number_t page_number)
 {
@@ -1439,14 +1157,11 @@ physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
 	return mapping.pbn;
 }
 
-/**
+/*
  * Write a tree page or indicate that it has been re-dirtied if it is already
  * being written. This method is used when correcting errors in the tree during
  * read-only rebuild.
- *
- * @param page  The page to write
- * @param zone  The tree zone managing the page
- **/
+ */
 void vdo_write_tree_page(struct tree_page *page,
 			 struct block_map_tree_zone *zone)
 {
@@ -1456,7 +1171,7 @@ void vdo_write_tree_page(struct tree_page *page,
 		return;
 	}
 
-	set_generation(zone, page, zone->generation, waiting);
+	set_generation(zone, page, zone->generation);
 	if (waiting || page->writing) {
 		return;
 	}

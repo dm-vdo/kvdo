@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -20,8 +21,9 @@
 #ifndef VDO_H
 #define VDO_H
 
-#include <linux/blk_types.h>
 #include <linux/atomic.h>
+#include <linux/blk_types.h>
+#include <linux/crc32.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
 
@@ -30,9 +32,9 @@
 #include "admin-completion.h"
 #include "admin-state.h"
 #include "atomic-stats.h"
+#include "data-vio-pool.h"
 #include "device-config.h"
 #include "header.h"
-#include "limiter.h"
 #include "packer.h"
 #include "statistics.h"
 #include "super-block.h"
@@ -42,7 +44,6 @@
 #include "vdo-component.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
-#include "vdo-state.h"
 #include "volume-geometry.h"
 
 
@@ -62,10 +63,6 @@ struct vdo {
 
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
-	/** The pool of data_vios for handling incoming bios */
-	struct buffer_pool *data_vio_pool;
-	/* For returning batches of data_vios to their pool */
-	struct batch_processor *data_vio_releaser;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
@@ -124,6 +121,9 @@ struct vdo {
 	 **/
 	struct io_submitter *io_submitter;
 
+	/* The pool of data_vios for servicing incoming bios */
+	struct data_vio_pool *data_vio_pool;
+
 	/* The completion for administrative operations */
 	struct admin_completion admin_completion;
 
@@ -165,13 +165,10 @@ struct vdo {
 	struct kobject vdo_directory;
 	struct kobject stats_directory;
 
-	/** Limit the number of requests that are being processed. */
-	struct limiter request_limiter;
-	struct limiter discard_limiter;
-
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 };
+
 
 /**
  * Indicate whether the vdo is configured to use a separate work queue for
@@ -217,6 +214,9 @@ vdo_prepare_to_modify(struct vdo *vdo,
 struct block_device * __must_check
 vdo_get_backing_device(const struct vdo *vdo);
 
+const char * __must_check
+vdo_get_device_name(const struct dm_target *target);
+
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
 const struct admin_state_code * __must_check
@@ -259,6 +259,8 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name);
 
+void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name);
+
 struct hash_zone * __must_check
 vdo_select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 
@@ -270,5 +272,15 @@ zone_count_t __must_check
 vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
 
 void vdo_dump_status(const struct vdo *vdo);
+
+
+/*
+ * We start with 0L and postcondition with ~0L to match our historical usage
+ * in userspace.
+ */
+static inline u32 vdo_crc32(const void *buf, unsigned long len)
+{
+	return (crc32(0L, buf, len) ^ ~0L);
+}
 
 #endif /* VDO_H */

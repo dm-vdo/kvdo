@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
  /*
  * Copyright Red Hat
  *
@@ -19,6 +20,7 @@
 
 #include "io-submitter.h"
 
+#include <linux/kernel.h>
 #include <linux/mutex.h>
 #include <linux/version.h>
 
@@ -297,8 +299,8 @@ static int merge_to_next_head(struct int_map *bio_map,
 	int result;
 
 	/*
-	 * Handle "next merge" and "gap fill" cases the same way so as to 
-	 * reorder bios in a way that's compatible with using funnel queues 
+	 * Handle "next merge" and "gap fill" cases the same way so as to
+	 * reorder bios in a way that's compatible with using funnel queues
 	 * in work queues.  This avoids removing an existing work item.
 	 */
 	int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
@@ -464,8 +466,8 @@ int vdo_make_io_submitter(const char *thread_name_prefix,
 				      &bio_queue_data->map);
 		if (result != 0) {
 			/*
-			 * Clean up the partially initialized bio-queue 
-			 * entirely and indicate that initialization failed. 
+			 * Clean up the partially initialized bio-queue
+			 * entirely and indicate that initialization failed.
 			 */
 			uds_log_error("bio map initialization failed %d",
 				      result);
@@ -483,8 +485,8 @@ int vdo_make_io_submitter(const char *thread_name_prefix,
 					 (void **) &bio_queue_data);
 		if (result != VDO_SUCCESS) {
 			/*
-			 * Clean up the partially initialized bio-queue 
-			 * entirely and indicate that initialization failed. 
+			 * Clean up the partially initialized bio-queue
+			 * entirely and indicate that initialization failed.
 			 */
 			free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
@@ -542,8 +544,8 @@ void vdo_free_io_submitter(struct io_submitter *io_submitter)
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		/*
-		 * vdo_destroy() will free the work queue, so just give up our 
-		 * reference to it. 
+		 * vdo_destroy() will free the work queue, so just give up our
+		 * reference to it.
 		 */
 		UDS_FORGET(io_submitter->bio_queue_data[i].queue);
 		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));

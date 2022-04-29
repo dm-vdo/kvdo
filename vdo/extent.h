@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -77,38 +78,9 @@ int __must_check vdo_create_extent(struct vdo *vdo,
 
 void vdo_free_extent(struct vdo_extent *extent);
 
-void vdo_read_partial_metadata_extent(struct vdo_extent *extent,
-				      physical_block_number_t start_block,
-				      block_count_t count);
-
-/**
- * Read metadata from the underlying storage.
- *
- * @param extent       The extent to read
- * @param start_block  The physical block number of the first block
- *                     in the extent
- **/
-static inline void vdo_read_metadata_extent(struct vdo_extent *extent,
-					    physical_block_number_t start_block)
-{
-	vdo_read_partial_metadata_extent(extent, start_block, extent->count);
-}
-
-void vdo_write_partial_metadata_extent(struct vdo_extent *extent,
-				       physical_block_number_t start_block,
-				       block_count_t count);
-/**
- * Write metadata to the underlying storage.
- *
- * @param extent       The extent to write
- * @param start_block  The physical block number of the first block in the
- *                     extent
- **/
-
-static inline void vdo_write_metadata_extent(struct vdo_extent *extent,
-					     physical_block_number_t start_block)
-{
-	vdo_write_partial_metadata_extent(extent, start_block, extent->count);
-}
+void vdo_launch_metadata_extent(struct vdo_extent *extent,
+				physical_block_number_t start_block,
+				block_count_t count,
+				enum vio_operation operation);
 
 #endif /* EXTENT_H */

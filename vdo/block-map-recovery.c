@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -34,56 +35,50 @@
 #include "vdo.h"
 #include "vdo-page-cache.h"
 
-/**
- * A completion to manage recovering the block map from the recovery journal.
+/*
+ * A structure to manage recovering the block map from the recovery journal.
+ *
  * Note that the page completions kept in this structure are not immediately
  * freed, so the corresponding pages will be locked down in the page cache
  * until the recovery frees them.
  **/
 struct block_map_recovery_completion {
-	/** completion header */
 	struct vdo_completion completion;
-	/** the completion for flushing the block map */
+	/* for flushing the block map */
 	struct vdo_completion sub_task_completion;
-	/** the thread from which the block map may be flushed */
+	/* the thread from which the block map may be flushed */
 	thread_id_t admin_thread;
-	/** the thread on which all block map operations must be done */
+	/* the thread on which all block map operations must be done */
 	thread_id_t logical_thread_id;
-	/** the block map */
 	struct block_map *block_map;
-	/** whether this recovery has been aborted */
+	/* whether this recovery has been aborted */
 	bool aborted;
-	/** whether we are currently launching the initial round of requests */
 	bool launching;
 
 	/* Fields for the journal entries. */
-	/* the journal entries to apply */
 	struct numbered_block_mapping *journal_entries;
-	/**
+	/*
 	 * a heap wrapping journal_entries. It re-orders and sorts journal
 	 * entries in ascending LBN order, then original journal order. This
 	 * permits efficient iteration over the journal entries in order.
-	 **/
+	 */
 	struct heap replay_heap;
 
-	/* Fields tracking progress through the journal entries. */ 
-	/* a pointer to the next journal entry to apply */
+	/* Fields tracking progress through the journal entries. */
+
 	struct numbered_block_mapping *current_entry;
-	/** next entry for which the block map page has not been requested */
+	/* next entry for which the block map page has not been requested */
 	struct numbered_block_mapping *current_unfetched_entry;
 
 	/* Fields tracking requested pages. */
-	/* the absolute PBN of the current page being processed */
+	/* current page's absolute PBN */
 	physical_block_number_t pbn;
-	/** number of pending (non-ready) requests */
 	page_count_t outstanding;
-	/** number of page completions */
 	page_count_t page_count;
-	/** array of requested, potentially ready page completions */
 	struct vdo_page_completion page_completions[];
 };
 
-/**
+/*
  * This is a heap_comparator function that orders numbered_block_mappings using
  * the 'block_map_slot' field as the primary key and the mapping 'number' field
  * as the secondary key. Using the mapping number preserves the journal order
@@ -91,11 +86,11 @@ struct block_map_recovery_completion {
  * ensuring we replay all entries with the same slot in the exact order as they
  * appeared in the journal.
  *
- * <p>The comparator order is reversed from the usual sense since the
+ * The comparator order is reversed from the usual sense since the
  * heap structure is a max-heap, returning larger elements before
  * smaller ones, but we want to pop entries off the heap in ascending
  * LBN order.
- **/
+ */
 static int compare_mappings(const void *item1, const void *item2)
 {
 	const struct numbered_block_mapping *mapping1 =
@@ -120,9 +115,9 @@ static int compare_mappings(const void *item1, const void *item2)
 	return 0;
 }
 
-/**
- * Swap two numbered_block_mapping structures. Implements heap_swapper.
- **/
+/*
+ * Implements heap_swapper.
+ */
 static void swap_mappings(void *item1, void *item2)
 {
 	struct numbered_block_mapping *mapping1 = item1;
@@ -132,13 +127,6 @@ static void swap_mappings(void *item1, void *item2)
 	*mapping2 = temp;
 }
 
-/**
- * Convert a vdo_completion to a block_map_recovery_completion.
- *
- * @param completion  The completion to convert
- *
- * @return The completion as a block_map_recovery_completion
- **/
 static inline struct block_map_recovery_completion * __must_check
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
@@ -149,13 +137,6 @@ as_block_map_recovery_completion(struct vdo_completion *completion)
 			    completion);
 }
 
-/**
- * Free the block_map_recovery_completion and notify the parent that the
- * block map recovery is done. This callback is registered in
- * vdo_make_recovery_completion().
- *
- * @param completion  The block_map_recovery_completion
- **/
 static void finish_block_map_recovery(struct vdo_completion *completion)
 {
 	int result = completion->result;
@@ -165,17 +146,6 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	vdo_finish_completion(parent, result);
 }
 
-/**
- * Make a new block map recovery completion.
- *
- * @param [in]  vdo              The vdo
- * @param [in]  entry_count      The number of journal entries
- * @param [in]  journal_entries  An array of journal entries to process
- * @param [in]  parent           The parent of the recovery completion
- * @param [out] recovery_ptr     The new block map recovery completion
- *
- * @return a success or error code
- **/
 static int
 vdo_make_recovery_completion(struct vdo *vdo,
 			     block_count_t entry_count,
@@ -211,8 +181,8 @@ vdo_make_recovery_completion(struct vdo *vdo,
 		vdo_get_logical_zone_thread(vdo->thread_config, 0);
 
 	/*
-	 * Organize the journal entries into a binary heap so we can iterate 
-	 * over them in sorted order incrementally, avoiding an expensive sort 
+	 * Organize the journal entries into a binary heap so we can iterate
+	 * over them in sorted order incrementally, avoiding an expensive sort
 	 * call.
 	 */
 	initialize_heap(&recovery->replay_heap,
@@ -235,7 +205,6 @@ vdo_make_recovery_completion(struct vdo *vdo,
 			       recovery->logical_thread_id,
 			       parent);
 
-	/* This message must be recognizable by VDOTest::RebuildBase. */
 	uds_log_info("Replaying %zu recovery entries into block map",
 		     recovery->replay_heap.count);
 
@@ -243,7 +212,6 @@ vdo_make_recovery_completion(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static void flush_block_map(struct vdo_completion *completion)
 {
 	struct block_map_recovery_completion *recovery =
@@ -259,15 +227,7 @@ static void flush_block_map(struct vdo_completion *completion)
 			    completion);
 }
 
-/**
- * Check whether the recovery is done. If so, finish it by either flushing the
- * block map (if the recovery was successful), or by cleaning up (if it
- * wasn't).
- *
- * @param recovery  The recovery completion
- *
- * @return <code>true</code> if the recovery or recovery is complete
- **/
+/* @return true if recovery is done.  */
 static bool finish_if_done(struct block_map_recovery_completion *recovery)
 {
 	/* Pages are still being launched or there is still work to do */
@@ -303,13 +263,6 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 	return true;
 }
 
-/**
- * Note that there has been an error during the recovery and finish it if there
- * is nothing else outstanding.
- *
- * @param recovery  The block_map_recovery_completion
- * @param result    The error result to use, if one is not already saved
- **/
 static void abort_recovery(struct block_map_recovery_completion *recovery,
 			   int result)
 {
@@ -318,18 +271,17 @@ static void abort_recovery(struct block_map_recovery_completion *recovery,
 	finish_if_done(recovery);
 }
 
-/**
+/*
  * Find the first journal entry after a given entry which is not on the same
  * block map page.
  *
- * @param recovery       the block_map_recovery_completion
- * @param current_entry  the entry to search from
- * @param needs_sort     Whether sorting is needed to proceed
+ * @current_entry: the entry to search from
+ * @needs_sort: Whether sorting is needed to proceed
  *
  * @return Pointer to the first later journal entry on a different block map
  *         page, or a pointer to just before the journal entries if no
  *         subsequent entry is on a different block map page.
- **/
+ */
 static struct numbered_block_mapping *
 find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 			      struct numbered_block_mapping *current_entry,
@@ -343,8 +295,8 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 	current_page = current_entry->block_map_slot.pbn;
 
 	/*
-	 * Decrement current_entry until it's out of bounds or on a different 
-	 * page. 
+	 * Decrement current_entry until it's out of bounds or on a different
+	 * page.
 	 */
 	while ((current_entry >= recovery->journal_entries) &&
 	       (current_entry->block_map_slot.pbn == current_page)) {
@@ -359,13 +311,10 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 	return current_entry;
 }
 
-/**
- * Apply a range of journal entries to a block map page.
- *
- * @param page            The block map page being modified
- * @param starting_entry  The first journal entry to apply
- * @param ending_entry    The entry just past the last journal entry to apply
- **/
+/*
+ * Apply a range of journal entries [starting_entry, ending_entry) journal
+ * entries to a block map page.
+ */
 static void
 apply_journal_entries_to_page(struct block_map_page *page,
 			      struct numbered_block_mapping *starting_entry,
@@ -380,16 +329,9 @@ apply_journal_entries_to_page(struct block_map_page *page,
 	}
 }
 
-/**********************************************************************/
 static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 				struct vdo_completion *completion);
 
-/**
- * Note that a page is now ready and attempt to process pages. This callback is
- * registered in fetch_page().
- *
- * @param completion  The vdo_page_completion for the fetched page
- **/
 static void page_loaded(struct vdo_completion *completion)
 {
 	struct block_map_recovery_completion *recovery =
@@ -400,11 +342,6 @@ static void page_loaded(struct vdo_completion *completion)
 	}
 }
 
-/**
- * Handle an error loading a page.
- *
- * @param completion  The vdo_page_completion
- **/
 static void handle_page_load_error(struct vdo_completion *completion)
 {
 	struct block_map_recovery_completion *recovery =
@@ -413,12 +350,6 @@ static void handle_page_load_error(struct vdo_completion *completion)
 	abort_recovery(recovery, completion->result);
 }
 
-/**
- * Fetch a page from the block map.
- *
- * @param recovery    the block_map_recovery_completion
- * @param completion  the page completion to use
- **/
 static void fetch_page(struct block_map_recovery_completion *recovery,
 		       struct vdo_completion *completion)
 {
@@ -446,15 +377,6 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 	vdo_get_page(completion);
 }
 
-/**
- * Get the next page completion to process. If it isn't ready, we'll try again
- * when it is.
- *
- * @param recovery    The recovery completion
- * @param completion  The current page completion
- *
- * @return The next page completion to process
- **/
 static struct vdo_page_completion *
 get_next_page_completion(struct block_map_recovery_completion *recovery,
 			 struct vdo_page_completion *completion)
@@ -466,12 +388,6 @@ get_next_page_completion(struct block_map_recovery_completion *recovery,
 	return completion;
 }
 
-/**
- * Recover from as many pages as possible.
- *
- * @param recovery    The recovery completion
- * @param completion  The first page completion to process
- **/
 static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 				struct vdo_completion *completion)
 {
@@ -520,15 +436,9 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 	}
 }
 
-/**
+/*
  * Recover the block map (normal rebuild).
- *
- * @param vdo              The vdo
- * @param entry_count      The number of journal entries
- * @param journal_entries  An array of journal entries to process
- * @param parent           The completion to notify when the rebuild
- *                         is complete
- **/
+ */
 void vdo_recover_block_map(struct vdo *vdo,
 			   block_count_t entry_count,
 			   struct numbered_block_mapping *journal_entries,
@@ -556,8 +466,8 @@ void vdo_recover_block_map(struct vdo *vdo,
 			"heap is returning elements in an unexpected order");
 
 	/*
-	 * Prevent any page from being processed until all pages have been 
-	 * launched. 
+	 * Prevent any page from being processed until all pages have been
+	 * launched.
 	 */
 	recovery->launching = true;
 	recovery->pbn = recovery->current_entry->block_map_slot.pbn;

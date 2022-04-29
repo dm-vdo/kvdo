@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -29,57 +30,47 @@
 #include "types.h"
 #include "wait-queue.h"
 
-/** A single page of a block map tree */
 struct tree_page {
-	/** struct waiter for a VIO to write out this page */
 	struct waiter waiter;
 
-	/** Dirty list entry */
+	/* Dirty list entry */
 	struct list_head entry;
 
-	/**
-	 * If this is a dirty tree page, the tree zone flush generation in which
-	 * it was last dirtied.
+	/*
+	 * If dirty, the tree zone flush generation in which it was last
+	 * dirtied.
 	 */
 	uint8_t generation;
 
-	/** Whether this page is an interior tree page being written out. */
+	/* Whether this page is an interior tree page being written out. */
 	bool writing;
 
-	/**
-	 * If this page is being written, the tree zone flush generation of the
-	 * copy of the page being written.
-	 **/
+	/*
+	 * If writing, the tree zone flush generation of the copy being
+	 * written.
+	 */
 	uint8_t writing_generation;
 
-	/**
-	 * The earliest journal block containing uncommitted updates to this
-	 * page
+	/*
+	 * Sequence number of the earliest recovery journal block containing
+	 * uncommitted updates to this page
 	 */
 	sequence_number_t recovery_lock;
 
-	/**
+	/*
 	 * The value of recovery_lock when the this page last started writing
 	 */
 	sequence_number_t writing_recovery_lock;
 
-	/** The buffer to hold the on-disk representation of this page */
 	char page_buffer[VDO_BLOCK_SIZE];
 };
 
-/**
- * An invalid PBN used to indicate that the page holding the location of a
- * tree root has been "loaded".
- **/
+/*
+ * Used to indicate that the page holding the location of a tree root has been
+ * "loaded".
+ */
 extern const physical_block_number_t VDO_INVALID_PBN;
 
-/**
- * Extract the block_map_page from a tree_page.
- *
- * @param tree_page  The tree_page
- *
- * @return The block_map_page of the tree_page
- **/
 static inline struct block_map_page * __must_check
 vdo_as_block_map_page(struct tree_page *tree_page)
 {

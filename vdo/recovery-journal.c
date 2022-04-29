@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -127,8 +128,8 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 	struct recovery_journal_block *block;
 
 	/*
-	 * Either the first active tail block (if it exists) has waiters, 
-	 * or no active tail block has waiters. 
+	 * Either the first active tail block (if it exists) has waiters,
+	 * or no active tail block has waiters.
 	 */
 	if (list_empty(&journal->active_tail_blocks)) {
 		return false;
@@ -321,8 +322,8 @@ static void complete_reaping(struct vdo_completion *completion)
 	finish_reaping(journal);
 
 	/*
-	 * Try reaping again in case more locks were released while flush was 
-	 * out. 
+	 * Try reaping again in case more locks were released while flush was
+	 * out.
 	 */
 	reap_recovery_journal(journal);
 }
@@ -420,8 +421,8 @@ static void set_journal_tail(struct recovery_journal *journal,
 			     sequence_number_t tail)
 {
 	/*
-	 * VDO does not support sequence numbers above 1 << 48 in the slab 
-	 * journal. 
+	 * VDO does not support sequence numbers above 1 << 48 in the slab
+	 * journal.
 	 */
 	if (tail >= (1ULL << 48)) {
 		enter_journal_read_only_mode(journal, VDO_JOURNAL_OVERFLOW);
@@ -484,8 +485,8 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	initialize_journal_state(journal);
 
 	/*
-	 * XXX: this is a hack until we make initial resume of a VDO a real 
-	 * resume 
+	 * XXX: this is a hack until we make initial resume of a VDO a real
+	 * resume
 	 */
 	vdo_set_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
 
@@ -561,8 +562,8 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	free_vio(UDS_FORGET(journal->flush_vio));
 
 	/*
-	 * XXX: eventually, the journal should be constructed in a quiescent 
-	 * state 
+	 * XXX: eventually, the journal should be constructed in a quiescent
+	 * state
 	 *      which requires opening before use.
 	 */
 	if (!vdo_is_state_quiescent(&journal->state)) {
@@ -695,14 +696,14 @@ vdo_record_recovery_journal(const struct recovery_journal *journal)
 
 	if (vdo_is_state_saved(&journal->state)) {
 		/*
-		 * If the journal is saved, we should start one past the active 
-		 * block (since the active block is not guaranteed to be empty). 
+		 * If the journal is saved, we should start one past the active
+		 * block (since the active block is not guaranteed to be empty).
 		 */
 		state.journal_start = journal->tail;
 	} else {
 		/*
-		 * When we're merely suspended or have gone read-only, we must 
-		 * record the first block that might have entries that need to 
+		 * When we're merely suspended or have gone read-only, we must
+		 * record the first block that might have entries that need to
 		 * be applied.
 		 */
 		state.journal_start = get_recovery_journal_head(journal);
@@ -883,8 +884,8 @@ static void assign_entry(struct waiter *waiter, void *context)
 		}
 
 		/*
-		 * Per-entry locks need not be held for decrement entries since 
-		 * the lock held for the incref entry will protect this entry 
+		 * Per-entry locks need not be held for decrement entries since
+		 * the lock held for the incref entry will protect this entry
 		 * as well.
 		 */
 		release_journal_block_reference(block);
@@ -914,8 +915,8 @@ static void assign_entry(struct waiter *waiter, void *context)
 
 	if (vdo_is_recovery_block_full(block)) {
 		/*
-		 * The block is full, so we can write it anytime henceforth. If 
-		 * it is already committing, we'll queue it for writing when it 
+		 * The block is full, so we can write it anytime henceforth. If
+		 * it is already committing, we'll queue it for writing when it
 		 * comes back.
 		 */
 		schedule_block_write(journal, block);
@@ -954,8 +955,8 @@ static void assign_entries(struct recovery_journal *journal)
 	}
 
 	/*
-	 * Now that we've finished with entries, see if we have a batch of 
-	 * blocks to write. 
+	 * Now that we've finished with entries, see if we have a batch of
+	 * blocks to write.
 	 */
 	write_blocks(journal);
 	journal->adding_entries = false;
@@ -980,8 +981,8 @@ static void recycle_journal_block(struct recovery_journal_block *block)
 	}
 
 	/*
-	 * Release our own lock against reaping now that the block is completely 
-	 * committed, or we're giving up because we're in read-only mode. 
+	 * Release our own lock against reaping now that the block is completely
+	 * committed, or we're giving up because we're in read-only mode.
 	 */
 	if (block->entry_count > 0) {
 		release_journal_block_reference(block);
@@ -1045,8 +1046,8 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 		} else if (vdo_is_recovery_block_dirty(block)
 			   || !vdo_is_recovery_block_full(block)) {
 			/*
-			 * Stop at partially-committed or partially-filled 
-			 * blocks. 
+			 * Stop at partially-committed or partially-filled
+			 * blocks.
 			 */
 			return;
 		}
@@ -1073,8 +1074,8 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 		    && (vdo_is_recovery_block_dirty(block)
 			|| !vdo_is_recovery_block_full(block))) {
 			/*
-			 * Don't recycle partially written or partially full 
-			 * blocks, except in read-only mode. 
+			 * Don't recycle partially written or partially full
+			 * blocks, except in read-only mode.
 			 */
 			return;
 		}
@@ -1105,8 +1106,8 @@ static void complete_write(struct vdo_completion *completion)
 	block->committing = false;
 
 	/*
-	 * If this block is the latest block to be acknowledged, record that 
-	 * fact. 
+	 * If this block is the latest block to be acknowledged, record that
+	 * fact.
 	 */
 	if (block->sequence_number > journal->last_write_acknowledged) {
 		journal->last_write_acknowledged = block->sequence_number;
@@ -1121,8 +1122,8 @@ static void complete_write(struct vdo_completion *completion)
 	notify_commit_waiters(journal);
 
 	/*
-	 * Is this block now full? Reaping, and adding entries, might have 
-	 * already sent it off for rewriting; else, queue it for rewrite. 
+	 * Is this block now full? Reaping, and adding entries, might have
+	 * already sent it off for rewriting; else, queue it for rewrite.
 	 */
 	if (vdo_is_recovery_block_dirty(block) && vdo_is_recovery_block_full(block)) {
 		schedule_block_write(journal, block);
@@ -1194,8 +1195,8 @@ static void write_blocks(struct recovery_journal *journal)
 	notify_all_waiters(&journal->pending_writes, write_block, NULL);
 
 	/*
-	 * Do we need to write the active block? Only if we have no outstanding 
-	 * writes, even after issuing all of the full writes. 
+	 * Do we need to write the active block? Only if we have no outstanding
+	 * writes, even after issuing all of the full writes.
 	 */
 	if ((journal->pending_write_count == 0)
 	    && vdo_can_commit_recovery_block(journal->active_block)) {
@@ -1260,8 +1261,8 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 {
 	if (journal->reaping) {
 		/*
-		 * We already have an outstanding reap in progress. We need to 
-		 * wait for it to finish. 
+		 * We already have an outstanding reap in progress. We need to
+		 * wait for it to finish.
 		 */
 		return;
 	}
@@ -1272,8 +1273,8 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	}
 
 	/*
-	 * Start reclaiming blocks only when the journal head has no 
-	 * references. Then stop when a block is referenced. 
+	 * Start reclaiming blocks only when the journal head has no
+	 * references. Then stop when a block is referenced.
 	 */
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
 	       && !vdo_is_lock_locked(journal->lock_counter,

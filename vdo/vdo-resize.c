@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -153,7 +154,7 @@ static void handle_growth_error(struct vdo_completion *completion)
  * Grow the physical size of the vdo. This method may only be called when the
  * vdo has been suspended and must not be called from a base thread.
  *
- * @param vdo                	The vdo to resize
+ * @param vdo			The vdo to resize
  * @param new_physical_blocks	The new physical size in blocks
  *
  * @return VDO_SUCCESS or an error
@@ -243,7 +244,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 /**
  * Prepare to resize the vdo, allocating memory as needed.
  *
- * @param vdo                	The vdo
+ * @param vdo			The vdo
  * @param new_physical_blocks	The new physical size in blocks
  **/
 int vdo_prepare_to_grow_physical(struct vdo *vdo,
@@ -269,8 +270,7 @@ int vdo_prepare_to_grow_physical(struct vdo *vdo,
 
 	result = prepare_to_vdo_grow_layout(vdo->layout,
 					    current_physical_blocks,
-					    new_physical_blocks,
-					    vdo);
+					    new_physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
