@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#38 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#39 $
  */
 
 #include "kernelLayer.h"
@@ -1056,7 +1056,7 @@ int modifyKernelLayer(KernelLayer  *layer,
       return result;
     }
   }
-    
+
   return VDO_SUCCESS;
 }
 
@@ -1303,6 +1303,7 @@ int suspendKernelLayer(KernelLayer *layer)
    * the suspend, even if it hasn't been flushed yet.
    */
   waitForNoRequestsActive(layer);
+  drainKVDOFlushes(layer);
   int result = synchronousFlush(layer);
   if (result != VDO_SUCCESS) {
     setKVDOReadOnly(&layer->kvdo, result);

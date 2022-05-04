@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#18 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#19 $
  */
 
 #ifndef KERNELLAYER_H
@@ -132,6 +132,9 @@ struct kernelLayer {
   // for REQ_FLUSH processing
   struct bio_list         waitingFlushes;
   KVDOFlush              *spareKVDOFlush;
+  uint32_t                activeFlushCount;
+  bool                    flushesDraining;
+  struct completion       flushCompletion;
   spinlock_t              flushLock;
   Jiffies                 flushArrivalTime;
   /**
@@ -150,8 +153,8 @@ struct kernelLayer {
   /** Optional work queue for calling bio_endio. */
   KvdoWorkQueue          *bioAckQueue;
   /** Underlying block device info. */
-  uint64_t                startingSectorOffset;
-  VolumeGeometry          geometry;
+  uint64_t                    startingSectorOffset;
+  VolumeGeometry              geometry;
   // Memory allocation
   BufferPool             *dataKVIOPool;
   struct bio_set         *bioset;

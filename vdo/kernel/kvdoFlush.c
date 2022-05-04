@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.c#7 $
  */
 
 #include "kvdoFlush.h"
+
+#include <linux/delay.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -131,7 +133,7 @@ void launchKVDOFlush(KernelLayer *layer, BIO *bio)
 
   // We have flushes to start. Capture them in the KVDOFlush object.
   initializeKVDOFlush(kvdoFlush, layer);
-
+  layer->activeFlushCount++;
   spin_unlock(&layer->flushLock);
 
   // Finish launching the flushes.
@@ -152,9 +154,17 @@ static void releaseKVDOFlush(KVDOFlush *kvdoFlush)
   KernelLayer *layer = kvdoFlush->layer;
   bool relaunchFlush = false;
   bool freeFlush     = false;
+  bool drained       = false;
 
   spin_lock(&layer->flushLock);
+
   if (bio_list_empty(&layer->waitingFlushes)) {
+    --layer->activeFlushCount;
+    if ((layer->activeFlushCount == 0) && layer->flushesDraining) {
+      layer->flushesDraining = false;
+      drained = true;
+    }
+
     // Nothing needs to be started.  Save one spare KVDOFlush object.
     if (layer->spareKVDOFlush == NULL) {
       // Make the new spare all zero, just like a newly allocated one.
@@ -175,6 +185,10 @@ static void releaseKVDOFlush(KVDOFlush *kvdoFlush)
     enqueueKVDOFlush(kvdoFlush);
   } else if (freeFlush) {
     FREE(kvdoFlush);
+  }
+
+  if (drained) {
+    complete(&layer->flushCompletion);
   }
 }
 
@@ -217,6 +231,36 @@ void kvdoCompleteFlush(VDOFlush **kfp)
     enqueueBioWorkItem(kvdoFlush->layer->ioSubmitter,
                        &kvdoFlush->workItem);
     *kfp = NULL;
+  }
+}
+
+/**********************************************************************/
+void drainKVDOFlushes(KernelLayer *layer)
+{
+  bool drained;
+
+  spin_lock(&layer->flushLock);
+  if (layer->activeFlushCount == 0) {
+    ASSERT_LOG_ONLY(bio_list_empty(&layer->waitingFlushes),
+                    "no flush bios are waiting when flushes are inactive");
+    drained = true;
+  } else {
+    layer->flushesDraining = true;
+    init_completion(&layer->flushCompletion);
+    drained = false;
+  }
+  spin_unlock(&layer->flushLock);
+
+  if (drained) {
+    return;
+  }
+
+  // Using the "interruptible" interface means that Linux will not log a
+  // message when we wait for more than 120 seconds.
+  while (wait_for_completion_interruptible(&layer->flushCompletion) != 0) {
+    // However, if we get a signal in a user-mode process, we could
+    // spin...
+    msleep(1);
   }
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.h#2 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -60,6 +60,13 @@ void launchKVDOFlush(KernelLayer *layer, BIO *bio);
  * @param kfp  Pointer to the flush request
  **/
 void kvdoCompleteFlush(VDOFlush **kfp);
+
+/**
+ * Wait until there are no active KVDOFlushes or bios waiting to flush.
+ *
+ * @param layer  The physical layer
+ **/
+void drainKVDOFlushes(KernelLayer *layer);
 
 /**
  * Issue a flush request and wait for it to complete.
