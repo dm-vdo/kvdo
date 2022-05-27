@@ -99,7 +99,7 @@ static int swap_open_chapter(struct index_zone *zone)
 {
 	struct open_chapter_zone *temp_chapter;
 	/* Wait for any currently writing chapter to complete */
-	int result = finish_previous_chapter(zone->index->chapter_writer,
+	int result = finish_previous_chapter(zone->index,
 					     zone->newest_virtual_chapter);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -208,9 +208,9 @@ static int open_next_chapter(struct index_zone *zone)
 
 	reset_open_chapter(zone->open_chapter);
 
-	finished_zones =
-		start_closing_chapter(zone->index->chapter_writer, zone->id,
-				      zone->writing_chapter);
+	finished_zones = start_closing_chapter(zone->index,
+					       zone->id,
+					       zone->writing_chapter);
 	if ((finished_zones == 1) && (zone->index->zone_count > 1)) {
 		/*
 		 * This is the first zone of a multi-zone index to close this
@@ -241,8 +241,7 @@ static int open_next_chapter(struct index_zone *zone)
 	 * chapter to disk, we'll never look for it in the cache.
 	 */
 	while ((expired_chapters-- > 0) && (result == UDS_SUCCESS)) {
-		result = forget_chapter(zone->index->volume, victim++,
-					INVALIDATION_EXPIRE);
+		result = forget_chapter(zone->index->volume, victim++);
 	}
 
 	return result;

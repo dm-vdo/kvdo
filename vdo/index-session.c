@@ -267,7 +267,6 @@ int uds_open_index(enum uds_open_index_type open_type,
 		   struct uds_index_session *session)
 {
 	int result;
-	char *new_name;
 
 	if (parameters == NULL) {
 		uds_log_error("missing required parameters");
@@ -287,19 +286,27 @@ int uds_open_index(enum uds_open_index_type open_type,
 		return uds_map_to_system_error(result);
 	}
 
-	result = uds_duplicate_string(parameters->name,
-				      "device name",
-				      &new_name);
-	if (result != UDS_SUCCESS) {
-		finish_loading_index_session(session, result);
-		return uds_map_to_system_error(result);
-	}
+	if ((session->params.name == NULL) ||
+	    (strcmp(parameters->name, session->params.name) != 0)) {
+		char *new_name;
 
-	if (session->params.name != NULL) {
+		result = uds_duplicate_string(parameters->name,
+					      "device name",
+					      &new_name);
+		if (result != UDS_SUCCESS) {
+			finish_loading_index_session(session, result);
+			return uds_map_to_system_error(result);
+		}
+
 		uds_free_const(session->params.name);
+		session->params = *parameters;
+		session->params.name = new_name;
+	} else {
+		const char *old_name = session->params.name;
+
+		session->params = *parameters;
+		session->params.name = old_name;
 	}
-	session->params = *parameters;
-	session->params.name = new_name;
 
 	uds_log_notice("%s: %s",
 		       get_open_type_string(open_type),
@@ -466,7 +473,7 @@ int uds_resume_index_session(struct uds_index_session *session,
 	}
 
 	if ((name != NULL) && (session->index != NULL) &&
-	    (strncmp(name, session->params.name, strlen(name)) != 0)) {
+	    (strcmp(name, session->params.name) != 0)) {
 		result = replace_device(session, name);
 		if (result != UDS_SUCCESS) {
 			uds_lock_mutex(&session->request_mutex);

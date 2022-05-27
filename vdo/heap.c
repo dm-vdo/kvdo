@@ -206,7 +206,6 @@ bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 	return true;
 }
 
-/**********************************************************************/
 static inline size_t sift_and_sort(struct heap *heap, size_t root_node,
 				   size_t last_node)
 {

@@ -21,7 +21,6 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
-#include "cache-counters.h"
 #include "common.h"
 #include "config.h"
 #include "chapter-index.h"
@@ -230,13 +229,10 @@ int __must_check search_cached_record_page(struct volume *volume,
  *
  * @param volume   the volume containing the chapter
  * @param chapter  the virtual chapter number
- * @param reason   the reason for invalidation
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check forget_chapter(struct volume *volume,
-				uint64_t chapter,
-				enum invalidation_reason reason);
+int __must_check forget_chapter(struct volume *volume, uint64_t chapter);
 
 /**
  * Write a chapter's worth of index pages to a volume
@@ -318,7 +314,6 @@ read_chapter_index_from_volume(const struct volume *volume,
  * @param volume         The volume containing the page
  * @param request        The request originating the search
  * @param physical_page  The physical page number
- * @param probe_type     The type of cache access being done
  * @param entry_ptr      A pointer to hold the retrieved cached entry
  *
  * @return UDS_SUCCESS or an error code
@@ -326,7 +321,6 @@ read_chapter_index_from_volume(const struct volume *volume,
 int __must_check get_volume_page_locked(struct volume *volume,
 					struct uds_request *request,
 					unsigned int physical_page,
-					enum cache_probe_type probe_type,
 					struct cached_page **entry_ptr);
 
 /**
@@ -349,7 +343,6 @@ int __must_check get_volume_page_locked(struct volume *volume,
  * @param volume         The volume containing the page
  * @param request        The request originating the search
  * @param physical_page  The physical page number
- * @param probe_type     The type of cache access being done
  * @param entry_ptr      A pointer to hold the retrieved cached entry
  *
  * @return UDS_SUCCESS or an error code
@@ -357,7 +350,6 @@ int __must_check get_volume_page_locked(struct volume *volume,
 int __must_check get_volume_page_protected(struct volume *volume,
 					   struct uds_request *request,
 					   unsigned int physical_page,
-					   enum cache_probe_type probe_type,
 					   struct cached_page **entry_ptr);
 
 /**
@@ -379,7 +371,6 @@ int __must_check get_volume_page_protected(struct volume *volume,
  * @param volume          The volume containing the page
  * @param chapter         The number of the chapter containing the page
  * @param page_number     The number of the page
- * @param probe_type      The type of cache access being done
  * @param data_ptr        Pointer to hold the retrieved page, NULL if not
  *                        wanted
  * @param index_page_ptr  Pointer to hold the retrieved chapter index page, or
@@ -390,7 +381,6 @@ int __must_check get_volume_page_protected(struct volume *volume,
 int __must_check get_volume_page(struct volume *volume,
 				 unsigned int chapter,
 				 unsigned int page_number,
-				 enum cache_probe_type probe_type,
 				 byte **data_ptr,
 				 struct delta_index_page **index_page_ptr);
 

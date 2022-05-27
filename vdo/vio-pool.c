@@ -210,4 +210,4 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 
 	list_move_tail(&entry->available_entry, &pool->available);
 	--pool->busy_count;
- }
+}

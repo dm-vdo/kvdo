@@ -150,12 +150,10 @@ static const struct index_component_info VOLUME_INDEX_INFO_DATA = {
 const struct index_component_info *const VOLUME_INDEX_INFO =
 	&VOLUME_INDEX_INFO_DATA;
 
-static int restore_volume_index_body(struct buffered_reader **buffered_readers,
-				     unsigned int num_readers,
-				     struct volume_index *volume_index,
-				     byte dl_data[DELTA_LIST_MAX_BYTE_COUNT])
+int restore_volume_index(struct buffered_reader **buffered_readers,
+			 unsigned int num_readers,
+			 struct volume_index *volume_index)
 {
-	unsigned int z;
 	/* Start by reading the "header" section of the stream */
 	int result = start_restoring_volume_index(volume_index,
 						  buffered_readers,
@@ -163,51 +161,20 @@ static int restore_volume_index_body(struct buffered_reader **buffered_readers,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	/*
-	 * Loop to read the delta lists, stopping when they have all been
-	 * processed.
-	 */
-	for (z = 0; z < num_readers; z++) {
-		for (;;) {
-			struct delta_list_save_info dlsi;
 
-			result = read_saved_delta_list(&dlsi, dl_data,
-						       buffered_readers[z]);
-			if (result == UDS_END_OF_FILE) {
-				break;
-			} else if (result != UDS_SUCCESS) {
-				abort_restoring_volume_index(volume_index);
-				return result;
-			}
-			result = restore_delta_list_to_volume_index(volume_index,
-								    &dlsi,
-								    dl_data);
-			if (result != UDS_SUCCESS) {
-				abort_restoring_volume_index(volume_index);
-				return result;
-			}
-		}
-	}
-	if (!is_restoring_volume_index_done(volume_index)) {
-		abort_restoring_volume_index(volume_index);
-		return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						"incomplete delta list data");
-	}
-	return UDS_SUCCESS;
-}
-
-int restore_volume_index(struct buffered_reader **buffered_readers,
-			 unsigned int num_readers,
-			 struct volume_index *volume_index)
-{
-	byte *dl_data;
-	int result =
-		UDS_ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
+	result = finish_restoring_volume_index(volume_index,
+					       buffered_readers,
+					       num_readers);
 	if (result != UDS_SUCCESS) {
+		abort_restoring_volume_index(volume_index);
 		return result;
 	}
-	result = restore_volume_index_body(buffered_readers, num_readers,
-					   volume_index, dl_data);
-	UDS_FREE(dl_data);
+
+	/* Check the final guard lists to make sure we read everything. */
+	result = check_guard_delta_lists(buffered_readers, num_readers);
+	if (result != UDS_SUCCESS) {
+		abort_restoring_volume_index(volume_index);
+	}
+
 	return result;
 }

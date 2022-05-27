@@ -114,7 +114,7 @@
  * journal block is reaped.
  **/
 
- struct recovery_journal {
+struct recovery_journal {
 	/** The thread ID of the journal zone */
 	thread_id_t thread_id;
 	/** The slab depot which can hold locks on this journal */

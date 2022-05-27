@@ -94,12 +94,12 @@ struct volume_index_record {
 
 struct volume_index {
 	void (*abort_restoring_volume_index)(struct volume_index *volume_index);
-	int (*abort_saving_volume_index)(const struct volume_index *volume_index,
-					 unsigned int zone_number);
+	int (*finish_restoring_volume_index)(struct volume_index *volume_index,
+					     struct buffered_reader **buffered_readers,
+					     unsigned int num_readers);
 	int (*finish_saving_volume_index)(const struct volume_index *volume_index,
 					  unsigned int zone_number);
 	void (*free_volume_index)(struct volume_index *volume_index);
-	size_t (*get_volume_index_memory_used)(const struct volume_index *volume_index);
 	int (*get_volume_index_record)(struct volume_index *volume_index,
 				       const struct uds_chunk_name *name,
 				       struct volume_index_record *record);
@@ -110,18 +110,12 @@ struct volume_index {
 					      const struct uds_chunk_name *name);
 	bool (*is_volume_index_sample)(const struct volume_index *volume_index,
 				       const struct uds_chunk_name *name);
-	bool (*is_restoring_volume_index_done)(const struct volume_index *volume_index);
-	bool (*is_saving_volume_index_done)(const struct volume_index *volume_index,
-					    unsigned int zone_number);
 	int (*lookup_volume_index_name)(const struct volume_index *volume_index,
 					const struct uds_chunk_name *name,
 					struct volume_index_triage *triage);
 	int (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
 					        const struct uds_chunk_name *name,
 					        struct volume_index_triage *triage);
-	int (*restore_delta_list_to_volume_index)(struct volume_index *volume_index,
-						  const struct delta_list_save_info *dlsi,
-						  const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
 	void (*set_volume_index_open_chapter)(struct volume_index *volume_index,
 					      uint64_t virtual_chapter);
 	void (*set_volume_index_tag)(struct volume_index *volume_index,
@@ -131,7 +125,7 @@ struct volume_index {
 						   uint64_t virtual_chapter);
 	int (*start_restoring_volume_index)(struct volume_index *volume_index,
 					    struct buffered_reader **buffered_readers,
-					    int num_readers);
+					    unsigned int num_readers);
 	int (*start_saving_volume_index)(const struct volume_index *volume_index,
 					 unsigned int zone_number,
 					 struct buffered_writer *buffered_writer);
@@ -199,20 +193,20 @@ abort_restoring_volume_index(struct volume_index *volume_index)
 }
 
 /**
- * Abort saving a volume index to an output stream.  If an error occurred
- * asynchronously during the save operation, it will be dropped.
+ * Finish restoring a volume index from an input stream.
  *
- * @param volume_index  The volume index
- * @param zone_number   The number of the zone to save
- *
- * @return UDS_SUCCESS on success, or an error code on failure
+ * @param volume_index      The volume index to restore into
+ * @param buffered_readers  The buffered readers to read the volume index from
+ * @param num_readers       The number of buffered readers
  **/
 static INLINE int
-abort_saving_volume_index(const struct volume_index *volume_index,
-			  unsigned int zone_number)
+finish_restoring_volume_index(struct volume_index *volume_index,
+			      struct buffered_reader **buffered_readers,
+			      unsigned int num_readers)
 {
-	return volume_index->abort_saving_volume_index(volume_index,
-						       zone_number);
+	return volume_index->finish_restoring_volume_index(volume_index,
+							   buffered_readers,
+							   num_readers);
 }
 
 /**
@@ -241,19 +235,6 @@ finish_saving_volume_index(const struct volume_index *volume_index,
 static INLINE void free_volume_index(struct volume_index *volume_index)
 {
 	volume_index->free_volume_index(volume_index);
-}
-
-/**
- * Get the number of bytes used for volume index entries.
- *
- * @param volume_index The volume index
- *
- * @return The number of bytes in use
- **/
-static INLINE size_t
-get_volume_index_memory_used(const struct volume_index *volume_index)
-{
-	return volume_index->get_volume_index_memory_used(volume_index);
 }
 
 /**
@@ -335,38 +316,6 @@ is_volume_index_sample(const struct volume_index *volume_index,
 }
 
 /**
- * Have all the data been read while restoring a volume index from an input
- * stream?
- *
- * @param volume_index  The volume index to restore into
- *
- * @return true if all the data are read
- **/
-static INLINE bool
-is_restoring_volume_index_done(const struct volume_index *volume_index)
-{
-	return volume_index->is_restoring_volume_index_done(volume_index);
-}
-
-/**
- * Have all the data been written while saving a volume index to an
- * output stream?  If the answer is yes, it is still necessary to call
- * finish_saving_volume_index(), which will return quickly.
- *
- * @param volume_index  The volume index
- * @param zone_number   The number of the zone to save
- *
- * @return true if all the data are written
- **/
-static INLINE bool
-is_saving_volume_index_done(const struct volume_index *volume_index,
-			    unsigned int zone_number)
-{
-	return volume_index->is_saving_volume_index_done(volume_index,
-							 zone_number);
-}
-
-/**
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
@@ -427,24 +376,6 @@ int __must_check put_volume_index_record(struct volume_index_record *record,
  **/
 int __must_check
 remove_volume_index_record(struct volume_index_record *record);
-
-/**
- * Restore a saved delta list
- *
- * @param volume_index  The volume index to restore into
- * @param dlsi          The delta_list_save_info describing the delta list
- * @param data          The saved delta list bit stream
- *
- * @return error code or UDS_SUCCESS
- **/
-static INLINE int
-restore_delta_list_to_volume_index(struct volume_index *volume_index,
-				   const struct delta_list_save_info *dlsi,
-				   const byte data[DELTA_LIST_MAX_BYTE_COUNT])
-{
-	return volume_index->restore_delta_list_to_volume_index(volume_index,
-								dlsi, data);
-}
 
 /**
  * Set the open chapter number.  The volume index will be modified to index
@@ -530,7 +461,7 @@ set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 static INLINE int
 start_restoring_volume_index(struct volume_index *volume_index,
 			     struct buffered_reader **buffered_readers,
-			     int num_readers)
+			     unsigned int num_readers)
 {
 	return volume_index->start_restoring_volume_index(volume_index,
 							  buffered_readers,

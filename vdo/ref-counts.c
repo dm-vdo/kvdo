@@ -282,7 +282,6 @@ bool vdo_are_ref_counts_active(struct ref_counts *ref_counts)
 		(code != VDO_ADMIN_STATE_RECOVERING));
 }
 
-/**********************************************************************/
 static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 					    int result)
 {

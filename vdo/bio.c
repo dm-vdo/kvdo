@@ -20,8 +20,6 @@
 
 #include "bio.h"
 
-#include <linux/version.h>
-
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
@@ -189,7 +187,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 {
 	int bvec_count, result, offset, len, i;
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 	bio_reset(bio);
 #else
 	bio_reset(bio, bio->bi_bdev, bi_opf);

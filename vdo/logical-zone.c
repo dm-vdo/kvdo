@@ -223,7 +223,6 @@ static void drain_logical_zone(void *context,
 			   initiate_drain);
 }
 
-/**********************************************************************/
 void vdo_drain_logical_zones(struct logical_zones *zones,
 			     const struct admin_state_code *operation,
 			     struct vdo_completion *parent)

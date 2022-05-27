@@ -53,10 +53,10 @@ struct page_descriptor {
 	slot_number_t slot;
 } __packed;
 
-typedef union {
+union page_key {
 	struct page_descriptor descriptor;
 	uint64_t key;
-} page_key;
+};
 
 struct write_if_not_dirtied_context {
 	struct block_map_tree_zone *zone;
@@ -773,7 +773,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	struct tree_lock *lock = &data_vio->tree_lock;
 	height_t height = lock->height;
 	struct block_map_tree_slot tree_slot = lock->tree_slots[height];
-	page_key key;
+	union page_key key;
 
 	key.descriptor = (struct page_descriptor) {
 		.root_index = lock->root_index,

@@ -232,26 +232,6 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 }
 
 /**
- * Have all the data been written while saving a volume index to an output
- * stream?  If the answer is yes, it is still necessary to call
- * finish_saving_volume_index(), which will return quickly.
- *
- * @param volume_index  The volume index
- * @param zone_number   The number of the zone to save
- *
- * @return true if all the data are written
- **/
-static bool
-is_saving_volume_index_done_006(const struct volume_index *volume_index,
-				unsigned int zone_number)
-{
-	const struct volume_index6 *vi6 =
-		const_container_of(volume_index, struct volume_index6, common);
-	return (is_saving_volume_index_done(vi6->vi_non_hook, zone_number) &&
-		is_saving_volume_index_done(vi6->vi_hook, zone_number));
-}
-
-/**
  * Finish saving a volume index to an output stream.  Force the writing of
  * all of the remaining data.  If an error occurred asynchronously during
  * the save operation, it will be returned here.
@@ -271,30 +251,6 @@ finish_saving_volume_index_006(const struct volume_index *volume_index,
 
 	if (result == UDS_SUCCESS) {
 		result = finish_saving_volume_index(vi6->vi_hook, zone_number);
-	}
-	return result;
-}
-
-/**
- * Abort saving a volume index to an output stream.  If an error occurred
- * asynchronously during the save operation, it will be dropped.
- *
- * @param volume_index  The volume index
- * @param zone_number   The number of the zone to save
- *
- * @return UDS_SUCCESS on success, or an error code on failure
- **/
-static int
-abort_saving_volume_index_006(const struct volume_index *volume_index,
-			      unsigned int zone_number)
-{
-	const struct volume_index6 *vi6 =
-		const_container_of(volume_index, struct volume_index6, common);
-	int result = abort_saving_volume_index(vi6->vi_non_hook, zone_number);
-	int result2 = abort_saving_volume_index(vi6->vi_hook, zone_number);
-
-	if (result == UDS_SUCCESS) {
-		result = result2;
 	}
 	return result;
 }
@@ -335,11 +291,11 @@ static int __must_check decode_volume_index_header(struct buffer *buffer,
 static int
 start_restoring_volume_index_006(struct volume_index *volume_index,
 				 struct buffered_reader **buffered_readers,
-				 int num_readers)
+				 unsigned int num_readers)
 {
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
-	int i;
+	unsigned int i;
 	int result =
 		ASSERT_WITH_ERROR_CODE(volume_index != NULL,
 				       UDS_BAD_STATE,
@@ -406,50 +362,6 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 }
 
 /**
- * Have all the data been read while restoring a volume index from an
- * input stream?
- *
- * @param volume_index  The volume index to restore into
- *
- * @return true if all the data are read
- **/
-static bool
-is_restoring_volume_index_done_006(const struct volume_index *volume_index)
-{
-	const struct volume_index6 *vi6 =
-		const_container_of(volume_index, struct volume_index6, common);
-	return (is_restoring_volume_index_done(vi6->vi_non_hook) &&
-		is_restoring_volume_index_done(vi6->vi_hook));
-}
-
-/**
- * Restore a saved delta list
- *
- * @param volume_index  The volume index to restore into
- * @param dlsi          The delta_list_save_info describing the delta list
- * @param data          The saved delta list bit stream
- *
- * @return error code or UDS_SUCCESS
- **/
-static int
-restore_delta_list_to_volume_index_006(struct volume_index *volume_index,
-				       const struct delta_list_save_info *dlsi,
-				       const byte data[DELTA_LIST_MAX_BYTE_COUNT])
-{
-	struct volume_index6 *vi6 =
-		container_of(volume_index, struct volume_index6, common);
-	int result = restore_delta_list_to_volume_index(vi6->vi_non_hook,
-							dlsi,
-							data);
-	if (result != UDS_SUCCESS) {
-		result = restore_delta_list_to_volume_index(vi6->vi_hook,
-							    dlsi,
-							    data);
-	}
-	return result;
-}
-
-/**
  * Abort restoring a volume index from an input stream.
  *
  * @param volume_index  The volume index
@@ -460,6 +372,34 @@ static void abort_restoring_volume_index_006(struct volume_index *volume_index)
 		container_of(volume_index, struct volume_index6, common);
 	abort_restoring_volume_index(vi6->vi_non_hook);
 	abort_restoring_volume_index(vi6->vi_hook);
+}
+
+/**
+ * Finish restoring a volume index from an input stream.
+ *
+ * @param volume_index      The volume index to restore into
+ * @param buffered_readers  The buffered readers to read the volume index from
+ * @param num_readers       The number of buffered readers
+ **/
+static int
+finish_restoring_volume_index_006(struct volume_index *volume_index,
+				  struct buffered_reader **buffered_readers,
+				  unsigned int num_readers)
+{
+	int result;
+	struct volume_index6 *vi6 =
+		container_of(volume_index, struct volume_index6, common);
+
+	result = finish_restoring_volume_index(vi6->vi_non_hook,
+					       buffered_readers,
+					       num_readers);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	return finish_restoring_volume_index(vi6->vi_hook,
+					     buffered_readers,
+					     num_readers);
 }
 
 /**
@@ -646,22 +586,6 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 }
 
 /**
- * Get the number of bytes used for volume index entries.
- *
- * @param volume_index The volume index
- *
- * @return The number of bytes in use
- **/
-static size_t
-get_volume_index_memory_used_006(const struct volume_index *volume_index)
-{
-	const struct volume_index6 *vi6 =
-		const_container_of(volume_index, struct volume_index6, common);
-	return (get_volume_index_memory_used(vi6->vi_non_hook) +
-		get_volume_index_memory_used(vi6->vi_hook));
-}
-
-/**
  * Return the volume index stats.  There is only one portion of the volume
  * index in this implementation, and we call it the dense portion of the
  * index.
@@ -782,25 +706,18 @@ int make_volume_index006(const struct configuration *config,
 
 	vi6->common.abort_restoring_volume_index =
 		abort_restoring_volume_index_006;
-	vi6->common.abort_saving_volume_index = abort_saving_volume_index_006;
+	vi6->common.finish_restoring_volume_index =
+		finish_restoring_volume_index_006;
 	vi6->common.finish_saving_volume_index =
 		finish_saving_volume_index_006;
 	vi6->common.free_volume_index = free_volume_index_006;
-	vi6->common.get_volume_index_memory_used =
-		get_volume_index_memory_used_006;
 	vi6->common.get_volume_index_record = get_volume_index_record_006;
 	vi6->common.get_volume_index_stats = get_volume_index_stats_006;
 	vi6->common.get_volume_index_zone = get_volume_index_zone_006;
 	vi6->common.is_volume_index_sample = is_volume_index_sample_006;
-	vi6->common.is_restoring_volume_index_done =
-		is_restoring_volume_index_done_006;
-	vi6->common.is_saving_volume_index_done =
-		is_saving_volume_index_done_006;
 	vi6->common.lookup_volume_index_name = lookup_volume_index_name_006;
 	vi6->common.lookup_volume_index_sampled_name =
 		lookup_volume_index_sampled_name_006;
-	vi6->common.restore_delta_list_to_volume_index =
-		restore_delta_list_to_volume_index_006;
 	vi6->common.set_volume_index_open_chapter =
 		set_volume_index_open_chapter_006;
 	vi6->common.set_volume_index_tag = set_volume_index_tag_006;

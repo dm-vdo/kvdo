@@ -20,8 +20,11 @@
 
 #include <linux/module.h>
 
-#include "dedupe-index.h"
 #include "logger.h"
+
+#include "constants.h"
+#include "dedupe-index.h"
+#include "vdo.h"
 
 static int vdo_log_level_show(char *buf,
 			      const struct kernel_param *kp)

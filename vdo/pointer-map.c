@@ -234,7 +234,6 @@ void free_pointer_map(struct pointer_map *map)
  *
  * @return the number of entries in the map
  **/
-/**********************************************************************/
 size_t pointer_map_size(const struct pointer_map *map)
 {
 	return map->size;

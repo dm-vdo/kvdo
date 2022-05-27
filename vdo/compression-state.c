@@ -33,12 +33,11 @@ static const uint32_t STATUS_MASK = 0xff;
 static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 /**
- * Get the compression state of a data_vio.
+ * get_vio_compression_state() - Get the compression state of a data_vio.
+ * @data_vio: The data_vio.
  *
- * @param data_vio  The data_vio
- *
- * @return The compression state
- **/
+ * Return: The compression state.
+ */
 struct vio_compression_state get_vio_compression_state(struct data_vio *data_vio)
 {
 	uint32_t packed = atomic_read(&data_vio->compression.state);
@@ -51,13 +50,12 @@ struct vio_compression_state get_vio_compression_state(struct data_vio *data_vio
 }
 
 /**
- * Convert a vio_compression_state into a uint32_t which may be stored
- * atomically.
+ * pack_state() - Convert a vio_compression_state into a uint32_t which may
+ *                be stored atomically.
+ * @state: The state to convert.
  *
- * @param state  The state to convert
- *
- * @return The compression state packed into a uint32_t
- **/
+ * Return: The compression state packed into a uint32_t.
+ */
 static uint32_t __must_check pack_state(struct vio_compression_state state)
 {
 	return state.status
@@ -65,16 +63,15 @@ static uint32_t __must_check pack_state(struct vio_compression_state state)
 }
 
 /**
- * Set the compression state of a data_vio.
+ * set_vio_compression_state() - Set the compression state of a data_vio.
+ * @data_vio: The data_vio whose compression state is to be set.
+ * @state: The expected current state of the data_vio.
+ * @new_state: The state to set.
  *
- * @param data_vio   The data_vio whose compression state is to be set
- * @param state      The expected current state of the data_vio
- * @param new_state  The state to set
- *
- * @return <code>true</code> if the new state was set, false if the data_vio's
+ * Return: true if the new state was set, false if the data_vio's
  *         compression state did not match the expected state, and so was
- *         left unchanged
- **/
+ *         left unchanged.
+ */
 static bool __must_check
 set_vio_compression_state(struct data_vio *data_vio,
 			  struct vio_compression_state state,
@@ -96,12 +93,12 @@ set_vio_compression_state(struct data_vio *data_vio,
 }
 
 /**
- * Advance to the next compression state along the compression path.
+ * advance_status() - Advance to the next compression state along the
+ *                    compression path.
+ * @data_vio: The data_vio to advance.
  *
- * @param data_vio  The data_vio to advance
- *
- * @return The new compression status of the data_vio
- **/
+ * Return: The new compression status of the data_vio.
+ */
 static enum vio_compression_status advance_status(struct data_vio *data_vio)
 {
 	for (;;) {
@@ -137,12 +134,11 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 }
 
 /**
- * Check whether a data_vio may go to the compressor.
+ * may_compress_data_vio() - Check whether a data_vio may go to the compressor.
+ * @data_vio: The data_vio to check.
  *
- * @param data_vio  The data_vio to check
- *
- * @return <code>true</code> if the data_vio may be compressed at this time
- **/
+ * Return: true if the data_vio may be compressed at this time.
+ */
 bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio) ||
@@ -186,12 +182,11 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Check whether a data_vio may go to the packer.
+ * may_pack_data_vio() - Check whether a data_vio may go to the packer.
+ * @data_vio: The data_vio to check.
  *
- * @param data_vio  The data_vio to check
- *
- * @return <code>true</code> if the data_vio may be packed at this time
- **/
+ * Return: true if the data_vio may be packed at this time.
+ */
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
 	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
@@ -210,28 +205,29 @@ bool may_pack_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Check whether a data_vio which has gone to the packer may block there. Any
- * cancelation after this point and before the data_vio is written out requires
- * this data_vio to be picked up by the canceling data_vio.
+ * may_vio_block_in_packer() - Check whether a data_vio which has gone
+ *                             to the packer may block there.
+ * @data_vio: The data_vio to check.
  *
- * @param data_vio  The data_vio to check
+ * Any cancelation after this point and before the data_vio is written
+ * out requires this data_vio to be picked up by the canceling
+ * data_vio.
  *
- * @return <code>true</code> if the data_vio may block in the packer
- **/
+ * Return: true if the data_vio may block in the packer.
+ */
 bool may_vio_block_in_packer(struct data_vio *data_vio)
 {
 	return (advance_status(data_vio) == VIO_PACKING);
 }
 
 /**
- * Check whether the packer may write out a data_vio as part of a compressed
- * block.
+ * may_write_compressed_data_vio() - Check whether the packer may write out a
+ *                                   data_vio as part of a compressed block.
+ * @data_vio: The data_vio to check.
  *
- * @param data_vio  The data_vio to check
- *
- * @return <code>true</code> if the data_vio may be written as part of a
- *         compressed block at this time
- **/
+ * Return: true if the data_vio may be written as part of a
+ *         compressed block at this time.
+ */
 bool may_write_compressed_data_vio(struct data_vio *data_vio)
 {
 	advance_status(data_vio);
@@ -239,10 +235,10 @@ bool may_write_compressed_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Indicate that this data_vio is leaving the compression path.
- *
- * @param data_vio  The data_vio leaving the compression path
- **/
+ * set_vio_compression_done() - Indicate that this data_vio is leaving the
+ *                              compression path.
+ * @data_vio: The data_vio leaving the compression path.
+ */
 void set_vio_compression_done(struct data_vio *data_vio)
 {
 	for (;;) {
@@ -266,13 +262,13 @@ void set_vio_compression_done(struct data_vio *data_vio)
 }
 
 /**
- * Prevent this data_vio from being compressed or packed.
+ * cancel_vio_compression() - Prevent this data_vio from being compressed
+ *                            or packed.
+ * @data_vio: The data_vio to cancel.
  *
- * @param data_vio  The data_vio to cancel
- *
- * @return <code>true</code> if the data_vio is in the packer and the caller
- *         was the first caller to cancel it
- **/
+ * Return: true if the data_vio is in the packer and the caller
+ *         was the first caller to cancel it.
+ */
 bool cancel_vio_compression(struct data_vio *data_vio)
 {
 	struct vio_compression_state state, new_state;

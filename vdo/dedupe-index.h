@@ -21,9 +21,12 @@
 #ifndef DEDUPE_INDEX_H
 #define DEDUPE_INDEX_H
 
+#include <linux/kobject.h>
+
 #include "uds.h"
 
-#include "dataKVIO.h"
+#include "kernel-types.h"
+#include "statistics.h"
 #include "types.h"
 
 int __must_check
@@ -44,23 +47,8 @@ void vdo_get_dedupe_index_statistics(struct dedupe_index *index,
 
 int vdo_message_dedupe_index(struct dedupe_index *index, const char *name);
 
-void vdo_enqueue_index_operation(struct data_vio *data_vio,
-				 enum uds_request_type operation);
-
-static inline void vdo_post_dedupe_advice(struct data_vio *data_vio)
-{
-	vdo_enqueue_index_operation(data_vio, UDS_POST);
-}
-
-static inline void vdo_query_dedupe_advice(struct data_vio *data_vio)
-{
-	vdo_enqueue_index_operation(data_vio, UDS_QUERY);
-}
-
-static inline void vdo_update_dedupe_advice(struct data_vio *data_vio)
-{
-	vdo_enqueue_index_operation(data_vio, UDS_UPDATE);
-}
+void vdo_query_index(struct data_vio *data_vio,
+		     enum uds_request_type operation);
 
 int vdo_add_dedupe_index_sysfs(struct dedupe_index *index,
 			       struct kobject *parent);
@@ -88,5 +76,7 @@ extern unsigned int vdo_dedupe_index_min_timer_interval;
 
 void vdo_set_dedupe_index_timeout_interval(unsigned int value);
 void vdo_set_dedupe_index_min_timer_interval(unsigned int value);
+
+bool data_vio_may_query_index(struct data_vio *data_vio);
 
 #endif /* DEDUPE_INDEX_H */

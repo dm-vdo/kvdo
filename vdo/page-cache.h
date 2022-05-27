@@ -23,7 +23,6 @@
 
 #include <linux/atomic.h>
 
-#include "cache-counters.h"
 #include "chapter-index.h"
 #include "common.h"
 #include "compiler.h"
@@ -65,14 +64,6 @@ struct queued_read {
 	unsigned int physical_page;
 	/* list of requests waiting on a queued read */
 	struct request_list request_list;
-};
-
-/* Reason for invalidating a cache entry, used for gathering statistics */
-enum invalidation_reason {
-	INVALIDATION_EVICT, /* cache is full, goodbye */
-	INVALIDATION_EXPIRE, /* your chapter is being overwritten */
-	INVALIDATION_ERROR, /* error happened; don't try to use data */
-	INVALIDATION_INIT_SHUTDOWN
 };
 
 /*
@@ -122,11 +113,10 @@ struct page_cache {
 	/* Queued reads, as a circular array, with first and last indexes */
 	struct queued_read *read_queue;
 	/*
-	 * Cache counters for stats.  This is the first field of a
-	 * page_cache that is not constant after the struct is
-	 * initialized.
+	 * All entries above this point are constant once the structure has
+	 * been initialized.
 	 */
-	struct cache_counters counters;
+
 	/**
 	 * Entries are enqueued at read_queue_last.
 	 * To 'reserve' entries, we get the entry pointed to by
@@ -192,34 +182,13 @@ void invalidate_page_cache(struct page_cache *cache);
  * @param cache             the page cache
  * @param chapter           the chapter
  * @param pages_per_chapter the number of pages per chapter
- * @param reason            the reason for invalidation
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
 invalidate_page_cache_for_chapter(struct page_cache *cache,
 				  unsigned int chapter,
-				  unsigned int pages_per_chapter,
-				  enum invalidation_reason reason);
-
-/**
- * Find a page, invalidate it, and make its memory the least recent.  This
- * method is only exposed for the use of unit tests.
- *
- * @param cache         The cache containing the page
- * @param physical_page The id of the page to invalidate
- * @param read_queue    The queue of pending reads (may be NULL)
- * @param reason        The reason for the invalidation, for stats
- * @param must_find     If <code>true</code>, it is an error if the page
- *                      can't be found
- *
- * @return UDS_SUCCESS or an error code
- **/
-int find_invalidate_and_make_least_recent(struct page_cache *cache,
-					  unsigned int physical_page,
-					  struct queued_read *read_queue,
-					  enum invalidation_reason reason,
-					  bool must_find);
+				  unsigned int pages_per_chapter);
 
 /**
  * Make the page the most recent in the cache
@@ -247,17 +216,13 @@ int __must_check assert_page_in_cache(struct page_cache *cache,
  *
  * @param [in] cache         the page cache
  * @param [in] physical_page the page number
- * @param [in] probe_type    the type of cache access being done
- *                           (cache_probe_type optionally OR'ed with
- *                           CACHE_PROBE_IGNORE_FAILURE)
- * @param [out] page_ptr     the found page
+ * @param [out] page         the found page
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check get_page_from_cache(struct page_cache *cache,
 				     unsigned int physical_page,
-				     int probe_type,
-				     struct cached_page **page_ptr);
+				     struct cached_page **page);
 
 /**
  * Enqueue a read request
@@ -382,7 +347,6 @@ void cancel_page_in_cache(struct page_cache *cache,
  * @return the size of the page cache
  **/
 size_t __must_check get_page_cache_size(struct page_cache *cache);
-
 
 /**
  * Read the invalidate counter for the given zone.

@@ -31,7 +31,6 @@
 #include "wait-queue.h"
 
 #include "bio.h"
-#include "dataKVIO.h"
 
 void submit_metadata_vio(struct vio *vio)
 {

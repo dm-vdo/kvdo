@@ -88,7 +88,6 @@ get_approximate_free_blocks(struct slab_summary *summary,
 
 /* MAKE/FREE FUNCTIONS */
 
-/**********************************************************************/
 static void launch_write(struct slab_summary_block *summary_block);
 
 /**

@@ -20,7 +20,6 @@
 
 #include "volume.h"
 
-#include "cache-counters.h"
 #include "chapter-index.h"
 #include "compiler.h"
 #include "config.h"
@@ -473,12 +472,12 @@ static int read_page_locked(struct volume *volume,
 int get_volume_page_locked(struct volume *volume,
 			   struct uds_request *request,
 			   unsigned int physical_page,
-			   enum cache_probe_type probe_type,
 			   struct cached_page **page_ptr)
 {
 	struct cached_page *page = NULL;
-	int result = get_page_from_cache(volume->page_cache, physical_page,
-					 probe_type, &page);
+	int result = get_page_from_cache(volume->page_cache,
+					 physical_page,
+					 &page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -500,7 +499,6 @@ int get_volume_page_locked(struct volume *volume,
 int get_volume_page_protected(struct volume *volume,
 			      struct uds_request *request,
 			      unsigned int physical_page,
-			      enum cache_probe_type probe_type,
 			      struct cached_page **page_ptr)
 {
 	unsigned int zone_number;
@@ -508,7 +506,6 @@ int get_volume_page_protected(struct volume *volume,
 	int result =
 		get_page_from_cache(volume->page_cache,
 				    physical_page,
-				    probe_type | CACHE_PROBE_IGNORE_FAILURE,
 				    &page);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -533,8 +530,9 @@ int get_volume_page_protected(struct volume *volume,
 		 * already in the cache, which would mean we end up with two
 		 * entries in the cache for the same page.
 		 */
-		result = get_page_from_cache(volume->page_cache, physical_page,
-					     probe_type, &page);
+		result = get_page_from_cache(volume->page_cache,
+					     physical_page,
+					     &page);
 		if (result != UDS_SUCCESS) {
 			/*
 			 * In non-success cases (anything not UDS_SUCCESS,
@@ -615,7 +613,6 @@ int get_volume_page_protected(struct volume *volume,
 int get_volume_page(struct volume *volume,
 		    unsigned int chapter,
 		    unsigned int page_number,
-		    enum cache_probe_type probe_type,
 		    byte **data_ptr,
 		    struct delta_index_page **index_page_ptr)
 {
@@ -625,8 +622,7 @@ int get_volume_page(struct volume *volume,
 		map_to_physical_page(volume->geometry, chapter, page_number);
 
 	uds_lock_mutex(&volume->read_threads_mutex);
-	result = get_volume_page_locked(volume, NULL, physical_page,
-					probe_type, &page);
+	result = get_volume_page_locked(volume, NULL, physical_page, &page);
 	uds_unlock_mutex(&volume->read_threads_mutex);
 
 	if (data_ptr != NULL) {
@@ -682,7 +678,6 @@ static int search_cached_index_page(struct volume *volume,
 	result = get_volume_page_protected(volume,
 					   request,
 					   physical_page,
-					   cache_probe_type(request, true),
 					   &page);
 	if (result != UDS_SUCCESS) {
 		end_pending_search(volume->page_cache, zone_number);
@@ -752,7 +747,6 @@ int search_cached_record_page(struct volume *volume,
 	result = get_volume_page_protected(volume,
 					   request,
 					   physical_page,
-					   cache_probe_type(request, false),
 					   &record_page);
 	if (result != UDS_SUCCESS) {
 		end_pending_search(volume->page_cache, zone_number);
@@ -853,9 +847,7 @@ int search_volume_page_cache(struct volume *volume,
 					 found);
 }
 
-int forget_chapter(struct volume *volume,
-		   uint64_t virtual_chapter,
-		   enum invalidation_reason reason)
+int forget_chapter(struct volume *volume, uint64_t virtual_chapter)
 {
 	int result;
 	unsigned int physical_chapter =
@@ -865,8 +857,7 @@ int forget_chapter(struct volume *volume,
 	uds_lock_mutex(&volume->read_threads_mutex);
 	result = invalidate_page_cache_for_chapter(volume->page_cache,
 						   physical_chapter,
-						   volume->geometry->pages_per_chapter,
-						   reason);
+						   volume->geometry->pages_per_chapter);
 	uds_unlock_mutex(&volume->read_threads_mutex);
 	return result;
 }
@@ -1123,7 +1114,6 @@ static int probe_chapter(struct volume *volume,
 		int result = get_volume_page(volume,
 					     chapter_number,
 					     i,
-					     CACHE_PROBE_INDEX_FIRST,
 					     NULL,
 					     &page);
 		if (result != UDS_SUCCESS) {

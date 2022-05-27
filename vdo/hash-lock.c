@@ -112,6 +112,7 @@
 #include "compression-state.h"
 #include "constants.h"
 #include "data-vio.h"
+#include "dedupe-index.h"
 #include "hash-zone.h"
 #include "io-submitter.h"
 #include "packer.h"
@@ -724,6 +725,14 @@ static void finish_updating(struct vdo_completion *completion)
 	}
 }
 
+static void update_index(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+
+	set_data_vio_hash_zone_callback(data_vio, finish_updating);
+	vdo_query_index(data_vio, UDS_UPDATE);
+}
+
 /**
  * Continue deduplication with the last step, updating UDS with the location
  * of the duplicate that should be returned as advice in the future.
@@ -741,8 +750,12 @@ static void start_updating(struct hash_lock *lock, struct data_vio *agent)
 			"should only update advice if needed");
 
 	agent->last_async_operation = VIO_ASYNC_OP_UPDATE_DEDUPE_INDEX;
-	set_data_vio_hash_zone_callback(agent, finish_updating);
-	vdo_update_dedupe_index(agent);
+	if (data_vio_may_query_index(agent)) {
+		launch_data_vio_dedupe_callback(agent, update_index);
+		return;
+	}
+
+	launch_data_vio_hash_zone_callback(agent, finish_updating);
 }
 
 /**
@@ -1009,7 +1022,6 @@ static void finish_verifying(struct vdo_completion *completion)
 	}
 }
 
-/**********************************************************************/
 static void verify_callback(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
@@ -1020,7 +1032,6 @@ static void verify_callback(struct vdo_completion *completion)
 	launch_data_vio_hash_zone_callback(agent, finish_verifying);
 }
 
-/**********************************************************************/
 static void uncompress_and_verify(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
@@ -1037,7 +1048,6 @@ static void uncompress_and_verify(struct vdo_completion *completion)
 	launch_data_vio_hash_zone_callback(agent, finish_verifying);
 }
 
-/**********************************************************************/
 static void verify_endio(struct bio *bio)
 {
 	struct data_vio *agent = vio_as_data_vio(bio->bi_private);
@@ -1587,6 +1597,16 @@ static void finish_querying(struct vdo_completion *completion)
 	}
 }
 
+static void query_index(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+
+	set_data_vio_hash_zone_callback(data_vio, finish_querying);
+	vdo_query_index(data_vio,
+			(data_vio_has_allocation(data_vio)
+			 ? UDS_POST : UDS_QUERY));
+}
+
 /**
  * Start deduplication for a hash lock that has finished initializing by
  * making the data_vio that requested it the agent, entering the QUERYING
@@ -1598,11 +1618,15 @@ static void finish_querying(struct vdo_completion *completion)
 static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	set_agent(lock, data_vio);
-	set_hash_lock_state(lock, VDO_HASH_LOCK_QUERYING);
+	if (!data_vio_may_query_index(data_vio)) {
+		lock->update_advice = !data_vio_has_allocation(data_vio);
+		start_writing(lock, data_vio);
+		return;
+	}
 
+	set_hash_lock_state(lock, VDO_HASH_LOCK_QUERYING);
 	data_vio->last_async_operation = VIO_ASYNC_OP_CHECK_FOR_DUPLICATION;
-	set_data_vio_hash_zone_callback(data_vio, finish_querying);
-	check_data_vio_for_duplication(data_vio);
+	launch_data_vio_dedupe_callback(data_vio, query_index);
 }
 
 /**

@@ -32,7 +32,6 @@ struct pool_attribute {
 	ssize_t (*store)(struct vdo *vdo, const char *value, size_t count);
 };
 
-/**********************************************************************/
 static ssize_t vdo_pool_attr_show(struct kobject *directory,
 				  struct attribute *attr,
 				  char *buf)
@@ -48,7 +47,6 @@ static ssize_t vdo_pool_attr_show(struct kobject *directory,
 	return pool_attr->show(vdo, buf);
 }
 
-/**********************************************************************/
 static ssize_t vdo_pool_attr_store(struct kobject *directory,
 				   struct attribute *attr,
 				   const char *buf,
@@ -70,14 +68,12 @@ static struct sysfs_ops vdo_pool_sysfs_ops = {
 	.store = vdo_pool_attr_store,
 };
 
-/**********************************************************************/
 static ssize_t pool_compressing_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf, "%s\n",
 		       (vdo_get_compressing(vdo) ? "1" : "0"));
 }
 
-/**********************************************************************/
 static ssize_t pool_discards_active_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -85,7 +81,6 @@ static ssize_t pool_discards_active_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_active_discards(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -93,7 +88,6 @@ static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_discard_limit(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static ssize_t pool_discards_limit_store(struct vdo *vdo,
 					 const char *buf,
 					 size_t length)
@@ -113,7 +107,6 @@ static ssize_t pool_discards_limit_store(struct vdo *vdo,
 	return length;
 }
 
-/**********************************************************************/
 static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -121,13 +114,11 @@ static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_maximum_discards(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static ssize_t pool_instance_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf, "%u\n", vdo->instance);
 }
 
-/**********************************************************************/
 static ssize_t pool_requests_active_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -135,7 +126,6 @@ static ssize_t pool_requests_active_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_active_requests(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static ssize_t pool_requests_limit_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -143,7 +133,6 @@ static ssize_t pool_requests_limit_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_request_limit(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf,
@@ -151,7 +140,6 @@ static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 		       get_data_vio_pool_maximum_requests(vdo->data_vio_pool));
 }
 
-/**********************************************************************/
 static void vdo_pool_release(struct kobject *directory)
 {
 	UDS_FREE(container_of(directory, struct vdo, vdo_directory));

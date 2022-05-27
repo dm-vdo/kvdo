@@ -308,7 +308,6 @@ static void load_callback(struct vdo_completion *completion)
 
 	case LOAD_PHASE_DATA_REDUCTION:
 		WRITE_ONCE(vdo->compressing, vdo->device_config->compression);
-
 		if (vdo->device_config->deduplication) {
 			/*
 			 * Don't try to load or rebuild the index first (and

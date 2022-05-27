@@ -38,6 +38,7 @@
 #include "bio.h"
 #include "block-map.h"
 #include "data-vio-pool.h"
+#include "dedupe-index.h"
 #include "device-registry.h"
 #include "hash-zone.h"
 #include "header.h"
@@ -65,7 +66,6 @@
 #include "vdo-resize-logical.h"
 #include "workQueue.h"
 
-#include "dedupe-index.h"
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 
@@ -460,8 +460,6 @@ static void finish_vdo(struct vdo *vdo)
 	for (i = 0; i < vdo->thread_config->thread_count; i++) {
 		finish_work_queue(vdo->threads[i].queue);
 	}
-
-	free_data_vio_pool(vdo->data_vio_pool);
 }
 
 /**
@@ -497,6 +495,7 @@ void vdo_destroy(struct vdo *vdo)
 
 	finish_vdo(vdo);
 	vdo_unregister(vdo);
+	free_data_vio_pool(vdo->data_vio_pool);
 	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
 	vdo_free_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	vdo_free_flusher(UDS_FORGET(vdo->flusher));
@@ -708,7 +707,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	int result;
 	struct bio bio;
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 	bio_init(&bio, 0, 0);
 	bio_set_dev(&bio, vdo_get_backing_device(vdo));
 	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
@@ -1023,7 +1022,6 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 	};
 }
 
-
 /**
  * Get the number of physical blocks in use by user data.
  *
@@ -1124,10 +1122,8 @@ static void get_vdo_statistics(const struct vdo *vdo,
 		 sizeof(stats->mode),
 		 "%s",
 		 vdo_describe_state(state));
-	stats->version = STATISTICS_VERSION;
-	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
-	stats->instance = vdo->instance;
 
+	stats->instance = vdo->instance;
 	stats->current_vios_in_progress =
 		get_data_vio_pool_active_requests(vdo->data_vio_pool);
 	stats->max_vios =
@@ -1392,60 +1388,6 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 
 	*zone_ptr = &vdo->physical_zones[vdo_get_slab_zone_number(slab)];
 	return VDO_SUCCESS;
-}
-
-/**
- * Check whether a data_location containing potential dedupe advice is
- * well-formed and addresses a data block in one of the configured physical
- * zones of the vdo. If it is, return the location and zone as a zoned_pbn;
- * otherwise increment statistics tracking invalid advice and return an
- * unmapped zoned_pbn.
- *
- * @param vdo     The vdo
- * @param advice  The advice to validate (NULL indicates no advice)
- * @param lbn     The logical block number of the write that requested advice,
- *                which is only used for debug-level logging of invalid advice
- *
- * @return The zoned_pbn representing the advice, if valid, otherwise an
- *         unmapped zoned_pbn if the advice was invalid or NULL
- **/
-struct zoned_pbn
-vdo_validate_dedupe_advice(struct vdo *vdo,
-			   const struct data_location *advice,
-			   logical_block_number_t lbn)
-{
-	struct zoned_pbn no_advice = { .pbn = VDO_ZERO_BLOCK };
-	struct physical_zone *zone;
-	int result;
-
-	if (advice == NULL) {
-		return no_advice;
-	}
-
-	/* Don't use advice that's clearly meaningless. */
-	if ((advice->state == VDO_MAPPING_STATE_UNMAPPED) ||
-	    (advice->pbn == VDO_ZERO_BLOCK)) {
-		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
-			      (unsigned long long) advice->pbn, advice->state,
-			      (unsigned long long) lbn);
-		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
-		return no_advice;
-	}
-
-	result = vdo_get_physical_zone(vdo, advice->pbn, &zone);
-	if ((result != VDO_SUCCESS) || (zone == NULL)) {
-		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
-			      (unsigned long long) advice->pbn,
-			      (unsigned long long) lbn);
-		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
-		return no_advice;
-	}
-
-	return (struct zoned_pbn) {
-		.pbn = advice->pbn,
-		.state = advice->state,
-		.zone = zone,
-	};
 }
 
 /**

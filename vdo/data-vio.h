@@ -967,6 +967,39 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 }
 
 /**
+ * Set a callback as a dedupe queue operation.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+set_data_vio_dedupe_callback(struct data_vio *data_vio,
+			     vdo_action *callback)
+{
+	thread_id_t dedupe_thread =
+		get_thread_config_from_data_vio(data_vio)->dedupe_thread;
+	vdo_set_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    dedupe_thread);
+}
+
+/**
+ * Set a callback to run on the dedupe queue and invoke it immediately.
+ *
+ * @param data_vio  The data_vio for which to set the callback
+ * @param callback  The callback to set
+ **/
+static inline void
+launch_data_vio_dedupe_callback(struct data_vio *data_vio,
+				vdo_action *callback)
+{
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
+	set_data_vio_dedupe_callback(data_vio, callback);
+	vdo_invoke_completion_callback(completion);
+}
+
+/**
  * Set a callback as a CPU queue operation.
  *
  * @param data_vio  The data_vio for which to set the callback
@@ -1063,9 +1096,6 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 						     BIO_ACK_Q_ACK_PRIORITY);
 }
 
-void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
-				    const struct data_location *advice);
-
 void set_data_vio_duplicate_location(struct data_vio *data_vio,
 				     const struct zoned_pbn source);
 
@@ -1091,25 +1121,6 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
  *                  pbn will be forgotten)
  **/
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
-
-/**
- * A function to determine whether a block is a duplicate. This function
- * expects the 'physical' field of the data_vio to be set to the physical block
- * where the block will be written if it is not a duplicate. If the block does
- * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set
- * to true, and the data_vio's 'advice' field will be set to the physical
- * block and mapping state of the already stored copy of the block.
- *
- * @param data_vio  The data_vio containing the block to check.
- **/
-void check_data_vio_for_duplication(struct data_vio *data_vio);
-
-/**
- * Update the index with new dedupe advice.
- *
- * @param data_vio  The data_vio which needs to change the entry for its data
- **/
-void vdo_update_dedupe_index(struct data_vio *data_vio);
 
 void acknowledge_data_vio(struct data_vio *data_vio);
 

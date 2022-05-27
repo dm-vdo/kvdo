@@ -39,6 +39,7 @@
 #include "statistics.h"
 #include "super-block.h"
 #include "read-only-notifier.h"
+#include "thread-config.h"
 #include "types.h"
 #include "uds.h"
 #include "vdo-component.h"
@@ -230,11 +231,6 @@ void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 thread_id_t vdo_get_callback_thread_id(void);
 
-struct zoned_pbn __must_check
-vdo_validate_dedupe_advice(struct vdo *vdo,
-			   const struct data_location *advice,
-			   logical_block_number_t lbn);
-
 enum vdo_state __must_check vdo_get_state(const struct vdo *vdo);
 
 void vdo_set_state(struct vdo *vdo, enum vdo_state state);
@@ -258,6 +254,14 @@ void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name);
+
+static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo,
+					       const char *name) {
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo->thread_config->dedupe_thread),
+			"%s called on dedupe index thread",
+			name);
+}
 
 void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name);
 

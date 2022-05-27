@@ -36,6 +36,9 @@
 #include "string-utils.h"
 #include "uds.h"
 
+#include "completion.h"
+#include "data-vio.h"
+#include "kernel-types.h"
 #include "types.h"
 
 /**
@@ -90,7 +93,7 @@ struct dedupe_index {
 	 * requests.
 	 */
 	spinlock_t state_lock;
-	struct vdo_work_item work_item; /* protected by state_lock */
+	struct vdo_completion completion; /* protected by state_lock */
 	struct vdo_work_queue *uds_queue; /* protected by state_lock */
 	unsigned int maximum; /* protected by state_lock */
 	enum index_state index_state; /* protected by state_lock */
@@ -135,6 +138,14 @@ unsigned int vdo_dedupe_index_min_timer_interval = 100;
 static uint64_t vdo_dedupe_index_timeout_jiffies;
 static uint64_t vdo_dedupe_index_min_timer_jiffies;
 
+static inline struct dedupe_index *
+as_dedupe_index(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type,
+				   VDO_DEDUPE_INDEX_COMPLETION);
+	return container_of(completion, struct dedupe_index, completion);
+}
+
 static const char *index_state_to_string(struct dedupe_index *index,
 					 enum index_state state)
 {
@@ -155,31 +166,18 @@ static const char *index_state_to_string(struct dedupe_index *index,
 }
 
 /*
- * Encode VDO duplicate advice into the new_metadata field of a UDS request.
- */
-static void encode_uds_advice(struct uds_request *request,
-			      struct data_location advice)
-{
-	size_t offset = 0;
-	struct uds_chunk_data *encoding = &request->new_metadata;
-
-	encoding->data[offset++] = UDS_ADVICE_VERSION;
-	encoding->data[offset++] = advice.state;
-	put_unaligned_le64(advice.pbn, &encoding->data[offset]);
-	offset += sizeof(uint64_t);
-	BUG_ON(offset != UDS_ADVICE_SIZE);
-}
-
-/*
  * Decode VDO duplicate advice from the old_metadata field of a UDS request.
  * Returns true if valid advice was found and decoded
  */
-static bool decode_uds_advice(const struct uds_request *request,
-			      struct data_location *advice)
+static bool decode_uds_advice(struct data_vio *data_vio,
+			      const struct uds_request *request)
 {
 	size_t offset = 0;
 	const struct uds_chunk_data *encoding = &request->old_metadata;
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	struct zoned_pbn *advice = &data_vio->duplicate;
 	byte version;
+	int result;
 
 	if ((request->status != UDS_SUCCESS) || !request->found) {
 		return false;
@@ -194,8 +192,28 @@ static bool decode_uds_advice(const struct uds_request *request,
 	advice->state = encoding->data[offset++];
 	advice->pbn = get_unaligned_le64(&encoding->data[offset]);
 	offset += sizeof(uint64_t);
-
 	BUG_ON(offset != UDS_ADVICE_SIZE);
+
+	/* Don't use advice that's clearly meaningless. */
+	if ((advice->state == VDO_MAPPING_STATE_UNMAPPED) ||
+	    (advice->pbn == VDO_ZERO_BLOCK)) {
+		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
+			      (unsigned long long) advice->pbn,
+			      advice->state,
+			      (unsigned long long) data_vio->logical.lbn);
+		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
+		return false;
+	}
+
+	result = vdo_get_physical_zone(vdo, advice->pbn, &advice->zone);
+	if ((result != VDO_SUCCESS) || (advice->zone == NULL)) {
+		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
+			      (unsigned long long) advice->pbn,
+			      (unsigned long long) data_vio->logical.lbn);
+		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
+		return false;
+	}
+
 	return true;
 }
 
@@ -250,41 +268,36 @@ void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 }
 
 
-static void finish_index_operation(struct uds_request *uds_request)
+static void finish_index_operation(struct uds_request *request)
 {
-	struct data_vio *data_vio = container_of(uds_request,
+	struct data_vio *data_vio = container_of(request,
 						 struct data_vio,
 						 dedupe_context.uds_request);
-	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
+	struct dedupe_context *context = &data_vio->dedupe_context;
 
-	if (atomic_cmpxchg(&dedupe_context->request_state,
-			   UR_BUSY, UR_IDLE) == UR_BUSY) {
+	if (atomic_cmpxchg(&context->request_state, UR_BUSY, UR_IDLE) ==
+	    UR_BUSY) {
 		struct dedupe_index *index =
 			vdo_from_data_vio(data_vio)->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
-		if (dedupe_context->is_pending) {
-			list_del(&dedupe_context->pending_list);
-			dedupe_context->is_pending = false;
+		if (context->is_pending) {
+			list_del(&context->pending_list);
+			context->is_pending = false;
 		}
 		spin_unlock_bh(&index->pending_lock);
 
-		dedupe_context->status = uds_request->status;
-		if ((uds_request->type == UDS_POST) ||
-		    (uds_request->type == UDS_QUERY)) {
-			struct data_location advice;
-
-			if (decode_uds_advice(uds_request, &advice)) {
-				vdo_set_dedupe_advice(dedupe_context, &advice);
-			} else {
-				vdo_set_dedupe_advice(dedupe_context, NULL);
-			}
+		context->status = request->status;
+		if ((request->type == UDS_POST) ||
+		    (request->type == UDS_QUERY)) {
+			data_vio->is_duplicate =
+				decode_uds_advice(data_vio, request);
 		}
 
-		enqueue_data_vio_callback(data_vio);
+		continue_data_vio(data_vio, VDO_SUCCESS);
 		atomic_dec(&index->active);
 	} else {
-		atomic_cmpxchg(&dedupe_context->request_state,
+		atomic_cmpxchg(&context->request_state,
 			       UR_TIMED_OUT,
 			       UR_IDLE);
 	}
@@ -312,28 +325,6 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 	uint64_t start_time = context->submission_jiffies;
 
 	start_expiration_timer(index, get_dedupe_index_timeout(start_time));
-}
-
-static void start_index_operation(struct vdo_work_item *item)
-{
-	struct vio *vio = work_item_as_vio(item);
-	struct data_vio *data_vio = vio_as_data_vio(vio);
-	struct dedupe_index *index = vdo_from_vio(vio)->dedupe_index;
-	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
-	struct uds_request *uds_request = &dedupe_context->uds_request;
-	int status;
-
-	spin_lock_bh(&index->pending_lock);
-	list_add_tail(&dedupe_context->pending_list, &index->pending_head);
-	dedupe_context->is_pending = true;
-	start_expiration_timer_for_vio(index, data_vio);
-	spin_unlock_bh(&index->pending_lock);
-
-	status = uds_start_chunk_operation(uds_request);
-	if (status != UDS_SUCCESS) {
-		uds_request->status = status;
-		finish_index_operation(uds_request);
-	}
 }
 
 uint64_t vdo_get_dedupe_index_timeout_count(struct dedupe_index *index)
@@ -452,7 +443,7 @@ static void timeout_index_operations(struct timer_list *t)
 		if (atomic_cmpxchg(&dedupe_context->request_state,
 				   UR_BUSY, UR_TIMED_OUT) == UR_BUSY) {
 			dedupe_context->status = ETIMEDOUT;
-			enqueue_data_vio_callback(data_vio);
+			continue_data_vio(data_vio, VDO_SUCCESS);
 			atomic_dec(&index->active);
 			timed_out++;
 		}
@@ -460,67 +451,68 @@ static void timeout_index_operations(struct timer_list *t)
 	report_dedupe_timeouts(&index->timeout_reporter, timed_out);
 }
 
+static void prepare_uds_request(struct uds_request *request,
+				struct data_vio *data_vio,
+				struct uds_index_session *session,
+				enum uds_request_type operation)
+{
+	request->chunk_name = data_vio->chunk_name;
+	request->callback = finish_index_operation;
+	request->session = session;
+	request->type = operation;
+	if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
+		size_t offset = 0;
+		struct uds_chunk_data *encoding = &request->new_metadata;
+
+		encoding->data[offset++] = UDS_ADVICE_VERSION;
+		encoding->data[offset++] = data_vio->new_mapped.state;
+		put_unaligned_le64(data_vio->new_mapped.pbn,
+				   &encoding->data[offset]);
+		offset += sizeof(uint64_t);
+		BUG_ON(offset != UDS_ADVICE_SIZE);
+	}
+}
+
 /*
  * The index operation will inquire about data_vio.chunk_name, providing (if
- * the operation is appropriate) advice from via vdo_get_dedupe_advice(). The
- * advice found in the index (or NULL if none) will be returned via
- * vdo_set_dedupe_advice().  dedupe_context.status is set to the return status
- * code of any asynchronous index processing.
+ * the operation is appropriate) advice from the data_vio's new_mapped
+ * fields. The advice found in the index (or NULL if none) will be returned via
+ * receive_data_vio_dedupe_advice(). dedupe_context.status is set to the return
+ * status code of any asynchronous index processing.
  */
-void vdo_enqueue_index_operation(struct data_vio *data_vio,
-				 enum uds_request_type operation)
+void vdo_query_index(struct data_vio *data_vio,
+		     enum uds_request_type operation)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct dedupe_context *context = &data_vio->dedupe_context;
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct dedupe_index *index = vdo->dedupe_index;
+	struct uds_request *request;
+	unsigned int active;
+	int result;
 
-	dedupe_context->status = UDS_SUCCESS;
-	dedupe_context->submission_jiffies = jiffies;
-	if (atomic_cmpxchg(&dedupe_context->request_state,
-			   UR_IDLE, UR_BUSY) == UR_IDLE) {
-		struct uds_request *uds_request =
-			&data_vio->dedupe_context.uds_request;
-
-		uds_request->chunk_name = data_vio->chunk_name;
-		uds_request->callback = finish_index_operation;
-		uds_request->session = index->index_session;
-		uds_request->type = operation;
-		if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
-			encode_uds_advice(uds_request,
-					  vdo_get_dedupe_advice(dedupe_context));
-		}
-
-		setup_work_item(work_item_from_vio(vio),
-				start_index_operation,
-				UDS_Q_PRIORITY);
-
-		spin_lock(&index->state_lock);
-		if (index->deduping) {
-			unsigned int active;
-
-			enqueue_work_queue(index->uds_queue,
-					   work_item_from_vio(vio));
-
-			active = atomic_inc_return(&index->active);
-			if (active > index->maximum) {
-				index->maximum = active;
-			}
-			vio = NULL;
-		} else {
-			atomic_set(&dedupe_context->request_state, UR_IDLE);
-		}
-		spin_unlock(&index->state_lock);
-	} else {
-		/*
-		 * A previous user of the vio had a dedupe timeout
-		 * and its request is still outstanding.
-		 */
-		atomic64_inc(&vdo->stats.dedupe_context_busy);
+	vdo_assert_on_dedupe_thread(vdo, __func__);
+	context->status = UDS_SUCCESS;
+	context->submission_jiffies = jiffies;
+	request = &context->uds_request;
+	prepare_uds_request(request,
+			    data_vio,
+			    index->index_session,
+			    operation);
+	active = atomic_inc_return(&index->active);
+	if (active > index->maximum) {
+		index->maximum = active;
 	}
 
-	if (vio != NULL) {
-		enqueue_data_vio_callback(data_vio);
+	spin_lock_bh(&index->pending_lock);
+	list_add_tail(&context->pending_list, &index->pending_head);
+	context->is_pending = true;
+	start_expiration_timer_for_vio(index, data_vio);
+	spin_unlock_bh(&index->pending_lock);
+
+	result = uds_start_chunk_operation(request);
+	if (result != UDS_SUCCESS) {
+		request->status = result;
+		finish_index_operation(request);
 	}
 }
 
@@ -599,11 +591,10 @@ static void open_index(struct dedupe_index *index)
 	 */
 }
 
-static void change_dedupe_state(struct vdo_work_item *item)
+static void change_dedupe_state(struct vdo_completion *completion)
 {
-	struct dedupe_index *index = container_of(item,
-						  struct dedupe_index,
-						  work_item);
+	struct dedupe_index *index = as_dedupe_index(completion);
+
 	spin_lock(&index->state_lock);
 
 	/*
@@ -640,10 +631,7 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 	    (index->index_state != index->index_target)) {
 		index->changing = true;
 		index->deduping = false;
-		setup_work_item(&index->work_item,
-				change_dedupe_state,
-				UDS_Q_PRIORITY);
-		enqueue_work_queue(index->uds_queue, &index->work_item);
+		vdo_invoke_completion_callback(&index->completion);
 		return;
 	}
 
@@ -760,7 +748,6 @@ void vdo_finish_dedupe_index(struct dedupe_index *index)
 		return;
 	}
 
-	set_target_state(index, IS_CLOSED, false, false, false);
 	uds_destroy_index_session(index->index_session);
 	finish_work_queue(index->uds_queue);
 }
@@ -974,7 +961,7 @@ int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 		vdo_get_index_region_size(vdo->geometry) * VDO_BLOCK_SIZE;
 	index->parameters.memory_size = vdo->geometry.index_config.mem;
 	index->parameters.sparse = vdo->geometry.index_config.sparse;
-	index->parameters.nonce = (uds_nonce_t) vdo->geometry.nonce;
+	index->parameters.nonce = (uint64_t) vdo->geometry.nonce;
 
 	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
@@ -996,6 +983,12 @@ int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
+	vdo_initialize_completion(&index->completion,
+				  vdo,
+				  VDO_DEDUPE_INDEX_COMPLETION);
+	vdo_set_completion_callback(&index->completion,
+				    change_dedupe_state,
+				    vdo->thread_config->dedupe_thread);
 	index->uds_queue
 		= vdo->threads[vdo->thread_config->dedupe_thread].queue;
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
@@ -1008,4 +1001,31 @@ int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 
 	*index_ptr = index;
 	return VDO_SUCCESS;
+}
+
+bool data_vio_may_query_index(struct data_vio *data_vio)
+{
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	struct dedupe_index *index = vdo->dedupe_index;
+	bool deduping;
+
+	spin_lock(&index->state_lock);
+	deduping = index->deduping;
+	spin_unlock(&index->state_lock);
+
+	if (!deduping) {
+		return false;
+	}
+
+	if (atomic_cmpxchg(&data_vio->dedupe_context.request_state,
+			   UR_IDLE, UR_BUSY) != UR_IDLE) {
+		/*
+		 * A previous user of the data_vio had a dedupe timeout
+		 * and its request is still outstanding.
+		 */
+		atomic64_inc(&vdo->stats.dedupe_context_busy);
+		return false;
+	}
+
+	return true;
 }

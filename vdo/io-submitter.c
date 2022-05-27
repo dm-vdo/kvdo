@@ -20,6 +20,7 @@
 
 #include "io-submitter.h"
 
+#include <linux/bio.h>
 #include <linux/kernel.h>
 #include <linux/mutex.h>
 #include <linux/version.h>
@@ -29,7 +30,8 @@
 
 #include "atomic-stats.h"
 #include "bio.h"
-#include "dataKVIO.h"
+#include "data-vio.h"
+#include "kvio.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
@@ -64,7 +66,6 @@ struct io_submitter {
 	struct bio_queue_data bio_queue_data[];
 };
 
-/**********************************************************************/
 static void start_bio_queue(void *ptr)
 {
 	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *) ptr;
@@ -72,7 +73,6 @@ static void start_bio_queue(void *ptr)
 	blk_start_plug(&bio_queue_data->plug);
 }
 
-/**********************************************************************/
 static void finish_bio_queue(void *ptr)
 {
 	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *) ptr;
@@ -148,7 +148,6 @@ static void send_bio_to_device(struct vio *vio,
 	submit_bio_noacct(bio);
 }
 
-/**********************************************************************/
 static sector_t get_bio_sector(struct bio *bio)
 {
 	return bio->bi_iter.bi_sector;
@@ -273,7 +272,6 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		 merge_sector) ? vio_merge : NULL);
 }
 
-/**********************************************************************/
 static int merge_to_prev_tail(struct int_map *bio_map,
 			      struct vio *vio,
 			      struct vio *prev_vio)
@@ -291,7 +289,6 @@ static int merge_to_prev_tail(struct int_map *bio_map,
 	return result;
 }
 
-/**********************************************************************/
 static int merge_to_next_head(struct int_map *bio_map,
 			      struct vio *vio,
 			      struct vio *next_vio)

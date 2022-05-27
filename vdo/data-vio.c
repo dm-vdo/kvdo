@@ -280,30 +280,6 @@ const char *get_data_vio_operation_name(struct data_vio *data_vio)
 }
 
 /**
- * Check whether the advice received from UDS is a valid data location,
- * and if it is, accept it as the location of a potential duplicate of the
- * data_vio.
- *
- * @param data_vio The data_vio that queried UDS
- * @param advice   A potential location of the data, or NULL for no advice
- **/
-void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
-				    const struct data_location *advice)
-{
-	/*
-	 * NOTE: this is called on non-base-code threads. Be very careful to
-	 * not do anything here that needs a base code thread-local variable,
-	 * such as trying to get the current thread ID, or that does a lot of
-	 * work.
-	 */
-
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
-	struct zoned_pbn duplicate =
-		vdo_validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
-	set_data_vio_duplicate_location(data_vio, duplicate);
-}
-
-/**
  * Set the location of the duplicate block for a data_vio, updating the
  * is_duplicate and duplicate fields from a zoned_pbn.
  *

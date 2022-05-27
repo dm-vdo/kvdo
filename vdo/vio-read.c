@@ -71,7 +71,6 @@
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
-/**********************************************************************/
 static void continue_partial_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -113,7 +112,6 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	launch_data_vio_logical_callback(data_vio, continue_partial_write);
 }
 
-/**********************************************************************/
 static void complete_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -146,7 +144,6 @@ static void complete_read(struct vdo_completion *completion)
 	complete_data_vio(completion);
 }
 
-/**********************************************************************/
 static void read_endio(struct bio *bio)
 {
 	struct data_vio *data_vio = vio_as_data_vio(bio->bi_private);
@@ -157,7 +154,6 @@ static void read_endio(struct bio *bio)
 				     CPU_Q_COMPLETE_READ_PRIORITY);
 }
 
-/**********************************************************************/
 static void complete_zero_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -228,7 +224,8 @@ static void read_block(struct vdo_completion *completion)
 			 * to copy the data
 			 */
 			set_vio_physical(vio, data_vio->mapped.pbn);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0)
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 			bio_reset(vio->bio);
 			__bio_clone_fast(vio->bio, data_vio->user_bio);
 #else

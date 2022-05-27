@@ -53,7 +53,6 @@ static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
 	},
 };
 
-/**********************************************************************/
 static inline bool has_lock_type(const struct pbn_lock *lock,
 				 enum pbn_lock_type type)
 {
@@ -72,7 +71,6 @@ bool vdo_is_pbn_read_lock(const struct pbn_lock *lock)
 	return has_lock_type(lock, VIO_READ_LOCK);
 }
 
-/**********************************************************************/
 static inline void set_pbn_lock_type(struct pbn_lock *lock,
 				     enum pbn_lock_type type)
 {

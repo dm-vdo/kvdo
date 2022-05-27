@@ -34,7 +34,6 @@ enum {
 	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS),
 };
 
-/**********************************************************************/
 static uint16_t
 get_compressed_fragment_size(const struct compressed_block_header *header,
 			     byte slot)
@@ -43,15 +42,16 @@ get_compressed_fragment_size(const struct compressed_block_header *header,
 }
 
 /**
- * This method initializes the compressed block in the compressed write
- * agent. Because the compressor already put the agent's compressed fragment at
- * the start of the compressed block's data field, it needn't be copied. So all
- * we need do is initialize the header and set the size of the agent's
- * fragment.
+ * vdo_initialize_compressed_block() - Initialize a compressed block.
+ * @block: The compressed block to initialize.
+ * @size: The size of the agent's fragment.
  *
- * @param block  The compressed block to initialize
- * @param size   The size of the agent's fragment
- **/
+ * This method initializes the compressed block in the compressed
+ * write agent. Because the compressor already put the agent's
+ * compressed fragment at the start of the compressed block's data
+ * field, it needn't be copied. So all we need do is initialize the
+ * header and set the size of the agent's fragment.
+ */
 void vdo_initialize_compressed_block(struct compressed_block *block,
 				     uint16_t size)
 {
@@ -67,17 +67,16 @@ void vdo_initialize_compressed_block(struct compressed_block *block,
 }
 
 /**
- * Get a reference to a compressed fragment from a compression block.
+ * vdo_get_compressed_block_fragment() - Get a reference to a compressed
+ *                                       fragment from a compression block.
+ * @mapping_state [in] The mapping state for the look up.
+ * @compressed_block [in] The compressed block that was read from disk.
+ * @fragment_offset [out] The offset of the fragment within a compressed block.
+ * @fragment_size [out] The size of the fragment.
  *
- * @param [in]  mapping_state    the mapping state for the look up
- * @param [in]  compressed_block the compressed block that was read from disk
- * @param [out] fragment_offset  the offset of the fragment within a
- *                               compressed block
- * @param [out] fragment_size    the size of the fragment
- *
- * @return If a valid compressed fragment is found, VDO_SUCCESS;
+ * Return: If a valid compressed fragment is found, VDO_SUCCESS;
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
- **/
+ */
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
 				      uint16_t *fragment_offset,
@@ -121,16 +120,17 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 }
 
 /**
- * Copy a fragment into the compressed block.
+ * vdo_put_compressed_block_fragment() - Copy a fragment into the compressed
+ *                                       block.
+ * @block: The compressed block.
+ * @fragment: The number of the fragment.
+ * @offset: The byte offset of the fragment in the data area.
+ * @data: A pointer to the compressed data.
+ * @size: The size of the data.
  *
- * @param block      the compressed block
- * @param fragment   the number of the fragment
- * @param offset     the byte offset of the fragment in the data area
- * @param data       a pointer to the compressed data
- * @param size       the size of the data
- *
- * @note no bounds checking -- the data better fit without smashing other stuff
- **/
+ * There is no bounds checking - the data better fit without smashing other
+ * stuff
+ */
 void vdo_put_compressed_block_fragment(struct compressed_block *block,
 				       unsigned int fragment,
 				       uint16_t offset,

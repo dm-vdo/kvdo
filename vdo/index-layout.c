@@ -20,15 +20,18 @@
 
 #include "index-layout.h"
 
+#include <linux/murmurhash3.h>
+
 #include "buffer.h"
 #include "compiler.h"
 #include "config.h"
-#include "layout-region.h"
 #include "logger.h"
-#include "volume-index-ops.h"
 #include "memory-alloc.h"
-#include "nonce.h"
+#include "numeric.h"
 #include "open-chapter.h"
+#include "random.h"
+#include "time-utils.h"
+#include "volume-index-ops.h"
 
 /*
  * Overall layout of an index on disk:
@@ -76,6 +79,34 @@
  * state record for that save. Each save has a unique generation number and
  * nonce which is used to seed the checksums of those regions.
  */
+
+enum {
+	NONCE_INFO_SIZE = 32,
+};
+
+static const uint64_t REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
+
+struct region_header {
+	uint64_t magic;         /* REGION_MAGIC */
+	uint64_t region_blocks; /* size of whole region */
+	uint16_t type;          /* RH_TYPE_... */
+	uint16_t version;       /* 1 */
+	uint16_t num_regions;   /* number of layouts in the table */
+	uint16_t payload;       /* extra data beyond region table */
+};
+
+struct layout_region {
+	uint64_t start_block;
+	uint64_t num_blocks;
+	uint32_t checksum; /* only used for save regions */
+	uint16_t kind;
+	uint16_t instance;
+};
+
+struct region_table {
+	struct region_header header;
+	struct layout_region regions[];
+};
 
 struct index_save_data {
 	uint64_t timestamp; /* ms since epoch... */
@@ -257,6 +288,74 @@ int uds_compute_index_size(const struct uds_parameters *parameters,
 
 	*index_size = sizes.total_size;
 	return UDS_SUCCESS;
+}
+
+/**
+ * Create NONCE_INFO_SIZE (32) bytes of unique data for generating a
+ * nonce, using the current time and a pseudorandom number.
+ *
+ * @param buffer        Where to put the data
+ **/
+static void create_unique_nonce_data(byte *buffer)
+{
+	ktime_t now = current_time_ns(CLOCK_REALTIME);
+	uint32_t rand = random_in_range(1, (1 << 30) - 1);
+	size_t offset = 0;
+
+	/*
+	 * Fill NONCE_INFO_SIZE bytes with copies of the time and a
+	 * pseudorandom number.
+	 */
+	memcpy(buffer + offset, &now, sizeof(now));
+	offset += sizeof(now);
+	memcpy(buffer + offset, &rand, sizeof(rand));
+	offset += sizeof(rand);
+	while (offset < NONCE_INFO_SIZE) {
+		size_t len = min(NONCE_INFO_SIZE - offset, offset);
+
+		memcpy(buffer + offset, buffer, len);
+		offset += len;
+	}
+}
+
+static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
+{
+	uint32_t seed = start ^ (start >> 27);
+	byte hash_buffer[16];
+
+	murmurhash3_128(data, len, seed, hash_buffer);
+	return get_unaligned_le64(hash_buffer + 4);
+}
+
+/**
+ * Generate a primary nonce, using the specified data.
+ *
+ * @param data          Some arbitrary information.
+ * @param len           The length of the information.
+ *
+ * @return a number which will be fairly unique
+ **/
+static uint64_t generate_primary_nonce(const void *data, size_t len)
+{
+	return hash_stuff(0xa1b1e0fc, data, len);
+}
+
+/**
+ * Deterministically generate a secondary nonce based on an existing
+ * nonce and some arbitrary data. Effectively hashes the nonce and
+ * the data to produce a new nonce which is deterministic.
+ *
+ * @param nonce         An existing nonce which is well known.
+ * @param data          Some data related to the creation of this nonce.
+ * @param len           The length of the data.
+ *
+ * @return a number which will be fairly unique and depend solely on
+ *      the nonce and the data.
+ **/
+static uint64_t
+generate_secondary_nonce(uint64_t nonce, const void *data, size_t len)
+{
+	return hash_stuff(nonce + 1, data, len);
 }
 
 static int __must_check

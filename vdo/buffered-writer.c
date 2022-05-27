@@ -27,100 +27,119 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 
-
 struct buffered_writer {
 	/* IO factory owning the block device */
-	struct io_factory *bw_factory;
+	struct io_factory *factory;
 	/* The dm_bufio_client to write to */
-	struct dm_bufio_client *bw_client;
+	struct dm_bufio_client *client;
 	/* The current dm_buffer */
-	struct dm_buffer *bw_buffer;
+	struct dm_buffer *buffer;
 	/* The number of blocks that can be written to */
-	sector_t bw_limit;
+	sector_t limit;
 	/* Number of the current block */
-	sector_t bw_block_number;
+	sector_t block_number;
 	/* Start of the buffer */
-	byte *bw_start;
+	byte *start;
 	/* End of the data written to the buffer */
-	byte *bw_pointer;
+	byte *end;
 	/* Error code */
-	int bw_error;
+	int error;
 };
 
-static INLINE size_t space_used_in_buffer(struct buffered_writer *bw)
+static INLINE size_t space_used_in_buffer(struct buffered_writer *writer)
 {
-	return bw->bw_pointer - bw->bw_start;
+	return writer->end - writer->start;
 }
 
 static
-size_t space_remaining_in_write_buffer(struct buffered_writer *bw)
+size_t space_remaining_in_write_buffer(struct buffered_writer *writer)
 {
-	return UDS_BLOCK_SIZE - space_used_in_buffer(bw);
+	return UDS_BLOCK_SIZE - space_used_in_buffer(writer);
 }
 
-int __must_check prepare_next_buffer(struct buffered_writer *bw)
+static int __must_check prepare_next_buffer(struct buffered_writer *writer)
 {
 	struct dm_buffer *buffer = NULL;
 	void *data;
 
-	if (bw->bw_block_number >= bw->bw_limit) {
-		bw->bw_error = UDS_OUT_OF_RANGE;
+	if (writer->block_number >= writer->limit) {
+		writer->error = UDS_OUT_OF_RANGE;
 		return UDS_OUT_OF_RANGE;
 	}
 
-	data = dm_bufio_new(bw->bw_client, bw->bw_block_number, &buffer);
+	data = dm_bufio_new(writer->client, writer->block_number, &buffer);
 	if (IS_ERR(data)) {
-		bw->bw_error = -PTR_ERR(data);
-		return bw->bw_error;
+		writer->error = -PTR_ERR(data);
+		return writer->error;
 	}
-	bw->bw_buffer = buffer;
-	bw->bw_start = data;
-	bw->bw_pointer = data;
+
+	writer->buffer = buffer;
+	writer->start = data;
+	writer->end = data;
 	return UDS_SUCCESS;
 }
 
-int flush_previous_buffer(struct buffered_writer *bw)
+static int flush_previous_buffer(struct buffered_writer *writer)
 {
-	if (bw->bw_buffer != NULL) {
-		if (bw->bw_error == UDS_SUCCESS) {
-			size_t avail = space_remaining_in_write_buffer(bw);
+	size_t available;
 
-			if (avail > 0) {
-				memset(bw->bw_pointer, 0, avail);
-			}
-			dm_bufio_mark_buffer_dirty(bw->bw_buffer);
-		}
-		dm_bufio_release(bw->bw_buffer);
-		bw->bw_buffer = NULL;
-		bw->bw_start = NULL;
-		bw->bw_pointer = NULL;
-		bw->bw_block_number++;
+	if (writer->buffer == NULL) {
+		return writer->error;
 	}
-	return bw->bw_error;
+
+	if (writer->error == UDS_SUCCESS) {
+		available = space_remaining_in_write_buffer(writer);
+
+		if (available > 0) {
+			memset(writer->end, 0, available);
+		}
+
+		dm_bufio_mark_buffer_dirty(writer->buffer);
+	}
+
+	dm_bufio_release(writer->buffer);
+	writer->buffer = NULL;
+	writer->start = NULL;
+	writer->end = NULL;
+	writer->block_number++;
+	return writer->error;
 }
 
+/*
+ * Make a new buffered writer.
+ *
+ * @param factory      The IO factory creating the buffered writer
+ * @param client       The dm_bufio_client to write to
+ * @param block_limit  The number of blocks that may be written to
+ * @param writer_ptr   The new buffered writer goes here
+ *
+ * @return UDS_SUCCESS or an error code
+ */
 int make_buffered_writer(struct io_factory *factory,
 			 struct dm_bufio_client *client,
 			 sector_t block_limit,
 			 struct buffered_writer **writer_ptr)
 {
+	int result;
 	struct buffered_writer *writer;
-	int result =
-		UDS_ALLOCATE(1, struct buffered_writer, "buffered writer",
-			     &writer);
+
+	result = UDS_ALLOCATE(1,
+			      struct buffered_writer,
+			      "buffered writer",
+			      &writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	*writer = (struct buffered_writer){
-		.bw_factory = factory,
-		.bw_client = client,
-		.bw_buffer = NULL,
-		.bw_limit = block_limit,
-		.bw_start = NULL,
-		.bw_pointer = NULL,
-		.bw_block_number = 0,
-		.bw_error = UDS_SUCCESS,
+	*writer = (struct buffered_writer) {
+		.factory = factory,
+		.client = client,
+		.buffer = NULL,
+		.limit = block_limit,
+		.start = NULL,
+		.end = NULL,
+		.block_number = 0,
+		.error = UDS_SUCCESS,
 	};
 
 	get_uds_io_factory(factory);
@@ -128,91 +147,96 @@ int make_buffered_writer(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
-void free_buffered_writer(struct buffered_writer *bw)
+void free_buffered_writer(struct buffered_writer *writer)
 {
 	int result;
 
-	if (bw == NULL) {
+	if (writer == NULL) {
 		return;
 	}
-	flush_previous_buffer(bw);
-	result = -dm_bufio_write_dirty_buffers(bw->bw_client);
+
+	flush_previous_buffer(writer);
+	result = -dm_bufio_write_dirty_buffers(writer->client);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result,
-				         "%s cannot sync storage", __func__);
+					 "%s: failed to sync storage",
+					 __func__);
 	}
-	dm_bufio_client_destroy(bw->bw_client);
-	put_uds_io_factory(bw->bw_factory);
-	UDS_FREE(bw);
+
+	dm_bufio_client_destroy(writer->client);
+	put_uds_io_factory(writer->factory);
+	UDS_FREE(writer);
 }
 
-int write_to_buffered_writer(struct buffered_writer *bw,
+/*
+ * Append data to the buffer, writing as needed. If a write error occurs, it
+ * is recorded and returned on every subsequent write attempt.
+ */
+int write_to_buffered_writer(struct buffered_writer *writer,
 			     const void *data,
 			     size_t len)
 {
 	const byte *dp = data;
 	int result = UDS_SUCCESS;
-	size_t avail, chunk;
+	size_t chunk;
 
-	if (bw->bw_error != UDS_SUCCESS) {
-		return bw->bw_error;
+	if (writer->error != UDS_SUCCESS) {
+		return writer->error;
 	}
 
 	while ((len > 0) && (result == UDS_SUCCESS)) {
-		if (bw->bw_buffer == NULL) {
-			result = prepare_next_buffer(bw);
+		if (writer->buffer == NULL) {
+			result = prepare_next_buffer(writer);
 			continue;
 		}
 
-		avail = space_remaining_in_write_buffer(bw);
-		chunk = min(len, avail);
-		memcpy(bw->bw_pointer, dp, chunk);
+		chunk = min(len, space_remaining_in_write_buffer(writer));
+		memcpy(writer->end, dp, chunk);
 		len -= chunk;
 		dp += chunk;
-		bw->bw_pointer += chunk;
+		writer->end += chunk;
 
-		if (space_remaining_in_write_buffer(bw) == 0) {
-			result = flush_buffered_writer(bw);
+		if (space_remaining_in_write_buffer(writer) == 0) {
+			result = flush_buffered_writer(writer);
 		}
 	}
 
 	return result;
 }
 
-int write_zeros_to_buffered_writer(struct buffered_writer *bw, size_t len)
+int write_zeros_to_buffered_writer(struct buffered_writer *writer, size_t len)
 {
 	int result = UDS_SUCCESS;
-	size_t avail, chunk;
+	size_t chunk;
 
-	if (bw->bw_error != UDS_SUCCESS) {
-		return bw->bw_error;
+	if (writer->error != UDS_SUCCESS) {
+		return writer->error;
 	}
 
 	while ((len > 0) && (result == UDS_SUCCESS)) {
-		if (bw->bw_buffer == NULL) {
-			result = prepare_next_buffer(bw);
+		if (writer->buffer == NULL) {
+			result = prepare_next_buffer(writer);
 			continue;
 		}
 
-		avail = space_remaining_in_write_buffer(bw);
-		chunk = min(len, avail);
-		memset(bw->bw_pointer, 0, chunk);
+		chunk = min(len, space_remaining_in_write_buffer(writer));
+		memset(writer->end, 0, chunk);
 		len -= chunk;
-		bw->bw_pointer += chunk;
+		writer->end += chunk;
 
-		if (space_remaining_in_write_buffer(bw) == 0) {
-			result = flush_buffered_writer(bw);
+		if (space_remaining_in_write_buffer(writer) == 0) {
+			result = flush_buffered_writer(writer);
 		}
 	}
 
 	return result;
 }
 
-int flush_buffered_writer(struct buffered_writer *bw)
+int flush_buffered_writer(struct buffered_writer *writer)
 {
-	if (bw->bw_error != UDS_SUCCESS) {
-		return bw->bw_error;
+	if (writer->error != UDS_SUCCESS) {
+		return writer->error;
 	}
 
-	return flush_previous_buffer(bw);
+	return flush_previous_buffer(writer);
 }

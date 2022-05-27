@@ -28,7 +28,10 @@
 #include "types.h"
 
 /**
- * Compare blocks of memory for equality.
+ * memory_equal() - Compare blocks of memory for equality.
+ * @pointer_argument1: First data block.
+ * @pointer_argument2: Second data block.
+ * @length: Length of the data block.
  *
  * This assumes the blocks are likely to be large; it's not well
  * optimized for comparing just a few bytes.  This is desirable
@@ -36,12 +39,8 @@
  * optimized for large blocks, and the performance penalty turns out
  * to be significant if you're doing lots of 4KB comparisons.
  *
- * @param pointer_argument1  first data block
- * @param pointer_argument2  second data block
- * @param length             length of the data block
- *
- * @return true iff the two blocks are equal
- **/
+ * Return: true iff the two blocks are equal.
+ */
 bool
 memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 {
@@ -74,12 +73,11 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 }
 
 /**
- * Check whether a data block is all zeros.
+ * is_zero_block() - Check whether a data block is all zeros.
+ * @block: The block to check.
  *
- * @param block  The block to check
- *
- * @return true is all zeroes, false otherwise
- **/
+ * Return: true is all zeroes, false otherwise.
+ */
 bool is_zero_block(char *block)
 {
 	unsigned int word_count = VDO_BLOCK_SIZE / sizeof(uint64_t);
@@ -125,8 +123,8 @@ bool is_zero_block(char *block)
 	word_count %= 8;
 
 	/*
-	 * Unroll to process 8 bytes at a time. 
-	 * (Is this still worthwhile?) 
+	 * Unroll to process 8 bytes at a time.
+	 * (Is this still worthwhile?)
 	 */
 	while (word_count-- > 0) {
 		if (get_unaligned((u64 *) block) != 0) {

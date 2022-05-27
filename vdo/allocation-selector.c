@@ -29,14 +29,13 @@ enum {
 };
 
 /**
- * Make a new allocation selector.
+ * vdo_make_allocation_selector() - Make a new allocation selector.
+ * @physical_zone_count [in] The number of physical zones.
+ * @thread_id [in] The ID of the thread using this selector.
+ * @selector_ptr [out] A pointer to receive the new selector.
  *
- * @param [in]  physical_zone_count  The number of physical zones
- * @param [in]  thread_id            The ID of the thread using this selector
- * @param [out] selector_ptr         A pointer to receive the new selector
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_allocation_selector(zone_count_t physical_zone_count,
 				 thread_id_t thread_id,
 				 struct allocation_selector **selector_ptr)
@@ -60,12 +59,12 @@ int vdo_make_allocation_selector(zone_count_t physical_zone_count,
 }
 
 /**
- * Get number of the physical zone from which to allocate next.
+ * vdo_get_next_allocation_zone() - Get number of the physical zone from
+ *                                  which to allocate next.
+ * @selector: The selector to query.
  *
- * @param selector  The selector to query
- *
- * @return The number of the physical zone from which to allocate
- **/
+ * Return: The number of the physical zone from which to allocate.
+ */
 zone_count_t vdo_get_next_allocation_zone(struct allocation_selector *selector)
 {
 	if (selector->last_physical_zone > 0) {

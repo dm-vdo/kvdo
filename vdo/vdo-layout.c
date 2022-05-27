@@ -404,7 +404,6 @@ static inline size_t get_encoded_size(const struct fixed_layout *layout)
 	       (sizeof(struct partition_3_0) * layout->num_partitions);
 }
 
-/**********************************************************************/
 size_t vdo_get_fixed_layout_encoded_size(const struct fixed_layout *layout)
 {
 	return VDO_ENCODED_HEADER_SIZE + get_encoded_size(layout);

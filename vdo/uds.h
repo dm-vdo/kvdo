@@ -143,8 +143,6 @@ struct uds_chunk_data {
  **/
 struct uds_index_session;
 
-typedef uint64_t uds_nonce_t;
-
 /**
  * The data used to configure a new index.
  **/
@@ -160,7 +158,7 @@ struct uds_parameters {
 	/** Whether the index should include sparse chapters */
 	bool sparse;
 	/** A 64-bit nonce to validate the index */
-	uds_nonce_t nonce;
+	uint64_t nonce;
 	/** The number of threads used to process index requests */
 	unsigned int zone_count;
 	/** The number of threads used to read volume pages */

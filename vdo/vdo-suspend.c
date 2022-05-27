@@ -171,6 +171,14 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_FLUSHES:
+		/*
+		 * Now that we know there are no active data_vios, we can
+		 * suspend the index. We can do this from any thread, so here
+		 * is as good a place as any.
+		 */
+		vdo_suspend_dedupe_index(vdo->dedupe_index,
+					 (vdo->suspend_type
+					  == VDO_ADMIN_STATE_SAVING));
 		vdo_drain_flusher(vdo->flusher,
 				  vdo_reset_admin_sub_task(completion));
 		return;
@@ -230,9 +238,6 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_END:
-		vdo_suspend_dedupe_index(vdo->dedupe_index,
-					 (vdo->suspend_type
-					  == VDO_ADMIN_STATE_SAVING));
 		break;
 
 	default:

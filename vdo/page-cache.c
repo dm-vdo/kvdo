@@ -22,7 +22,6 @@
 
 #include <linux/atomic.h>
 
-#include "cache-counters.h"
 #include "chapter-index.h"
 #include "compiler.h"
 #include "config.h"
@@ -84,10 +83,10 @@ static void clear_cache_page(struct page_cache *cache,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int __must_check get_page_no_stats(struct page_cache *cache,
-					  unsigned int physical_page,
-					  int *queue_index,
-					  struct cached_page **page_ptr)
+static int __must_check get_page_and_index(struct page_cache *cache,
+					   unsigned int physical_page,
+					   int *queue_index,
+					   struct cached_page **page_ptr)
 {
 	uint16_t index_value, index;
 	bool queued;
@@ -129,9 +128,8 @@ static int __must_check get_page_no_stats(struct page_cache *cache,
 	} else {
 		*page_ptr = NULL;
 	}
-	if (queue_index != NULL) {
-		*queue_index = queued ? index : -1;
-	}
+
+	*queue_index = queued ? index : -1;
 	return UDS_SUCCESS;
 }
 
@@ -177,40 +175,26 @@ static void wait_for_pending_searches(struct page_cache *cache,
 /**
  * Invalidate a cache page
  *
- * @param cache   the cache
- * @param page    the cached page
- * @param reason  the reason for invalidation, for stats
+ * @param cache  the cache
+ * @param page   the cached page
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int __must_check
-invalidate_page_in_cache(struct page_cache *cache,
-			 struct cached_page *page,
-			 enum invalidation_reason reason)
+static int __must_check invalidate_page_in_cache(struct page_cache *cache,
+						 struct cached_page *page)
 {
+	int result;
+
 	/* We hold the readThreadsMutex. */
 	if (page == NULL) {
 		return UDS_SUCCESS;
 	}
 
 	if (page->cp_physical_page != cache->num_index_entries) {
-		switch (reason) {
-		case INVALIDATION_EVICT:
-			cache->counters.evictions++;
-			break;
-		case INVALIDATION_EXPIRE:
-			cache->counters.expirations++;
-			break;
-		default:
-			break;
-		}
+		result = assert_page_in_cache(cache, page);
 
-		if (reason != INVALIDATION_ERROR) {
-			int result = assert_page_in_cache(cache, page);
-
-			if (result != UDS_SUCCESS) {
-				return result;
-			}
+		if (result != UDS_SUCCESS) {
+			return result;
 		}
 
 		WRITE_ONCE(cache->index[page->cp_physical_page],
@@ -223,14 +207,13 @@ invalidate_page_in_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
+static
 int find_invalidate_and_make_least_recent(struct page_cache *cache,
 					  unsigned int physical_page,
-					  struct queued_read *read_queue,
-					  enum invalidation_reason reason,
 					  bool must_find)
 {
 	struct cached_page *page;
-	int queued_index = -1;
+	int queue_index = -1;
 	int result;
 
 	/* We hold the readThreadsMutex. */
@@ -238,10 +221,7 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 		return UDS_SUCCESS;
 	}
 
-	result = get_page_no_stats(cache,
-				   physical_page,
-				   ((read_queue != NULL) ? &queued_index : NULL),
-				   &page);
+	result = get_page_and_index(cache, physical_page, &queue_index, &page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -252,15 +232,15 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 			return result;
 		}
 
-		if (queued_index > -1) {
+		if (queue_index > -1) {
 			uds_log_debug("setting pending read to invalid");
-			read_queue[queued_index].invalid = true;
+			cache->read_queue[queue_index].invalid = true;
 		}
 		return UDS_SUCCESS;
 	}
 
 	/* Invalidate the page and unmap it from the cache. */
-	result = invalidate_page_in_cache(cache, page, reason);
+	result = invalidate_page_in_cache(cache, page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -421,8 +401,7 @@ void invalidate_page_cache(struct page_cache *cache)
 
 int invalidate_page_cache_for_chapter(struct page_cache *cache,
 				      unsigned int chapter,
-				      unsigned int pages_per_chapter,
-				      enum invalidation_reason reason)
+				      unsigned int pages_per_chapter)
 {
 	int result;
 	unsigned int i;
@@ -434,12 +413,9 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 	for (i = 0; i < pages_per_chapter; i++) {
 		unsigned int physical_page =
 			1 + (pages_per_chapter * chapter) + i;
-		result =
-		  find_invalidate_and_make_least_recent(cache,
-							physical_page,
-							cache->read_queue,
-							reason,
-							false);
+		result = find_invalidate_and_make_least_recent(cache,
+							       physical_page,
+							       false);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -509,39 +485,16 @@ static int __must_check get_least_recent_page(struct page_cache *cache,
 
 int get_page_from_cache(struct page_cache *cache,
 			unsigned int physical_page,
-			int probe_type,
-			struct cached_page **page_ptr)
+			struct cached_page **page)
 {
 	/*
 	 * ASSERTION: We are in a zone thread.
 	 * ASSERTION: We holding a search_pending_counter or the
 	 * readThreadsMutex.
 	 */
-	enum cache_result_kind cache_result;
-	struct cached_page *page;
-	int result, queue_index = -1;
+	int queue_index = -1;
 
-	if (cache == NULL) {
-		return uds_log_warning_strerror(UDS_BAD_STATE,
-						"cannot get page with NULL cache");
-	}
-
-	/* Get the cache page from the index */
-	result = get_page_no_stats(cache, physical_page, &queue_index, &page);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	cache_result = ((page != NULL) ?  CACHE_RESULT_HIT :
-			 ((queue_index != -1) ?
-			  CACHE_RESULT_QUEUED :
-			  CACHE_RESULT_MISS));
-	increment_cache_counter(&cache->counters, probe_type, cache_result);
-
-	if (page_ptr != NULL) {
-		*page_ptr = page;
-	}
-	return UDS_SUCCESS;
+	return get_page_and_index(cache, physical_page, &queue_index, page);
 }
 
 int enqueue_read(struct page_cache *cache,
@@ -686,10 +639,9 @@ int select_victim_in_cache(struct page_cache *cache,
 
 	/*
 	 * If the page is currently being pointed to by the page map, clear
-	 * it from the page map, and update cache stats
+	 * it from the page map.
 	 */
 	if (page->cp_physical_page != cache->num_index_entries) {
-		cache->counters.evictions++;
 		WRITE_ONCE(cache->index[page->cp_physical_page],
 			   cache->num_cache_entries);
 		wait_for_pending_searches(cache, page->cp_physical_page);
@@ -746,7 +698,7 @@ int put_page_in_cache(struct page_cache *cache,
 	 * We hold the readThreadsMutex, but we must have a write memory
 	 * barrier before making the cached_page available to the readers
 	 * that do not hold the mutex.  The corresponding read memory
-	 * barrier is in get_page_no_stats.
+	 * barrier is in get_page_and_index().
 	 */
 	smp_wmb();
 
@@ -792,4 +744,3 @@ size_t get_page_cache_size(struct page_cache *cache)
 	}
 	return sizeof(struct delta_index_page) * cache->num_cache_entries;
 }
-

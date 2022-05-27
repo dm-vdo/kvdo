@@ -861,9 +861,11 @@ void vdo_free_device_config(struct device_config *config)
 	UDS_FREE(config->parent_device_name);
 	UDS_FREE(config->original_string);
 
-	/* Reduce the chance a use-after-free (as in BZ 1669960) happens to work. */
+	/*
+         * Reduce the chance a use-after-free (as in BZ 1669960) happens to
+	 * work.
+	 */
 	memset(config, 0, sizeof(*config));
-
 	UDS_FREE(config);
 }
 

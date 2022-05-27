@@ -21,7 +21,6 @@
 #ifndef SPARSE_CACHE_H
 #define SPARSE_CACHE_H
 
-#include "cache-counters.h"
 #include "geometry.h"
 #include "index-zone.h"
 #include "type-defs.h"

@@ -21,7 +21,6 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
-#include "cache-counters.h"
 #include "common.h"
 #include "compiler.h"
 #include "uds-threads.h"
@@ -115,23 +114,4 @@ static INLINE void set_request_location(struct uds_request *request,
 		    (new_location == UDS_LOCATION_IN_SPARSE));
 }
 
-/**
- * Compute the cache_probe_type value reflecting the request and page type.
- *
- * @param request      The request being processed, or NULL
- * @param is_index_page  Whether the cache probe will be for an index page
- *
- * @return the cache probe type enumeration
- **/
-static INLINE enum cache_probe_type
-cache_probe_type(struct uds_request *request, bool is_index_page)
-{
-	if ((request != NULL) && request->requeued) {
-		return is_index_page ? CACHE_PROBE_INDEX_RETRY :
-				       CACHE_PROBE_RECORD_RETRY;
-	} else {
-		return is_index_page ? CACHE_PROBE_INDEX_FIRST :
-				       CACHE_PROBE_RECORD_FIRST;
-	}
-}
 #endif /* REQUEST_H */

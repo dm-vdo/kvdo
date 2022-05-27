@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
  *
@@ -16,7 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/data-vio-pool.c#5 $
  */
 
 #include "data-vio-pool.h"
@@ -116,12 +116,12 @@ struct limiter {
 	/* The number of waiters to wake */
 	vio_count_t wake_count;
 	/*
-         * The list of waiting bios which are known to
-         * process_release_callback()
+	 * The list of waiting bios which are known to
+	 * process_release_callback()
 	 */
 	struct bio_list waiters;
 	/*
-         * The list of waiting bios which are not yet known to
+	 * The list of waiting bios which are not yet known to
 	 * process_release_callback()
 	 */
 	struct bio_list new_waiters;
@@ -151,8 +151,8 @@ struct data_vio_pool {
 	/* The limiter controlling data_vios for discard */
 	struct limiter discard_limiter;
 	/*
-         * The list of bios which have discard permits but still need a
-         * data_vio
+	 * The list of bios which have discard permits but still need a
+	 * data_vio
 	 */
 	struct bio_list permitted_discards;
 	/* The list of available data_vios */
@@ -217,13 +217,13 @@ static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 	/*
 	 * FIXME: We save the bio out of the vio so that we don't forget it.
 	 * Maybe we should just not zero that field somehow.
-         */
+	 */
 	struct bio *bio = vio->bio;
 
 	/*
 	 * Zero out the fields which don't need to be preserved (i.e. which
 	 * are not pointers to separately allocated objects).
-         */
+	 */
 	memset(data_vio, 0, offsetof(struct data_vio, dedupe_context));
 	memset(&data_vio->compression, 0, offsetof(struct compression_state,
 						   block));
@@ -454,11 +454,11 @@ static void process_release_callback(struct vdo_completion *completion)
 	spin_lock(&pool->lock);
 	/*
 	 * There is a race where waiters could be added while we are in the
-         * unlocked section above. Those waiters could not see the resources we
-         * are now about to release, so we assign those resources now as we
-         * have no guarantee of being rescheduled. This is handled in
-         * update_limiter().
-         */
+	 * unlocked section above. Those waiters could not see the resources we
+	 * are now about to release, so we assign those resources now as we
+	 * have no guarantee of being rescheduled. This is handled in
+	 * update_limiter().
+	 */
 	update_limiter(&pool->discard_limiter);
 	list_splice(&returned, &pool->available);
 	update_limiter(&pool->limiter);
@@ -592,9 +592,9 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 	}
 
 	/*
-         * Pairs with the barrier in process_release_callback(). Possibly not
+	 * Pairs with the barrier in process_release_callback(). Possibly not
 	 * needed since it caters to an enqueue vs. free race.
-         */
+	 */
 	smp_mb();
 	BUG_ON(atomic_read(&pool->processing));
 
@@ -767,7 +767,7 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 	 * In order that syslog can empty its buffer, sleep after 35 elements
 	 * for 4ms (till the second clock tick). These numbers chosen in
 	 * October 2012 running on an lfarm.
-         */
+	 */
 	enum { ELEMENTS_PER_BATCH = 35 };
 	enum { SLEEP_FOR_SYSLOG = 4000 };
 

@@ -180,7 +180,6 @@ thread_id_t vdo_get_flusher_thread_id(struct flusher *flusher)
 	return flusher->thread_id;
 }
 
-/**********************************************************************/
 static void notify_flush(struct flusher *flusher);
 static void vdo_complete_flush(struct vdo_flush *flush);
 

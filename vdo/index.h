@@ -21,13 +21,12 @@
 #ifndef INDEX_H
 #define INDEX_H
 
-#include "chapter-writer.h"
 #include "index-layout.h"
 #include "index-session.h"
 #include "index-zone.h"
-#include "volume-index-ops.h"
 #include "request.h"
 #include "volume.h"
+#include "volume-index-ops.h"
 
 
 /**
@@ -204,14 +203,39 @@ struct uds_request_queue *select_index_queue(struct uds_index *index,
 					     enum request_stage next_stage);
 
 /**
+ * Asychronously close and write a chapter by passing it to the writer
+ * thread. Writing won't start until all zones have submitted a chapter.
+ *
+ * @param index        the index
+ * @param zone_number  the number of the zone submitting a chapter
+ * @param chapter      the chapter to write
+ *
+ * @return The number of zones which have submitted the current chapter
+ **/
+unsigned int __must_check
+start_closing_chapter(struct uds_index *index,
+		      unsigned int zone_number,
+		      struct open_chapter_zone *chapter);
+
+/**
+ * Wait for the chapter writer thread to finish closing the chapter previous
+ * to the one specified.
+ *
+ * @param index                   the index
+ * @param current_chapter_number  the current chapter number
+ *
+ * @return UDS_SUCCESS or an error code from the most recent write
+ *         request
+ **/
+int __must_check finish_previous_chapter(struct uds_index *index,
+					 uint64_t current_chapter_number);
+
+/**
  * Wait for the index to finish all operations that access a local storage
  * device.
  *
  * @param index  The index
  **/
-static INLINE void wait_for_idle_index(struct uds_index *index)
-{
-	wait_for_idle_chapter_writer(index->chapter_writer);
-}
+void wait_for_idle_index(struct uds_index *index);
 
 #endif /* INDEX_H */

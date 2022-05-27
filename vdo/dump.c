@@ -26,6 +26,7 @@
 #include "type-defs.h"
 
 #include "constants.h"
+#include "data-vio.h"
 #include "dedupe-index.h"
 #include "io-submitter.h"
 #include "kernel-types.h"

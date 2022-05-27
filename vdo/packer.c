@@ -321,7 +321,6 @@ static void finish_compressed_write(struct vdo_completion *completion)
 	release_compressed_write_waiter(agent, &agent->allocation);
 }
 
-/**********************************************************************/
 static void handle_compressed_write_error(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);

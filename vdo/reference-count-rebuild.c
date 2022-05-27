@@ -338,7 +338,6 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static void fetch_page(struct rebuild_completion *rebuild,
 		       struct vdo_completion *completion);
 

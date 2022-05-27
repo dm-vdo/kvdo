@@ -478,7 +478,7 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	if (info1->emptiness != info2->emptiness) {
 		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
 	}
-	return ((info1->slab_number < info2->slab_number) ? 1 : -1);
+	return (info1->slab_number < info2->slab_number) ? 1 : -1;
 }
 
 /*
@@ -596,7 +596,7 @@ static void copy_callback(int read_err, unsigned long write_err, void *context)
 {
 	struct block_allocator *allocator = context;
 	int result = (((read_err == 0) && (write_err == 0))
-		      ? VDO_SUCCESS : -EIO );
+		      ? VDO_SUCCESS : -EIO);
 
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(&allocator->completion, result);
@@ -607,8 +607,8 @@ static void copy_callback(int read_err, unsigned long write_err, void *context)
 }
 
 /**
- * Erase the next slab journal.
- **/
+ * erase_next_slab_journal() - Erase the next slab journal.
+ */
 static void erase_next_slab_journal(struct block_allocator *allocator)
 {
 	struct vdo_slab *slab;
