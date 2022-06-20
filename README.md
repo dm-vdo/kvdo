@@ -63,7 +63,7 @@ required.
 Version | Intended Enterprise Linux Release | Supported With Modifications
 ------- | --------------------------------- | -------------------------------
 6.1.x.x | EL7 (3.10.0-*.el7) |
-6.2.x.x | EL8 (4.18.0-*.el8) | Fedora 28, Fedora 29, Fedora 30, Rawhide
+6.2.x.x | EL8 (4.18.0-*.el8) | Fedora 35, Fedora 36, Rawhide
 * Pre-built versions with the required modifications for the referenced Fedora
   releases can be found
   [here](https://copr.fedorainfracloud.org/coprs/rhawalsh/dm-vdo) and can be
