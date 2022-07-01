@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 /*
@@ -89,11 +74,11 @@ static void finish_vdo_request_queue(void *ptr)
 #define MODULE_NAME "dm-vdo"
 #endif  /* MODULE */
 
-static const struct vdo_work_queue_type request_queue_type = {
+static const struct vdo_work_queue_type default_queue_type = {
 	.start = start_vdo_request_queue,
 	.finish = finish_vdo_request_queue,
-	.max_priority = VDO_REQ_Q_MAX_PRIORITY,
-	.default_priority = VDO_REQ_Q_COMPLETION_PRIORITY,
+	.max_priority = VDO_DEFAULT_Q_MAX_PRIORITY,
+	.default_priority = VDO_DEFAULT_Q_COMPLETION_PRIORITY,
 };
 
 static const struct vdo_work_queue_type bio_ack_q_type = {
@@ -111,25 +96,23 @@ static const struct vdo_work_queue_type cpu_q_type = {
 };
 
 /**
- * Construct a single vdo work_queue and its associated thread (or threads for
- * round-robin queues). Each "thread" constructed by this method is represented
- * by a unique thread id in the thread config, and completions can be enqueued
- * to the queue and run on the threads comprising this entity.
+ * vdo_make_thread() - Construct a single vdo work_queue and its associated
+ *                     thread (or threads for round-robin queues).
+ * @vdo: The vdo which owns the thread.
+ * @thread_id: The id of the thread to create (as determined by the
+ *             thread_config).
+ * @type: The description of the work queue for this thread.
+ * @queue_count: The number of actual threads/queues contained in the "thread".
+ * @contexts: An array of queue_count contexts, one for each individual queue;
+ *            may be NULL.
  *
- * @param vdo                 The vdo which owns the thread
- * @param thread_name_prefix  The per-device prefix for the thread name
- * @param thread_id           The id of the thread to create (as determined by
- *                            the thread_config)
- * @param type                The description of the work queue for this thread
- * @param queue_count         The number of actual threads/queues contained in
- *                            the "thread"
- * @param contexts            An array of queue_count contexts one for each
- *                            individual queue, may be NULL &
+ * Each "thread" constructed by this method is represented by a unique thread
+ * id in the thread config, and completions can be enqueued to the queue and
+ * run on the threads comprising this entity.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_thread(struct vdo *vdo,
-		    const char *thread_name_prefix,
 		    thread_id_t thread_id,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int queue_count,
@@ -137,6 +120,10 @@ int vdo_make_thread(struct vdo *vdo,
 {
 	struct vdo_thread *thread = &vdo->threads[thread_id];
 	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
+
+	if (type == NULL) {
+		type = &default_queue_type;
+	}
 
 	if (thread->queue != NULL) {
 		return ASSERT(vdo_work_queue_type_is(thread->queue, type),
@@ -150,7 +137,7 @@ int vdo_make_thread(struct vdo *vdo,
 			    thread_id,
 			    queue_name,
 			    sizeof(queue_name));
-	return make_work_queue(thread_name_prefix,
+	return make_work_queue(vdo->thread_name_prefix,
 			       queue_name,
 			       thread,
 			       type,
@@ -160,111 +147,48 @@ int vdo_make_thread(struct vdo *vdo,
 }
 
 /**
- * Make a set of request threads.
- *
- *
- * @param vdo                 The vdo to be initialized
- * @param thread_name_prefix  The per-device prefix to use in thread
- * @param count               The number of threads to make
- * @param ids                 The ids of the threads to make
- *
- * @return VDO_SUCCESS or an error code
+ * initialize_vdo() - Do the portion of initializing a vdo which will clean
+ *                    up after itself on error.
+ * @vdo: The vdo being initialized
+ * @config: The configuration of the vdo
+ * @instance: The instance number of the vdo
+ * @reason: The buffer to hold the failure reason on error
  **/
-static int __must_check
-vdo_make_request_thread_group(struct vdo *vdo,
-			      const char *thread_name_prefix,
-			      thread_count_t count,
-			      thread_id_t ids[])
-{
-	thread_count_t thread;
-	int result;
-
-	for (thread = 0; thread < count; thread++) {
-		result = vdo_make_thread(vdo,
-					 thread_name_prefix,
-					 ids[thread],
-					 &request_queue_type,
-					 1,
-					 NULL);
-		if (result != VDO_SUCCESS) {
-			return result;
-		}
-	}
-
-	return VDO_SUCCESS;
-}
-
-
-/**
- * Make base threads.
- *
- * @param [in]  vdo                 The vdo to be initialized
- * @param [in]  thread_name_prefix  The per-device prefix to use in thread
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int __must_check
-vdo_make_request_threads(struct vdo *vdo, const char *thread_name_prefix)
+static int initialize_vdo(struct vdo *vdo,
+			  struct device_config *config,
+			  unsigned int instance,
+			  char **reason)
 {
 	int result;
-	const struct thread_config *thread_config = vdo->thread_config;
-	thread_id_t singletons[] = {
-		thread_config->admin_thread,
-		thread_config->journal_thread,
-		thread_config->packer_thread,
-	};
+	zone_count_t i;
 
-	result = vdo_make_request_thread_group(vdo,
-					       thread_name_prefix,
-					       3,
-					       singletons);
+	vdo->device_config = config;
+	vdo->starting_sector_offset = config->owning_target->begin;
+	vdo->instance = instance;
+	vdo->allocations_allowed = true;
+	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
+	INIT_LIST_HEAD(&vdo->device_config_list);
+	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
+	mutex_init(&vdo->stats_mutex);
+	result = vdo_read_geometry_block(vdo_get_backing_device(vdo),
+					 &vdo->geometry);
 	if (result != VDO_SUCCESS) {
+		*reason = "Could not load geometry block";
 		return result;
 	}
 
-	result = vdo_make_request_thread_group(vdo,
-					       thread_name_prefix,
-					       thread_config->logical_zone_count,
-					       thread_config->logical_threads);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = vdo_make_request_thread_group(vdo,
-					       thread_name_prefix,
-					       thread_config->physical_zone_count,
-					       thread_config->physical_threads);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return vdo_make_request_thread_group(vdo,
-					     thread_name_prefix,
-					     thread_config->hash_zone_count,
-					     thread_config->hash_zone_threads);
-}
-
-/**
- * Allocate a vdos threads, queues, and other structures which scale with the
- * thread config.
- */
-static int allocate_vdo_threads(struct vdo *vdo, char **reason)
-{
-	int i;
-	struct device_config *config = vdo->device_config;
-
-	int result = vdo_make_thread_config(config->thread_counts,
-					    &vdo->thread_config);
+	result = vdo_make_thread_config(config->thread_counts,
+					&vdo->thread_config);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot create thread configuration";
 		return result;
 	}
 
-	uds_log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+	uds_log_info("zones: %d logical, %d physical, %d hash; total threads: %d",
 		     config->thread_counts.logical_zones,
 		     config->thread_counts.physical_zones,
 		     config->thread_counts.hash_zones,
-		     vdo->thread_config->base_thread_count);
+		     vdo->thread_config->thread_count);
 
 	/* Compression context storage */
 	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
@@ -287,42 +211,9 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 		}
 	}
 
-	return VDO_SUCCESS;
-}
-
-static int vdo_initialize_internal(struct vdo *vdo,
-				   struct device_config *config,
-				   unsigned int instance,
-				   char **reason)
-{
-	int result;
-
-	vdo->device_config = config;
-	vdo->starting_sector_offset = config->owning_target->begin;
-	vdo->instance = instance;
-	vdo->allocations_allowed = true;
-	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
-	INIT_LIST_HEAD(&vdo->device_config_list);
-	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
-	mutex_init(&vdo->stats_mutex);
-	result = vdo_read_geometry_block(vdo_get_backing_device(vdo),
-					 &vdo->geometry);
-	if (result != VDO_SUCCESS) {
-		*reason = "Could not load geometry block";
-		vdo_destroy(vdo);
-		return result;
-	}
-
-	result = allocate_vdo_threads(vdo, reason);
-	if (result != VDO_SUCCESS) {
-		vdo_destroy(vdo);
-		return result;
-	}
-
 	result = vdo_register(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot add VDO to device registry";
-		vdo_destroy(vdo);
 		return result;
 	}
 
@@ -332,15 +223,14 @@ static int vdo_initialize_internal(struct vdo *vdo,
 }
 
 /**
- * Allocate and initialize a vdo.
+ * vdo_make() - Allocate and initialize a vdo.
+ * @instance: Device instantiation counter.
+ * @config: The device configuration.
+ * @reason: The reason for any failure during this call.
+ * @vdo_ptr: A pointer to hold the created vdo.
  *
- * @param instance   Device instantiation counter
- * @param config     The device configuration
- * @param reason     The reason for any failure during this call
- * @param vdo_ptr    A pointer to hold the created vdo
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make(unsigned int instance,
 	     struct device_config *config,
 	     char **reason,
@@ -348,7 +238,6 @@ int vdo_make(unsigned int instance,
 {
 	int result;
 	struct vdo *vdo;
-	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
 
 	/* VDO-3769 - Set a generic reason so we don't ever return garbage. */
 	*reason = "Unspecified error";
@@ -360,20 +249,21 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	result = vdo_initialize_internal(vdo, config, instance, reason);
+	result = initialize_vdo(vdo, config, instance, reason);
 	if (result != VDO_SUCCESS) {
+		vdo_destroy(vdo);
 		return result;
 	}
 
 	/* From here on, the caller will clean up if there is an error. */
 	*vdo_ptr = vdo;
 
-	snprintf(thread_name_prefix,
-		 sizeof(thread_name_prefix),
+	snprintf(vdo->thread_name_prefix,
+		 sizeof(vdo->thread_name_prefix),
 		 "%s%u",
 		 MODULE_NAME,
 		 instance);
-	BUG_ON(thread_name_prefix[0] == '\0');
+	BUG_ON(vdo->thread_name_prefix[0] == '\0');
 	result = UDS_ALLOCATE(vdo->thread_config->thread_count,
 			      struct vdo_thread,
 			      __func__,
@@ -383,15 +273,29 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	result = vdo_make_request_threads(vdo, thread_name_prefix);
+	result = vdo_make_thread(vdo,
+				 vdo->thread_config->admin_thread,
+				 &default_queue_type,
+				 1,
+				 NULL);
 	if (result != VDO_SUCCESS) {
-		*reason = "Cannot initialize request queues";
+		*reason = "Cannot make admin thread";
 		return result;
 	}
 
-	result = vdo_make_dedupe_index(&vdo->dedupe_index,
-				       vdo,
-				       thread_name_prefix);
+	result = vdo_make_flusher(vdo);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot make flusher zones";
+		return result;
+	}
+
+	result = vdo_make_packer(vdo, DEFAULT_PACKER_BINS, &vdo->packer);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot make packer zones";
+		return result;
+	}
+
+	result = vdo_make_dedupe_index(vdo, &vdo->dedupe_index);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		return result;
@@ -408,8 +312,7 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	result = vdo_make_io_submitter(thread_name_prefix,
-				       config->thread_counts.bio_threads,
+	result = vdo_make_io_submitter(config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
 				       get_data_vio_pool_request_limit(vdo->data_vio_pool),
 				       vdo,
@@ -421,7 +324,6 @@ int vdo_make(unsigned int instance,
 
 	if (vdo_uses_bio_ack_queue(vdo)) {
 		result = vdo_make_thread(vdo,
-					 thread_name_prefix,
 					 vdo->thread_config->bio_ack_thread,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
@@ -433,7 +335,6 @@ int vdo_make(unsigned int instance,
 	}
 
 	result = vdo_make_thread(vdo,
-				 thread_name_prefix,
 				 vdo->thread_config->cpu_thread,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
@@ -463,15 +364,12 @@ static void finish_vdo(struct vdo *vdo)
 }
 
 /**
- * Destroy a vdo instance.
- *
- * @param vdo  The vdo to destroy (may be NULL)
- **/
+ * vdo_destroy() - Destroy a vdo instance.
+ * @vdo: The vdo to destroy (may be NULL).
+ */
 void vdo_destroy(struct vdo *vdo)
 {
 	int i;
-	zone_count_t zone;
-	const struct thread_config *thread_config;
 
 	if (vdo == NULL) {
 		return;
@@ -480,7 +378,6 @@ void vdo_destroy(struct vdo *vdo)
 	/* A running VDO should never be destroyed without suspending first. */
 	BUG_ON(vdo_get_admin_state(vdo)->normal);
 
-	thread_config = vdo->thread_config;
 	vdo->allocations_allowed = true;
 
 	/*
@@ -505,27 +402,9 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_layout(UDS_FORGET(vdo->layout));
 	vdo_free_super_block(UDS_FORGET(vdo->super_block));
 	vdo_free_block_map(UDS_FORGET(vdo->block_map));
-
-	if (vdo->hash_zones != NULL) {
-		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-			vdo_free_hash_zone(UDS_FORGET(vdo->hash_zones[zone]));
-		}
-	}
-	UDS_FREE(vdo->hash_zones);
-	vdo->hash_zones = NULL;
-
+	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
+	vdo_free_physical_zones(UDS_FORGET(vdo->physical_zones));
 	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
-
-	if (vdo->physical_zones != NULL) {
-		for (zone = 0;
-		     zone < thread_config->physical_zone_count;
-		     zone++) {
-			vdo_destroy_physical_zone(&vdo->physical_zones[zone]);
-		}
-
-		UDS_FREE(UDS_FORGET(vdo->physical_zones));
-	}
-
 	vdo_free_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 
 	if (vdo->threads != NULL) {
@@ -562,10 +441,9 @@ void vdo_destroy(struct vdo *vdo)
 }
 
 /**
- * Signal that sysfs stats have been shut down.
- *
- * @param directory  The vdo stats directory
- **/
+ * pool_stats_release() - Signal that sysfs stats have been shut down.
+ * @directory: The vdo stats directory.
+ */
 static void pool_stats_release(struct kobject *directory)
 {
 	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
@@ -581,12 +459,12 @@ static struct kobj_type stats_directory_type = {
 };
 
 /**
- * Add the stats directory to the vdo sysfs directory.
+ * vdo_add_sysfs_stats_dir() - Add the stats directory to the vdo sysfs
+ *                             directory.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 {
 	int result;
@@ -603,17 +481,18 @@ int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 }
 
 /**
- * Prepare to modify a vdo. This method is called during preresume to prepare
- * for modifications which could result if the table has changed.
+ * vdo_prepare_to_modify() - Prepare to modify a vdo.
+ * @vdo: The vdo being resumed.
+ * @config: The new device configuration.
+ * @may_grow: Set to true if growing the logical and physical size of
+ *            the vdo is currently permitted.
+ * @error_ptr: A pointer to store the reason for any failure.
  *
- * @param vdo        The vdo being resumed
- * @param config     The new device configuration
- * @param may_grow   Set to true if growing the logical and physical size of
- *                   the vdo is currently permitted
- * @param error_ptr  A pointer to store the reason for any failure
+ * This method is called during preresume to prepare for modifications which
+ * could result if the table has changed.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_prepare_to_modify(struct vdo *vdo,
 			  struct device_config *config,
 			  bool may_grow,
@@ -672,35 +551,33 @@ int vdo_prepare_to_modify(struct vdo *vdo,
 }
 
 /**
- * Get the block device object underlying a vdo.
+ * vdo_get_backing_device() - Get the block device object underlying a vdo.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return The vdo's current block device
- **/
+ * Return: The vdo's current block device.
+ */
 struct block_device *vdo_get_backing_device(const struct vdo *vdo)
 {
 	return vdo->device_config->owned_device->bdev;
 }
 
 /**
- * Get the device name associated with the vdo target
+ * vdo_get_device_name() - Get the device name associated with the vdo target.
+ * @target: The target device interface.
  *
- * @param target  The target device interface
- *
- * @return The block device name
- **/
+ * Return: The block device name.
+ */
 const char *vdo_get_device_name(const struct dm_target *target)
 {
 	return dm_device_name(dm_table_get_md(target->table));
 }
 
 /**
- * Issue a flush request and wait for it to complete.
+ * vdo_synchronous_flush() - Issue a flush request and wait for it to
+ *                           complete.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return VDO_SUCCESS or an error
+ * Return: VDO_SUCCESS or an error.
  */
 int vdo_synchronous_flush(struct vdo *vdo)
 {
@@ -729,12 +606,13 @@ int vdo_synchronous_flush(struct vdo *vdo)
 }
 
 /**
- * Get the current state of the vdo. This method may be called from any thread.
+ * vdo_get_state() - Get the current state of the vdo.
+ * @vdo: The vdo.
+
+ * Context: This method may be called from any thread.
  *
- * @param vdo  The vdo
- *
- * @return the current state of the vdo
- **/
+ * Return: The current state of the vdo.
+ */
 enum vdo_state vdo_get_state(const struct vdo *vdo)
 {
 	enum vdo_state state = atomic_read(&vdo->state);
@@ -744,11 +622,12 @@ enum vdo_state vdo_get_state(const struct vdo *vdo)
 }
 
 /**
- * Set the current state of the vdo. This method may be called from any thread.
+ * vdo_set_state() - Set the current state of the vdo.
+ * @vdo: The vdo whose state is to be set.
+ * @state: The new state of the vdo.
  *
- * @param vdo    The vdo whose state is to be set
- * @param state  The new state of the vdo
- **/
+ * Context: This method may be called from any thread.
+ */
 void vdo_set_state(struct vdo *vdo, enum vdo_state state)
 {
 	smp_wmb();
@@ -756,20 +635,19 @@ void vdo_set_state(struct vdo *vdo, enum vdo_state state)
 }
 
 /**
- * Get the admin state of the vdo.
+ * vdo_get_admin_state() - Get the admin state of the vdo.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return The code for the vdo's current admin state
- **/
+ * Return: The code for the vdo's current admin state.
+ */
 const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
 {
 	return vdo_get_admin_state_code(&vdo->admin_state);
 }
 
 /**
- * Record the state of the VDO for encoding in the super block.
- **/
+ * record_vdo() - Record the state of the VDO for encoding in the super block.
+ */
 static void record_vdo(struct vdo *vdo)
 {
 	vdo->states.release_version = vdo->geometry.release_version;
@@ -782,13 +660,14 @@ static void record_vdo(struct vdo *vdo)
 }
 
 /**
- * Encode the vdo and save the super block asynchronously. All non-user mode
- * super block savers should use this bottle neck instead of calling
- * vdo_save_super_block() directly.
+ * vdo_save_components() - Encode the vdo and save the super block
+ *                         asynchronously.
+ * @vdo: The vdo whose state is being saved.
+ * @parent: The completion to notify when the save is complete.
  *
- * @param vdo     The vdo whose state is being saved
- * @param parent  The completion to notify when the save is complete
- **/
+ * All non-user mode super block savers should use this bottle neck instead of
+ * calling vdo_save_super_block() directly.
+ */
 void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	int result;
@@ -808,15 +687,14 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 }
 
 /**
- * Notify a vdo that it is going read-only. This will save the read-only state
- * to the super block.
+ * notify_vdo_of_read_only_mode() - Notify a vdo that it is going read-only.
+ * @listener: The vdo.
+ * @parent: The completion to notify in order to acknowledge the notification.
  *
- * <p>Implements vdo_read_only_notification.
+ * This will save the read-only state to the super block.
  *
- * @param listener  The vdo
- * @param parent    The completion to notify in order to acknowledge the
- *                  notification
- **/
+ * Implements vdo_read_only_notification.
+ */
 static void notify_vdo_of_read_only_mode(void *listener,
 				    struct vdo_completion *parent)
 {
@@ -831,12 +709,12 @@ static void notify_vdo_of_read_only_mode(void *listener,
 }
 
 /**
- * Enable a vdo to enter read-only mode on errors.
+ * vdo_enable_read_only_entry() - Enable a vdo to enter read-only mode on
+ *                                errors.
+ * @vdo: The vdo to enable.
  *
- * @param vdo  The vdo to enable
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_enable_read_only_entry(struct vdo *vdo)
 {
 	return vdo_register_read_only_listener(vdo->read_only_notifier,
@@ -846,34 +724,31 @@ int vdo_enable_read_only_entry(struct vdo *vdo)
 }
 
 /**
- * Check whether a vdo is in read-only mode.
+ * vdo_in_read_only_mode() - Check whether a vdo is in read-only mode.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo is in read-only mode
- **/
+ * Return: true if the vdo is in read-only mode.
+ */
 bool vdo_in_read_only_mode(const struct vdo *vdo)
 {
 	return (vdo_get_state(vdo) == VDO_READ_ONLY_MODE);
 }
 
 /**
- * Check whether the vdo is in recovery mode.
+ * vdo_in_recovery_mode() - Check whether the vdo is in recovery mode.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo is in recovery mode
- **/
+ * Return: true if the vdo is in recovery mode.
+ */
 bool vdo_in_recovery_mode(const struct vdo *vdo)
 {
 	return (vdo_get_state(vdo) == VDO_RECOVERING);
 }
 
 /**
- * Put the vdo into recovery mode
- *
- * @param vdo  The vdo
- **/
+ * vdo_enter_recovery_mode() - Put the vdo into recovery mode.
+ * @vdo: The vdo.
+ */
 void vdo_enter_recovery_mode(struct vdo *vdo)
 {
 	vdo_assert_on_admin_thread(vdo, __func__);
@@ -887,10 +762,9 @@ void vdo_enter_recovery_mode(struct vdo *vdo)
 }
 
 /**
- * Callback to turn compression on or off.
- *
- * @param completion  The completion
- **/
+ * set_compression_callback() - Callback to turn compression on or off.
+ * @completion: The completion.
+ */
 static void set_compression_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
@@ -914,13 +788,12 @@ static void set_compression_callback(struct vdo_completion *completion)
 }
 
 /**
- * Turn compression on or off.
+ * vdo_set_compressing() - Turn compression on or off.
+ * @vdo: The vdo.
+ * @enable: Whether to enable or disable compression.
  *
- * @param vdo     The vdo
- * @param enable  Whether to enable or disable compression
- *
- * @return Whether compression was previously on or off
- **/
+ * Return: Whether compression was previously on or off.
+ */
 bool vdo_set_compressing(struct vdo *vdo, bool enable)
 {
 	vdo_perform_synchronous_action(vdo,
@@ -931,12 +804,11 @@ bool vdo_set_compressing(struct vdo *vdo, bool enable)
 }
 
 /**
- * Get whether compression is enabled in a vdo.
+ * vdo_get_compressing() - Get whether compression is enabled in a vdo.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return State of compression
- **/
+ * Return: State of compression.
+ */
 bool vdo_get_compressing(struct vdo *vdo)
 {
 	return READ_ONCE(vdo->compressing);
@@ -948,24 +820,24 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
 }
 
 /**
- * Tally the hash lock statistics from all the hash zones.
+ * get_hash_lock_statistics() - Tally the hash lock statistics from all the
+ *                              hash zones.
+ * @hash_zones: The hash zones to query
  *
- * @param vdo  The vdo to query
- *
- * @return The sum of the hash lock statistics from all hash zones
- **/
+ * Return: The sum of the hash lock statistics from all hash zones.
+ */
 static struct hash_lock_statistics
-get_hash_lock_statistics(const struct vdo *vdo)
+get_hash_lock_statistics(const struct hash_zones *zones)
 {
-	zone_count_t zone_count = vdo->thread_config->hash_zone_count;
 	zone_count_t zone;
 	struct hash_lock_statistics totals;
 
 	memset(&totals, 0, sizeof(totals));
 
-	for (zone = 0; zone < zone_count; zone++) {
+	for (zone = 0; zone < zones->zone_count; zone++) {
 		struct hash_lock_statistics stats =
-			vdo_get_hash_zone_statistics(vdo->hash_zones[zone]);
+			vdo_get_hash_zone_statistics(&zones->zones[zone]);
+
 		totals.dedupe_advice_valid += stats.dedupe_advice_valid;
 		totals.dedupe_advice_stale += stats.dedupe_advice_stale;
 		totals.concurrent_data_matches +=
@@ -1023,12 +895,12 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 }
 
 /**
- * Get the number of physical blocks in use by user data.
+ * vdo_get_physical_blocks_allocated() - Get the number of physical blocks in
+ *                                       use by user data.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return The number of blocks allocated for user data
- **/
+ * Return: The number of blocks allocated for user data.
+ */
 static block_count_t __must_check
 vdo_get_physical_blocks_allocated(const struct vdo *vdo)
 {
@@ -1037,12 +909,12 @@ vdo_get_physical_blocks_allocated(const struct vdo *vdo)
 }
 
 /**
- * Get the number of physical blocks used by vdo metadata.
+ * vdo_get_physical_blocks_overhead() - Get the number of physical blocks used
+ *                                      by vdo metadata.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return The number of overhead blocks
- **/
+ * Return: The number of overhead blocks.
+ */
 static block_count_t __must_check
 vdo_get_physical_blocks_overhead(const struct vdo *vdo)
 {
@@ -1072,11 +944,11 @@ static const char *vdo_describe_state(enum vdo_state state)
 }
 
 /**
- * Populate a vdo_statistics structure on the admin thread.
- *
- * @param vdo    The vdo
- * @param stats  The statistics structure to populate
- **/
+ * get_vdo_statistics() - Populate a vdo_statistics structure on the admin
+ *                        thread.
+ * @vdo: The vdo.
+ * @stats: The statistics structure to populate.
+ */
 static void get_vdo_statistics(const struct vdo *vdo,
 			       struct vdo_statistics *stats)
 {
@@ -1115,7 +987,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->journal = vdo_get_recovery_journal_statistics(journal);
 	stats->packer = vdo_get_packer_statistics(vdo->packer);
 	stats->block_map = vdo_get_block_map_statistics(vdo->block_map);
-	stats->hash_lock = get_hash_lock_statistics(vdo);
+	stats->hash_lock = get_hash_lock_statistics(vdo->hash_zones);
 	stats->errors = get_vdo_error_statistics(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
@@ -1165,11 +1037,12 @@ static void get_vdo_statistics(const struct vdo *vdo,
 }
 
 /**
- * Action to populate a vdo_statistics structure on the admin thread;
- * registered in vdo_fetch_statistics().
+ * vdo_fetch_statistics_callback() - Action to populate a vdo_statistics
+ *                                   structure on the admin thread.
+ * @completion: The completion.
  *
- * @param completion  The completion
- **/
+ * This callback is registered in vdo_fetch_statistics().
+ */
 static void vdo_fetch_statistics_callback(struct vdo_completion *completion)
 {
 	get_vdo_statistics(completion->vdo, completion->parent);
@@ -1177,11 +1050,10 @@ static void vdo_fetch_statistics_callback(struct vdo_completion *completion)
 }
 
 /**
- * Fetch statistics on the correct thread.
- *
- * @param [in]  vdo    The vdo
- * @param [out] stats  The vdo statistics are returned here
- **/
+ * vdo_fetch_statistics() - Fetch statistics on the correct thread.
+ * @vdo: The vdo.
+ * @stats: The vdo statistics are returned here.
+ */
 void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
 	vdo_perform_synchronous_action(vdo,
@@ -1191,11 +1063,11 @@ void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 }
 
 /**
- * Get the id of the callback thread on which a completion is currently
- * running, or -1 if no such thread.
+ * vdo_get_callback_thread_id() - Get the id of the callback thread on which a
+ *                                completion is currently running.
  *
- * @return the current thread ID
- **/
+ * Return: The current thread ID, or -1 if no such thread.
+ */
 thread_id_t vdo_get_callback_thread_id(void)
 {
 	struct vdo_work_queue *queue = get_current_work_queue();
@@ -1220,10 +1092,10 @@ thread_id_t vdo_get_callback_thread_id(void)
 }
 
 /**
- * Dump status information about a vdo to the log for debugging.
- *
- * @param vdo  The vdo to dump
- **/
+ * vdo_dump_status() - Dump status information about a vdo to the log for
+ *                     debugging.
+ * @vdo: The vdo to dump.
+ */
 void vdo_dump_status(const struct vdo *vdo)
 {
 	const struct thread_config *thread_config = vdo->thread_config;
@@ -1239,21 +1111,21 @@ void vdo_dump_status(const struct vdo *vdo)
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-		vdo_dump_physical_zone(&vdo->physical_zones[zone]);
+		vdo_dump_physical_zone(&vdo->physical_zones->zones[zone]);
 	}
 
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-		vdo_dump_hash_zone(vdo->hash_zones[zone]);
+		vdo_dump_hash_zone(&vdo->hash_zones->zones[zone]);
 	}
 }
 
 /**
- * Assert that we are running on the admin thread.
- *
- * @param vdo   The vdo
- * @param name  The name of the function which should be running on the admin
- *              thread (for logging).
- **/
+ * vdo_assert_on_admin_thread() - Assert that we are running on the admin
+ *                                thread.
+ * @vdo: The vdo.
+ * @name: The name of the function which should be running on the admin
+ *        thread (for logging).
+ */
 void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
@@ -1263,12 +1135,12 @@ void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name)
 }
 
 /**
- * Assert that this function was called on the specified logical zone thread.
- *
- * @param vdo           The vdo
- * @param logical_zone  The number of the logical zone
- * @param name          The name of the calling function
- **/
+ * vdo_assert_on_logical_zone_thread() - Assert that this function was called
+ *                                       on the specified logical zone thread.
+ * @vdo: The vdo.
+ * @logical_zone: The number of the logical zone.
+ * @name: The name of the calling function.
+ */
 void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 				       zone_count_t logical_zone,
 				       const char *name)
@@ -1281,12 +1153,13 @@ void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 }
 
 /**
- * Assert that this function was called on the specified physical zone thread.
- *
- * @param vdo            The vdo
- * @param physical_zone  The number of the physical zone
- * @param name           The name of the calling function
- **/
+ * vdo_assert_on_physical_zone_thread() - Assert that this function was called
+ *                                        on the specified physical zone
+ *                                        thread.
+ * @vdo: The vdo.
+ * @physical_zone: The number of the physical zone.
+ * @name: The name of the calling function.
+ */
 void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name)
@@ -1307,13 +1180,13 @@ void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
 }
 
 /**
- * Select the hash zone responsible for locking a given chunk name.
+ * vdo_select_hash_zone() - Select the hash zone responsible for locking a
+ *                          given chunk name.
+ * @vdo: The vdo containing the hash zones.
+ * @name: The chunk name.
  *
- * @param vdo   The vdo containing the hash zones
- * @param name  The chunk name
- *
- * @return  The hash zone responsible for the chunk name
- **/
+ * Return: The hash zone responsible for the chunk name.
+ */
 struct hash_zone *vdo_select_hash_zone(const struct vdo *vdo,
 				       const struct uds_chunk_name *name)
 {
@@ -1335,25 +1208,27 @@ struct hash_zone *vdo_select_hash_zone(const struct vdo *vdo,
 	 * should be uniformly distributed over [0 .. count-1]. The multiply and
 	 * shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	return vdo->hash_zones[(hash * vdo->thread_config->hash_zone_count)
-			       >> 8];
+	hash = (hash * vdo->thread_config->hash_zone_count) >> 8;
+	return &vdo->hash_zones->zones[hash];
 }
 
 /**
- * Get the physical zone responsible for a given physical block number of a
+ * vdo_get_physical_zone() - Get the physical zone responsible for a given
+ *                           physical block number.
+ * @vdo: The vdo containing the physical zones.
+ * @pbn: The PBN of the data block.
+ * @zone_ptr: A pointer to return the physical zone.
+ *
+ * Gets the physical zone responsible for a given physical block number of a
  * data block in this vdo instance, or of the zero block (for which a NULL
  * zone is returned). For any other block number that is not in the range of
  * valid data block numbers in any slab, an error will be returned. This
  * function is safe to call on invalid block numbers; it will not put the vdo
  * into read-only mode.
  *
- * @param [in]  vdo       The vdo containing the physical zones
- * @param [in]  pbn       The PBN of the data block
- * @param [out] zone_ptr  A pointer to return the physical zone
- *
- * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
- *         or an error code for any other failure
- **/
+ * Return: VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
+ *         or an error code for any other failure.
+ */
 int vdo_get_physical_zone(const struct vdo *vdo,
 			  physical_block_number_t pbn,
 			  struct physical_zone **zone_ptr)
@@ -1386,18 +1261,19 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 		return result;
 	}
 
-	*zone_ptr = &vdo->physical_zones[vdo_get_slab_zone_number(slab)];
+	*zone_ptr =
+		&vdo->physical_zones->zones[vdo_get_slab_zone_number(slab)];
 	return VDO_SUCCESS;
 }
 
 /**
- * Get the bio queue zone for submitting I/O to a given physical block number.
+ * vdo_get_bio_zone() - Get the bio queue zone for submitting I/O to a given
+ *                      physical block number.
+ * @vdo: The vdo to query.
+ * @pbn: The physical block number of the I/O to be sent.
  *
- * @param vdo  The vdo to query
- * @param pbn  The physical block number of the I/O to be sent
- *
- * @return The bio queue zone number for submitting I/O to the specified pbn
- **/
+ * Return: The bio queue zone number for submitting I/O to the specified pbn.
+ */
 zone_count_t
 vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
 {

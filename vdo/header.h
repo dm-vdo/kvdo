@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef HEADER_H
@@ -26,7 +11,7 @@
 
 #include "types.h"
 
-/**
+/*
  * An in-memory representation of a version number for versioned structures on
  * disk.
  *
@@ -37,24 +22,24 @@
  * upgrade step, or is wholly incompatible (i.e. can not be upgraded
  * to), should increment the major version, and set the minor version
  * to 0.
- **/
+ */
 struct version_number {
 	uint32_t major_version;
 	uint32_t minor_version;
 } __packed;
 
-/**
+/*
  * A packed, machine-independent, on-disk representation of a version_number.
  * Both fields are stored in little-endian byte order.
- **/
+ */
 struct packed_version_number {
 	__le32 major_version;
 	__le32 minor_version;
 } __packed;
 
-/**
+/*
  * The registry of component ids for use in headers
- **/
+ */
 #define VDO_SUPER_BLOCK 0
 #define VDO_FIXED_LAYOUT 1
 #define VDO_RECOVERY_JOURNAL 2
@@ -62,9 +47,9 @@ struct packed_version_number {
 #define VDO_BLOCK_MAP 4
 #define VDO_GEOMETRY_BLOCK 5
 
-/**
+/*
  * The header for versioned data stored on disk.
- **/
+ */
 struct header {
 	uint32_t id; /* The component this is a header for */
 	struct version_number version; /* The version of the data format */
@@ -76,13 +61,12 @@ enum {
 };
 
 /**
- * Check whether two version numbers are the same.
+ * vdo_are_same_version() - Check whether two version numbers are the same.
+ * @version_a: The first version.
+ * @version_b: The second version.
  *
- * @param version_a The first version
- * @param version_b The second version
- *
- * @return <code>true</code> if the two versions are the same
- **/
+ * Return: true if the two versions are the same.
+ */
 static inline bool vdo_are_same_version(struct version_number version_a,
 					struct version_number version_b)
 {
@@ -91,16 +75,17 @@ static inline bool vdo_are_same_version(struct version_number version_a,
 }
 
 /**
- * Check whether an actual version is upgradable to an expected version.
- * An actual version is upgradable if its major number is expected but
- * its minor number differs, and the expected version's minor number
- * is greater than the actual version's minor number.
+ * vdo_is_upgradable_version() - Check whether an actual version is upgradable
+ *                               to an expected version.
+ * @expected_version: The expected version.
+ * @actual_version: The version being validated.
  *
- * @param expected_version The expected version
- * @param actual_version   The version being validated
+ * An actual version is upgradable if its major number is expected but its
+ * minor number differs, and the expected version's minor number is greater
+ * than the actual version's minor number.
  *
- * @return <code>true</code> if the actual version is upgradable
- **/
+ * Return: true if the actual version is upgradable.
+ */
 static inline bool
 vdo_is_upgradable_version(struct version_number expected_version,
 			  struct version_number actual_version)
@@ -130,13 +115,13 @@ int __must_check vdo_decode_header(struct buffer *buffer,
 int __must_check vdo_decode_version_number(struct buffer *buffer,
 					   struct version_number *version);
 
-/**
+/*
  * Convert a version_number to its packed on-disk representation.
  *
  * @param version  The version number to convert
  *
  * @return the platform-independent representation of the version
- **/
+ */
 static inline struct packed_version_number
 vdo_pack_version_number(struct version_number version)
 {
@@ -147,12 +132,12 @@ vdo_pack_version_number(struct version_number version)
 }
 
 /**
- * Convert a packed_version_number to its native in-memory representation.
+ * vdo_unpack_version_number() - Convert a packed_version_number to its native
+ *                               in-memory representation.
+ * @version: The version number to convert.
  *
- * @param version  The version number to convert
- *
- * @return the platform-independent representation of the version
- **/
+ * Return: The platform-independent representation of the version.
+ */
 static inline struct version_number
 vdo_unpack_version_number(struct packed_version_number version)
 {

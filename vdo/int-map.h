@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef INT_MAP_H
@@ -25,16 +10,17 @@
 #include "type-defs.h"
 
 /**
- * An int_map associates pointers (<code>void *</code>) with integer keys
- * (<code>uint64_t</code>). <code>NULL</code> pointer values are not
- * supported.
+ * DOC: int_map
+ *
+ * An int_map associates pointers (void *) with integer keys (uint64_t). NULL
+ * pointer values are not supported.
  *
  * The map is implemented as hash table, which should provide constant-time
  * insert, query, and remove operations, although the insert may occasionally
  * grow the table, which is linear in the number of entries in the map. The
  * table will grow as needed to hold new entries, but will not shrink as
  * entries are removed.
- **/
+ */
 
 struct int_map;
 

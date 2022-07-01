@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "header.h"
@@ -25,17 +10,18 @@
 #include "status-codes.h"
 
 /**
- * Check whether a version matches an expected version. Logs an error
- * describing a mismatch.
+ * vdo_validate_version() - Check whether a version matches an expected
+ *                          version.
+ * @expected_version: The expected version.
+ * @actual_version: The version being validated.
+ * @component_name: The name of the component or the calling function
+ *                  (for error logging).
  *
- * @param expected_version  The expected version
- * @param actual_version    The version being validated
- * @param component_name    The name of the component or the calling function
- *                          (for error logging)
+ * Logs an error describing a mismatch.
  *
- * @return VDO_SUCCESS             if the versions are the same
- *         VDO_UNSUPPORTED_VERSION if the versions don't match
- **/
+ * Return: VDO_SUCCESS             if the versions are the same,
+ *         VDO_UNSUPPORTED_VERSION if the versions don't match.
+ */
 int vdo_validate_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
@@ -53,21 +39,21 @@ int vdo_validate_version(struct version_number expected_version,
 }
 
 /**
- * Check whether a header matches expectations. Logs an error describing the
- * first mismatch found.
+ * vdo_validate_header() - Check whether a header matches expectations.
+ * @expected_header: The expected header.
+ * @actual_header: The header being validated.
+ * @exact_size: If true, the size fields of the two headers must be the same,
+ *              otherwise it is required that actual_header.size >=
+ *              expected_header.size.
+ * @component_name: The name of the component or the calling function
+ *                  (for error logging).
  *
- * @param expected_header  The expected header
- * @param actual_header    The header being validated
- * @param exact_size       If true, the size fields of the two headers must be
- *                         the same, otherwise it is required that
- *                         actual_header.size >= expected_header.size
- * @param component_name   The name of the component or the calling function
- *                         (for error logging)
+ * Logs an error describing the first mismatch found.
  *
- * @return VDO_SUCCESS             if the header meets expectations
- *         VDO_INCORRECT_COMPONENT if the component ids don't match
- *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
- **/
+ * Return: VDO_SUCCESS             if the header meets expectations,
+ *         VDO_INCORRECT_COMPONENT if the component ids don't match,
+ *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match.
+ */
 int vdo_validate_header(const struct header *expected_header,
 			const struct header *actual_header,
 			bool exact_size,
@@ -102,13 +88,12 @@ int vdo_validate_header(const struct header *expected_header,
 }
 
 /**
- * Encode a header into a buffer.
+ * vdo_encode_header() - Encode a header into a buffer.
+ * @header: The header to encode.
+ * @buffer: The buffer in which to encode the header.
  *
- * @param header  The header to encode
- * @param buffer  The buffer in which to encode the header
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 int vdo_encode_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
@@ -131,13 +116,12 @@ int vdo_encode_header(const struct header *header, struct buffer *buffer)
 }
 
 /**
- * Encode a version number into a buffer.
+ * vdo_encode_version_number() - Encode a version number into a buffer.
+ * @version: The version to encode.
+ * @buffer: The buffer in which to encode the version.
  *
- * @param version  The version to encode
- * @param buffer   The buffer in which to encode the version
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 int vdo_encode_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
@@ -147,13 +131,12 @@ int vdo_encode_version_number(struct version_number version,
 }
 
 /**
- * Decode a header from a buffer.
+ * vdo_decode_header() - Decode a header from a buffer.
+ * @buffer: The buffer from which to decode the header.
+ * @header: The header structure to decode into.
  *
- * @param [in]  buffer  The buffer from which to decode the header
- * @param [out] header  The header to decode
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 int vdo_decode_header(struct buffer *buffer, struct header *header)
 {
 	uint32_t id;
@@ -185,13 +168,12 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
 }
 
 /**
- * Decode a version number from a buffer.
+ * vdo_decode_version_number() - Decode a version number from a buffer.
+ * @buffer: The buffer from which to decode the version.
+ * @version: The version structure to decode into.
  *
- * @param buffer   The buffer from which to decode the version
- * @param version  The version structure to decode into
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 int vdo_decode_version_number(struct buffer *buffer,
 			      struct version_number *version)
 {

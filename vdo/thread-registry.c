@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "thread-registry.h"
@@ -26,7 +11,7 @@
 
 /*
  * We need to be careful when using other facilities that may use
- * threadRegistry functions in their normal operation.  For example,
+ * thread registry functions in their normal operation. For example,
  * we do not want to invoke the logger while holding a lock.
  */
 
@@ -36,6 +21,7 @@ void uds_initialize_thread_registry(struct thread_registry *registry)
 	spin_lock_init(&registry->lock);
 }
 
+/* Register the current thread and associate it with a data pointer. */
 void uds_register_thread(struct thread_registry *registry,
 			 struct registered_thread *new_thread,
 			 const void *pointer)

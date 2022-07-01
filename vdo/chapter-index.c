@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "chapter-index.h"
@@ -303,14 +288,11 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 		for (;;) {
 			result = next_delta_index_entry(&entry);
 			if (result != UDS_SUCCESS) {
-				if (result == UDS_CORRUPT_DATA) {
-					/*
-					 * A random bit stream is highly likely
-					 * to arrive here when we go past the
-					 * end of the delta list.
-					 */
-					return UDS_CORRUPT_COMPONENT;
-				}
+				/*
+				 * A random bit stream is highly likely
+				 * to arrive here when we go past the
+				 * end of the delta list.
+				 */
 				return result;
 			}
 
@@ -329,7 +311,7 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 				 * normal operation when we are doing a rebuild
 				 * but haven't written the entire volume once.
 				 */
-				return UDS_CORRUPT_COMPONENT;
+				return UDS_CORRUPT_DATA;
 			}
 		}
 	}

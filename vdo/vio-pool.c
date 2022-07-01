@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "vio-pool.h"
@@ -29,9 +14,9 @@
 #include "vio.h"
 #include "types.h"
 
-/**
+/*
  * An vio_pool is a collection of preallocated vios.
- **/
+ */
 struct vio_pool {
 	/** The number of objects managed by the pool */
 	size_t size;
@@ -52,17 +37,16 @@ struct vio_pool {
 };
 
 /**
- * Create a new vio pool.
+ * make_vio_pool() - Create a new vio pool.
+ * @vdo: The vdo.
+ * @pool_size: The number of vios in the pool.
+ * @thread_id: The ID of the thread using this pool.
+ * @constructor: The constructor for vios in the pool.
+ * @context: The context that each entry will have.
+ * @pool_ptr: The resulting pool.
  *
- * @param [in]  vdo          the vdo
- * @param [in]  pool_size    the number of vios in the pool
- * @param [in]  thread_id    the ID of the thread using this pool
- * @param [in]  constructor  the constructor for vios in the pool
- * @param [in]  context      the context that each entry will have
- * @param [out] pool_ptr     the resulting pool
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 int make_vio_pool(struct vdo *vdo,
 		  size_t pool_size,
 		  thread_id_t thread_id,
@@ -115,10 +99,9 @@ int make_vio_pool(struct vdo *vdo,
 }
 
 /**
- * Destroy a vio pool
- *
- * @param pool  the pool to free
- **/
+ * free_vio_pool() - Destroy a vio pool.
+ * @pool: The pool to free.
+ */
 void free_vio_pool(struct vio_pool *pool)
 {
 	struct vio_pool_entry *entry;
@@ -149,7 +132,7 @@ void free_vio_pool(struct vio_pool *pool)
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
 				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
 				(unsigned long long) entry->vio->physical,
-				entry->vio->operation);
+				entry->vio->bio->bi_opf);
 	}
 
 	UDS_FREE(UDS_FORGET(pool->buffer));
@@ -157,23 +140,23 @@ void free_vio_pool(struct vio_pool *pool)
 }
 
 /**
- * Check whether an vio pool has outstanding entries.
+ * is_vio_pool_busy() - Check whether an vio pool has outstanding entries.
  *
- * @return <code>true</code> if the pool is busy
- **/
+ * Return: true if the pool is busy.
+ */
 bool is_vio_pool_busy(struct vio_pool *pool)
 {
 	return (pool->busy_count != 0);
 }
 
 /**
- * Acquire a vio and buffer from the pool (asynchronous).
+ * acquire_vio_from_pool() - Acquire a vio and buffer from the pool
+ *                           (asynchronous).
+ * @pool: The vio pool.
+ * @waiter: Object that is requesting a vio.
  *
- * @param pool    the vio pool
- * @param waiter  object that is requesting a vio
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 {
 	struct list_head *entry;
@@ -193,11 +176,10 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 }
 
 /**
- * Return a vio and its buffer to the pool.
- *
- * @param pool   the vio pool
- * @param entry  a vio pool entry
- **/
+ * return_vio_to_pool() - Return a vio and its buffer to the pool.
+ * @pool: The vio pool.
+ * @entry: A vio pool entry.
+ */
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
 	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),

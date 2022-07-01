@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "status-codes.h"
@@ -100,10 +85,10 @@ static void do_status_code_registration(void)
 }
 
 /**
- * Register the VDO status codes if needed.
- *
- * @return a success or error code
- **/
+ * vdo_register_status_codes() - Register the VDO status codes if
+ *                               needed.
+ * Return: A success or error code.
+ */
 int vdo_register_status_codes(void)
 {
 	perform_once(&vdo_status_codes_registered, do_status_code_registration);
@@ -111,19 +96,22 @@ int vdo_register_status_codes(void)
 }
 
 /**
- * Given an error code, return a value we can return to the OS.  The
- * input error code may be a system-generated value (such as -EIO), an
- * errno macro used in our code (such as EIO), or a UDS or VDO status
- * code; the result must be something the rest of the OS can consume
- * (negative errno values such as -EIO, in the case of the kernel).
+ * vdo_map_to_system_error() - Given an error code, return a value we
+ *                             can return to the OS.
+ * @error: The error code to convert.
  *
- * @param error  the error code to convert
+ * The input error code may be a system-generated value (such as
+ * -EIO), an errno macro used in our code (such as EIO), or a UDS or
+ * VDO status code; the result must be something the rest of the OS
+ * can consume (negative errno values such as -EIO, in the case of the
+ * kernel).
  *
- * @return a system error code value
- **/
+ * Return: A system error code value.
+ */
 int vdo_map_to_system_error(int error)
 {
-	char error_name[80], error_message[ERRBUF_SIZE];
+	char error_name[UDS_MAX_ERROR_NAME_SIZE];
+	char error_message[UDS_MAX_ERROR_MESSAGE_SIZE];
 
 	/* 0 is success, negative a system error code */
 	if (likely(error <= 0)) {

@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "packer.h"
@@ -45,11 +30,10 @@
 #include "vio-write.h"
 
 /**
- * Check that we are on the packer thread.
- *
- * @param packer  The packer
- * @param caller  The function which is asserting
- **/
+ * assert_on_packer_thread() - Check that we are on the packer thread.
+ * @packer: The packer.
+ * @caller: The function which is asserting.
+ */
 static inline void assert_on_packer_thread(struct packer *packer,
 					   const char *caller)
 {
@@ -58,8 +42,8 @@ static inline void assert_on_packer_thread(struct packer *packer,
 }
 
 /**
- * This returns the next bin in the free_space-sorted list.
- **/
+ * vdo_next_packer_bin() - Return the next bin in the free_space-sorted list.
+ */
 static struct packer_bin * __must_check
 vdo_next_packer_bin(const struct packer *packer, struct packer_bin *bin)
 {
@@ -71,8 +55,9 @@ vdo_next_packer_bin(const struct packer *packer, struct packer_bin *bin)
 }
 
 /**
- * This returns the first bin in the free_space-sorted list.
- **/
+ * vdo_get_packer_fullest_bin() - Return the first bin in the
+ *                                free_space-sorted list.
+ */
 static struct packer_bin * __must_check
 vdo_get_packer_fullest_bin(const struct packer *packer)
 {
@@ -82,13 +67,13 @@ vdo_get_packer_fullest_bin(const struct packer *packer)
 }
 
 /**
- * Insert a bin to the list, which is in ascending order of free space.  Since
- * all bins are already in the list, this actually moves the bin to the correct
- * position in the list.
+ * insert_in_sorted_list() - Insert a bin to the list.
+ * @packer: The packer.
+ * @bin: The bin to move to its sorted position.
  *
- * @param packer  The packer
- * @param bin     The bin to move to its sorted position
- **/
+ * The list is in ascending order of free space. Since all bins are already in
+ * the list, this actually moves the bin to the correct position in the list.
+ */
 static void insert_in_sorted_list(struct packer *packer,
 				  struct packer_bin *bin)
 {
@@ -107,10 +92,9 @@ static void insert_in_sorted_list(struct packer *packer,
 }
 
 /**
- * Allocate a bin and put it into the packer's list.
- *
- * @param packer  The packer
- **/
+ * make_bin() - Allocate a bin and put it into the packer's list.
+ * @packer: The packer.
+ */
 static int __must_check make_bin(struct packer *packer)
 {
 	struct packer_bin *bin;
@@ -128,14 +112,14 @@ static int __must_check make_bin(struct packer *packer)
 }
 
 /**
- * Make a new block packer.
+ * vdo_make_packer() - Make a new block packer.
  *
- * @param [in]  vdo         The vdo to which this packer belongs
- * @param [in]  bin_count   The number of partial bins to keep in memory
- * @param [out] packer_ptr  A pointer to hold the new packer
+ * @vdo: The vdo to which this packer belongs.
+ * @bin_count: The number of partial bins to keep in memory.
+ * @packer_ptr: A pointer to hold the new packer.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error
+ */
 int vdo_make_packer(struct vdo *vdo,
 		    block_count_t bin_count,
 		    struct packer **packer_ptr)
@@ -181,15 +165,20 @@ int vdo_make_packer(struct vdo *vdo,
 		return result;
 	}
 
+	result = vdo_make_default_thread(vdo, packer->thread_id);
+	if (result != VDO_SUCCESS) {
+		vdo_free_packer(packer);
+		return result;
+	}
+
 	*packer_ptr = packer;
 	return VDO_SUCCESS;
 }
 
 /**
- * Free a block packer.
- *
- * @param packer  The packer to free
- **/
+ * vdo_free_packer() - Free a block packer.
+ * @packer: The packer to free.
+ */
 void vdo_free_packer(struct packer *packer)
 {
 	struct packer_bin *bin;
@@ -208,12 +197,11 @@ void vdo_free_packer(struct packer *packer)
 }
 
 /**
- * Get the packer from a data_vio.
+ * get_packer_from_data_vio() - Get the packer from a data_vio.
+ * @data_vio: The data_vio.
  *
- * @param data_vio  The data_vio
- *
- * @return The packer from the VDO to which the data_vio belongs
- **/
+ * Return: The packer from the VDO to which the data_vio belongs.
+ */
 static inline struct packer *
 get_packer_from_data_vio(struct data_vio *data_vio)
 {
@@ -221,12 +209,13 @@ get_packer_from_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Check whether the compressed data in a data_vio will fit in a packer bin.
+ * vdo_data_is_sufficiently_compressible() - Check whether the compressed data
+ *                                           in a data_vio will fit in a
+ *                                           packer bin.
+ * @data_vio: The data_vio.
  *
- * @param data_vio  The data_vio
- *
- * @return <code>true</code> if the data_vio will fit in a bin
- **/
+ * Return: true if the data_vio will fit in a bin.
+ */
 bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
@@ -235,12 +224,11 @@ bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 }
 
 /**
- * Get the current statistics from the packer.
+ * vdo_get_packer_statistics() - Get the current statistics from the packer.
+ * @packer: The packer to query.
  *
- * @param packer  The packer to query
- *
- * @return a copy of the current statistics for the packer
- **/
+ * Return: a copy of the current statistics for the packer.
+ */
 struct packer_statistics vdo_get_packer_statistics(const struct packer *packer)
 {
 	const struct packer_statistics *stats = &packer->statistics;
@@ -256,10 +244,9 @@ struct packer_statistics vdo_get_packer_statistics(const struct packer *packer)
 }
 
 /**
- * Abort packing a data_vio.
- *
- * @param data_vio     The data_vio to abort
- **/
+ * abort_packing() - Abort packing a data_vio.
+ * @data_vio: The data_vio to abort.
+ */
 static void abort_packing(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
@@ -273,12 +260,12 @@ static void abort_packing(struct data_vio *data_vio)
 }
 
 /**
- * Update a data_vio for which a successful compressed write has completed and
- * send it on its way.
- *
- * @param data_vio    The data_vio to release
- * @param allocation  The allocation to which the compressed block was written
- **/
+ * release_compressed_write_waiter() - Update a data_vio for which a
+ *                                     successful compressed write has
+ *                                     completed and send it on its way.
+ * @data_vio: The data_vio to release.
+ * @allocation: The allocation to which the compressed block was written.
+ */
 static void release_compressed_write_waiter(struct data_vio *data_vio,
 					    struct allocation *allocation)
 {
@@ -293,11 +280,11 @@ static void release_compressed_write_waiter(struct data_vio *data_vio,
 }
 
 /**
- * Finish a compressed block write. This callback is registered in
- * continue_after_allocation().
+ * finish_compressed_write() - Finish a compressed block write.
+ * @completion: The compressed write completion.
  *
- * @param completion  The compressed write completion
- **/
+ * This callback is registered in continue_after_allocation().
+ */
 static void finish_compressed_write(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
@@ -354,11 +341,11 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 }
 
 /**
- * Put a data_vio in a specific packer_bin in which it will definitely fit.
- *
- * @param bin       The bin in which to put the data_vio
- * @param data_vio  The data_vio to add
- **/
+ * add_to_bin() - Put a data_vio in a specific packer_bin in which it will
+ *                definitely fit.
+ * @bin: The bin in which to put the data_vio.
+ * @data_vio: The data_vio to add.
+ */
 static void add_to_bin(struct packer_bin *bin, struct data_vio *data_vio)
 {
 	data_vio->compression.bin = bin;
@@ -367,14 +354,14 @@ static void add_to_bin(struct packer_bin *bin, struct data_vio *data_vio)
 }
 
 /**
- * Get the next data_vio whose compression has not been canceled from a bin.
+ * remove_from_bin() - Get the next data_vio whose compression has not been
+ *                     canceled from a bin.
+ * @packer: The packer.
+ * @bin: The bin from which to get a data_vio.
+ *
  * Any canceled data_vios will be moved to the canceled bin.
- *
- * @param packer  The packer
- * @param bin     The bin from which to get a data_vio
- *
- * @return An uncanceled data_vio from the bin or NULL if there are none
- **/
+ * Return: An uncanceled data_vio from the bin or NULL if there are none.
+ */
 static struct data_vio *remove_from_bin(struct packer *packer,
 					struct packer_bin *bin)
 {
@@ -395,18 +382,16 @@ static struct data_vio *remove_from_bin(struct packer *packer,
 }
 
 /**
- * Pack a data_vio's fragment into the compressed block in which it is already
- * known to fit.
+ * pack_fragment() - Pack a data_vio's fragment into the compressed block in
+ *                   which it is already known to fit.
+ * @compression: The agent's compression_state to pack in to.
+ * @data_vio: The data_vio to pack.
+ * @offset: The offset into the compressed block at which to pack the fragment.
+ * @compressed_block: The compressed block which will be written out when
+ *                    batch is fully packed.
  *
- * @param compression       The agent's compression_state to pack in to
- * @param data_vio          The data_vio to pack
- * @param offset            The offset into the compressed block at which to
- *                          pack the frament
- * @param compressed_block  The compressed block which will be written out when
- *                          the batch is fully packed
- *
- * @return The new amount of space used
- **/
+ * Return: The new amount of space used.
+ */
 static block_size_t pack_fragment(struct compression_state *compression,
 				  struct data_vio *data_vio,
 				  block_size_t offset,
@@ -428,10 +413,9 @@ static block_size_t pack_fragment(struct compression_state *compression,
 }
 
 /**
- * The bio_end_io for a compressed block write.
- *
- * @param bio  The bio for the compressed write
- **/
+ * compressed_write_end_io() - The bio_end_io for a compressed block write.
+ * @bio: The bio for the compressed write.
+ */
 static void compressed_write_end_io(struct bio *bio)
 {
 	struct data_vio *data_vio = vio_as_data_vio(bio->bi_private);
@@ -443,11 +427,10 @@ static void compressed_write_end_io(struct bio *bio)
 }
 
 /**
- * Write out a bin.
- *
- * @param packer  The packer
- * @param bin     The bin to write
- **/
+ * write_bin() - Write out a bin.
+ * @packer: The packer.
+ * @bin: The bin to write.
+ */
 static void write_bin(struct packer *packer, struct packer_bin *bin)
 {
 	int result;
@@ -523,13 +506,14 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 }
 
 /**
- * Add a data_vio to a bin's incoming queue, handle logical space change, and
- * call physical space processor.
+ * add_data_vio_to_packer_bin() - Add a data_vio to a bin's incoming queue
+ * @packer: The packer.
+ * @bin: The bin to which to add the data_vio.
+ * @data_vio: The data_vio to add to the bin's queue.
  *
- * @param packer    The packer
- * @param bin       The bin to which to add the data_vio
- * @param data_vio  The data_vio to add to the bin's queue
- **/
+ * Adds a data_vio to a bin's incoming queue, handles logical space change,
+ * and calls physical space processor.
+ */
 static void add_data_vio_to_packer_bin(struct packer *packer,
 				       struct packer_bin *bin,
 				       struct data_vio *data_vio)
@@ -558,12 +542,11 @@ static void add_data_vio_to_packer_bin(struct packer *packer,
 }
 
 /**
- * Select the bin that should be used to pack the compressed data in a data_vio
- * with other data_vios.
- *
- * @param packer    The packer
- * @param data_vio  The data_vio
- **/
+ * select_bin() - Select the bin that should be used to pack the compressed
+ *                data in a data_vio with other data_vios.
+ * @packer: The packer.
+ * @data_vio: The data_vio.
+ */
 static struct packer_bin * __must_check
 select_bin(struct packer *packer, struct data_vio *data_vio)
 {
@@ -606,10 +589,10 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 }
 
 /**
- * Attempt to rewrite the data in this data_vio as part of a compressed block.
- *
- * @param data_vio  The data_vio to pack
- **/
+ * vdo_attempt_packing() - Attempt to rewrite the data in this data_vio as
+ *                         part of a compressed block.
+ * @data_vio: The data_vio to pack.
+ */
 void vdo_attempt_packing(struct data_vio *data_vio)
 {
 	int result;
@@ -667,10 +650,9 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 }
 
 /**
- * Check whether the packer has drained.
- *
- * @param packer  The packer
- **/
+ * check_for_drain_complete() - Check whether the packer has drained.
+ * @packer: The packer.
+ */
 static void check_for_drain_complete(struct packer *packer)
 {
 	if (vdo_is_state_draining(&packer->state) &&
@@ -680,10 +662,10 @@ static void check_for_drain_complete(struct packer *packer)
 }
 
 /**
- * Write out all non-empty bins on behalf of a flush or suspend.
- *
- * @param packer  The packer being flushed
- **/
+ * write_all_non_empty_bins() - Write out all non-empty bins on behalf of a
+ *                              flush or suspend.
+ * @packer: The packer being flushed.
+ */
 static void write_all_non_empty_bins(struct packer *packer)
 {
 	struct packer_bin *bin;
@@ -703,14 +685,14 @@ static void write_all_non_empty_bins(struct packer *packer)
 }
 
 /**
- * Request that the packer flush asynchronously. All bins with at least two
- * compressed data blocks will be written out, and any solitary pending VIOs
- * will be released from the packer. While flushing is in progress, any VIOs
- * submitted to vdo_attempt_packing() will be continued immediately without
- * attempting to pack them.
+ * vdo_flush_packer() - Request that the packer flush asynchronously.
+ * @packer: The packer to flush.
  *
- * @param packer  The packer to flush
- **/
+ * All bins with at least two compressed data blocks will be written out, and
+ * any solitary pending VIOs will be released from the packer. While flushing
+ * is in progress, any VIOs submitted to vdo_attempt_packing() will be
+ * continued immediately without attempting to pack them.
+ */
 void vdo_flush_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -720,12 +702,11 @@ void vdo_flush_packer(struct packer *packer)
 }
 
 /**
- * Remove a lock holder from the packer.
- *
- * @param completion  The data_vio which needs a lock held by a data_vio in the
- *                    packer. The data_vio's compression.lock_holder field will
- *                    point to the data_vio to remove.
- **/
+ * vdo_remove_lock_holder_from_packer() - Remove a lock holder from the packer.
+ * @completion: The data_vio which needs a lock held by a data_vio in the
+ *              packer. The data_vio's compression.lock_holder field will
+ *              point to the data_vio to remove.
+ */
 void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -760,12 +741,13 @@ void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion)
 }
 
 /**
- * Increment the flush generation in the packer. This will also cause the
- * packer to flush so that any VIOs from previous generations will exit the
- * packer.
+ * vdo_increment_packer_flush_generation() - Increment the flush generation
+ *                                           in the packer.
+ * @packer: The packer.
  *
- * @param packer  The packer
- **/
+ * This will also cause the packer to flush so that any VIOs from previous
+ * generations will exit the packer.
+ */
 void vdo_increment_packer_flush_generation(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -774,10 +756,10 @@ void vdo_increment_packer_flush_generation(struct packer *packer)
 }
 
 /**
- * Initiate a drain.
+ * initiate_drain() - Initiate a drain.
  *
  * Implements vdo_admin_initiator.
- **/
+ */
 static void initiate_drain(struct admin_state *state)
 {
 	struct packer *packer = container_of(state, struct packer, state);
@@ -786,12 +768,11 @@ static void initiate_drain(struct admin_state *state)
 }
 
 /**
- * Drain the packer by preventing any more VIOs from entering the packer and
- * then flushing.
- *
- * @param packer      The packer to drain
- * @param completion  The completion to finish when the packer has drained
- **/
+ * vdo_drain_packer() - Drain the packer by preventing any more VIOs from
+ *                      entering the packer and then flushing.
+ * @packer: The packer to drain.
+ * @completion: The completion to finish when the packer has drained.
+ */
 void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -802,11 +783,10 @@ void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 }
 
 /**
- * Resume a packer which has been suspended.
- *
- * @param packer  The packer to resume
- * @param parent  The completion to finish when the packer has resumed
- **/
+ * vdo_resume_packer() - Resume a packer which has been suspended.
+ * @packer: The packer to resume.
+ * @parent: The completion to finish when the packer has resumed.
+ */
 void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
@@ -833,10 +813,11 @@ static void dump_packer_bin(const struct packer_bin *bin, bool canceled)
 }
 
 /**
- * Dump the packer, in a thread-unsafe fashion.
+ * vdo_dump_packer() - Dump the packer.
+ * @packer: The packer.
  *
- * @param packer  The packer
- **/
+ * Context: dumps in a thread-unsafe fashion.
+ */
 void vdo_dump_packer(const struct packer *packer)
 {
 	struct packer_bin *bin;

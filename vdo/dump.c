@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "dump.h"
@@ -261,7 +246,7 @@ void dump_data_vio(void *data)
 	 * a time. If more than one does run, the log output will be garbled
 	 * anyway.
 	 */
-	static char vio_work_item_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
+	static char vio_completion_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
 	/*
 	 * Another static buffer...
 	 * log10(256) = 2.408+, round up:
@@ -278,9 +263,9 @@ void dump_data_vio(void *data)
 	 * in some circumstances syslogd may have trouble keeping up, so
 	 * keep it BRIEF rather than user-friendly.
 	 */
-	dump_work_item_to_buffer(work_item_from_data_vio(data_vio),
-				 vio_work_item_dump_buffer,
-				 sizeof(vio_work_item_dump_buffer));
+	dump_completion_to_buffer(data_vio_as_completion(data_vio),
+				  vio_completion_dump_buffer,
+				  sizeof(vio_completion_dump_buffer));
 	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
@@ -311,7 +296,7 @@ void dump_data_vio(void *data)
 	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
 		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
 		     get_data_vio_operation_name(data_vio),
-		     vio_work_item_dump_buffer,
+		     vio_completion_dump_buffer,
 		     flags_dump_buffer);
 	/*
 	 * might want info on: wantUDSAnswer / operation / status

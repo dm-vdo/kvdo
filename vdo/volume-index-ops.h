@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef VOLUMEINDEXOPS_H
@@ -24,11 +9,9 @@
 #include "compiler.h"
 #include "config.h"
 #include "delta-index.h"
-#include "index-component.h"
 #include "uds-threads.h"
 #include "uds.h"
 
-extern const struct index_component_info *const VOLUME_INDEX_INFO;
 extern unsigned int min_volume_index_delta_lists;
 
 struct volume_index_stats {
@@ -41,24 +24,6 @@ struct volume_index_stats {
 	long overflow_count;        /* The number of UDS_OVERFLOWs detected */
 	unsigned int num_lists;     /* The number of delta lists */
 	long early_flushes;         /* Number of early flushes */
-};
-
-/*
- * The volume_index_triage structure is used by lookup_volume_index_name(),
- * which is a read-only operation that looks at the chunk name and returns
- * some information used by the index to select the thread/queue/code_path
- * that will process the chunk.
- */
-struct volume_index_triage {
-	uint64_t virtual_chapter;  /* If in_sampled_chapter is true, then this */
-				   /* is the chapter containing the entry for */
-				   /* the chunk name */
-	unsigned int zone;         /* The zone containing the chunk name */
-	bool is_sample;            /* If true, this chunk name belongs to the */
-				   /* sampled index */
-	bool in_sampled_chapter;   /* If true, this chunk already has an entry */
-				   /* in the sampled index and virtual_chapter */
-				   /* is valid */
 };
 
 /*
@@ -110,12 +75,10 @@ struct volume_index {
 					      const struct uds_chunk_name *name);
 	bool (*is_volume_index_sample)(const struct volume_index *volume_index,
 				       const struct uds_chunk_name *name);
-	int (*lookup_volume_index_name)(const struct volume_index *volume_index,
-					const struct uds_chunk_name *name,
-					struct volume_index_triage *triage);
-	int (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
-					        const struct uds_chunk_name *name,
-					        struct volume_index_triage *triage);
+	uint64_t (*lookup_volume_index_name)(const struct volume_index *volume_index,
+					     const struct uds_chunk_name *name);
+	uint64_t (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
+						     const struct uds_chunk_name *name);
 	void (*set_volume_index_open_chapter)(struct volume_index *volume_index,
 					      uint64_t virtual_chapter);
 	void (*set_volume_index_tag)(struct volume_index *volume_index,
@@ -169,17 +132,21 @@ compute_volume_index_save_blocks(const struct configuration *config,
 				 uint64_t *block_count);
 
 /**
- * Restore a volume index.  This is exposed for unit tests.
+ * Restore a volume index.
  *
+ * @param volume_index  The volume index
  * @param readers       The readers to read from.
  * @param num_readers   The number of readers.
- * @param volume_index  The volume index
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int __must_check restore_volume_index(struct buffered_reader **readers,
-				      unsigned int num_readers,
-				      struct volume_index *volume_index);
+int __must_check load_volume_index(struct volume_index *volume_index,
+				   struct buffered_reader **readers,
+				   unsigned int num_readers);
+
+int __must_check save_volume_index(struct volume_index *volume_index,
+				   struct buffered_writer **writers,
+				   unsigned int num_writers);
 
 /**
  * Abort restoring a volume index from an input stream.
@@ -234,6 +201,10 @@ finish_saving_volume_index(const struct volume_index *volume_index,
  **/
 static INLINE void free_volume_index(struct volume_index *volume_index)
 {
+	if (volume_index == NULL) {
+		return;
+	}
+
 	volume_index->free_volume_index(volume_index);
 }
 
@@ -319,41 +290,33 @@ is_volume_index_sample(const struct volume_index *volume_index,
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
- * @param volume_index  The volume index
- * @param name          The chunk name
- * @param triage        Information about the chunk name
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static INLINE int
+static INLINE uint64_t
 lookup_volume_index_name(const struct volume_index *volume_index,
-			 const struct uds_chunk_name *name,
-			 struct volume_index_triage *triage)
+			 const struct uds_chunk_name *name)
 {
-	return volume_index->lookup_volume_index_name(volume_index, name,
-						      triage);
+	return volume_index->lookup_volume_index_name(volume_index, name);
 }
 
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
  *
- * @param volume_index  The volume index
- * @param name          The chunk name
- * @param triage        Information about the chunk name.  The zone and
- *                      is_sample fields are already filled in.  Set
- *                      in_sampled_chapter and virtual_chapter if the chunk
- *                      name is found in the index.
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static INLINE int
+static INLINE uint64_t
 lookup_volume_index_sampled_name(const struct volume_index *volume_index,
-				 const struct uds_chunk_name *name,
-				 struct volume_index_triage *triage)
+				 const struct uds_chunk_name *name)
 {
 	return volume_index->lookup_volume_index_sampled_name(volume_index,
-							      name, triage);
+							      name);
 }
 
 /**

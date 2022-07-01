@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 /**
@@ -95,13 +80,6 @@
  * once again allowing the non-hook searches to use the cache entry. Again,
  * regardless of the state of the skip_search flag, the virtual chapter must
  * still considered to be a member of the cache for sparse_cache_contains().
- *
- * Barrier requests and the sparse chapter index cache are also described in
- *
- * https://intranet.permabit.com/wiki/Chapter_Index_Cache_supports_concurrent_access
- *
- * and in a message to the albireo mailing list on 5/28/2011 titled "true
- * barriers with a hook resolution queue".
  **/
 
 #include "sparse-cache.h"
@@ -1080,13 +1058,8 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 	 */
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
-	unsigned int index_page_number;
-	int result = find_index_page_number(index_page_map, name,
-					    physical_chapter,
-					    &index_page_number);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+	unsigned int index_page_number =
+		find_index_page_number(index_page_map, name, physical_chapter);
 
 	return search_chapter_index_page(&chapter->index_pages[index_page_number],
 				         geometry,

@@ -1,30 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "recovery-journal-block.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 
 #include "data-vio.h"
+#include "io-submitter.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
@@ -33,14 +21,13 @@
 #include "wait-queue.h"
 
 /**
- * Construct a journal block.
+ * vdo_make_recovery_block() - Construct a journal block.
+ * @vdo: The vdo from which to construct vios.
+ * @journal: The journal to which the block will belong.
+ * @block_ptr: A pointer to receive the new block.
  *
- * @param [in]  vdo        The vdo from which to construct vios
- * @param [in]  journal    The journal to which the block will belong
- * @param [out] block_ptr  A pointer to receive the new block
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_recovery_block(struct vdo *vdo,
 			    struct recovery_journal *journal,
 			    struct recovery_journal_block **block_ptr)
@@ -93,10 +80,9 @@ int vdo_make_recovery_block(struct vdo *vdo,
 }
 
 /**
- * Free a tail block.
- *
- * @param block  The tail block to free
- **/
+ * vdo_free_recovery_block() - Free a tail block.
+ * @block: The tail block to free.
+ */
 void vdo_free_recovery_block(struct recovery_journal_block *block)
 {
 	if (block == NULL) {
@@ -109,12 +95,12 @@ void vdo_free_recovery_block(struct recovery_journal_block *block)
 }
 
 /**
- * Get a pointer to the packed journal block header in the block buffer.
+ * get_block_header() - Get a pointer to the packed journal block
+ *                      header in the block buffer.
+ * @block: The recovery block.
  *
- * @param block  The recovery block
- *
- * @return The block's header
- **/
+ * Return: The block's header.
+ */
 static inline struct packed_journal_header *
 get_block_header(const struct recovery_journal_block *block)
 {
@@ -122,11 +108,11 @@ get_block_header(const struct recovery_journal_block *block)
 }
 
 /**
- * Set the current sector of the current block and initialize it.
- *
- * @param block  The block to update
- * @param sector A pointer to the first byte of the new sector
- **/
+ * set_active_sector() - Set the current sector of the current block
+ *                       and initialize it.
+ * @block: The block to update.
+ * @sector: A pointer to the first byte of the new sector.
+ */
 static void set_active_sector(struct recovery_journal_block *block,
 			      void *sector)
 {
@@ -137,10 +123,10 @@ static void set_active_sector(struct recovery_journal_block *block,
 }
 
 /**
- * Initialize the next active recovery journal block.
- *
- * @param block  The journal block to initialize
- **/
+ * vdo_initialize_recovery_block() - Initialize the next active
+ *                                   recovery journal block.
+ * @block: The journal block to initialize.
+ */
 void vdo_initialize_recovery_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
@@ -170,16 +156,19 @@ void vdo_initialize_recovery_block(struct recovery_journal_block *block)
 }
 
 /**
- * Enqueue a data_vio to asynchronously encode and commit its next recovery
- * journal entry in this block. The data_vio will not be continued until the
- * entry is committed to the on-disk journal. The caller is responsible for
- * ensuring the block is not already full.
+ * vdo_enqueue_recovery_block_entry() - Enqueue a data_vio to
+ *                                      asynchronously encode and
+ *                                      commit its next recovery
+ *                                      journal entry in this block.
+ * @block: The journal block in which to make an entry.
+ * @data_vio: The data_vio to enqueue.
  *
- * @param block     The journal block in which to make an entry
- * @param data_vio  The data_vio to enqueue
+ * The data_vio will not be continued until the entry is committed to
+ * the on-disk journal. The caller is responsible for ensuring the
+ * block is not already full.
  *
- * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
- **/
+ * Return: VDO_SUCCESS or an error code if the data_vio could not be enqueued.
+ */
 int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 				     struct data_vio *data_vio)
 {
@@ -210,12 +199,11 @@ int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 }
 
 /**
- * Check whether the current sector of a block is full.
+ * is_sector_full() - * Check whether the current sector of a block is full.
+ * @block: The block to check.
  *
- * @param block  The block to check
- *
- * @return <code>true</code> if the sector is full
- **/
+ * Return: true if the sector is full.
+ */
 static bool __must_check
 is_sector_full(const struct recovery_journal_block *block)
 {
@@ -224,12 +212,12 @@ is_sector_full(const struct recovery_journal_block *block)
 }
 
 /**
- * Actually add entries from the queue to the given block.
+ * add_queued_recovery_entries() - Actually add entries from the queue to the
+ *                                 given block.
+ * @block: The journal block.
  *
- * @param block  The journal block
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int __must_check
 add_queued_recovery_entries(struct recovery_journal_block *block)
 {
@@ -249,7 +237,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			 */
 			block->has_fua_entry =
 				(block->has_fua_entry ||
-				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
+				 data_vio_requires_fua(data_vio));
 		}
 
 		/* Compose and encode the entry. */
@@ -303,12 +291,12 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 }
 
 /**
- * Check whether a journal block can be committed.
+ * vdo_can_commit_recovery_block() - Check whether a journal block can be
+ *                                   committed.
+ * @block: The journal block in question.
  *
- * @param block  The journal block in question
- *
- * @return <code>true</code> if the block can be committed now
- **/
+ * Return: true if the block can be committed now.
+ */
 bool vdo_can_commit_recovery_block(struct recovery_journal_block *block)
 {
 	/*
@@ -322,27 +310,30 @@ bool vdo_can_commit_recovery_block(struct recovery_journal_block *block)
 }
 
 /**
- * Attempt to commit a block. If the block is not the oldest block with
- * uncommitted entries or if it is already being committed, nothing will be
- * done.
+ * vdo_commit_recovery_block() - Attempt to commit a block.
+ * @block: The block to write.
+ * @callback: The function to call when the write completes.
+ * @error_handler: The handler for flush or write errors.
  *
- * @param block          The block to write
- * @param callback       The function to call when the write completes
- * @param error_handler  The handler for flush or write errors
+ * If the block is not the oldest block with uncommitted entries or if it is
+ * already being committed, nothing will be done.
  *
- * @return VDO_SUCCESS, or an error if the write could not be launched
- **/
+ * Return: VDO_SUCCESS, or an error if the write could not be launched.
+ */
 int vdo_commit_recovery_block(struct recovery_journal_block *block,
-			      vdo_action *callback,
+			      bio_end_io_t callback,
 			      vdo_action *error_handler)
 {
+	int result;
+	physical_block_number_t block_pbn;
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
-	physical_block_number_t block_pbn;
-	bool fua;
-	int result = ASSERT(vdo_can_commit_recovery_block(block),
-			    "should never call %s when the block can't be committed",
-			    __func__);
+	unsigned int operation =
+		REQ_OP_WRITE | REQ_PRIO | REQ_PREFLUSH | REQ_SYNC;
+
+	result = ASSERT(vdo_can_commit_recovery_block(block),
+			"block can commit in %s",
+			__func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -377,22 +368,23 @@ int vdo_commit_recovery_block(struct recovery_journal_block *block,
 	 * data. For writes which had the FUA flag set, we must also set the
 	 * FUA flag on the journal write.
 	 */
-	fua = block->has_fua_entry;
-	block->has_fua_entry = false;
-	launch_write_metadata_vio_with_flush(block->vio,
-					     block_pbn,
-					     callback,
-					     error_handler,
-					     true,
-					     fua);
+	if (block->has_fua_entry) {
+		block->has_fua_entry = false;
+		operation |= REQ_FUA;
+	}
+	submit_metadata_vio(block->vio,
+			    block_pbn,
+			    callback,
+			    error_handler,
+			    operation);
 	return VDO_SUCCESS;
 }
 
 /**
- * Dump the contents of the recovery block to the log.
- *
- * @param block  The block to dump
- **/
+ * vdo_dump_recovery_block() - Dump the contents of the recovery block to the
+ *                             log.
+ * @block: The block to dump.
+ */
 void vdo_dump_recovery_block(const struct recovery_journal_block *block)
 {
 	uds_log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",

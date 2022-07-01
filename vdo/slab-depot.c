@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "slab-depot.h"
@@ -47,12 +32,12 @@
 #include "vdo.h"
 
 /**
- * Calculate the number of slabs a depot would have.
+ * vdo_calculate_slab_count() - Calculate the number of slabs a depot
+ *                              would have.
+ * @depot: The depot.
  *
- * @param depot  The depot
- *
- * @return The number of slabs
- **/
+ * Return: The number of slabs.
+ */
 static
 slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
 {
@@ -61,29 +46,27 @@ slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
 }
 
 /**
- * Get an iterator over all the slabs in the depot.
+ * get_slab_iterator() - Get an iterator over all the slabs in the depot.
+ * @depot: The depot.
  *
- * @param depot  The depot
- *
- * @return An iterator over the depot's slabs
- **/
+ * Return: An iterator over the depot's slabs.
+ */
 static struct slab_iterator get_slab_iterator(struct slab_depot *depot)
 {
 	return vdo_iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
 }
 
 /**
- * Allocate a new slab pointer array. Any existing slab pointers will be
- * copied into the new array, and slabs will be allocated as needed. The
- * newly allocated slabs will not be distributed for use by the block
- * allocators.
+ * allocate_slabs() - Allocate a new slab pointer array.
+ * @depot: The depot.
+ * @slab_count: The number of slabs the depot should have in the new array.
  *
- * @param depot       The depot
- * @param slab_count  The number of slabs the depot should have in the new
- *                    array
+ * Any existing slab pointers will be copied into the new array, and slabs
+ * will be allocated as needed. The newly allocated slabs will not be
+ * distributed for use by the block allocators.
  *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 {
 	block_count_t slab_size;
@@ -141,10 +124,10 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 }
 
 /**
- * Abandon any new slabs in this depot, freeing them as needed.
- *
- * @param depot  The depot
- **/
+ * vdo_abandon_new_slabs() - Abandon any new slabs in this depot, freeing them
+ *                           as needed.
+ * @depot: The depot.
+ */
 void vdo_abandon_new_slabs(struct slab_depot *depot)
 {
 	slab_count_t i;
@@ -162,10 +145,11 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 }
 
 /**
- * Get the ID of the thread on which a given allocator operates.
+ * get_allocator_thread_id() - Get the ID of the thread on which a given
+ *                             allocator operates.
  *
- * <p>Implements vdo_zone_thread_getter.
- **/
+ * Implements vdo_zone_thread_getter.
+ */
 static thread_id_t get_allocator_thread_id(void *context,
 					   zone_count_t zone_number)
 {
@@ -173,10 +157,10 @@ static thread_id_t get_allocator_thread_id(void *context,
 }
 
 /**
- * Prepare to commit oldest tail blocks.
+ * prepare_for_tail_block_commit() - Prepare to commit oldest tail blocks.
  *
- * <p>Implements vdo_action_preamble.
- **/
+ * Implements vdo_action_preamble.
+ */
 static void prepare_for_tail_block_commit(void *context,
 					  struct vdo_completion *parent)
 {
@@ -187,12 +171,13 @@ static void prepare_for_tail_block_commit(void *context,
 }
 
 /**
- * Schedule a tail block commit if necessary. This method should not be called
- * directly. Rather, call vdo_schedule_default_action() on the depot's action
- * manager.
+ * schedule_tail_block_commit() - Schedule a tail block commit if necessary.
  *
- * <p>Implements vdo_action_scheduler.
- **/
+ * This method should not be called directly. Rather, call
+ * vdo_schedule_default_action() on the depot's action manager.
+ *
+ * Implements vdo_action_scheduler.
+ */
 static bool schedule_tail_block_commit(void *context)
 {
 	struct slab_depot *depot = context;
@@ -209,14 +194,13 @@ static bool schedule_tail_block_commit(void *context)
 }
 
 /**
- * Allocate those components of the slab depot which are needed only at load
- * time, not at format time.
+ * allocate_components() - Allocate those components of the slab depot which
+ *                         are needed only at load time, not at format time.
+ * @depot: The depot.
+ * @summary_partition: The partition which holds the slab summary.
  *
- * @param depot               The depot
- * @param summary_partition   The partition which holds the slab summary
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int allocate_components(struct slab_depot *depot,
 			       struct partition *summary_partition)
 {
@@ -294,15 +278,15 @@ static int allocate_components(struct slab_depot *depot,
 }
 
 /**
- * Make a slab depot and configure it with the state read from the super block.
+ * vdo_decode_slab_depot() - Make a slab depot and configure it with the state
+ *                           read from the super block.
+ * @state: The slab depot state from the super block.
+ * @vdo: The VDO which will own the depot.
+ * @summary_partition: The partition which holds the slab summary.
+ * @depot_ptr: A pointer to hold the depot.
  *
- * @param [in]  state               The slab depot state from the super block
- * @param [in]  vdo                 The VDO which will own the depot
- * @param [in]  summary_partition   The partition which holds the slab summary
- * @param [out] depot_ptr           A pointer to hold the depot
- *
- * @return A success or error code
- **/
+ * Return: A success or error code.
+ */
 int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 			  struct vdo *vdo,
 			  struct partition *summary_partition,
@@ -352,10 +336,9 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 }
 
 /**
- * Destroy a slab depot.
- *
- * @param depot  The depot to destroy
- **/
+ * vdo_free_slab_depot() - Destroy a slab depot.
+ * @depot: The depot to destroy.
+ */
 void vdo_free_slab_depot(struct slab_depot *depot)
 {
 	zone_count_t zone = 0;
@@ -385,12 +368,12 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 }
 
 /**
- * Record the state of a slab depot for encoding into the super block.
+ * vdo_record_slab_depot() - Record the state of a slab depot for encoding
+ *                           into the super block.
+ * @depot: The depot to encode.
  *
- * @param depot   The depot to encode
- *
- * @return The depot state
- **/
+ * Return: The depot state.
+ */
 struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot)
 {
 	/*
@@ -418,13 +401,15 @@ struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot
 }
 
 /**
- * Allocate the ref_counts for all slabs in the depot. This method may be
- * called only before entering normal operation from the load thread.
+ * vdo_allocate_slab_ref_counts() - Allocate the ref_counts for all slabs in
+ *                                  the depot.
+ * @depot: The depot whose ref_counts need allocation.
  *
- * @param depot  The depot whose ref_counts need allocation
+ * Context: This method may be called only before entering normal operation
+ *          from the load thread.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 {
 	struct slab_iterator iterator = get_slab_iterator(depot);
@@ -441,13 +426,13 @@ int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 }
 
 /**
- * Get the block allocator for a specified physical zone from a depot.
+ * vdo_get_block_allocator_for_zone() - Get the block allocator for a
+ *                                      specified physical zone from a depot.
+ * @depot: The depot.
+ * @zone_number: The physical zone.
  *
- * @param depot        The depot
- * @param zone_number  The physical zone
- *
- * @return The block allocator for the specified zone
- **/
+ * Return: The block allocator for the specified zone.
+ */
 struct block_allocator *vdo_get_block_allocator_for_zone(struct slab_depot *depot,
 							 zone_count_t zone_number)
 {
@@ -455,14 +440,14 @@ struct block_allocator *vdo_get_block_allocator_for_zone(struct slab_depot *depo
 }
 
 /**
- * Get the number of the slab that contains a specified block.
+ * vdo_get_slab_number() - Get the number of the slab that contains a
+ *                         specified block.
+ * @depot: The slab depot.
+ * @pbn: The physical block number.
+ * @slab_number_ptr: A pointer to hold the slab number.
  *
- * @param depot            The slab depot
- * @param pbn              The physical block number
- * @param slab_number_ptr  A pointer to hold the slab number
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static
 int vdo_get_slab_number(const struct slab_depot *depot,
 			physical_block_number_t pbn,
@@ -484,16 +469,17 @@ int vdo_get_slab_number(const struct slab_depot *depot,
 }
 
 /**
- * Get the slab object for the slab that contains a specified block. Will put
- * the VDO in read-only mode if the PBN is not a valid data block nor the zero
- * block.
+ * vdo_get_slab() - Get the slab object for the slab that contains a specified
+ *                  block.
+ * @depot: The slab depot.
+ * @pbn: The physical block number.
  *
- * @param depot  The slab depot
- * @param pbn    The physical block number
+ * Will put the VDO in read-only mode if the PBN is not a valid data block nor
+ * the zero block.
  *
- * @return The slab containing the block, or NULL if the block number is the
- *         zero block or otherwise out of range
- **/
+ * Return: The slab containing the block, or NULL if the block number is the
+ *         zero block or otherwise out of range.
+ */
 struct vdo_slab *vdo_get_slab(const struct slab_depot *depot,
 			      physical_block_number_t pbn)
 {
@@ -514,15 +500,15 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot,
 }
 
 /**
- * Get the slab journal for the slab that contains a specified block.
+ * vdo_get_slab_journal() - Get the slab journal for the slab that contains a
+ *                          specified block.
+ * @depot: The slab depot.
+ * @pbn: The physical block number within the block depot partition of any
+ *       block in the slab.
  *
- * @param depot  The slab depot
- * @param pbn    The physical block number within the block depot partition
- *               of any block in the slab
- *
- * @return The slab journal of the slab containing the block, or NULL if the
- *         block number is for the zero block or otherwise out of range
- **/
+ * Return: The slab journal of the slab containing the block, or NULL if the
+ *         block number is for the zero block or otherwise out of range.
+ */
 struct slab_journal *vdo_get_slab_journal(const struct slab_depot *depot,
 					  physical_block_number_t pbn)
 {
@@ -532,14 +518,16 @@ struct slab_journal *vdo_get_slab_journal(const struct slab_depot *depot,
 }
 
 /**
- * Determine how many new references a block can acquire. This method must be
- * called from the physical zone thread of the PBN.
+ * vdo_get_increment_limit() - Determine how many new references a block can
+ *                             acquire.
+ * @depot: The slab depot.
+ * @pbn: The physical block number that is being queried.
  *
- * @param depot  The slab depot
- * @param pbn    The physical block number that is being queried
+ * Context: This method must be called from the physical zone thread of the
+ * PBN.
  *
- * @return the number of available references
- **/
+ * Return: The number of available references.
+ */
 uint8_t vdo_get_increment_limit(struct slab_depot *depot,
 				physical_block_number_t pbn)
 {
@@ -553,13 +541,13 @@ uint8_t vdo_get_increment_limit(struct slab_depot *depot,
 }
 
 /**
- * Determine whether the given PBN refers to a data block.
+ * vdo_is_physical_data_block() - Determine whether the given PBN refers to a
+ *                                data block.
+ * @depot: The depot.
+ * @pbn: The physical block number to ask about.
  *
- * @param depot  The depot
- * @param pbn    The physical block number to ask about
- *
- * @return <code>True</code> if the PBN corresponds to a data block
- **/
+ * Return: True if the PBN corresponds to a data block.
+ */
 bool vdo_is_physical_data_block(const struct slab_depot *depot,
 				physical_block_number_t pbn)
 {
@@ -581,14 +569,17 @@ bool vdo_is_physical_data_block(const struct slab_depot *depot,
 }
 
 /**
- * Get the total number of data blocks allocated across all the slabs in the
- * depot, which is the total number of blocks with a non-zero reference count.
- * This may be called from any thread.
+ * vdo_get_slab_depot_allocated_blocks() - Get the total number of data blocks
+ *                                         allocated across all the slabs in
+ *                                         the depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
+ * This is the total number of blocks with a non-zero reference count.
  *
- * @return The total number of blocks with a non-zero reference count
- **/
+ * Context: This may be called from any thread.
+ *
+ * Return: The total number of blocks with a non-zero reference count.
+ */
 block_count_t vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot)
 {
 	block_count_t total = 0;
@@ -602,27 +593,31 @@ block_count_t vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot
 }
 
 /**
- * Get the total number of data blocks in all the slabs in the depot. This may
- * be called from any thread.
+ * vdo_get_slab_depot_data_blocks() - Get the total number of data blocks in
+ *                                    all the slabs in the depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
+ * Context: This may be called from any thread.
  *
- * @return The total number of data blocks in all slabs
- **/
+ * Return: The total number of data blocks in all slabs.
+ */
 block_count_t vdo_get_slab_depot_data_blocks(const struct slab_depot *depot)
 {
 	return (READ_ONCE(depot->slab_count) * depot->slab_config.data_blocks);
 }
 
 /**
- * Get the total number of unrecovered slabs in the depot, which is the total
- * number of unrecovered slabs from all zones. This may be called from any
- * thread.
+ * vdo_get_slab_depot_unrecovered_slab_count() - Get the total number of
+ *                                               unrecovered slabs in the
+ *                                               depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
+ * This is the total number of unrecovered slabs from all zones.
  *
- * @return The total number of slabs that are unrecovered
- **/
+ * Context: This may be called from any thread.
+ *
+ * Return: The total number of slabs that are unrecovered.
+ */
 static
 slab_count_t vdo_get_slab_depot_unrecovered_slab_count(const struct slab_depot *depot)
 {
@@ -638,10 +633,11 @@ slab_count_t vdo_get_slab_depot_unrecovered_slab_count(const struct slab_depot *
 }
 
 /**
- * The preamble of a load operation which loads the slab summary.
+ * start_depot_load() - The preamble of a load operation which loads the slab
+ *                      summary.
  *
- * <p>Implements vdo_action_preamble.
- **/
+ * Implements vdo_action_preamble.
+ */
 static void start_depot_load(void *context, struct vdo_completion *parent)
 {
 	struct slab_depot *depot = context;
@@ -653,15 +649,16 @@ static void start_depot_load(void *context, struct vdo_completion *parent)
 }
 
 /**
- * Asynchronously load any slab depot state that isn't included in the
- * super_block component. This method may be called only before entering
- * normal operation from the load thread.
+ * vdo_load_slab_depot() - Asynchronously load any slab depot state that isn't
+ *                         included in the super_block component.
+ * @depot: The depot to load.
+ * @operation: The type of load to perform.
+ * @parent: The completion to finish when the load is complete.
+ * @context: Additional context for the load operation; may be NULL.
  *
- * @param depot        The depot to load
- * @param operation    The type of load to perform
- * @param parent       The completion to finish when the load is complete
- * @param context      Additional context for the load operation; may be NULL
- **/
+ * This method may be called only before entering normal operation from the
+ * load thread.
+ */
 void vdo_load_slab_depot(struct slab_depot *depot,
 			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent,
@@ -679,14 +676,15 @@ void vdo_load_slab_depot(struct slab_depot *depot,
 }
 
 /**
- * Prepare the slab depot to come online and start allocating blocks. This
- * method may be called only before entering normal operation from the load
- * thread. It must be called before allocation may proceed.
+ * vdo_prepare_slab_depot_to_allocate() - Prepare the slab depot to come
+ *                                        online and start allocating blocks.
+ * @depot: The depot to prepare.
+ * @load_type: The load type.
+ * @parent: The completion to finish when the operation is complete.
  *
- * @param depot       The depot to prepare
- * @param load_type  The load type
- * @param parent      The completion to finish when the operation is complete
- **/
+ * This method may be called only before entering normal operation from the
+ * load thread. It must be called before allocation may proceed.
+ */
 void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 					enum slab_depot_load_type load_type,
 					struct vdo_completion *parent)
@@ -701,24 +699,25 @@ void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 }
 
 /**
- * Update the slab depot to reflect its new size in memory. This size is saved
- * to disk as part of the super block.
+ * vdo_update_slab_depot_size() - Update the slab depot to reflect its new
+ *                                size in memory.
+ * @depot: The depot to update.
  *
- * @param depot  The depot to update
- **/
+ * This size is saved to disk as part of the super block.
+ */
 void vdo_update_slab_depot_size(struct slab_depot *depot)
 {
 	depot->last_block = depot->new_last_block;
 }
 
 /**
- * Allocate new memory needed for a resize of a slab depot to the given size.
+ * vdo_prepare_to_grow_slab_depot() - Allocate new memory needed for a resize
+ *                                    of a slab depot to the given size.
+ * @depot: The depot to prepare to resize.
+ * @new_size: The number of blocks in the new depot.
  *
- * @param depot     The depot to prepare to resize
- * @param new_size  The number of blocks in the new depot
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
 {
 	struct slab_depot_state_2_0 new_state;
@@ -766,11 +765,11 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 }
 
 /**
- * Finish registering new slabs now that all of the allocators have received
- * their new slabs.
+ * finish_registration() - Finish registering new slabs now that all of the
+ *                         allocators have received their new slabs.
  *
- * <p>Implements vdo_action_conclusion.
- **/
+ * Implements vdo_action_conclusion.
+ */
 static int finish_registration(void *context)
 {
 	struct slab_depot *depot = context;
@@ -784,11 +783,10 @@ static int finish_registration(void *context)
 }
 
 /**
- * Use the new slabs allocated for resize.
- *
- * @param depot   The depot
- * @param parent  The object to notify when complete
- **/
+ * vdo_use_new_slabs() - Use the new slabs allocated for resize.
+ * @depot: The depot.
+ * @parent: The object to notify when complete.
+ */
 void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	ASSERT_LOG_ONLY(depot->new_slabs != NULL, "Must have new slabs to use");
@@ -801,14 +799,14 @@ void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
 }
 
 /**
- * Drain all slab depot I/O. If saving, or flushing, all dirty depot metadata
- * will be written out. If saving or suspending, the depot will be left in a
- * suspended state.
+ * vdo_drain_slab_depot() - Drain all slab depot I/O.
+ * @depot: The depot to drain.
+ * @operation: The drain operation (flush, rebuild, suspend, or save).
+ * @parent: The completion to finish when the drain is complete.
  *
- * @param depot      The depot to drain
- * @param operation  The drain operation (flush, rebuild, suspend, or save)
- * @param parent     The completion to finish when the drain is complete
- **/
+ * If saving, or flushing, all dirty depot metadata will be written out. If
+ * saving or suspending, the depot will be left in a suspended state.
+ */
 void vdo_drain_slab_depot(struct slab_depot *depot,
 			  const struct admin_state_code *operation,
 			  struct vdo_completion *parent)
@@ -822,11 +820,10 @@ void vdo_drain_slab_depot(struct slab_depot *depot,
 }
 
 /**
- * Resume a suspended slab depot.
- *
- * @param depot   The depot to resume
- * @param parent  The completion to finish when the depot has resumed
- **/
+ * vdo_resume_slab_depot() - Resume a suspended slab depot.
+ * @depot: The depot to resume.
+ * @parent: The completion to finish when the depot has resumed.
+ */
 void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	if (vdo_is_read_only(depot->vdo->read_only_notifier)) {
@@ -843,13 +840,15 @@ void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *pare
 }
 
 /**
- * Commit all dirty tail blocks which are locking a given recovery journal
- * block. This method must be called from the journal zone thread.
+ * vdo_commit_oldest_slab_journal_tail_blocks() - Commit all dirty tail blocks
+ *                                                which are locking a given
+ *                                                recovery journal block.
+ * @depot: The depot.
+ * @recovery_block_number: The sequence number of the recovery journal block
+ *                         whose locks should be released.
  *
- * @param depot                  The depot
- * @param recovery_block_number  The sequence number of the recovery journal
- *                               block whose locks should be released
- **/
+ * Context: This method must be called from the journal zone thread.
+ */
 void
 vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 					   sequence_number_t recovery_block_number)
@@ -863,36 +862,33 @@ vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 }
 
 /**
- * Get the slab_config of a depot.
+ * vdo_get_slab_config() - Get the slab_config of a depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The slab configuration of the specified depot
- **/
+ * Return: The slab configuration of the specified depot.
+ */
 const struct slab_config *vdo_get_slab_config(const struct slab_depot *depot)
 {
 	return &depot->slab_config;
 }
 
 /**
- * Get the slab summary.
+ * vdo_get_slab_summary() - Get the slab summary.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The slab summary
- **/
+ * Return: The slab summary.
+ */
 struct slab_summary *vdo_get_slab_summary(const struct slab_depot *depot)
 {
 	return depot->slab_summary;
 }
 
 /**
- * Scrub all unrecovered slabs.
- *
- * @param depot         The depot to scrub
- * @param parent        The object to notify when scrubbing has been launched
- *                      for all zones
- **/
+ * vdo_scrub_all_unrecovered_slabs() - Scrub all unrecovered slabs.
+ * @depot: The depot to scrub.
+ * @parent: The object to notify when scrubbing has been launched for all
+ *          zones.
+ */
 void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				     struct vdo_completion *parent)
 {
@@ -904,13 +900,16 @@ void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
 }
 
 /**
- * Notify a slab depot that one of its allocators has finished scrubbing slabs.
+ * vdo_notify_zone_finished_scrubbing() - Notify a slab depot that one of its
+ *                                        allocators has finished scrubbing
+ *                                        slabs.
+ * @completion: A completion whose parent must be a slab depot.
+ *
  * This method should only be called if the scrubbing was successful. This
  * callback is registered by each block allocator in
  * vdo_scrub_all_unrecovered_slabs_in_zone().
  *
- * @param completion  A completion whose parent must be a slab depot
- **/
+ */
 void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 {
 	enum vdo_state prior_state;
@@ -944,13 +943,13 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 }
 
 /**
- * Get the physical size to which this depot is prepared to grow.
+ * vdo_get_slab_depot_new_size() - Get the physical size to which this depot
+ *                                 is prepared to grow.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The new number of blocks the depot will be grown to, or 0 if the
- *         depot is not prepared to grow
- **/
+ * Return: The new number of blocks the depot will be grown to, or 0 if the
+ *         depot is not prepared to grow.
+ */
 block_count_t vdo_get_slab_depot_new_size(const struct slab_depot *depot)
 {
 	return (depot->new_slabs == NULL) ? 0 : depot->new_size;
@@ -958,12 +957,13 @@ block_count_t vdo_get_slab_depot_new_size(const struct slab_depot *depot)
 
 
 /**
- * Get the total of the statistics from all the block allocators in the depot.
+ * get_depot_block_allocator_statistics() - Get the total of the statistics
+ *                                          from all the block allocators in
+ *                                          the depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The statistics from all block allocators in the depot
- **/
+ * Return: The statistics from all block allocators in the depot.
+ */
 static struct block_allocator_statistics __must_check
 get_depot_block_allocator_statistics(const struct slab_depot *depot)
 {
@@ -985,12 +985,12 @@ get_depot_block_allocator_statistics(const struct slab_depot *depot)
 }
 
 /**
- * Get the cumulative ref_counts statistics for the depot.
+ * get_depot_ref_counts_statistics() - Get the cumulative ref_counts
+ *                                     statistics for the depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The cumulative statistics for all ref_counts in the depot
- **/
+ * Return: The cumulative statistics for all ref_counts in the depot.
+ */
 static struct ref_counts_statistics __must_check
 get_depot_ref_counts_statistics(const struct slab_depot *depot)
 {
@@ -1010,12 +1010,12 @@ get_depot_ref_counts_statistics(const struct slab_depot *depot)
 }
 
 /**
- * Get the aggregated slab journal statistics for the depot.
+ * get_depot_slab_journal_statistics() - Get the aggregated slab journal
+ *                                       statistics for the depot.
+ * @depot: The slab depot.
  *
- * @param depot  The slab depot
- *
- * @return The aggregated statistics for all slab journals in the depot
- **/
+ * Return: The aggregated statistics for all slab journals in the depot.
+ */
 static struct slab_journal_statistics __must_check
 get_depot_slab_journal_statistics(const struct slab_depot *depot)
 {
@@ -1039,11 +1039,11 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
 }
 
 /**
- * Get all the vdo_statistics fields that are properties of the slab depot.
- *
- * @param depot  The slab depot
- * @param stats  The vdo statistics structure to partially fill
- **/
+ * vdo_get_slab_depot_statistics() - Get all the vdo_statistics fields that
+ *                                   are properties of the slab depot.
+ * @depot: The slab depot.
+ * @stats: The vdo statistics structure to partially fill.
+ */
 void vdo_get_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats)
 {
@@ -1061,10 +1061,9 @@ void vdo_get_slab_depot_statistics(const struct slab_depot *depot,
 }
 
 /**
- * Dump the slab depot, in a thread-unsafe fashion.
- *
- * @param depot  The slab depot
- **/
+ * vdo_dump_slab_depot() - Dump the slab depot, in a thread-unsafe fashion.
+ * @depot: The slab depot.
+ */
 void vdo_dump_slab_depot(const struct slab_depot *depot)
 {
 	uds_log_info("vdo slab depot");

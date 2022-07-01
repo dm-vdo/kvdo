@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "pbn-lock-pool.h"
@@ -30,40 +15,44 @@
 #include "status-codes.h"
 
 /**
+ * union idle_pbn_lock - PBN lock list entries.
+ *
  * Unused (idle) PBN locks are kept in a list. Just like in a malloc
  * implementation, the lock structure is unused memory, so we can save a bit
  * of space (and not pollute the lock structure proper) by using a union to
  * overlay the lock structure with the free list.
- **/
+ */
 typedef union {
-	/** Only used while locks are in the pool */
+	/** @entry: Only used while locks are in the pool. */
 	struct list_head entry;
-	/** Only used while locks are not in the pool */
+	/** @lock: Only used while locks are not in the pool. */
 	struct pbn_lock lock;
 } idle_pbn_lock;
 
 /**
+ * struct pbn_lock_pool - list of PBN locks.
+ *
  * The lock pool is little more than the memory allocated for the locks.
- **/
+ */
 struct pbn_lock_pool {
-	/** The number of locks allocated for the pool */
+	/** @capacity: The number of locks allocated for the pool. */
 	size_t capacity;
-	/** The number of locks currently borrowed from the pool */
+	/** @borrowed: The number of locks currently borrowed from the pool. */
 	size_t borrowed;
-	/** A list containing all idle PBN lock instances */
+	/** @idle_list: A list containing all idle PBN lock instances. */
 	struct list_head idle_list;
-	/** The memory for all the locks allocated by this pool */
+	/** @locks: The memory for all the locks allocated by this pool. */
 	idle_pbn_lock locks[];
 };
 
 /**
- * Create a new PBN lock pool and all the lock instances it can loan out.
+ * vdo_make_pbn_lock_pool() - Create a new PBN lock pool and all the lock
+ *                            instances it can loan out.
+ * @capacity: The number of PBN locks to allocate for the pool.
+ * @pool_ptr: A pointer to receive the new pool.
  *
- * @param [in]  capacity    The number of PBN locks to allocate for the pool
- * @param [out] pool_ptr    A pointer to receive the new pool
- *
- * @return a VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
@@ -87,11 +76,12 @@ int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 }
 
 /**
- * Free a PBN lock pool. This also frees all the PBN locks it allocated,
- * so the caller must ensure that all locks have been returned to the pool.
+ * vdo_free_pbn_lock_pool() - Free a PBN lock pool.
+ * @pool: The lock pool to free.
  *
- * @param pool  The lock pool to free
- **/
+ * This also frees all the PBN locks it allocated, so the caller must ensure
+ * that all locks have been returned to the pool.
+ */
 void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 {
 	if (pool == NULL) {
@@ -105,17 +95,18 @@ void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 }
 
 /**
- * Borrow a PBN lock from the pool and initialize it with the provided type.
+ * vdo_borrow_pbn_lock_from_pool() - Borrow a PBN lock from the pool and
+ *                                   initialize it with the provided type.
+ * @pool: The pool from which to borrow.
+ * @type: The type with which to initialize the lock.
+ * @lock_ptr:  A pointer to receive the borrowed lock.
+ *
  * Pools do not grow on demand or allocate memory, so this will fail if the
  * pool is empty. Borrowed locks are still associated with this pool and must
  * be returned to only this pool.
  *
- * @param [in]  pool      The pool from which to borrow
- * @param [in]  type      The type with which to initialize the lock
- * @param [out] lock_ptr  A pointer to receive the borrowed lock
- *
- * @return VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty
- **/
+ * Return: VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty.
+ */
 int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 				  enum pbn_lock_type type,
 				  struct pbn_lock **lock_ptr)
@@ -148,13 +139,14 @@ int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 }
 
 /**
- * Return to the pool a lock that was borrowed from it. It must be the last
- * live reference, as if the memory were being freed (the lock memory will
- * re-initialized or zeroed).
+ * vdo_return_pbn_lock_to_pool() - Return to the pool a lock that was borrowed
+ *                                 from it.
+ * @pool: The pool from which the lock was borrowed.
+ * @lock: The last reference to the lock being returned.
  *
- * @param pool  The pool from which the lock was borrowed
- * @param lock  The last reference to the lock being returned
- **/
+ * It must be the last live reference, as if the memory were being freed (the
+ * lock memory will re-initialized or zeroed).
+ */
 void vdo_return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 				 struct pbn_lock *lock)
 {

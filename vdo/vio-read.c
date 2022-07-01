@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "vio-read.h"
@@ -27,7 +12,6 @@
 
 #include "bio.h"
 #include "block-map.h"
-#include "comparisons.h"
 #include "data-vio.h"
 #include "io-submitter.h"
 #include "kernel-types.h"
@@ -81,15 +65,15 @@ static void continue_partial_write(struct vdo_completion *completion)
 }
 
 /**
- * Do the modify-write part of a read-modify-write cycle. This callback is
- * registered in read_block().
+ * modify_for_partial_write() - Do the modify-write part of a
+ *                              read-modify-write cycle.
+ * @completion: The data_vio which has just finished its read.
  *
- * @param completion  The data_vio which has just finished its read
- **/
+ * This callback is registered in read_block().
+ */
 static void modify_for_partial_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct vio *vio = data_vio_as_vio(data_vio);
 	struct bio *bio = data_vio->user_bio;
 
 	assert_data_vio_on_cpu_thread(data_vio);
@@ -106,8 +90,9 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	}
 
 	data_vio->is_zero_block = is_zero_block(data_vio->data_block);
-	vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
-	data_vio->is_partial_write = true;
+	data_vio->io_operation =
+		(DATA_VIO_WRITE |
+		 (data_vio->io_operation & ~DATA_VIO_READ_WRITE_MASK));
 	completion->error_handler = NULL;
 	launch_data_vio_logical_callback(data_vio, continue_partial_write);
 }
@@ -130,7 +115,7 @@ static void complete_read(struct vdo_completion *completion)
 		}
 	}
 
-	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
+	if (is_read_modify_write_data_vio(data_vio)) {
 		modify_for_partial_write(completion);
 		return;
 	}
@@ -174,11 +159,11 @@ static void complete_zero_read(struct vdo_completion *completion)
 }
 
 /**
- * Read a block asynchronously. This is the callback registered in
- * read_block_mapping().
+ * read_block() - Read a block asynchronously.
+ * @completion: The data_vio to read.
  *
- * @param completion  The data_vio to read
- **/
+ * This is the callback registered in read_block_mapping().
+ */
 static void read_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -211,7 +196,7 @@ static void read_block(struct vdo_completion *completion)
 		int opf = ((data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS) |
 			   REQ_OP_READ);
 
-		if (is_read_modify_write_vio(data_vio_as_vio(data_vio)) ||
+		if (is_read_modify_write_data_vio(data_vio) ||
 		    (data_vio->is_partial)) {
 			result = prepare_data_vio_for_io(data_vio,
 							 data_vio->data_block,
@@ -230,7 +215,7 @@ static void read_block(struct vdo_completion *completion)
 			__bio_clone_fast(vio->bio, data_vio->user_bio);
 #else
 			bio_reset(vio->bio, vio->bio->bi_bdev, opf);
-			bio_init_clone(vio->bio->bi_bdev,
+			bio_init_clone(data_vio->user_bio->bi_bdev,
 				       vio->bio,
 				       data_vio->user_bio,
 				       GFP_KERNEL);
@@ -254,11 +239,11 @@ static void read_block(struct vdo_completion *completion)
 }
 
 /**
- * Read the data_vio's mapping from the block map. This callback is registered
- * in launch_read_data_vio().
+ * read_block_mapping() - Read the data_vio's mapping from the block map.
+ * @completion: The data_vio to be read.
  *
- * @param completion  The data_vio to be read
- **/
+ * This callback is registered in launch_read_data_vio().
+ */
 static void read_block_mapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -275,12 +260,13 @@ static void read_block_mapping(struct vdo_completion *completion)
 }
 
 /**
- * Start the asynchronous processing of the data_vio for a read or
+ * launch_read_data_vio() - Start the asynchronous processing of a read vio.
+ * @data_vio: The data_vio doing the read.
+ *
+ * Starts the asynchronous processing of the data_vio for a read or
  * read-modify-write request which has acquired a lock on its logical block.
  * The first step is to perform a block map lookup.
- *
- * @param data_vio  The data_vio doing the read
- **/
+ */
 void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_data_vio_in_logical_zone(data_vio);
@@ -292,11 +278,10 @@ void launch_read_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Release the logical block lock which a read data_vio obtained now that it
- * is done.
- *
- * @param completion  The data_vio
- **/
+ * release_logical_lock() - Release the logical block lock which a read
+ *                          data_vio obtained now that it is done.
+ * @completion: The data_vio.
+ */
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -307,10 +292,10 @@ static void release_logical_lock(struct vdo_completion *completion)
 }
 
 /**
- * Clean up a data_vio which has finished processing a read.
- *
- * @param data_vio  The data_vio to clean up
- **/
+ * cleanup_read_data_vio() - Clean up a data_vio which has finished processing
+ *                           a read.
+ * @data_vio: The data_vio to clean up.
+ */
 void cleanup_read_data_vio(struct data_vio *data_vio)
 {
 	launch_data_vio_logical_callback(data_vio, release_logical_lock);

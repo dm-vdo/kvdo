@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "volume.h"
@@ -167,7 +152,8 @@ static int init_chapter_index_page(const struct volume *volume,
 {
 	uint64_t ci_virtual;
 	unsigned int ci_chapter;
-	struct index_page_bounds bounds;
+	unsigned int lowest_list;
+	unsigned int highest_list;
 	struct geometry *geometry = volume->geometry;
 
 	int result = initialize_chapter_index_page(chapter_index_page,
@@ -182,27 +168,26 @@ static int init_chapter_index_page(const struct volume *volume,
 					      chapter, index_page_number);
 	}
 
-	result = get_list_number_bounds(volume->index_page_map, chapter,
-					index_page_number, &bounds);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
+	get_list_number_bounds(volume->index_page_map,
+			       chapter,
+			       index_page_number,
+			       &lowest_list,
+			       &highest_list);
 	ci_virtual = chapter_index_page->virtual_chapter_number;
 	ci_chapter = map_to_physical_chapter(geometry, ci_virtual);
 	if ((chapter == ci_chapter) &&
-	    (bounds.lowest_list == chapter_index_page->lowest_list_number) &&
-	    (bounds.highest_list == chapter_index_page->highest_list_number)) {
+	    (lowest_list == chapter_index_page->lowest_list_number) &&
+	    (highest_list == chapter_index_page->highest_list_number)) {
 		return UDS_SUCCESS;
 	}
 
 	uds_log_warning("Index page map updated to %llu",
-			(unsigned long long) get_last_update(volume->index_page_map));
+			(unsigned long long) volume->index_page_map->last_update);
 	uds_log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
 			chapter,
 			index_page_number,
-			bounds.lowest_list,
-			bounds.highest_list,
+			lowest_list,
+			highest_list,
 			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
@@ -406,15 +391,11 @@ static void read_thread_function(void *arg)
 static int read_page_locked(struct volume *volume,
 			    struct uds_request *request,
 			    unsigned int physical_page,
-			    bool sync_read,
 			    struct cached_page **page_ptr)
 {
 	int result = UDS_SUCCESS;
 	struct cached_page *page = NULL;
-
-	sync_read |= ((volume->lookup_mode == LOOKUP_FOR_REBUILD) ||
-		      (request == NULL) || (request->session == NULL));
-
+	bool sync_read = ((request == NULL) || (request->session == NULL));
 
 	if (sync_read) {
 		/* Find a place to put the page. */
@@ -470,7 +451,6 @@ static int read_page_locked(struct volume *volume,
 }
 
 int get_volume_page_locked(struct volume *volume,
-			   struct uds_request *request,
 			   unsigned int physical_page,
 			   struct cached_page **page_ptr)
 {
@@ -482,13 +462,11 @@ int get_volume_page_locked(struct volume *volume,
 		return result;
 	}
 	if (page == NULL) {
-		result = read_page_locked(volume, request, physical_page, true,
-					  &page);
+		result = read_page_locked(volume, NULL, physical_page, &page);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-	} else if (get_zone_number(request) == 0) {
-		/* Only 1 zone is responsible for updating LRU */
+	} else {
 		make_page_most_recent(volume->page_cache, page);
 	}
 
@@ -580,7 +558,7 @@ int get_volume_page_protected(struct volume *volume,
 
 	if (page == NULL) {
 		result = read_page_locked(volume, request, physical_page,
-					  false, &page);
+					  &page);
 		if (result != UDS_SUCCESS) {
 			/*
 			 * This code path is used frequently in the UDS_QUEUED
@@ -622,7 +600,7 @@ int get_volume_page(struct volume *volume,
 		map_to_physical_page(volume->geometry, chapter, page_number);
 
 	uds_lock_mutex(&volume->read_threads_mutex);
-	result = get_volume_page_locked(volume, NULL, physical_page, &page);
+	result = get_volume_page_locked(volume, physical_page, &page);
 	uds_unlock_mutex(&volume->read_threads_mutex);
 
 	if (data_ptr != NULL) {
@@ -811,17 +789,15 @@ int search_volume_page_cache(struct volume *volume,
 			     struct uds_chunk_data *metadata,
 			     bool *found)
 {
+	int result;
 	unsigned int physical_chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
 	unsigned int index_page_number;
 	int record_page_number;
-	int result = find_index_page_number(volume->index_page_map,
-					    name,
-					    physical_chapter,
-					    &index_page_number);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+
+	index_page_number = find_index_page_number(volume->index_page_map,
+						   name,
+						   physical_chapter);
 
 	if ((request != NULL) &&
 	    (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP)) {
@@ -979,15 +955,12 @@ int write_index_pages(struct volume *volume,
 		} else {
 			delta_list_number += lists_packed;
 		}
-		result = update_index_page_map(volume->index_page_map,
-					       chapter_index->virtual_chapter_number,
-					       physical_chapter_number,
-					       index_page_number,
-					       delta_list_number - 1);
-		if (result != UDS_SUCCESS) {
-			return uds_log_error_strerror(result,
-						      "failed to update index page map");
-		}
+
+		update_index_page_map(volume->index_page_map,
+				      chapter_index->virtual_chapter_number,
+				      physical_chapter_number,
+				      index_page_number,
+				      delta_list_number - 1);
 
 		/* Donate the page data for the index page to the page cache. */
 		uds_lock_mutex(&volume->read_threads_mutex);
@@ -1090,7 +1063,7 @@ size_t get_cache_size(struct volume *volume)
 {
 	size_t size = get_page_cache_size(volume->page_cache);
 
-	if (is_sparse(volume->geometry)) {
+	if (is_sparse_geometry(volume->geometry)) {
 		size += get_sparse_cache_memory_size(volume->sparse_cache);
 	}
 	return size;
@@ -1129,14 +1102,14 @@ static int probe_chapter(struct volume *volume,
 				      i,
 				      (unsigned long long) last_vcn,
 				      (unsigned long long) vcn);
-			return UDS_CORRUPT_COMPONENT;
+			return UDS_CORRUPT_DATA;
 		}
 
 		if (expected_list_number != page->lowest_list_number) {
 			uds_log_error("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
 				      chapter_number, i, expected_list_number,
 				      page->lowest_list_number);
-			return UDS_CORRUPT_COMPONENT;
+			return UDS_CORRUPT_DATA;
 		}
 		expected_list_number = page->highest_list_number + 1;
 
@@ -1149,14 +1122,14 @@ static int probe_chapter(struct volume *volume,
 	if (last_vcn == UINT64_MAX) {
 		uds_log_error("no chapter %u virtual chapter number determined",
 			      chapter_number);
-		return UDS_CORRUPT_COMPONENT;
+		return UDS_CORRUPT_DATA;
 	}
 	if (chapter_number != map_to_physical_chapter(geometry, last_vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
 			      chapter_number,
 			      (unsigned long long) last_vcn,
 			      geometry->chapters_per_volume);
-		return UDS_CORRUPT_COMPONENT;
+		return UDS_CORRUPT_DATA;
 	}
 	*virtual_chapter_number = last_vcn;
 	return UDS_SUCCESS;
@@ -1169,8 +1142,7 @@ static int probe_wrapper(void *aux,
 	struct volume *volume = aux;
 	int result =
 		probe_chapter(volume, chapter_number, virtual_chapter_number);
-	if ((result == UDS_CORRUPT_COMPONENT) ||
-	    (result == UDS_CORRUPT_DATA)) {
+	if (result == UDS_CORRUPT_DATA) {
 		*virtual_chapter_number = UINT64_MAX;
 		return UDS_SUCCESS;
 	}
@@ -1201,7 +1173,7 @@ static int find_real_end_of_volume(struct volume *volume,
 			}
 			span /= 2;
 			tries = 0;
-		} else if (result == UDS_CORRUPT_COMPONENT) {
+		} else if (result == UDS_CORRUPT_DATA) {
 			limit = chapter;
 			if (++tries > 1) {
 				span *= 2;
@@ -1385,7 +1357,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 		if (bad_chapters++ >= max_bad_chapters) {
 			uds_log_error("too many bad chapters in volume: %u",
 				      bad_chapters);
-			return UDS_CORRUPT_COMPONENT;
+			return UDS_CORRUPT_DATA;
 		}
 	}
 
@@ -1431,7 +1403,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 	/* And a buffer for the chapter writer */
 	reserved_buffers += 1;
 	/* And a buffer for each entry in the sparse cache */
-	if (is_sparse(geometry)) {
+	if (is_sparse_geometry(geometry)) {
 		reserved_buffers += (config->cache_chapters *
 				     geometry->index_pages_per_chapter);
 	}
@@ -1467,7 +1439,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
-	if (is_sparse(geometry)) {
+	if (is_sparse_geometry(geometry)) {
 		result = make_sparse_cache(geometry,
 					   config->cache_chapters,
 					   config->zone_count,

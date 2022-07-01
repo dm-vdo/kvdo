@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "priority-table.h"
@@ -27,48 +12,47 @@
 
 #include "status-codes.h"
 
-/** We use a single 64-bit search vector, so the maximum priority is 63 */
+/* We use a single 64-bit search vector, so the maximum priority is 63 */
 enum {
 	MAX_PRIORITY = 63
 };
 
-/**
+/*
  * All the entries with the same priority are queued in a circular list in a
  * bucket for that priority. The table is essentially an array of buckets.
- **/
+ */
 struct bucket {
-	/**
+	/*
 	 * The head of a queue of table entries, all having the same priority
 	 */
 	struct list_head queue;
-	/** The priority of all the entries in this bucket */
+	/* The priority of all the entries in this bucket */
 	unsigned int priority;
 };
 
-/**
+/*
  * A priority table is an array of buckets, indexed by priority. New entries
  * are added to the end of the queue in the appropriate bucket. The dequeue
  * operation finds the highest-priority non-empty bucket by searching a bit
  * vector represented as a single 8-byte word, which is very fast with
  * compiler and CPU support.
- **/
+ */
 struct priority_table {
-	/** The maximum priority of entries that may be stored in this table */
+	/* The maximum priority of entries that may be stored in this table */
 	unsigned int max_priority;
-	/** A bit vector flagging all buckets that are currently non-empty */
+	/* A bit vector flagging all buckets that are currently non-empty */
 	uint64_t search_vector;
-	/** The array of all buckets, indexed by priority */
+	/* The array of all buckets, indexed by priority */
 	struct bucket buckets[];
 };
 
 /**
- * Allocate and initialize a new priority_table.
+ * make_priority_table() - Allocate and initialize a new priority_table.
+ * @max_priority: The maximum priority value for table entries.
+ * @table_ptr: A pointer to hold the new table.
  *
- * @param [in]  max_priority  The maximum priority value for table entries
- * @param [out] table_ptr     A pointer to hold the new table
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int make_priority_table(unsigned int max_priority,
 			struct priority_table **table_ptr)
 {
@@ -101,11 +85,12 @@ int make_priority_table(unsigned int max_priority,
 }
 
 /**
- * Free a priority_table. NOTE: The table does not own the entries stored in
- * it and they are not freed by this call.
+ * free_priority_table() - Free a priority_table.
+ * @table: The table to free.
  *
- * @param table  The table to free
- **/
+ * The table does not own the entries stored in it and they are not freed by
+ * this call.
+ */
 void free_priority_table(struct priority_table *table)
 {
 	if (table == NULL) {
@@ -122,12 +107,13 @@ void free_priority_table(struct priority_table *table)
 }
 
 /**
- * Reset a priority table, leaving it in the same empty state as when newly
- * constructed. NOTE: The table does not own the entries stored in it and they
- * are not freed (or even unlinked from each other) by this call.
+ * reset_priority_table() - Reset a priority table, leaving it in the same
+ *                          empty state as when newly constructed.
+ * @table: The table to reset.
  *
- * @param table  The table to reset
- **/
+ * The table does not own the entries stored in it and they are not freed (or
+ * even unlinked from each other) by this call.
+ */
 void reset_priority_table(struct priority_table *table)
 {
 	unsigned int priority;
@@ -139,14 +125,14 @@ void reset_priority_table(struct priority_table *table)
 }
 
 /**
- * Add a new entry to the priority table, appending it to the queue for
- * entries with the specified priority.
- *
- * @param table     The table in which to store the entry
- * @param priority  The priority of the entry
- * @param entry     The list_head embedded in the entry to store in the table
- *                  (the caller must have initialized it)
- **/
+ * priority_table_enqueue() - Add a new entry to the priority table, appending
+ *                            it to the queue for entries with the specified
+ *                            priority.
+ * @table: The table in which to store the entry.
+ * @priority: The priority of the entry.
+ * @entry: The list_head embedded in the entry to store in the table
+ *         (the caller must have initialized it).
+ */
 void priority_table_enqueue(struct priority_table *table, unsigned int priority,
 			    struct list_head *entry)
 {
@@ -167,14 +153,15 @@ static inline void mark_bucket_empty(struct priority_table *table,
 }
 
 /**
- * Find the highest-priority entry in the table, remove it from the table, and
- * return it. If there are multiple entries with the same priority, the one
- * that has been in the table with that priority the longest will be returned.
+ * priority_table_dequeue() - Find the highest-priority entry in the table,
+ *                            remove it from the table, and return it.
+ * @table: The priority table from which to remove an entry.
  *
- * @param table  The priority table from which to remove an entry
+ * If there are multiple entries with the same priority, the one that has been
+ * in the table with that priority the longest will be returned.
  *
- * @return the dequeued entry, or NULL if the table is currently empty
- **/
+ * Return: The dequeued entry, or NULL if the table is currently empty.
+ */
 struct list_head *priority_table_dequeue(struct priority_table *table)
 {
 	struct bucket *bucket;
@@ -206,11 +193,10 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 }
 
 /**
- * Remove a specified entry from its priority table.
- *
- * @param table   The table from which to remove the entry
- * @param entry   The entry to remove from the table
- **/
+ * priority_table_remove() - Remove a specified entry from its priority table.
+ * @table: The table from which to remove the entry.
+ * @entry: The entry to remove from the table.
+ */
 void priority_table_remove(struct priority_table *table,
 			   struct list_head *entry)
 {
@@ -243,12 +229,11 @@ void priority_table_remove(struct priority_table *table,
 }
 
 /**
- * Return whether the priority table is empty.
+ * is_priority_table_empty() - Return whether the priority table is empty.
+ * @table: The table to check.
  *
- * @param table   The table to check
- *
- * @return <code>true</code> if the table is empty
- **/
+ * Return: true if the table is empty.
+ */
 bool is_priority_table_empty(struct priority_table *table)
 {
 	return (table->search_vector == 0);

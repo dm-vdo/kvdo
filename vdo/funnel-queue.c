@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "funnel-queue.h"
@@ -24,15 +9,49 @@
 #include "permassert.h"
 #include "uds.h"
 
+/**
+ * A funnel queue is a simple (almost) lock-free queue that accepts entries
+ * from multiple threads (multi-producer) and delivers them to a single thread
+ * (single-consumer). "Funnel" is an attempt to evoke the image of requests
+ * from more than one producer being "funneled down" to a single consumer.
+ *
+ * This is an unsynchronized but thread-safe data structure when used as
+ * intended. There is no mechanism to ensure that only one thread is consuming
+ * from the queue. If more than one thread attempts to comsume from the queue,
+ * the resulting behavior is undefined. Clients must not directly access or
+ * manipulate the internals of the queue, which are only exposed for the
+ * purpose of allowing the very simple enqueue operation to be inlined.
+ *
+ * The implementation requires that a funnel_queue_entry structure (a link
+ * pointer) is embedded in the queue entries, and pointers to those structures
+ * are used exclusively by the queue. No macros are defined to template the
+ * queue, so the offset of the funnel_queue_entry in the records placed in the
+ * queue must all be the same so the client can derive their structure pointer
+ * from the entry pointer returned by funnel_queue_poll().
+ *
+ * Callers are wholly responsible for allocating and freeing the entries.
+ * Entries may be freed as soon as they are returned since this queue is not
+ * susceptible to the "ABA problem" present in many lock-free data structures.
+ * The queue is dynamically allocated to ensure cache-line alignment, but no
+ * other dynamic allocation is used.
+ *
+ * The algorithm is not actually 100% lock-free. There is a single point in
+ * funnel_queue_put() at which a preempted producer will prevent the consumers
+ * from seeing items added to the queue by later producers, and only if the
+ * queue is short enough or the consumer fast enough for it to reach what was
+ * the end of the queue at the time of the preemption.
+ *
+ * The consumer function, funnel_queue_poll(), will return NULL when the queue
+ * is empty. To wait for data to consume, spin (if safe) or combine the queue
+ * with a struct event_count to signal the presence of new entries.
+ **/
+
 int make_funnel_queue(struct funnel_queue **queue_ptr)
 {
-	/*
-	 * Allocate the queue on a cache line boundary so the producer and
-	 * consumer fields in the structure will land on separate cache lines.
-	 */
+	int result;
 	struct funnel_queue *queue;
-	int result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue",
-				  &queue);
+
+	result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue", &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -59,7 +78,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	/*
 	 * Barrier requirements: We need a read barrier between reading a
 	 * "next" field pointer value and reading anything it points to.
-	 * There's an accompanying barrier in funnel_queue_put between its
+	 * There's an accompanying barrier in funnel_queue_put() between its
 	 * caller setting up the entry and making it visible.
 	 */
 	struct funnel_queue_entry *oldest = queue->oldest;
@@ -80,7 +99,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 		oldest = next;
 		queue->oldest = oldest;
 		/*
-		 * XXX Some platforms such as Alpha may require an
+		 * FIXME: Some platforms such as Alpha may require an
 		 * additional barrier here.  See
 		 * https://lkml.org/lkml/2019/11/8/1021
 		 */
@@ -120,9 +139,14 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 			return NULL;
 		}
 	}
+
 	return oldest;
 }
 
+/*
+ * Poll a queue, removing the oldest entry if the queue is not empty. This
+ * function must only be called from a single consumer thread.
+ */
 struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 {
 	struct funnel_queue_entry *oldest = get_oldest(queue);
@@ -141,7 +165,6 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 	queue->oldest = oldest->next;
 	/*
 	 * Make sure the caller sees the proper stored data for this entry.
-	 *
 	 * Since we've already fetched the entry pointer we stored in
 	 * "queue->oldest", this also ensures that on entry to the next call
 	 * we'll properly see the dependent data.
@@ -156,11 +179,23 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 	return oldest;
 }
 
+/*
+ * Check whether the funnel queue is empty or not. If the queue is in a
+ * transition state with one or more entries being added such that the list
+ * view is incomplete, this function will report the queue as empty.
+ */
 bool is_funnel_queue_empty(struct funnel_queue *queue)
 {
 	return get_oldest(queue) == NULL;
 }
 
+/*
+ * Check whether the funnel queue is idle or not.  If the queue has entries
+ * available to be retrieved, it is not idle. If the queue is in a transition
+ * state with one or more entries being added such that the list view is
+ * incomplete, it may not be possible to retrieve an entry with the
+ * funnel_queue_poll() function, but the queue will not be considered idle.
+ */
 bool is_funnel_queue_idle(struct funnel_queue *queue)
 {
 	/*
@@ -186,6 +221,5 @@ bool is_funnel_queue_idle(struct funnel_queue *queue)
 		return false;
 	}
 
-	/* Otherwise, we're idle. */
 	return true;
 }

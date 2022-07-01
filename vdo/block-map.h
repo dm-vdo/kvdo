@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef BLOCK_MAP_H
@@ -36,23 +21,23 @@
 #include "vdo-page-cache.h"
 #include "vio-pool.h"
 
-/**
+/*
  * The per-zone fields used by the block map tree.
- **/
+ */
 struct block_map_tree_zone {
 	struct block_map_zone *map_zone;
-	/** Dirty tree pages, by era*/
+	/* Dirty tree pages, by era*/
 	struct dirty_lists *dirty_lists;
 	vio_count_t active_lookups;
 	struct int_map *loading_pages;
 	struct vio_pool *vio_pool;
-	/** The tree page which has issued or will be issuing a flush */
+	/* The tree page which has issued or will be issuing a flush */
 	struct tree_page *flusher;
 	struct wait_queue flush_waiters;
-	/** The generation after the most recent flush */
+	/* The generation after the most recent flush */
 	uint8_t generation;
 	uint8_t oldest_generation;
-	/** The counts of dirty pages in each generation */
+	/* The counts of dirty pages in each generation */
 	uint32_t dirty_page_counts[256];
 };
 
@@ -72,21 +57,21 @@ struct block_map {
 	physical_block_number_t root_origin;
 	block_count_t root_count;
 
-	/** The era point we are currently distributing to the zones */
+	/* The era point we are currently distributing to the zones */
 	sequence_number_t current_era_point;
-	/** The next era point */
+	/* The next era point */
 	sequence_number_t pending_era_point;
 
-	/** The number of entries in block map */
+	/* The number of entries in block map */
 	block_count_t entry_count;
 	nonce_t nonce;
 	struct recovery_journal *journal;
 
-	/** The trees for finding block map pages */
+	/* The trees for finding block map pages */
 	struct forest *forest;
-	/** The expanded trees awaiting growth */
+	/* The expanded trees awaiting growth */
 	struct forest *next_forest;
-	/** The number of entries after growth */
+	/* The number of entries after growth */
 	block_count_t next_entry_count;
 
 	zone_count_t zone_count;

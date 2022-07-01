@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef VDO_H
@@ -56,8 +41,8 @@ struct vdo_thread {
 };
 
 struct vdo {
+	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
 	struct vdo_thread *threads;
-	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
 	struct vio_tracer *vio_tracer;
@@ -111,10 +96,10 @@ struct vdo {
 	struct logical_zones *logical_zones;
 
 	/* The physical zones of this vdo */
-	struct physical_zone *physical_zones;
+	struct physical_zones *physical_zones;
 
 	/* The hash lock zones of this vdo */
-	struct hash_zone **hash_zones;
+	struct hash_zones *hash_zones;
 
 	/**
 	 * Bio submission manager used for sending bios to the storage
@@ -190,11 +175,16 @@ static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 
 int __must_check
 vdo_make_thread(struct vdo *vdo,
-		const char *thread_name_prefix,
 		thread_id_t thread_id,
 		const struct vdo_work_queue_type *type,
 		unsigned int queue_count,
 		void *contexts[]);
+
+static inline int __must_check
+vdo_make_default_thread(struct vdo *vdo, thread_id_t thread_id)
+{
+	return vdo_make_thread(vdo, thread_id, NULL, 1, NULL);
+}
 
 int __must_check
 vdo_make(unsigned int instance,

@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "data-vio.h"
@@ -88,12 +73,11 @@ void destroy_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Allocate the components of a data_vio.
+ * allocate_data_vio_components() - Allocate the components of a data_vio.
+ * @data_vio: The data_vio being constructed.
  *
- * @param data_vio  The data_vio being constructed
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check allocate_data_vio_components(struct data_vio *data_vio)
 {
 	struct vio *vio;
@@ -145,13 +129,13 @@ int initialize_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Initialize the LBN lock of a data_vio. In addition to recording the LBN on
- * which the data_vio will operate, it will also find the logical zone
- * associated with the LBN.
+ * initialize_lbn_lock() - Initialize the LBN lock of a data_vio.
+ * @data_vio: The data_vio to initialize.
+ * @lbn: The lbn on which the data_vio will operate.
  *
- * @param data_vio  The data_vio to initialize
- * @param lbn       The lbn on which the data_vio will operate
- **/
+ * In addition to recording the LBN on which the data_vio will operate, it
+ * will also find the logical zone associated with the LBN.
+ */
 static void initialize_lbn_lock(struct data_vio *data_vio,
 				logical_block_number_t lbn)
 {
@@ -169,16 +153,16 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 void attempt_logical_block_lock(struct vdo_completion *completion);
 
 /**
- * (Re)initialize a data_vio to have a new logical block number, keeping the
- * same parent and other state and send it on its way.
- *
- * @param data_vio   The data_vio to initialize
- * @param lbn        The logical block number of the data_vio
- * @param operation  The operation this data_vio will perform
- **/
+ * launch_data_vio() - (Re)initialize a data_vio to have a new logical
+ *                     block number, keeping the same parent and other
+ *                     state and send it on its way.
+ * @data_vio: The data_vio to initialize.
+ * @lbn: The logical block number of the data_vio.
+ * @operation: The operation this data_vio will perform.
+ */
 void launch_data_vio(struct data_vio *data_vio,
 		     logical_block_number_t lbn,
-		     enum vio_operation operation)
+		     enum data_vio_operation operation)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct vdo_completion *completion = vio_as_completion(vio);
@@ -199,7 +183,7 @@ void launch_data_vio(struct data_vio *data_vio,
 	memset(&data_vio->chunk_name, 0, sizeof(data_vio->chunk_name));
 	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
 
-	vio->operation = operation;
+	data_vio->io_operation = operation;
 	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 	if (data_vio->is_partial || (data_vio->remaining_discard == 0)) {
 		/* This is either a write or a partial block discard */
@@ -212,29 +196,40 @@ void launch_data_vio(struct data_vio *data_vio,
 	vdo_reset_completion(completion);
 	set_data_vio_logical_callback(data_vio, attempt_logical_block_lock);
 	vdo_invoke_completion_callback_with_priority(completion,
-						     VDO_REQ_Q_MAP_BIO_PRIORITY);
+						     VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
+}
+
+static void update_data_vio_error_stats(struct data_vio *data_vio)
+{
+	static const char *operations[] = {
+		[DATA_VIO_UNSPECIFIED_OPERATION] = "empty",
+		[DATA_VIO_READ] = "read",
+		[DATA_VIO_WRITE] = "write",
+		[DATA_VIO_READ_MODIFY_WRITE] = "read-modify-write",
+		[DATA_VIO_READ | DATA_VIO_FUA] = "read+fua",
+		[DATA_VIO_WRITE | DATA_VIO_FUA] = "write+fua",
+		[DATA_VIO_READ_MODIFY_WRITE | DATA_VIO_FUA] =
+			"read-modify-write+fua",
+	};
+
+	update_vio_error_stats(data_vio_as_vio(data_vio),
+			       "Completing %s vio for LBN %llu with error after %s",
+			       operations[data_vio->io_operation],
+			       (unsigned long long) data_vio->logical.lbn,
+			       get_data_vio_operation_name(data_vio));
 }
 
 /**
- * Complete the processing of a data_vio.
- *
- * @param completion The completion of the vio to complete
- **/
+ * complete_data_vio() - Complete the processing of a data_vio.
+ * @completion: The completion of the vio to complete.
+ */
 void complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	completion->error_handler = NULL;
 	if (completion->result != VDO_SUCCESS) {
-		struct vio *vio = data_vio_as_vio(data_vio);
-		char vio_operation[VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
-
-		get_vio_operation_description(vio, vio_operation);
-		update_vio_error_stats(vio,
-				       "Completing %s vio for LBN %llu with error after %s",
-				       vio_operation,
-				       (unsigned long long) data_vio->logical.lbn,
-				       get_data_vio_operation_name(data_vio));
+		update_data_vio_error_stats(data_vio);
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_CLEANUP;
@@ -246,12 +241,12 @@ void complete_data_vio(struct vdo_completion *completion)
 }
 
 /**
- * Finish processing a data_vio, possibly due to an error. This function will
- * set any error, and then initiate data_vio clean up.
+ * finish_data_vio() - Finish processing a data_vio.
+ * @data_vio: The data_vio.
+ * @result: The result of processing the data_vio.
  *
- * @param data_vio  The data_vio to abort
- * @param result    The result of processing the data_vio
- **/
+ * This function will set any error, and then initiate data_vio clean up.
+ */
 void finish_data_vio(struct data_vio *data_vio, int result)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
@@ -261,12 +256,12 @@ void finish_data_vio(struct data_vio *data_vio, int result)
 }
 
 /**
- * Get the name of the last asynchronous operation performed on a data_vio.
+ * get_data_vio_operation_name() - Get the name of the last asynchronous
+ *                                 operation performed on a data_vio.
+ * @data_vio: The data_vio in question.
  *
- * @param data_vio  The data_vio in question
- *
- * @return The name of the last operation performed on the data_vio
- **/
+ * Return: The name of the last operation performed on the data_vio.
+ */
 const char *get_data_vio_operation_name(struct data_vio *data_vio)
 {
 	STATIC_ASSERT((MAX_VIO_ASYNC_OPERATION_NUMBER -
@@ -280,12 +275,13 @@ const char *get_data_vio_operation_name(struct data_vio *data_vio)
 }
 
 /**
- * Set the location of the duplicate block for a data_vio, updating the
- * is_duplicate and duplicate fields from a zoned_pbn.
- *
- * @param data_vio The data_vio to modify
- * @param source   The location of the duplicate
- **/
+ * set_data_vio_duplicate_location() - Set the location of the duplicate block
+ *                                     for a data_vio, updating the
+ *                                     is_duplicate and duplicate fields from
+ *                                     a zoned_pbn.
+ * @data_vio: The data_vio to modify.
+ * @source: The location of the duplicate.
+ */
 void set_data_vio_duplicate_location(struct data_vio *data_vio,
 				     const struct zoned_pbn source)
 {
@@ -294,12 +290,13 @@ void set_data_vio_duplicate_location(struct data_vio *data_vio,
 }
 
 /**
- * Clear a data_vio's mapped block location, setting it to be unmapped. This
- * indicates the block map entry for the logical block is either unmapped or
- * corrupted.
+ * clear_data_vio_mapped_location() - Clear a data_vio's mapped block
+ *                                    location, setting it to be unmapped.
+ * @data_vio: The data_vio whose mapped block location is to be reset.
  *
- * @param data_vio The data_vio whose mapped block location is to be reset
- **/
+ * This indicates the block map entry for the logical block is either unmapped
+ * or corrupted.
+ */
 void clear_data_vio_mapped_location(struct data_vio *data_vio)
 {
 	data_vio->mapped = (struct zoned_pbn){
@@ -308,15 +305,15 @@ void clear_data_vio_mapped_location(struct data_vio *data_vio)
 }
 
 /**
- * Set a data_vio's mapped field to the physical location recorded in the block
- * map for the logical block in the vio.
+ * set_data_vio_mapped_location() - Set a data_vio's mapped field to the
+ *                                  physical location recorded in the block
+ *                                  map for the logical block in the vio.
+ * @data_vio: The data_vio whose field is to be set.
+ * @pbn: The physical block number to set.
+ * @state: The mapping state to set.
  *
- * @param data_vio The data_vio whose field is to be set
- * @param pbn      The physical block number to set
- * @param state    The mapping state to set
- *
- * @return VDO_SUCCESS or an error code if the mapping is unusable
- **/
+ * Return: VDO_SUCCESS or an error code if the mapping is unusable.
+ */
 int set_data_vio_mapped_location(struct data_vio *data_vio,
 				 physical_block_number_t pbn,
 				 enum block_mapping_state state)
@@ -337,10 +334,9 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 }
 
 /**
- * Launch a request which has acquired an LBN lock.
- *
- * @param data_vio  The data_vio which has just acquired a lock
- **/
+ * launch_locked_request() - Launch a request which has acquired an LBN lock.
+ * @data_vio: The data_vio which has just acquired a lock.
+ */
 static void launch_locked_request(struct data_vio *data_vio)
 {
 	data_vio->logical.locked = true;
@@ -353,11 +349,13 @@ static void launch_locked_request(struct data_vio *data_vio)
 }
 
 /**
- * Attempt to acquire the lock on a logical block. This is the start of the
- * path for all external requests. It is registered in launch_data_vio().
+ * attempt_logical_block_lock() - Attempt to acquire the lock on a logical
+ *                                block.
+ * @completion: The data_vio for an external data request as a completion.
  *
- * @param completion  The data_vio for an external data request as a completion
- **/
+ * This is the start of the path for all external requests. It is registered
+ * in launch_data_vio().
+ */
 void attempt_logical_block_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -436,10 +434,9 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 }
 
 /**
- * Release an uncontended LBN lock.
- *
- * @param data_vio  The data_vio holding the lock
- **/
+ * release_lock() - Release an uncontended LBN lock.
+ * @data_vio: The data_vio holding the lock.
+ */
 static void release_lock(struct data_vio *data_vio)
 {
 	struct lbn_lock *lock = &data_vio->logical;
@@ -469,10 +466,10 @@ static void release_lock(struct data_vio *data_vio)
 }
 
 /**
- * Release the lock on the logical block, if any, that a data_vio has acquired.
- *
- * @param data_vio The data_vio releasing its logical block lock
- **/
+ * vdo_release_logical_block_lock() - Release the lock on the logical block,
+ *                                    if any, that a data_vio has acquired.
+ * @data_vio: The data_vio releasing its logical block lock.
+ */
 void vdo_release_logical_block_lock(struct data_vio *data_vio)
 {
 	struct data_vio *lock_holder, *next_lock_holder;
@@ -531,14 +528,14 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 }
 
 /**
- * Allocate a data block.
+ * data_vio_allocate_data_block() - Allocate a data block.
  *
- * @param data_vio         The data_vio which needs an allocation
- * @param write_lock_type  The type of write lock to obtain on the block
- * @param callback         The callback which will attempt an allocation in
- *                         the current zone and continue if it succeeds
- * @param error_handler    The handler for errors while allocating
- **/
+ * @data_vio: The data_vio which needs an allocation.
+ * @write_lock_type: The type of write lock to obtain on the block.
+ * @callback: The callback which will attempt an allocation in the current
+ *            zone and continue if it succeeds.
+ * @error_handler: The handler for errors while allocating.
+ */
 void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  enum pbn_lock_type write_lock_type,
 				  vdo_action *callback,
@@ -555,7 +552,7 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 	allocation->first_allocation_zone =
 		vdo_get_next_allocation_zone(selector);
 	allocation->zone =
-		&vdo->physical_zones[allocation->first_allocation_zone];
+		&vdo->physical_zones->zones[allocation->first_allocation_zone];
 
 	data_vio_as_completion(data_vio)->error_handler = error_handler;
 	launch_data_vio_allocated_zone_callback(data_vio, callback);
@@ -603,10 +600,9 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * A function to compress the data in a data_vio.
- *
- * @param data_vio  The data_vio to compress
- **/
+ * compress_data_vio() - A function to compress the data in a data_vio.
+ * @data_vio: The data_vio to compress.
+ */
 void compress_data_vio(struct data_vio *data_vio)
 {
 	int size;
@@ -634,13 +630,12 @@ void compress_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * A function to uncompress the data a data_vio has just read.
- *
- * @param data_vio       The data_vio to uncompress
- * @param mapping_state  The mapping state indicating which fragment to
- *                       decompress
- * @param buffer         The buffer to receive the uncompressed data
- **/
+ * uncompress_data_vio() - A function to uncompress the data a data_vio has
+ *                         just read.
+ * @data_vio: The data_vio to uncompress.
+ * @mapping_state: The mapping state indicating which fragment to decompress.
+ * @buffer: The buffer to receive the uncompressed data.
+ */
 int uncompress_data_vio(struct data_vio *data_vio,
 			enum block_mapping_state mapping_state,
 			char *buffer)
@@ -670,4 +665,17 @@ int uncompress_data_vio(struct data_vio *data_vio,
 	}
 
 	return VDO_SUCCESS;
+}
+
+/* Return true if a data block contains all zeros. */
+bool is_zero_block(char *block)
+{
+	int i;
+
+
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(uint64_t)) {
+		if (*((uint64_t *) &block[i]))
+			return false;
+	}
+	return true;
 }

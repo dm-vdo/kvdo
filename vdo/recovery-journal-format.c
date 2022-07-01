@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "recovery-journal-format.h"
@@ -37,23 +22,24 @@ const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
 };
 
 /**
- * Get the size of the encoded state of a recovery journal.
+ * vdo_get_recovery_journal_encoded_size() - Get the size of the encoded state
+ *                                           of a recovery journal.
  *
- * @return the encoded size of the journal's state
- **/
+ * Return: the encoded size of the journal's state.
+ */
 size_t vdo_get_recovery_journal_encoded_size(void)
 {
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
 
 /**
- * Encode the state of a recovery journal.
+ * vdo_encode_recovery_journal_state_7_0() - Encode the state of a recovery
+ *                                           journal.
+ * @state: The recovery journal state.
+ * @buffer: The buffer to encode into.
  *
- * @param state   the recovery journal state
- * @param buffer  the buffer to encode into
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 					  struct buffer *buffer)
 {
@@ -89,14 +75,14 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 }
 
 /**
- * Decode the state of a recovery journal saved in a buffer.
+ * vdo_decode_recovery_journal_state_7_0() - Decode the state of a recovery
+ *                                           journal saved in a buffer.
+ * @buffer: The buffer containing the saved state.
+ * @state: A pointer to a recovery journal state to hold the result of a
+ *         succesful decode.
  *
- * @param buffer  the buffer containing the saved state
- * @param state   a pointer to a recovery journal state to hold the result of a
- *                succesful decode
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int
 vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 				      struct recovery_journal_state_7_0 *state)
@@ -152,12 +138,11 @@ vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 }
 
 /**
- * Get the name of a journal operation.
+ * vdo_get_journal_operation_name() - Get the name of a journal operation.
+ * @operation: The operation to name.
  *
- * @param operation  The operation to name
- *
- * @return The name of the operation
- **/
+ * Return: The name of the operation.
+ */
 const char *vdo_get_journal_operation_name(enum journal_operation operation)
 {
 	switch (operation) {

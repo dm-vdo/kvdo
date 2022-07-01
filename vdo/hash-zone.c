@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "hash-zone.h"
@@ -41,32 +26,9 @@ enum {
 	LOCK_POOL_CAPACITY = MAXIMUM_VDO_USER_VIOS,
 };
 
-struct hash_zone {
-	/** Which hash zone this is */
-	zone_count_t zone_number;
-
-	/** The thread ID for this zone */
-	thread_id_t thread_id;
-
-	/** Mapping from chunk_name fields to hash_locks */
-	struct pointer_map *hash_lock_map;
-
-	/** List containing all unused hash_locks */
-	struct list_head lock_pool;
-
-	/**
-	 * Statistics shared by all hash locks in this zone. Only modified on
-	 * the hash zone thread, but queried by other threads.
-	 **/
-	struct hash_lock_statistics statistics;
-
-	/** Array of all hash_locks */
-	struct hash_lock *lock_array;
-};
-
 /**
- * Implements pointer_key_comparator.
- **/
+ * compare_keys() - Implements pointer_key_comparator.
+ */
 static bool compare_keys(const void *this_key, const void *that_key)
 {
 	/* Null keys are not supported. */
@@ -74,8 +36,8 @@ static bool compare_keys(const void *this_key, const void *that_key)
 }
 
 /**
- * Implements pointer_key_comparator.
- **/
+ * hash_key() - Implements pointer_key_comparator.
+ */
 static uint32_t hash_key(const void *key)
 {
 	const struct uds_chunk_name *name = key;
@@ -88,91 +50,116 @@ static uint32_t hash_key(const void *key)
 }
 
 /**
- * Create a hash zone.
+ * vdo_make_hash_zones() - Create the hash zones.
  *
- * @param [in]  vdo          The vdo to which the zone will belong
- * @param [in]  zone_number  The number of the zone to create
- * @param [out] zone_ptr     A pointer to hold the new hash_zone
+ * @vdo: The vdo to which the zone will belong.
+ * @zones_ptr: A pointer to hold the zones.
  *
- * @return VDO_SUCCESS or an error code
- **/
-int vdo_make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
-		       struct hash_zone **zone_ptr)
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 {
+	int result;
 	vio_count_t i;
-	struct hash_zone *zone;
-	int result = UDS_ALLOCATE(1, struct hash_zone, __func__, &zone);
+	struct hash_zones *zones;
+	zone_count_t zone_count = vdo->thread_config->hash_zone_count;
 
+	if (zone_count == 0) {
+		return VDO_SUCCESS;
+	}
+
+	result = UDS_ALLOCATE_EXTENDED(struct hash_zones,
+				       zone_count,
+				       struct hash_zone,
+				       __func__,
+				       &zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
-				  hash_key, &zone->hash_lock_map);
-	if (result != VDO_SUCCESS) {
-		vdo_free_hash_zone(zone);
-		return result;
+	for (zones->zone_count = 0;
+	     zones->zone_count < zone_count;
+	     zones->zone_count++) {
+		struct hash_zone *zone = &zones->zones[zones->zone_count];
+
+		result = make_pointer_map(VDO_LOCK_MAP_CAPACITY,
+					  0,
+					  compare_keys,
+					  hash_key,
+					  &zone->hash_lock_map);
+		if (result != VDO_SUCCESS) {
+			vdo_free_hash_zones(zones);
+			return result;
+		}
+
+		zone->zone_number = zones->zone_count;
+		zone->thread_id = vdo_get_hash_zone_thread(vdo->thread_config,
+							   zone->zone_number);
+		INIT_LIST_HEAD(&zone->lock_pool);
+
+		result = UDS_ALLOCATE(LOCK_POOL_CAPACITY,
+				      struct hash_lock,
+				      "hash_lock array",
+				      &zone->lock_array);
+		if (result != VDO_SUCCESS) {
+			zones->zone_count++;
+			vdo_free_hash_zones(zones);
+			return result;
+		}
+
+		for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
+			struct hash_lock *lock = &zone->lock_array[i];
+
+			vdo_initialize_hash_lock(lock);
+			list_add_tail(&lock->pool_node, &zone->lock_pool);
+		}
+
+		result = vdo_make_default_thread(vdo, zone->thread_id);
 	}
 
-	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_hash_zone_thread(vdo->thread_config,
-						   zone_number);
-	INIT_LIST_HEAD(&zone->lock_pool);
-
-	result = UDS_ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
-			      "hash_lock array", &zone->lock_array);
-	if (result != VDO_SUCCESS) {
-		vdo_free_hash_zone(zone);
-		return result;
-	}
-
-	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
-		struct hash_lock *lock = &zone->lock_array[i];
-
-		vdo_initialize_hash_lock(lock);
-		list_add_tail(&lock->pool_node, &zone->lock_pool);
-	}
-
-	*zone_ptr = zone;
+	*zones_ptr = zones;
 	return VDO_SUCCESS;
 }
 
 /**
- * Free a hash zone.
- *
- * @param zone  The zone to free
- **/
-void vdo_free_hash_zone(struct hash_zone *zone)
+ * vdo_free_hash_zones() - Free the hash zones.
+ * @zones: The zone to free.
+ */
+void vdo_free_hash_zones(struct hash_zones *zones)
 {
-	if (zone == NULL) {
+	zone_count_t i;
+
+	if (zones == NULL) {
 		return;
 	}
 
-	free_pointer_map(UDS_FORGET(zone->hash_lock_map));
-	UDS_FREE(UDS_FORGET(zone->lock_array));
-	UDS_FREE(zone);
+	for (i = 0; i < zones->zone_count; i++) {
+		struct hash_zone *zone = &zones->zones[i];
+
+		free_pointer_map(UDS_FORGET(zone->hash_lock_map));
+		UDS_FREE(UDS_FORGET(zone->lock_array));
+	}
+
+	UDS_FREE(zones);
 }
 
-
 /**
- * Get the ID of a hash zone's thread.
+ * vdo_get_hash_zone_thread_id() - Get the ID of a hash zone's thread.
+ * @zone: The zone.
  *
- * @param zone  The zone
- *
- * @return The zone's thread ID
- **/
+ * Return: The zone's thread ID.
+ */
 thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
 {
 	return zone->thread_id;
 }
 
 /**
- * Get the statistics for this hash zone.
+ * vdo_get_hash_zone_statistics() - Get the statistics for this hash zone.
+ * @zone: The hash zone to query.
  *
- * @param zone  The hash zone to query
- *
- * @return A copy of the current statistics for the hash zone
- **/
+ * Return: A copy of the current statistics for the hash zone.
+ */
 struct hash_lock_statistics
 vdo_get_hash_zone_statistics(const struct hash_zone *zone)
 {
@@ -191,11 +178,10 @@ vdo_get_hash_zone_statistics(const struct hash_zone *zone)
 }
 
 /**
- * Return a hash lock to the zone's pool.
- *
- * @param zone  The zone from which the lock was borrowed
- * @param lock  The lock that is no longer in use
- **/
+ * return_hash_lock_to_pool() - Return a hash lock to the zone's pool.
+ * @zone: The zone from which the lock was borrowed.
+ * @lock: The lock that is no longer in use.
+ */
 static void return_hash_lock_to_pool(struct hash_zone *zone,
 				     struct hash_lock *lock)
 {
@@ -205,19 +191,20 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 }
 
 /**
- * Get the lock for the hash (chunk name) of the data in a data_vio, or if one
- * does not exist (or if we are explicitly rolling over), initialize a new
+ * vdo_acquire_lock_from_hash_zone() - Get the lock for a chunk name.
+ * @zone: The zone responsible for the hash.
+ * @hash: The hash to lock.
+ * @replace_lock:  If non-NULL, the lock already registered for the
+ *                 hash which should be replaced by the new lock.
+ * @lock_ptr: A pointer to receive the hash lock.
+ *
+ * Gets the lock for the hash (chunk name) of the data in a data_vio, or if
+ * one does not exist (or if we are explicitly rolling over), initialize a new
  * lock for the hash and register it in the zone. This must only be called in
  * the correct thread for the zone.
  *
- * @param [in]  zone          The zone responsible for the hash
- * @param [in]  hash          The hash to lock
- * @param [in]  replace_lock  If non-NULL, the lock already registered for the
- *                            hash which should be replaced by the new lock
- * @param [out] lock_ptr      A pointer to receive the hash lock
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 				    const struct uds_chunk_name *hash,
 				    struct hash_lock *replace_lock,
@@ -280,14 +267,15 @@ int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
 }
 
 /**
- * Return a hash lock to the zone it was borrowed from, remove it from the
+ * vdo_return_lock_to_hash_zone() - Return a hash lock.
+ * @zone: The zone from which the lock was borrowed.
+ * @lock: The lock that is no longer in use.
+ *
+ * Returns a hash lock to the zone it was borrowed from, remove it from the
  * zone's lock map, and return it to the pool. This must only be called when
  * the lock has been completely released, and only in the correct thread for
  * the zone.
- *
- * @param zone  The zone from which the lock was borrowed
- * @param lock  The lock that is no longer in use
- **/
+ */
 void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
 				  struct hash_lock *lock)
 {
@@ -318,11 +306,10 @@ void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
 }
 
 /**
- * Dump a compact description of hash_lock to the log if the lock is not on the
- * free list.
- *
- * @param lock  The hash lock to dump
- **/
+ * dump_hash_lock() - Dump a compact description of hash_lock to the log if
+ *                    the lock is not on the free list.
+ * @lock: The hash lock to dump.
+ */
 static void dump_hash_lock(const struct hash_lock *lock)
 {
 	const char *state;
@@ -346,10 +333,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
 }
 
 /**
- * Increment a statistic counter in a non-atomic yet thread-safe manner.
- *
- * @param stat  The statistic field to increment
- **/
+ * increment_stat() - Increment a statistic counter in a non-atomic yet
+ *                    thread-safe manner.
+ * @stat: The statistic field to increment.
+ */
 static void increment_stat(uint64_t *stat)
 {
 	/*
@@ -360,54 +347,59 @@ static void increment_stat(uint64_t *stat)
 }
 
 /**
- * Increment the valid advice count in the hash zone statistics.
- * Must only be called from the hash zone thread.
+ * vdo_bump_hash_zone_valid_advice_count() - Increment the valid advice count
+ *                                           in the hash zone statistics.
+ * @zone: The hash zone of the lock that received valid advice.
  *
- * @param zone  The hash zone of the lock that received valid advice
- **/
+ * Context: Must only be called from the hash zone thread.
+ */
 void vdo_bump_hash_zone_valid_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_valid);
 }
 
 /**
- * Increment the stale advice count in the hash zone statistics.
- * Must only be called from the hash zone thread.
+ * vdo_bump_hash_zone_stale_advice_count() - Increment the stale advice count
+ *                                           in the hash zone statistics.
+ * @zone: The hash zone of the lock that received stale advice.
  *
- * @param zone  The hash zone of the lock that received stale advice
- **/
+ * Context: Must only be called from the hash zone thread.
+ */
 void vdo_bump_hash_zone_stale_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_stale);
 }
 
 /**
- * Increment the concurrent dedupe count in the hash zone statistics.
- * Must only be called from the hash zone thread.
+ * vdo_bump_hash_zone_data_match_count() - Increment the concurrent dedupe
+ *                                         count in the hash zone statistics.
+ * @zone: The hash zone of the lock that matched a new data_vio.
  *
- * @param zone  The hash zone of the lock that matched a new data_vio
- **/
+ * Context: Must only be called from the hash zone thread.
+ */
 void vdo_bump_hash_zone_data_match_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_data_matches);
 }
 
 /**
- * Increment the concurrent hash collision count in the hash zone statistics.
- * Must only be called from the hash zone thread.
+ * vdo_bump_hash_zone_collision_count() - Increment the concurrent hash
+ *                                        collision count in the hash zone
+ *                                        statistics.
+ * @zone: The hash zone of the lock that rejected a colliding data_vio.
  *
- * @param zone  The hash zone of the lock that rejected a colliding data_vio
- **/
+ * Context: Must only be called from the hash zone thread.
+ */
 void vdo_bump_hash_zone_collision_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_hash_collisions);
 }
 
 /**
- * Dump information about a hash zone to the log for debugging.
- *
- * @param zone   The zone to dump
- **/
+ * vdo_dump_hash_zone() - Dump information about a hash zone to the log for
+ *                        debugging.
+ * @zone: The zone to dump.
+ */
 void vdo_dump_hash_zone(const struct hash_zone *zone)
 {
 	vio_count_t i;

@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 /**
+ * DOC:
+ *
  * Hash table implementation of a map from integers to pointers, implemented
  * using the Hopscotch Hashing algorithm by Herlihy, Shavit, and Tzafrir (see
  * http://en.wikipedia.org/wiki/Hopscotch_hashing). This implementation does
@@ -67,8 +54,7 @@
  * entry to the table is needed, we either need to ensure the table is
  * pre-sized to be large enough so no resize is ever needed, or we'll need to
  * develop an approach to incrementally resize the table.
- **/
-
+ */
 #include "int-map.h"
 
 #include "errors.h"
@@ -86,43 +72,56 @@ enum {
 };
 
 /**
+ * struct bucket - hash bucket
+ *
  * Buckets are packed together to reduce memory usage and improve cache
  * efficiency. It would be tempting to encode the hop offsets separately and
  * maintain alignment of key/value pairs, but it's crucial to keep the hop
  * fields near the buckets that they use them so they'll tend to share cache
  * lines.
- **/
+ */
 struct __packed bucket {
-	uint8_t first_hop; /* the biased offset of the first entry in the hop */
-			   /* list of the neighborhood that hashes to this bucket */
-	uint8_t next_hop;  /* the biased offset of the next bucket in the */
-			   /* hop list */
-
-	uint64_t key;	   /* the key stored in this bucket */
-	void *value;	   /* the value stored in this bucket (NULL if empty) */
+	/**
+	 * @first_hop: The biased offset of the first entry in the hop list
+	 *             of the neighborhood that hashes to this bucket.
+	 */
+	uint8_t first_hop;
+	/**
+	 * @next_hop: The biased offset of the next bucket in the hop list.
+	 */
+	uint8_t next_hop;
+	/** @key: The key stored in this bucket. */
+	uint64_t key;
+	/** @value: The value stored in this bucket (NULL if empty). */
+	void *value;
 };
 
 /**
- * The concrete definition of the opaque int_map type. To avoid having to wrap
- * the neighborhoods of the last entries back around to the start of the
- * bucket array, we allocate a few more buckets at the end of the array
- * instead, which is why capacity and bucket_count are different.
- **/
+ * struct int_map - The concrete definition of the opaque int_map type.
+ *
+ * To avoid having to wrap the neighborhoods of the last entries back
+ * around to the start of the bucket array, we allocate a few more
+ * buckets at the end of the array instead, which is why capacity and
+ * bucket_count are different.
+ */
 struct int_map {
-	size_t size;		 /* the number of entries stored in the map */
-	size_t capacity;	 /* the number of neighborhoods in the map */
-	size_t bucket_count;     /* the number of buckets in the bucket array */
-	struct bucket *buckets;  /* the array of hash buckets */
+	/** @size: The number of entries stored in the map. */
+	size_t size;
+	/** @capacity: The number of neighborhoods in the map. */
+	size_t capacity;
+	/* @bucket_count: The number of buckets in the bucket array. */
+	size_t bucket_count;
+	/** @buckets: The array of hash buckets. */
+	struct bucket *buckets;
 };
 
 /**
- * This is the Google CityHash 16-byte hash mixing function.
+ * mix() - The Google CityHash 16-byte hash mixing function.
+ * @input1: The first input value.
+ * @input2: The second input value.
  *
- * @param input1  the first input value
- * @param input2  the second input value
- *
- * @return a hash of the two inputs
- **/
+ * Return: A hash of the two inputs.
+ */
 static uint64_t mix(uint64_t input1, uint64_t input2)
 {
 	static const uint64_t CITY_MULTIPLIER = 0x9ddfea08eb382d69ULL;
@@ -139,14 +138,15 @@ static uint64_t mix(uint64_t input1, uint64_t input2)
 }
 
 /**
- * Calculate a 64-bit non-cryptographic hash value for the provided 64-bit
- * integer key. The implementation is based on Google's CityHash, only
- * handling the specific case of an 8-byte input.
+ * hash_key() - Calculate a 64-bit non-cryptographic hash value for the
+ *              provided 64-bit integer key.
+ * @key: The mapping key.
  *
- * @param key  the mapping key
+ * The implementation is based on Google's CityHash, only handling the
+ * specific case of an 8-byte input.
  *
- * @return the hash of the mapping key
- **/
+ * Return: The hash of the mapping key.
+ */
 static uint64_t hash_key(uint64_t key)
 {
 	/*
@@ -161,13 +161,12 @@ static uint64_t hash_key(uint64_t key)
 }
 
 /**
- * Initialize an int_map.
+ * allocate_buckets() - Initialize an int_map.
+ * @map: The map to initialize.
+ * @capacity: The initial capacity of the map.
  *
- * @param map       the map to initialize
- * @param capacity  the initial capacity of the map
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 static int allocate_buckets(struct int_map *map, size_t capacity)
 {
 	map->size = 0;
@@ -183,19 +182,17 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
 }
 
 /**
- * Allocate and initialize an int_map.
+ * make_int_map() - Allocate and initialize an int_map.
+ * @initial_capacity: The number of entries the map should initially be
+ *                    capable of holding (zero tells the map to use its own
+ *                    small default).
+ * @initial_load: The load factor of the map, expressed as an integer
+ *                percentage (typically in the range 50 to 90, with zero
+ *                telling the map to use its own default).
+ * @map_ptr: Output, a pointer to hold the new int_map.
  *
- * @param [in]  initial_capacity  the number of entries the map should
- *                                initially be capable of holding (zero tells
- *                                the map to use its own small default)
- * @param [in]  initial_load      the load factor of the map, expressed as an
- *                                integer percentage (typically in the range
- *                                50 to 90, with zero telling the map to use
- *                                its own default)
- * @param [out] map_ptr           a pointer to hold the new int_map
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 int make_int_map(size_t initial_capacity, unsigned int initial_load,
 		 struct int_map **map_ptr)
 {
@@ -236,11 +233,12 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load,
 }
 
 /**
- * Free an int_map. NOTE: The map does not own the pointer values stored in the
- * map and they are not freed by this call.
+ * free_int_map() - Free an int_map.
+ * @map: The int_map to free.
  *
- * @param map  The int_map to free
- **/
+ * NOTE: The map does not own the pointer values stored in the map and they
+ * are not freed by this call.
+ */
 void free_int_map(struct int_map *map)
 {
 	if (map == NULL) {
@@ -252,27 +250,25 @@ void free_int_map(struct int_map *map)
 }
 
 /**
- * Get the number of entries stored in an int_map.
+ * int_map_size() - Get the number of entries stored in an int_map.
+ * @map: The int_map to query.
  *
- * @param map  the int_map to query
- *
- * @return the number of entries in the map
- **/
+ * Return: The number of entries in the map.
+ */
 size_t int_map_size(const struct int_map *map)
 {
 	return map->size;
 }
 
 /**
- * Convert a biased hop offset within a neighborhood to a pointer to the
- * bucket it references.
+ * dereference_hop() - Convert a biased hop offset within a neighborhood to
+ *                     a pointer to the bucket it references.
+ * @neighborhood: The first bucket in the neighborhood.
+ * @hop_offset: The biased hop offset to the desired bucket.
  *
- * @param neighborhood   the first bucket in the neighborhood
- * @param hop_offset     the biased hop offset to the desired bucket
- *
- * @return <code>NULL</code> if hop_offset is zero, otherwise a pointer to
- *         the bucket in the neighborhood at <code>hop_offset - 1</code>
- **/
+ * Return: NULL if hop_offset is zero, otherwise a pointer to
+ *         the bucket in the neighborhood at hop_offset - 1.
+ */
 static struct bucket *dereference_hop(struct bucket *neighborhood,
 				      unsigned int hop_offset)
 {
@@ -285,12 +281,13 @@ static struct bucket *dereference_hop(struct bucket *neighborhood,
 }
 
 /**
- * Add a bucket into the hop list for the neighborhood, inserting it into the
- * list so the hop list remains sorted by hop offset.
+ * insert_in_hop_list() - Add a bucket into the hop list for the neighborhood.
+ * @neighborhood: The first bucket in the neighborhood.
+ * @new_bucket: The bucket to add to the hop list.
  *
- * @param neighborhood   the first bucket in the neighborhood
- * @param new_bucket     the bucket to add to the hop list
- **/
+ * The bucket is inserted it into the list so the hop list remains sorted by
+ * hop offset.
+ */
 static void insert_in_hop_list(struct bucket *neighborhood,
 			       struct bucket *new_bucket)
 {
@@ -324,11 +321,10 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 }
 
 /**
- * Select and return the hash bucket for a given search key.
- *
- * @param map  the map to search
- * @param key  the mapping key
- **/
+ * select_bucket() - Select and return the hash bucket for a given search key.
+ * @map: The map to search.
+ * @key: The mapping key.
+ */
 static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
 {
 	/*
@@ -349,19 +345,19 @@ static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
 }
 
 /**
- * Search the hop list associated with given hash bucket for a given search
- * key. If the key is found, returns a pointer to the entry (bucket or
- * collision), otherwise returns <code>NULL</code>.
+ * search_hop_list() - Search the hop list associated with given hash bucket
+ *                     for a given search key.
+ * @map: The map being searched.
+ * @bucket: The map bucket to search for the key.
+ * @key: The mapping key.
+ * @previous_ptr: Output. if not NULL, a pointer in which to store the bucket
+ *                in the list preceding the one that had the matching key
  *
- * @param [in]  map           the map being searched
- * @param [in]  bucket        the map bucket to search for the key
- * @param [in]  key           the mapping key
- * @param [out] previous_ptr  if not <code>NULL</code>, a pointer in which to
- *                            store the bucket in the list preceding the one
- *                            that had the matching key
+ * If the key is found, returns a pointer to the entry (bucket or collision),
+ * otherwise returns NULL.
  *
- * @return an entry that matches the key, or <code>NULL</code> if not found
- **/
+ * Return: An entry that matches the key, or NULL if not found.
+ */
 static struct bucket *
 search_hop_list(struct int_map *map __attribute__((unused)),
 		struct bucket *bucket, uint64_t key,
@@ -390,14 +386,14 @@ search_hop_list(struct int_map *map __attribute__((unused)),
 }
 
 /**
- * Retrieve the value associated with a given key from the int_map.
+ * int_map_get() - Retrieve the value associated with a given key from
+ *                 the int_map.
+ * @map: The int_map to query.
+ * @key: The key to look up.
  *
- * @param map  the int_map to query
- * @param key  the key to look up
- *
- * @return the value associated with the given key, or <code>NULL</code>
- *         if the key is not mapped to any value
- **/
+ * Return: The value associated with the given key, or NULL
+ *         if the key is not mapped to any value.
+ */
 void *int_map_get(struct int_map *map, uint64_t key)
 {
 	struct bucket *match =
@@ -406,11 +402,14 @@ void *int_map_get(struct int_map *map, uint64_t key)
 }
 
 /**
- * Increase the number of hash buckets and rehash all the existing entries,
- * storing them in the new buckets.
+ * resize_buckets() - Increase the number of hash buckets.
+ * @map: The map to resize.
  *
- * @param map  the map to resize
- **/
+ * Resizes and rehashes all the existing entries, storing them in the new
+ * buckets.
+ *
+ * Return: UDS_SUCCESS or an error code.
+ */
 static int resize_buckets(struct int_map *map)
 {
 	int result;
@@ -456,17 +455,17 @@ static int resize_buckets(struct int_map *map)
 }
 
 /**
- * Probe the bucket array starting at the given bucket for the next empty
- * bucket, returning a pointer to it. <code>NULL</code> will be returned if
- * the search reaches the end of the bucket array or if the number of linear
- * probes exceeds a specified limit.
+ * find_empty_bucket() - Probe the bucket array starting at the given bucket
+ *                       for the next empty bucket, returning a pointer to it.
+ * @map: The map containing the buckets to search.
+ * @bucket: The bucket at which to start probing.
+ * @max_probes: The maximum number of buckets to search.
  *
- * @param map         the map containing the buckets to search
- * @param bucket      the bucket at which to start probing
- * @param max_probes  the maximum number of buckets to search
+ * NULL will be returned if the search reaches the end of the bucket array or
+ * if the number of linear probes exceeds a specified limit.
  *
- * @return the next empty bucket, or <code>NULL</code> if the search failed
- **/
+ * Return: The next empty bucket, or NULL if the search failed.
+ */
 static struct bucket *find_empty_bucket(struct int_map *map,
 					struct bucket *bucket,
 					unsigned int max_probes)
@@ -490,18 +489,19 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 }
 
 /**
- * Move an empty bucket closer to the start of the bucket array. This searches
- * the neighborhoods that contain the empty bucket for a non-empty bucket
- * closer to the start of the array. If such a bucket is found, this swaps the
- * two buckets by moving the entry to the empty bucket.
+ * move_empty_bucket() - Move an empty bucket closer to the start of the
+ *                       bucket array.
+ * @map: The map containing the bucket.
+ * @hole: The empty bucket to fill with an entry that precedes it in one
+ *        of its enclosing neighborhoods.
  *
- * @param map   the map containing the bucket
- * @param hole  the empty bucket to fill with an entry that precedes it in one
- *              of its enclosing neighborhoods
+ * This searches the neighborhoods that contain the empty bucket for a
+ * non-empty bucket closer to the start of the array. If such a bucket is
+ * found, this swaps the two buckets by moving the entry to the empty bucket.
  *
- * @return the bucket that was vacated by moving its entry to the provided
- *         hole, or <code>NULL</code> if no entry could be moved
- **/
+ * Return: The bucket that was vacated by moving its entry to the provided
+ *         hole, or NULL if no entry could be moved.
+ */
 static struct bucket *
 move_empty_bucket(struct int_map *map __attribute__((unused)),
 		  struct bucket *hole)
@@ -572,21 +572,21 @@ move_empty_bucket(struct int_map *map __attribute__((unused)),
 }
 
 /**
- * Find and update any existing mapping for a given key, returning the value
- * associated with the key in the provided pointer.
+ * update_mapping() - Find and update any existing mapping for a given key,
+ *                    returning the value associated with the key in the
+ *                    provided pointer.
+ * @map: The int_map to attempt to modify.
+ * @neighborhood: The first bucket in the neighborhood that would contain the
+ *                search key
+ * @key: The key with which to associate the new value.
+ * @new_value: The value to be associated with the key.
+ * @update: Whether to overwrite an existing value.
+ * @old_value_ptr: a pointer in which to store the old value (unmodified if no
+ *                 mapping was found)
  *
- * @param [in]  map            the int_map to attempt to modify
- * @param [in]  neighborhood   the first bucket in the neighborhood that
- *                             would contain the search key
- * @param [in]  key            the key with which to associate the new value
- * @param [in]  new_value      the value to be associated with the key
- * @param [in]  update          whether to overwrite an existing value
- * @param [out] old_value_ptr   a pointer in which to store the old value
- *                              (unmodified if no mapping was found)
- *
- * @return <code>true</code> if the map contains a mapping for the key
- *         <code>false</code> if it does not
- **/
+ * Return: true if the map contains a mapping for the key, false if it does
+ *         not.
+ */
 static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 			   uint64_t key, void *new_value, bool update,
 			   void **old_value_ptr)
@@ -612,18 +612,19 @@ static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 }
 
 /**
+ * find_or_make_vacancy() - Find an empty bucket.
+ * @map: The int_map to search or modify.
+ * @neighborhood: The first bucket in the neighborhood in which
+ *                an empty bucket is needed for a new mapping.
+ *
  * Find an empty bucket in a specified neighborhood for a new mapping or
  * attempt to re-arrange mappings so there is such a bucket. This operation
  * may fail (returning NULL) if an empty bucket is not available or could not
  * be relocated to the neighborhood.
  *
- * @param map           the int_map to search or modify
- * @param neighborhood  the first bucket in the neighborhood in which
- *                      an empty bucket is needed for a new mapping
- *
- * @return a pointer to an empty bucket in the desired neighborhood, or
- *         <code>NULL</code> if a vacancy could not be found or arranged
- **/
+ * Return: a pointer to an empty bucket in the desired neighborhood, or
+ *         NULL if a vacancy could not be found or arranged.
+ */
 static struct bucket *find_or_make_vacancy(struct int_map *map,
 					   struct bucket *neighborhood)
 {
@@ -659,24 +660,24 @@ static struct bucket *find_or_make_vacancy(struct int_map *map,
 }
 
 /**
+ * int_map_put() - Try to associate a value with an integer.
+ * @map: The int_map to attempt to modify.
+ * @key: The key with which to associate the new value.
+ * @new_value: The value to be associated with the key.
+ * @update: Whether to overwrite an existing value.
+ * @old_value_ptr: A pointer in which to store either the old value (if the
+ *                 key was already mapped) or NULL if the map did not contain
+ *                 the key; NULL may be provided if the caller does not need
+ *                 to know the old value
+ *
  * Try to associate a value (a pointer) with an integer in an int_map. If the
  * map already contains a mapping for the provided key, the old value is
  * only replaced with the specified value if update is true. In either case
  * the old value is returned. If the map does not already contain a value for
  * the specified key, the new value is added regardless of the value of update.
  *
- * @param [in]  map           the int_map to attempt to modify
- * @param [in]  key           the key with which to associate the new value
- * @param [in]  new_value     the value to be associated with the key
- * @param [in]  update        whether to overwrite an existing value
- * @param [out] old_value_ptr  a pointer in which to store either the old value
- *                            (if the key was already mapped) or
- *                            <code>NULL</code> if the map did not contain the
- *                            key; <code>NULL</code> may be provided if the
- *                            caller does not need to know the old value
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 		void **old_value_ptr)
 {
@@ -745,14 +746,13 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 }
 
 /**
- * Remove the mapping for a given key from the int_map.
+ * int_map_remove() - Remove the mapping for a given key from the int_map.
+ * @map: The int_map from which to remove the mapping.
+ * @key: The key whose mapping is to be removed.
  *
- * @param map  the int_map from which to remove the mapping
- * @param key  the key whose mapping is to be removed
- *
- * @return the value that was associated with the key, or
- *         <code>NULL</code> if it was not mapped
- **/
+ * Return: the value that was associated with the key, or
+ *         NULL if it was not mapped.
+ */
 void *int_map_remove(struct int_map *map, uint64_t key)
 {
 	void *value;

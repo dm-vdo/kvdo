@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "block-map-format.h"
@@ -155,7 +140,7 @@ int vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state,
 
 page_count_t vdo_compute_block_map_page_count(block_count_t entries)
 {
-	return compute_bucket_count(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+	return DIV_ROUND_UP(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /*
@@ -172,15 +157,15 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 {
 	page_count_t leaf_pages
 		= max(vdo_compute_block_map_page_count(entries), 1U);
-	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
+	page_count_t level_size = DIV_ROUND_UP(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
 
 	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		block_count_t new_pages;
 
-		level_size = compute_bucket_count(level_size,
-						  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_size = DIV_ROUND_UP(level_size,
+					  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;
 		new_pages = level_size;
 		if (old_sizes != NULL) {

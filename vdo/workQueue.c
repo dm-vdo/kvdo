@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "workQueue.h"
@@ -30,6 +15,7 @@
 #include "permassert.h"
 #include "string-utils.h"
 
+#include "completion.h"
 #include "status-codes.h"
 
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
@@ -99,7 +85,7 @@ struct simple_work_queue {
 	 * issuing the wakeup.
 	 *
 	 * The "sleep" mode has periodic wakeups and the worker thread may
-	 * happen to wake up while a work item is being enqueued. If that
+	 * happen to wake up while a completion is being enqueued. If that
 	 * happens, the wakeup may be unneeded but will be attempted anyway.
 	 *
 	 * So the return value from cmpxchg(first_wakeup,0,nonzero) can always
@@ -142,57 +128,60 @@ as_round_robin_work_queue(struct vdo_work_queue *queue)
 		 container_of(queue, struct round_robin_work_queue, common));
 }
 
-/* Processing normal work items. */
+/* Processing normal completions. */
 
 /*
- * Dequeue and return the next waiting work item, if any.
+ * Dequeue and return the next waiting completion, if any.
  *
  * We scan the funnel queues from highest priority to lowest, once; there is
- * therefore a race condition where a high-priority work item can be enqueued
+ * therefore a race condition where a high-priority completion can be enqueued
  * followed by a lower-priority one, and we'll grab the latter (but we'll catch
  * the high-priority item on the next call). If strict enforcement of
  * priorities becomes necessary, this function will need fixing.
  */
-static struct vdo_work_item *
-poll_for_work_item(struct simple_work_queue *queue)
+static struct vdo_completion *
+poll_for_completion(struct simple_work_queue *queue)
 {
-	struct vdo_work_item *item = NULL;
+	struct vdo_completion *completion = NULL;
 	int i;
 
 	for (i = queue->num_priority_lists - 1; i >= 0; i--) {
 		struct funnel_queue_entry *link =
 			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
-			item = container_of(link,
-					    struct vdo_work_item,
-					    work_queue_entry_link);
+			completion = container_of(link,
+						  struct vdo_completion,
+						  work_queue_entry_link);
 			break;
 		}
 	}
 
-	return item;
+	return completion;
 }
 
-static void enqueue_work_queue_item(struct simple_work_queue *queue,
-				    struct vdo_work_item *item)
+static void enqueue_work_queue_completion(struct simple_work_queue *queue,
+					  struct vdo_completion *completion)
 {
-	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"item %px (fn %px) to enqueue (%px) is not already queued (%px)",
-			item, item->work, queue, item->my_queue);
-	if (item->priority == VDO_WORK_Q_DEFAULT_PRIORITY) {
-		item->priority = queue->common.type->default_priority;
+	ASSERT_LOG_ONLY(completion->my_queue == NULL,
+			"completion %px (fn %px) to enqueue (%px) is not already queued (%px)",
+			completion,
+			completion->callback,
+			queue,
+			completion->my_queue);
+	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY) {
+		completion->priority = queue->common.type->default_priority;
 	}
 
-	if (ASSERT(item->priority < queue->num_priority_lists,
+	if (ASSERT(completion->priority < queue->num_priority_lists,
 		   "priority is in range for queue") != VDO_SUCCESS) {
-		item->priority = 0;
+		completion->priority = 0;
 	}
 
-	item->my_queue = &queue->common;
+	completion->my_queue = &queue->common;
 
 	/* Funnel queue handles the synchronization for the put. */
-	funnel_queue_put(queue->priority_lists[item->priority],
-			 &item->work_queue_entry_link);
+	funnel_queue_put(queue->priority_lists[completion->priority],
+			 &completion->work_queue_entry_link);
 
 	/*
 	 * Due to how funnel queue synchronization is handled (just atomic
@@ -241,18 +230,18 @@ static void run_finish_hook(struct simple_work_queue *queue)
 }
 
 /*
- * Wait for the next work item to process, or until kthread_should_stop
+ * Wait for the next completion to process, or until kthread_should_stop
  * indicates that it's time for us to shut down.
  *
- * If kthread_should_stop says it's time to stop but we have pending work
- * items, return a work item.
+ * If kthread_should_stop says it's time to stop but we have pending
+ * completions return a completion.
  *
  * Also update statistics relating to scheduler interactions.
  */
-static struct vdo_work_item *
-wait_for_next_work_item(struct simple_work_queue *queue)
+static struct vdo_completion *
+wait_for_next_completion(struct simple_work_queue *queue)
 {
-	struct vdo_work_item *item;
+	struct vdo_completion *completion;
 	DEFINE_WAIT(wait);
 
 	while (true) {
@@ -273,8 +262,8 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		atomic_set(&queue->idle, 1);
 		smp_mb(); /* store-load barrier between "idle" and funnel queue */
 
-		item = poll_for_work_item(queue);
-		if (item != NULL) {
+		completion = poll_for_completion(queue);
+		if (completion != NULL) {
 			break;
 		}
 
@@ -294,8 +283,8 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		 * Check again before resetting first_wakeup for more accurate
 		 * stats. If it was a spurious wakeup, continue looping.
 		 */
-		item = poll_for_work_item(queue);
-		if (item != NULL) {
+		completion = poll_for_completion(queue);
+		if (completion != NULL) {
 			break;
 		}
 	}
@@ -303,22 +292,21 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 	finish_wait(&queue->waiting_worker_threads, &wait);
 	atomic_set(&queue->idle, 0);
 
-	return item;
+	return completion;
 }
 
-static void process_work_item(struct simple_work_queue *queue,
-			      struct vdo_work_item *item)
+static void process_completion(struct simple_work_queue *queue,
+			       struct vdo_completion *completion)
 {
-	if (ASSERT(item->my_queue == &queue->common,
-		   "item %px from queue %px marked as being in this queue (%px)",
-		   item, queue, item->my_queue) == UDS_SUCCESS) {
-		item->my_queue = NULL;
+	if (ASSERT(completion->my_queue == &queue->common,
+		   "completion %px from queue %px marked as being in this queue (%px)",
+		   completion,
+		   queue,
+		   completion->my_queue) == UDS_SUCCESS) {
+		completion->my_queue = NULL;
 	}
 
-	item->work(item);
-	/* We just surrendered control of the work item; no more access. */
-	item = NULL;
-
+	vdo_run_completion_callback(completion);
 }
 
 static void yield_to_scheduler(struct simple_work_queue *queue)
@@ -332,18 +320,21 @@ static void service_work_queue(struct simple_work_queue *queue)
 	run_start_hook(queue);
 
 	while (true) {
-		struct vdo_work_item *item = poll_for_work_item(queue);
+		struct vdo_completion *completion = poll_for_completion(queue);
 
-		if (item == NULL) {
-			item = wait_for_next_work_item(queue);
+		if (completion == NULL) {
+			completion = wait_for_next_completion(queue);
 		}
 
-		if (item == NULL) {
-			/* No work items but kthread_should_stop was triggered. */
+		if (completion == NULL) {
+			/*
+			 * No completions but kthread_should_stop() was
+			 * triggered.
+			 */
 			break;
 		}
 
-		process_work_item(queue, item);
+		process_completion(queue, completion);
 
 		/*
 		 * Be friendly to a CPU that has other work to do, if the
@@ -508,7 +499,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 }
 
 /**
- * Create a work queue; if multiple threads are requested, work items will be
+ * Create a work queue; if multiple threads are requested, completions will be
  * distributed to them in round-robin fashion.
  *
  * Each queue is associated with a struct vdo_thread which has a single vdo
@@ -626,7 +617,7 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 }
 
 /*
- * No enqueueing of work items should be done once this function is called.
+ * No enqueueing of completions should be done once this function is called.
  */
 void finish_work_queue(struct vdo_work_queue *queue)
 {
@@ -668,8 +659,8 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 }
 
 /**
- * Write to the buffer some info about the work item, for logging.  Since the
- * common use case is dumping info about a lot of work items to syslog all at
+ * Write to the buffer some info about the completion, for logging.  Since the
+ * common use case is dumping info about a lot of completions to syslog all at
  * once, the format favors brevity over readability.
  */
 void dump_work_queue(struct vdo_work_queue *queue)
@@ -723,30 +714,32 @@ static void get_function_name(void *pointer,
 	}
 }
 
-void dump_work_item_to_buffer(struct vdo_work_item *item,
-			      char *buffer,
-			      size_t length)
+void dump_completion_to_buffer(struct vdo_completion *completion,
+			       char *buffer,
+			       size_t length)
 {
 	size_t current_length =
 		scnprintf(buffer,
 			  length,
 			  "%.*s/",
 			  TASK_COMM_LEN,
-			  item->my_queue == NULL ? "-" : item->my_queue->name);
+			  (completion->my_queue == NULL ?
+			   "-" :
+			   completion->my_queue->name));
 	if (current_length < length) {
-		get_function_name((void *) item->work,
+		get_function_name((void *) completion->callback,
 				  buffer + current_length,
 				  length - current_length);
 	}
 }
 
-/* Work submission */
+/* Completion submission */
 /*
- * If the work item has a timeout that has already passed, the timeout
- * handler function may be invoked by this function.
+ * If the completion has a timeout that has already passed, the timeout handler
+ * function may be invoked by this function.
  */
 void enqueue_work_queue(struct vdo_work_queue *queue,
-			struct vdo_work_item *item)
+			struct vdo_completion *completion)
 {
 	/*
 	 * Convert the provided generic vdo_work_queue to the simple_work_queue
@@ -761,12 +754,13 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 			= as_round_robin_work_queue(queue);
 
 		/*
-		 * It shouldn't be a big deal if the same rotor gets used for multiple
-		 * work queues. Any patterns that might develop are likely to be
-		 * disrupted by random ordering of multiple work items and migration
-		 * between cores, unless the load is so light as to be regular in
-		 * ordering of tasks and the threads are confined to individual cores;
-		 * with a load that light we won't care.
+		 * It shouldn't be a big deal if the same rotor gets used for
+		 * multiple work queues. Any patterns that might develop are
+		 * likely to be disrupted by random ordering of multiple
+		 * completions and migration between cores, unless the load is
+		 * so light as to be regular in ordering of tasks and the
+		 * threads are confined to individual cores; with a load that
+		 * light we won't care.
 		 */
 		unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
 		unsigned int index = rotor % round_robin->num_service_queues;
@@ -774,7 +768,7 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 		simple_queue = round_robin->service_queues[index];
 	}
 
-	enqueue_work_queue_item(simple_queue, item);
+	enqueue_work_queue_completion(simple_queue, completion);
 }
 
 /* Misc */
@@ -790,7 +784,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 * In interrupt context, if a vdo thread is what got interrupted, the
 	 * calls below will find the queue for the thread which was
 	 * interrupted. However, the interrupted thread may have been
-	 * processing a work item, in which case starting to process another
+	 * processing a completion, in which case starting to process another
 	 * would violate our concurrency assumptions.
 	 */
 	if (in_interrupt()) {

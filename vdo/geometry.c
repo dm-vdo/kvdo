@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "geometry.h"
@@ -28,29 +13,65 @@
 #include "permassert.h"
 #include "uds.h"
 
-static int initialize_geometry(struct geometry *geometry,
-			       size_t bytes_per_page,
-			       unsigned int record_pages_per_chapter,
-			       unsigned int chapters_per_volume,
-			       unsigned int sparse_chapters_per_volume,
-			       uint64_t remapped_virtual,
-			       uint64_t remapped_physical)
-{
-	int result =
-		ASSERT_WITH_ERROR_CODE(bytes_per_page >= BYTES_PER_RECORD,
-				       UDS_BAD_STATE,
-				       "page is smaller than a record: %zu",
-				       bytes_per_page);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+/*
+ * The geometry records parameters that define the layout of a UDS index
+ * volume, and the size and shape of various index structures.
+*
+ * An index volume is divided into a fixed number of fixed-size chapters, each
+ * consisting of a fixed number of fixed-size pages. The volume layout is
+ * defined by two constants and four parameters. The constants are that index
+ * records are 32 bytes long (16-byte block name plus 16-byte metadata) and
+ * that open chapter index hash slots are one byte long. The four parameters
+ * are the number of bytes in a page, the number of record pages in a chapter,
+ * the number of chapters in a volume, and the number of chapters that are
+ * sparse. From these parameters, we can derive the rest of the layout and
+ * other index properties.
+ *
+ * The index volume is sized by its maximum memory footprint. For a dense
+ * index, the persistent storage is about 10 times the size of the memory
+ * footprint. For a sparse index, the persistent storage is about 100 times
+ * the size of the memory footprint.
+ *
+ * For a small index with a memory footprint less than 1GB, there are three
+ * possible memory configurations: 0.25GB, 0.5GB and 0.75GB. The default
+ * geometry for each is 1024 index records per 32 KB page, 1024 chapters per
+ * volume, and either 64, 128, or 192 record pages per chapter (resulting in 6,
+ * 13, or 20 index pages per chapter) depending on the memory configuration.
+ * For the VDO default of a 0.25 GB index, this yields a deduplication window
+ * of 256 GB using about 2.5 GB for the persistent storage and 256 MB of RAM.
+ *
+ * For a larger index with a memory footprint that is a multiple of 1 GB, the
+ * geometry is 1024 index records per 32 KB page, 256 record pages per chapter,
+ * 26 index pages per chapter, and 1024 chapters for every GB of memory
+ * footprint. For a 1 GB volume, this yields a deduplication window of 1 TB
+ * using about 9GB of persistent storage and 1 GB of RAM.
+ *
+ * The above numbers hold for volumes which have no sparse chapters. A sparse
+ * volume has 10 times as many chapters as the corresponding non-sparse volume,
+ * which provides 10 times the deduplication window while using 10 times as
+ * much persistent storage as the equivalent non-sparse volume with the same
+ * memory footprint.
+ *
+ * If the volume has been converted from a non-lvm format to an lvm volume, the
+ * number of chapters per volume will have been reduced by one by eliminating
+ * physical chapter 0, and the virtual chapter that formerly mapped to physical
+ * chapter 0 may be remapped to another physical chapter. This remapping is
+ * expressed by storing which virtual chapter was remapped, and which physical
+ * chapter it was moved to.
+ **/
 
-	result = ASSERT_WITH_ERROR_CODE(chapters_per_volume >
-						sparse_chapters_per_volume,
-					UDS_INVALID_ARGUMENT,
-					"sparse chapters per volume (%u) must be less than chapters per volume (%u)",
-					sparse_chapters_per_volume,
-					chapters_per_volume);
+int make_geometry(size_t bytes_per_page,
+		  unsigned int record_pages_per_chapter,
+		  unsigned int chapters_per_volume,
+		  unsigned int sparse_chapters_per_volume,
+		  uint64_t remapped_virtual,
+		  uint64_t remapped_physical,
+		  struct geometry **geometry_ptr)
+{
+	int result;
+	struct geometry *geometry;
+
+	result = UDS_ALLOCATE(1, struct geometry, "geometry", &geometry);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -64,16 +85,14 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->remapped_virtual = remapped_virtual;
 	geometry->remapped_physical = remapped_physical;
 
-	/* Calculate the number of records in a page, chapter, and volume. */
 	geometry->records_per_page = bytes_per_page / BYTES_PER_RECORD;
 	geometry->records_per_chapter =
 		geometry->records_per_page * record_pages_per_chapter;
 	geometry->records_per_volume =
-		(unsigned long) geometry->records_per_chapter *
-		chapters_per_volume;
+		((unsigned long) geometry->records_per_chapter *
+		 chapters_per_volume);
 	geometry->open_chapter_load_ratio = DEFAULT_OPEN_CHAPTER_LOAD_RATIO;
 
-	/* Initialize values for delta chapter indexes. */
 	geometry->chapter_mean_delta = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
 	geometry->chapter_payload_bits =
 		compute_bits(record_pages_per_chapter - 1);
@@ -91,10 +110,6 @@ static int initialize_geometry(struct geometry *geometry,
 		(DEFAULT_CHAPTER_MEAN_DELTA_BITS -
 		 geometry->chapter_delta_list_bits +
 		 compute_bits(geometry->records_per_chapter - 1));
-	/*
-	 * Let the delta index code determine how many pages are needed for the
-	 * index
-	 */
 	geometry->index_pages_per_chapter =
 		get_delta_index_page_count(geometry->records_per_chapter,
 					   geometry->delta_lists_per_chapter,
@@ -102,10 +117,6 @@ static int initialize_geometry(struct geometry *geometry,
 					   geometry->chapter_payload_bits,
 					   bytes_per_page);
 
-	/*
-	 * Now that we have the size of a chapter index, we can calculate the
-	 * space used by chapters and volumes.
-	 */
 	geometry->pages_per_chapter =
 		geometry->index_pages_per_chapter + record_pages_per_chapter;
 	geometry->pages_per_volume =
@@ -114,35 +125,6 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->bytes_per_volume =
 		bytes_per_page * (geometry->pages_per_volume +
 				  geometry->header_pages_per_volume);
-
-	return UDS_SUCCESS;
-}
-
-int make_geometry(size_t bytes_per_page,
-		  unsigned int record_pages_per_chapter,
-		  unsigned int chapters_per_volume,
-		  unsigned int sparse_chapters_per_volume,
-		  uint64_t remapped_virtual,
-		  uint64_t remapped_physical,
-		  struct geometry **geometry_ptr)
-{
-	struct geometry *geometry;
-	int result = UDS_ALLOCATE(1, struct geometry, "geometry", &geometry);
-
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	result = initialize_geometry(geometry,
-				     bytes_per_page,
-				     record_pages_per_chapter,
-				     chapters_per_volume,
-				     sparse_chapters_per_volume,
-				     remapped_virtual,
-				     remapped_physical);
-	if (result != UDS_SUCCESS) {
-		free_geometry(geometry);
-		return result;
-	}
 
 	*geometry_ptr = geometry;
 	return UDS_SUCCESS;
@@ -171,15 +153,15 @@ map_to_physical_chapter(const struct geometry *geometry,
 	uint64_t delta;
 
 	if (!is_reduced_geometry(geometry)) {
-		return (virtual_chapter % geometry->chapters_per_volume);
+		return virtual_chapter % geometry->chapters_per_volume;
 	}
 
 	if (likely(virtual_chapter > geometry->remapped_virtual)) {
 		delta = virtual_chapter - geometry->remapped_virtual;
 		if (likely(delta > geometry->remapped_physical)) {
-			return (delta % geometry->chapters_per_volume);
+			return delta % geometry->chapters_per_volume;
 		} else {
-			return (delta - 1);
+			return delta - 1;
 		}
 	}
 
@@ -189,18 +171,19 @@ map_to_physical_chapter(const struct geometry *geometry,
 
 	delta = geometry->remapped_virtual - virtual_chapter;
 	if (delta < geometry->chapters_per_volume) {
-		return (geometry->chapters_per_volume - delta);
+		return geometry->chapters_per_volume - delta;
 	}
 
 	/* This chapter is so old the answer doesn't matter. */
 	return 0;
 }
 
+/* Check whether any sparse chapters are in use. */
 bool has_sparse_chapters(const struct geometry *geometry,
 			 uint64_t oldest_virtual_chapter,
 			 uint64_t newest_virtual_chapter)
 {
-	return (is_sparse(geometry) &&
+	return (is_sparse_geometry(geometry) &&
 		((newest_virtual_chapter - oldest_virtual_chapter + 1) >
 		 geometry->dense_chapters_per_volume));
 }
@@ -218,6 +201,7 @@ bool is_chapter_sparse(const struct geometry *geometry,
 		 newest_virtual_chapter));
 }
 
+/* Calculate how many chapters to expire after opening the newest chapter. */
 unsigned int chapters_to_expire(const struct geometry *geometry,
 				uint64_t newest_chapter)
 {

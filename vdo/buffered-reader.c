@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "buffered-reader.h"
@@ -218,7 +203,7 @@ int read_from_buffered_reader(struct buffered_reader *reader,
  * @param value   The value that must match the buffer contents
  * @param length  The length of the value that must match
  *
- * @return UDS_SUCCESS or UDS_CORRUPT_FILE if the value does not match
+ * @return UDS_SUCCESS or UDS_CORRUPT_DATA if the value does not match
  *
  * @note If the value matches, the matching contents are consumed. However,
  *       if the match fails, any buffer contents are left as is.
@@ -236,13 +221,13 @@ int verify_buffered_data(struct buffered_reader *reader,
 	while (length > 0) {
 		result = reset_reader(reader);
 		if (result != UDS_SUCCESS) {
-			result = UDS_CORRUPT_FILE;
+			result = UDS_CORRUPT_DATA;
 			break;
 		}
 
 		chunk = min(length, bytes_remaining_in_read_buffer(reader));
 		if (memcmp(vp, reader->end, chunk) != 0) {
-			result = UDS_CORRUPT_FILE;
+			result = UDS_CORRUPT_DATA;
 			break;
 		}
 

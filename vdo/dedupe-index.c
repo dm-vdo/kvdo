@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "dedupe-index.h"
@@ -928,12 +913,7 @@ static void finish_uds_queue(void *ptr __always_unused)
 	uds_unregister_allocating_thread();
 }
 
-/*
- * thread_name_prefix should be a per-device prefix
- */
-int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
-			  struct vdo *vdo,
-			  const char *thread_name_prefix)
+int vdo_make_dedupe_index(struct vdo *vdo, struct dedupe_index **index_ptr)
 {
 	int result;
 	off_t uds_offset;
@@ -970,7 +950,6 @@ int vdo_make_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
 	result = vdo_make_thread(vdo,
-				 thread_name_prefix,
 				 vdo->thread_config->dedupe_thread,
 				 &uds_queue_type,
 				 1,

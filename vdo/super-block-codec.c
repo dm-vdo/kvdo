@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "super-block-codec.h"
@@ -47,12 +32,11 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 };
 
 /**
- * Initialize a super block codec.
+ * vdo_initialize_super_block_codec() - Initialize a super block codec.
+ * @codec: The codec to initialize.
  *
- * @param codec  The codec to initialize
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_initialize_super_block_codec(struct super_block_codec *codec)
 {
 	int result = make_buffer(MAX_COMPONENT_DATA_SIZE,
@@ -79,10 +63,9 @@ int vdo_initialize_super_block_codec(struct super_block_codec *codec)
 }
 
 /**
- * Free resources in a super block codec.
- *
- * @param codec  The codec to clean up
- **/
+ * vdo_destroy_super_block_codec() - Free resources in a super block codec.
+ * @codec: The codec to clean up.
+ */
 void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 {
 	free_buffer(UDS_FORGET(codec->block_buffer));
@@ -91,12 +74,12 @@ void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 }
 
 /**
- * Encode a super block into its on-disk representation.
+ * vdo_encode_super_block() - Encode a super block into its on-disk
+ *                            representation.
+ * @codec: The super block codec.
  *
- * @param codec  The super block codec
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_encode_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
@@ -137,12 +120,12 @@ int vdo_encode_super_block(struct super_block_codec *codec)
 }
 
 /**
- * Decode a super block from its on-disk representation.
+ * vdo_decode_super_block() - Decode a super block from its on-disk
+ *                            representation.
+ * @codec: The super block to decode.
  *
- * @param codec  The super block to decode
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_decode_super_block(struct super_block_codec *codec)
 {
 	struct header header;

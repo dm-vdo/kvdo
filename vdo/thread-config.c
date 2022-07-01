@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "thread-config.h"
@@ -33,7 +18,6 @@
 static int allocate_thread_config(zone_count_t logical_zone_count,
 				  zone_count_t physical_zone_count,
 				  zone_count_t hash_zone_count,
-				  zone_count_t base_thread_count,
 				  zone_count_t bio_thread_count,
 				  struct thread_config **config_ptr)
 {
@@ -83,7 +67,6 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	config->logical_zone_count = logical_zone_count;
 	config->physical_zone_count = physical_zone_count;
 	config->hash_zone_count = hash_zone_count;
-	config->base_thread_count = base_thread_count;
 	config->bio_thread_count = bio_thread_count;
 
 	*config_ptr = config;
@@ -102,28 +85,28 @@ static void assign_thread_ids(struct thread_config *config,
 }
 
 /**
- * Make a thread configuration. If the logical, physical, and hash zone counts
- * are all 0, a single thread will be shared by all three plus the packer and
- * recovery journal. Otherwise, there must be at least one of each type, and
- * each will have its own thread, as will the packer and recovery journal.
+ * vdo_make_thread_config() - Make a thread configuration.
+ * @counts: The counts of each type of thread.
+ * @config_ptr: A pointer to hold the new thread configuration.
  *
- * @param [in]  counts      The counts of each type of thread
- * @param [out] config_ptr  A pointer to hold the new thread configuration
+ * If the logical, physical, and hash zone counts are all 0, a single
+ * thread will be shared by all three plus the packer and recovery
+ * journal. Otherwise, there must be at least one of each type, and
+ * each will have its own thread, as will the packer and recovery
+ * journal.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_thread_config(struct thread_count_config counts,
 			   struct thread_config **config_ptr)
 {
 	int result;
 	struct thread_config *config;
-	thread_count_t total = (counts.logical_zones
-				+ counts.physical_zones
-				+ counts.hash_zones);
 
-	if (total == 0) {
+	if ((counts.logical_zones
+	     + counts.physical_zones
+	     + counts.hash_zones) == 0) {
 		result = allocate_thread_config(1,
-						1,
 						1,
 						1,
 						counts.bio_threads,
@@ -136,15 +119,9 @@ int vdo_make_thread_config(struct thread_count_config counts,
 		config->physical_threads[0] = config->thread_count;
 		config->hash_zone_threads[0] = config->thread_count++;
 	} else {
-		/*
-		 * Add in the admin/recovery journal and packer threads, of
-		 * which, there are one each.
-		 */
-		total += 2;
 		result = allocate_thread_config(counts.logical_zones,
 						counts.physical_zones,
 						counts.hash_zones,
-						total,
 						counts.bio_threads,
 						&config);
 		if (result != VDO_SUCCESS) {
@@ -177,10 +154,9 @@ int vdo_make_thread_config(struct thread_count_config counts,
 }
 
 /**
- * Destroy a thread configuration.
- *
- * @param config  The thread configuration to destroy
- **/
+ * vdo_free_thread_config() - Destroy a thread configuration.
+ * @config: The thread configuration to destroy.
+ */
 void vdo_free_thread_config(struct thread_config *config)
 {
 	if (config == NULL) {
@@ -213,29 +189,33 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
 }
 
 /**
- * Format the name of the worker thread desired to support a given
- * work queue. The physical layer may add a prefix identifying the
- * product; the output from this function should just identify the
- * thread.
+ * vdo_get_thread_name() - Format the name of the worker thread
+ *                         desired to support a given work queue.
+ * @thread_config: The thread configuration.
+ * @thread_id: The thread id.
+ * @buffer: Where to put the formatted name.
+ * @buffer_length: Size of the output buffer.
  *
- * @param thread_config  The thread configuration
- * @param thread_id      The thread id
- * @param buffer         Where to put the formatted name
- * @param buffer_length  Size of the output buffer
- **/
+ * The physical layer may add a prefix identifying the product; the
+ * output from this function should just identify the thread.
+ */
 void vdo_get_thread_name(const struct thread_config *thread_config,
 			 thread_id_t thread_id,
 			 char *buffer,
 			 size_t buffer_length)
 {
-	if ((thread_config->base_thread_count == 1)
-	    && (thread_id == 0)) {
-		/* Historically this was the "request queue" thread. */
-		snprintf(buffer, buffer_length, "reqQ");
-		return;
-	}
-
 	if (thread_id == thread_config->journal_thread) {
+		if (thread_config->packer_thread == thread_id) {
+			/*
+			 * This is the "single thread" config where one thread
+                         * is used for the journal, packer, logical, physical,
+                         * and hash zones. In that case, it is known as the
+                         * "request queue."
+			 */
+			snprintf(buffer, buffer_length, "reqQ");
+			return;
+		}
+
 		snprintf(buffer, buffer_length, "journalQ");
 		return;
 	} else if (thread_id == thread_config->admin_thread) {

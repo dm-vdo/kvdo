@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "slab-scrubber.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -27,27 +14,28 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "constants.h"
+#include "io-submitter.h"
 #include "read-only-notifier.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-journal.h"
 #include "vdo.h"
+#include "vio.h"
 
 /**
- * Allocate the buffer and extent used for reading the slab journal when
- * scrubbing a slab.
+ * allocate_vio_and_buffer() - Allocate the buffer and vio used for reading the
+ *                             slab journal when scrubbing a slab.
+ * @scrubber: The slab scrubber for which to allocate.
+ * @vdo: The VDO in which the scrubber resides.
+ * @slab_journal_size: The size of a slab journal.
  *
- * @param scrubber           The slab scrubber for which to allocate
- * @param vdo                The VDO in which the scrubber resides
- * @param slab_journal_size  The size of a slab journal
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check
-allocate_extent_and_buffer(struct slab_scrubber *scrubber,
-			   struct vdo *vdo,
-			   block_count_t slab_journal_size)
+allocate_vio_and_buffer(struct slab_scrubber *scrubber,
+			struct vdo *vdo,
+			block_count_t slab_journal_size)
 {
 	size_t buffer_size = VDO_BLOCK_SIZE * slab_journal_size;
 	int result = UDS_ALLOCATE(buffer_size, char, __func__,
@@ -56,24 +44,24 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 		return result;
 	}
 
-	return vdo_create_extent(vdo,
-				 VIO_TYPE_SLAB_JOURNAL,
-				 VIO_PRIORITY_METADATA,
-				 slab_journal_size,
-				 scrubber->journal_data,
-				 &scrubber->extent);
+	return create_multi_block_metadata_vio(vdo,
+					       VIO_TYPE_SLAB_JOURNAL,
+					       VIO_PRIORITY_METADATA,
+					       scrubber,
+					       slab_journal_size,
+					       scrubber->journal_data,
+					       &scrubber->vio);
 }
 
 /**
- * Create a slab scrubber
+ * vdo_make_slab_scrubber() - Create a slab scrubber.
+ * @vdo: The VDO.
+ * @slab_journal_size: The size of a slab journal in blocks.
+ * @read_only_notifier: The context for entering read-only mode.
+ * @scrubber_ptr: A pointer to hold the scrubber.
  *
- * @param vdo                 The VDO
- * @param slab_journal_size   The size of a slab journal in blocks
- * @param read_only_notifier  The context for entering read-only mode
- * @param scrubber_ptr        A pointer to hold the scrubber
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_slab_scrubber(struct vdo *vdo,
 			   block_count_t slab_journal_size,
 			   struct read_only_notifier *read_only_notifier,
@@ -86,7 +74,7 @@ int vdo_make_slab_scrubber(struct vdo *vdo,
 		return result;
 	}
 
-	result = allocate_extent_and_buffer(scrubber, vdo, slab_journal_size);
+	result = allocate_vio_and_buffer(scrubber, vdo, slab_journal_size);
 	if (result != VDO_SUCCESS) {
 		vdo_free_slab_scrubber(scrubber);
 		return result;
@@ -104,38 +92,36 @@ int vdo_make_slab_scrubber(struct vdo *vdo,
 }
 
 /**
- * Free the extent and buffer used for reading slab journals.
- *
- * @param scrubber  The scrubber
+ * free_vio_and_buffer() - Free the vio and buffer used for reading slab
+ *                         journals.
+ * @scrubber: The scrubber.
  **/
-static void free_extent_and_buffer(struct slab_scrubber *scrubber)
+static void free_vio_and_buffer(struct slab_scrubber *scrubber)
 {
-	vdo_free_extent(UDS_FORGET(scrubber->extent));
+	free_vio(UDS_FORGET(scrubber->vio));
 	UDS_FREE(UDS_FORGET(scrubber->journal_data));
 }
 
 /**
- * Free a slab scrubber.
- *
- * @param scrubber  The scrubber to destroy
- **/
+ * vdo_free_slab_scrubber() - Free a slab scrubber.
+ * @scrubber: The scrubber to destroy.
+ */
 void vdo_free_slab_scrubber(struct slab_scrubber *scrubber)
 {
 	if (scrubber == NULL) {
 		return;
 	}
 
-	free_extent_and_buffer(scrubber);
+	free_vio_and_buffer(scrubber);
 	UDS_FREE(scrubber);
 }
 
 /**
- * Get the next slab to scrub.
+ * get_next_slab() - Get the next slab to scrub.
+ * @scrubber: The slab scrubber.
  *
- * @param scrubber  The slab scrubber
- *
- * @return The next slab to scrub or <code>NULL</code> if there are none
- **/
+ * Return: The next slab to scrub or NULL if there are none.
+ */
 static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 {
 	if (!list_empty(&scrubber->high_priority_slabs)) {
@@ -150,37 +136,34 @@ static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 }
 
 /**
- * Check whether a scrubber has slabs to scrub.
+ * has_slabs_to_scrub() - Check whether a scrubber has slabs to scrub.
+ * @scrubber: The scrubber to check.
  *
- * @param scrubber  The scrubber to check
- *
- * @return <code>true</code> if the scrubber has slabs to scrub
- **/
+ * Return: true if the scrubber has slabs to scrub.
+ */
 static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
 {
 	return (get_next_slab(scrubber) != NULL);
 }
 
 /**
- * Get the number of slabs that are unrecovered or being scrubbed.
+ * vdo_get_scrubber_slab_count() - Get the number of slabs that are
+ *                                 unrecovered or being scrubbed.
+ * @scrubber: The scrubber to query.
  *
- * @param scrubber  The scrubber to query
- *
- * @return the number of slabs that are unrecovered or being scrubbed
- **/
+ * Return: The number of slabs that are unrecovered or being scrubbed.
+ */
 slab_count_t vdo_get_scrubber_slab_count(const struct slab_scrubber *scrubber)
 {
 	return READ_ONCE(scrubber->slab_count);
 }
 
 /**
- * Register a slab with a scrubber.
- *
- * @param scrubber       The scrubber
- * @param slab           The slab to scrub
- * @param high_priority  <code>true</code> if the slab should be put on the
- *                      high-priority queue
- **/
+ * vdo_register_slab_for_scrubbing() - Register a slab with a scrubber.
+ * @scrubber: The scrubber.
+ * @slab: The slab to scrub.
+ * @high_priority: true if the slab should be put on the high-priority queue.
+ */
 void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 				     struct vdo_slab *slab,
 				     bool high_priority)
@@ -209,17 +192,16 @@ void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 }
 
 /**
- * Stop scrubbing, either because there are no more slabs to scrub or because
- * there's been an error.
- *
- * @param scrubber  The scrubber
- **/
+ * finish_scrubbing() - Stop scrubbing, either because there are no more slabs
+ *                      to scrub or because there's been an error.
+ * @scrubber: The scrubber.
+ */
 static void finish_scrubbing(struct slab_scrubber *scrubber)
 {
 	bool notify;
 
 	if (!has_slabs_to_scrub(scrubber)) {
-		free_extent_and_buffer(scrubber);
+		free_vio_and_buffer(scrubber);
 	}
 
 	/* Inform whoever is waiting that scrubbing has completed. */
@@ -249,11 +231,11 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 static void scrub_next_slab(struct slab_scrubber *scrubber);
 
 /**
- * Notify the scrubber that a slab has been scrubbed. This callback is
- * registered in apply_journal_entries().
+ * slab_scrubbed() - Notify the scrubber that a slab has been scrubbed.
+ * @completion: The slab rebuild completion.
  *
- * @param completion  The slab rebuild completion
- **/
+ * This callback is registered in apply_journal_entries().
+ */
 static void slab_scrubbed(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
@@ -264,11 +246,10 @@ static void slab_scrubbed(struct vdo_completion *completion)
 }
 
 /**
- * Abort scrubbing due to an error.
- *
- * @param scrubber  The slab scrubber
- * @param result    The error
- **/
+ * abort_scrubbing() - Abort scrubbing due to an error.
+ * @scrubber: The slab scrubber.
+ * @result: The error.
+ */
 static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 {
 	vdo_enter_read_only_mode(scrubber->read_only_notifier, result);
@@ -277,25 +258,25 @@ static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 }
 
 /**
- * Handle errors while rebuilding a slab.
- *
- * @param completion  The slab rebuild completion
- **/
+ * handle_scrubber_error() - Handle errors while rebuilding a slab.
+ * @completion: The slab rebuild completion.
+ */
 static void handle_scrubber_error(struct vdo_completion *completion)
 {
+	record_metadata_io_error(as_vio(completion));
 	abort_scrubbing(completion->parent, completion->result);
 }
 
 /**
- * Apply all the entries in a block to the reference counts.
+ * apply_block_entries() - Apply all the entries in a block to the reference
+ *                         counts.
+ * @block: A block with entries to apply.
+ * @entry_count: The number of entries to apply.
+ * @block_number: The sequence number of the block.
+ * @slab: The slab to apply the entries to.
  *
- * @param block         A block with entries to apply
- * @param entry_count   The number of entries to apply
- * @param block_number  The sequence number of the block
- * @param slab          The slab to apply the entries to
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int apply_block_entries(struct packed_slab_journal_block *block,
 			       journal_entry_count_t entry_count,
 			       sequence_number_t block_number,
@@ -342,11 +323,12 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 }
 
 /**
- * Find the relevant extent of the slab journal and apply all valid entries.
- * This is a callback registered in start_scrubbing().
+ * apply_journal_entries() - Find the relevant vio of the slab journal and
+ *                           apply all valid entries.
+ * @completion: The metadata read vio completion.
  *
- * @param completion  The metadata read extent completion
- **/
+ * This is a callback registered in start_scrubbing().
+ */
 static void apply_journal_entries(struct vdo_completion *completion)
 {
 	int result;
@@ -432,12 +414,23 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			      completion);
 }
 
+static void read_slab_journal_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct slab_scrubber *scrubber = vio->completion.parent;
+
+	continue_vio_after_io(bio->bi_private,
+			      apply_journal_entries,
+			      scrubber->completion.callback_thread_id);
+}
+
 /**
- * Read the current slab's journal from disk now that it has been flushed.
- * This callback is registered in scrub_next_slab().
+ * start_scrubbing() - Read the current slab's journal from disk now that it
+ *                     has been flushed.
+ * @completion: The scrubber's vio completion.
  *
- * @param completion  The scrubber's extent completion
- **/
+ * This callback is registered in scrub_next_slab().
+ */
 static void start_scrubbing(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
@@ -449,20 +442,17 @@ static void start_scrubbing(struct vdo_completion *completion)
 		return;
 	}
 
-	vdo_prepare_completion(&scrubber->extent->completion,
-			       apply_journal_entries,
-			       handle_scrubber_error,
-			       completion->callback_thread_id,
-			       completion->parent);
-	vdo_launch_metadata_extent(scrubber->extent, slab->journal_origin,
-				   scrubber->extent->count, VIO_READ);
+	submit_metadata_vio(scrubber->vio,
+			    slab->journal_origin,
+			    read_slab_journal_endio,
+			    handle_scrubber_error,
+			    REQ_OP_READ);
 }
 
 /**
- * Scrub the next slab if there is one.
- *
- * @param scrubber  The scrubber
- **/
+ * scrub_next_slab() - Scrub the next slab if there is one.
+ * @scrubber: The scrubber.
+ */
 static void scrub_next_slab(struct slab_scrubber *scrubber)
 {
 	struct vdo_completion *completion;
@@ -493,7 +483,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
-	completion = vdo_extent_as_completion(scrubber->extent);
+	completion = vio_as_completion(scrubber->vio);
 	vdo_prepare_completion(completion,
 			       start_scrubbing,
 			       handle_scrubber_error,
@@ -503,13 +493,13 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 }
 
 /**
- * Scrub all the slabs which have been registered with a slab scrubber.
- *
- * @param scrubber       The scrubber
- * @param parent         The object to notify when scrubbing is complete
- * @param callback       The function to run when scrubbing is complete
- * @param error_handler  The handler for scrubbing errors
- **/
+ * vdo_scrub_slabs() - Scrub all the slabs which have been registered with a
+ *                     slab scrubber.
+ * @scrubber: The scrubber.
+ * @parent: The object to notify when scrubbing is complete.
+ * @callback: The function to run when scrubbing is complete.
+ * @error_handler: The handler for scrubbing errors.
+ */
 void vdo_scrub_slabs(struct slab_scrubber *scrubber,
 		     void *parent,
 		     vdo_action *callback,
@@ -532,18 +522,17 @@ void vdo_scrub_slabs(struct slab_scrubber *scrubber,
 }
 
 /**
- * Scrub any slabs which have been registered at high priority with a slab
- * scrubber.
- *
- * @param scrubber            The scrubber
- * @param scrub_at_least_one  <code>true</code> if one slab should always be
- *                            scrubbed, even if there are no high-priority slabs
- *                            (and there is at least one low priority slab)
- * @param parent              The completion to notify when scrubbing is
- *                            complete
- * @param callback            The function to run when scrubbing is complete
- * @param error_handler       The handler for scrubbing errors
- **/
+ * vdo_scrub_high_priority_slabs() - Scrub any slabs which have been
+ *                                   registered at high priority with a slab
+ *                                   scrubber.
+ * @scrubber: The scrubber.
+ * @scrub_at_least_one: true if one slab should always be scrubbed, even if
+ *                      there are no high-priority slabs (and there is at
+ *                      least one low priority slab).
+ * @parent: The completion to notify when scrubbing is complete.
+ * @callback: The function to run when scrubbing is complete.
+ * @error_handler: The handler for scrubbing errors.
+ */
 void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 				   bool scrub_at_least_one,
 				   struct vdo_completion *parent,
@@ -562,12 +551,11 @@ void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 }
 
 /**
- * Tell the scrubber to stop scrubbing after it finishes the slab it is
- * currently working on.
- *
- * @param scrubber  The scrubber to stop
- * @param parent    The completion to notify when scrubbing has stopped
- **/
+ * vdo_stop_slab_scrubbing() - Tell the scrubber to stop scrubbing after it
+ *                             finishes the slab it is currently working on.
+ * @scrubber: The scrubber to stop.
+ * @parent: The completion to notify when scrubbing has stopped.
+ */
 void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber,
 			     struct vdo_completion *parent)
 {
@@ -582,11 +570,11 @@ void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber,
 }
 
 /**
- * Tell the scrubber to resume scrubbing if it has been stopped.
- *
- * @param scrubber  The scrubber to resume
- * @param parent    The object to notify once scrubbing has resumed
- **/
+ * vdo_resume_slab_scrubbing() - Tell the scrubber to resume scrubbing if it
+ *                               has been stopped.
+ * @scrubber: The scrubber to resume.
+ * @parent: The object to notify once scrubbing has resumed.
+ */
 void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber,
 			       struct vdo_completion *parent)
 {
@@ -608,14 +596,13 @@ void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber,
 }
 
 /**
- * Wait for a clean slab.
+ * vdo_enqueue_clean_slab_waiter() - Wait for a clean slab.
+ * @scrubber: The scrubber on which to wait.
+ * @waiter: The waiter.
  *
- * @param scrubber  The scrubber on which to wait
- * @param waiter    The waiter
- *
- * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
- *         slabs to scrub, and some other error otherwise
- **/
+ * Return: VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
+ *         slabs to scrub, and some other error otherwise.
+ */
 int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 				  struct waiter *waiter)
 {
@@ -631,10 +618,10 @@ int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 }
 
 /**
- * Dump information about a slab scrubber to the log for debugging.
- *
- * @param scrubber   The scrubber to dump
- **/
+ * vdo_dump_slab_scrubber() - Dump information about a slab scrubber to the
+ *                            log for debugging.
+ * @scrubber: The scrubber to dump.
+ */
 void vdo_dump_slab_scrubber(const struct slab_scrubber *scrubber)
 {
 	uds_log_info("slab_scrubber slab_count %u waiters %zu %s%s",

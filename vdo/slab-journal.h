@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -48,7 +33,7 @@ struct slab_journal {
 	struct waiter resource_waiter;
 	/** A waiter object for updating the slab summary */
 	struct waiter slab_summary_waiter;
-	/** A waiter object for getting an extent with which to flush */
+	/** A waiter object for getting a vio with which to flush */
 	struct waiter flush_waiter;
 	/** The queue of VIOs waiting to make an entry */
 	struct wait_queue entry_waiters;
@@ -236,6 +221,8 @@ vdo_get_slab_journal_block_offset(struct slab_journal *journal,
 {
 	return (sequence % journal->size);
 }
+
+void vdo_resume_slab_journal(struct slab_journal *journal);
 
 void vdo_dump_slab_journal(const struct slab_journal *journal);
 

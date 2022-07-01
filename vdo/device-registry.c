@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "device-registry.h"
@@ -48,8 +33,9 @@ struct device_registry {
 static struct device_registry registry;
 
 /**
- * Initialize the necessary structures for the device registry.
- **/
+ * vdo_initialize_device_registry_once() - Initialize the necessary
+ *                                         structures for the device registry.
+ */
 void vdo_initialize_device_registry_once(void)
 {
 	INIT_LIST_HEAD(&registry.links);
@@ -57,22 +43,22 @@ void vdo_initialize_device_registry_once(void)
 }
 
 /**
- * Implements vdo_filter_t.
- **/
+ * vdo_is_equal() - Implements vdo_filter_t.
+ */
 static bool vdo_is_equal(struct vdo *vdo, void *context)
 {
 	return ((void *) vdo == context);
 }
 
 /**
- * Find a vdo in the registry if it exists there. Must be called holding
- * the lock.
+ * filter_vdos_locked() - Find a vdo in the registry if it exists there.
+ * @filter: The filter function to apply to devices.
+ * @context: A bit of context to provide the filter.
  *
- * @param filter   The filter function to apply to devices
- * @param context  A bit of context to provide the filter.
+ * Context: Must be called holding the lock.
  *
- * @return the layer object found, if any
- **/
+ * Return: the vdo object found, if any.
+ */
 static struct vdo * __must_check
 filter_vdos_locked(vdo_filter_t *filter, void *context)
 {
@@ -88,12 +74,11 @@ filter_vdos_locked(vdo_filter_t *filter, void *context)
 }
 
 /**
- * Register a VDO; it must not already be registered.
+ * vdo_register() - Register a VDO; it must not already be registered.
+ * @vdo: The vdo to register.
  *
- * @param vdo  The vdo to register
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_register(struct vdo *vdo)
 {
 	int result;
@@ -111,10 +96,9 @@ int vdo_register(struct vdo *vdo)
 }
 
 /**
- * Remove a vdo from the device registry.
- *
- * @param vdo  The vdo to remove
- **/
+ * vdo_unregister() - Remove a vdo from the device registry.
+ * @vdo: The vdo to remove.
+ */
 void vdo_unregister(struct vdo *vdo)
 {
 	write_lock(&registry.lock);
@@ -126,11 +110,11 @@ void vdo_unregister(struct vdo *vdo)
 }
 
 /**
- * Find and return the first (if any) vdo matching a given filter function.
- *
- * @param filter   The filter function to apply to vdos
- * @param context  A bit of context to provide the filter
- **/
+ * vdo_find_matching() - Find and return the first (if any) vdo matching a
+ *                       given filter function.
+ * @filter: The filter function to apply to vdos.
+ * @context: A bit of context to provide the filter.
+ */
 struct vdo *vdo_find_matching(vdo_filter_t *filter, void *context)
 {
 	struct vdo *vdo;

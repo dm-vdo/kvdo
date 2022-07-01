@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "lock-counter.h"
@@ -28,6 +13,8 @@
 #include "vdo.h"
 
 /**
+ * DOC:
+ *
  * A lock_counter is intended to keep all of the locks for the blocks in the
  * recovery journal. The per-zone counters are all kept in a single array which
  * is arranged by zone (i.e. zone 0's lock 0 is at index 0, zone 0's lock 1 is
@@ -41,7 +28,8 @@
  *
  * Lock sets are laid out with the set for recovery journal first, followed by
  * the logical zones, and then the physical zones.
- **/
+ */
+
 enum lock_counter_state {
 	LOCK_COUNTER_STATE_NOT_NOTIFYING,
 	LOCK_COUNTER_STATE_NOTIFYING,
@@ -74,21 +62,19 @@ struct lock_counter {
 };
 
 /**
- * Create a lock counter.
+ * vdo_make_lock_counter() - Create a lock counter.
  *
- * @param [in]  vdo               The VDO
- * @param [in]  parent            The parent to notify when the lock count goes
- *                                to zero
- * @param [in]  callback          The function to call when the lock count goes
- *                                to zero
- * @param [in]  thread_id         The id of thread on which to run the callback
- * @param [in]  logical_zones     The total number of logical zones
- * @param [in]  physical_zones    The total number of physical zones
- * @param [in]  locks             The number of locks
- * @param [out] lock_counter_ptr  A pointer to hold the new counter
+ * @vdo: The VDO.
+ * @parent: The parent to notify when the lock count goes to zero.
+ * @callback: The function to call when the lock count goes to zero.
+ * @thread_id: The id of thread on which to run the callback.
+ * @logical_zones: The total number of logical zones.
+ * @physical_zones: The total number of physical zones.
+ * @locks: The number of locks.
+ * @lock_counter_ptr: A pointer to hold the new counter.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_lock_counter(struct vdo *vdo,
 			  void *parent,
 			  vdo_action callback,
@@ -162,10 +148,9 @@ int vdo_make_lock_counter(struct vdo *vdo,
 }
 
 /**
- * Free a lock counter.
- *
- * @param counter  The lock counter to free
- **/
+ * vdo_free_lock_counter() - Free a lock counter.
+ * @counter: The lock counter to free.
+ */
 void vdo_free_lock_counter(struct lock_counter *counter)
 {
 	if (counter == NULL) {
@@ -182,14 +167,14 @@ void vdo_free_lock_counter(struct lock_counter *counter)
 }
 
 /**
- * Get a pointer to the zone count for a given lock on a given zone.
+ * get_zone_count_ptr() - Get a pointer to the zone count for a given lock
+ *                        on a given zone.
+ * @counter: The lock counter.
+ * @lock_number: The lock to get.
+ * @zone_type: The zone type whose count is desired.
  *
- * @param counter      The lock counter
- * @param lock_number  The lock to get
- * @param zone_type    The zone type whose count is desired
- *
- * @return A pointer to the zone count for the given lock and zone
- **/
+ * Return: A pointer to the zone count for the given lock and zone.
+ */
 static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
 					   block_count_t lock_number,
 					   enum vdo_zone_type zone_type)
@@ -200,15 +185,14 @@ static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
 }
 
 /**
- * Get the zone counter for a given lock on a given zone.
+ * get_counter() - Get the zone counter for a given lock on a given zone.
+ * @counter: The lock counter.
+ * @lock_number: The lock to get.
+ * @zone_type: The zone type whose count is desired.
+ * @zone_id: The zone index whose count is desired.
  *
- * @param counter      The lock counter
- * @param lock_number  The lock to get
- * @param zone_type    The zone type whose count is desired
- * @param zone_id      The zone index whose count is desired
- *
- * @return The counter for the given lock and zone
- **/
+ * Return: The counter for the given lock and zone.
+ */
 static inline uint16_t *get_counter(struct lock_counter *counter,
 				    block_count_t lock_number,
 				    enum vdo_zone_type zone_type,
@@ -228,13 +212,13 @@ static inline uint16_t *get_counter(struct lock_counter *counter,
 }
 
 /**
- * Check whether the journal zone is locked for a given lock.
+ * is_journal_zone_locked() - Check whether the journal zone is locked for
+ *                            a given lock.
+ * @counter: The lock_counter.
+ * @lock_number: The lock to check.
  *
- * @param counter      The lock_counter
- * @param lock_number  The lock to check
- *
- * @return <code>true</code> if the journal zone is locked
- **/
+ * Return: true if the journal zone is locked.
+ */
 static bool is_journal_zone_locked(struct lock_counter *counter,
 				   block_count_t lock_number)
 {
@@ -250,16 +234,16 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 }
 
 /**
- * Check whether a lock is locked for a zone type. If the recovery journal has
- * a lock on the lock number, both logical and physical zones are considered
- * locked.
+ * vdo_is_lock_locked() - Check whether a lock is locked for a zone type.
+ * @lock_counter: The set of locks to check.
+ * @lock_number: The lock to check.
+ * @zone_type: The type of the zone.
+ * 
+ * If the recovery journal has a lock on the lock number, both logical
+ * and physical zones are considered locked.
  *
- * @param lock_counter  The set of locks to check
- * @param lock_number   The lock to check
- * @param zone_type     The type of the zone
- *
- * @return <code>true</code> if the specified lock has references (is locked)
- **/
+ * Return: true if the specified lock has references (is locked).
+ */
 bool vdo_is_lock_locked(struct lock_counter *lock_counter,
 			block_count_t lock_number,
 			enum vdo_zone_type zone_type)
@@ -280,11 +264,10 @@ bool vdo_is_lock_locked(struct lock_counter *lock_counter,
 }
 
 /**
- * Check that we are on the journal thread.
- *
- * @param counter  The lock_counter
- * @param caller   The name of the caller (for logging)
- **/
+ * assert_on_journal_thread() - Check that we are on the journal thread.
+ * @counter: The lock_counter.
+ * @caller: The name of the caller (for logging).
+ */
 static void assert_on_journal_thread(struct lock_counter *counter,
 				     const char *caller)
 {
@@ -294,13 +277,14 @@ static void assert_on_journal_thread(struct lock_counter *counter,
 }
 
 /**
- * Initialize the value of the journal zone's counter for a given lock. This
- * must be called from the journal zone.
+ * vdo_initialize_lock_count() - Initialize the value of the journal zone's
+ *                               counter for a given lock.
+ * @counter: The counter to initialize.
+ * @lock_number: Which lock to initialize.
+ * @value: The value to set.
  *
- * @param counter      The counter to initialize
- * @param lock_number  Which lock to initialize
- * @param value        The value to set
- **/
+ * Context: This must be called from the journal zone.
+ */
 void vdo_initialize_lock_count(struct lock_counter *counter,
 			       block_count_t lock_number,
 			       uint16_t value)
@@ -320,14 +304,15 @@ void vdo_initialize_lock_count(struct lock_counter *counter,
 }
 
 /**
- * Acquire a reference to a given lock in the specified zone. This method must
- * not be used from the journal zone.
+ * vdo_acquire_lock_count_reference() - Acquire a reference to a given lock
+ *                                      in the specified zone.
+ * @counter: The lock_counter.
+ * @lock_number: Which lock to increment.
+ * @zone_type: The type of the zone acquiring the reference.
+ * @zone_id: The ID of the zone acquiring the reference.
  *
- * @param counter      The lock_counter
- * @param lock_number  Which lock to increment
- * @param zone_type    The type of the zone acquiring the reference
- * @param zone_id      The ID of the zone acquiring the reference
- **/
+ * Context: This method must not be used from the journal zone.
+ */
 void vdo_acquire_lock_count_reference(struct lock_counter *counter,
 				      block_count_t lock_number,
 				      enum vdo_zone_type zone_type,
@@ -357,15 +342,14 @@ void vdo_acquire_lock_count_reference(struct lock_counter *counter,
 }
 
 /**
- * Decrement a non-atomic counter.
+ * release_reference() - Decrement a non-atomic counter.
+ * @counter: The lock_counter.
+ * @lock_number: Which lock to decrement.
+ * @zone_type: The type of the zone releasing the reference.
+ * @zone_id: The ID of the zone releasing the reference.
  *
- * @param counter      The lock_counter
- * @param lock_number  Which lock to decrement
- * @param zone_type    The type of the zone releasing the reference
- * @param zone_id      The ID of the zone releasing the reference
- *
- * @return The new value of the counter
- **/
+ * Return: The new value of the counter.
+ */
 static uint16_t release_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  enum vdo_zone_type zone_type,
@@ -381,12 +365,13 @@ static uint16_t release_reference(struct lock_counter *counter,
 }
 
 /**
- * Attempt to notify the owner of this lock_counter that some lock has been
- * released for some zone type. Will do nothing if another notification is
- * already in progress.
+ * attempt_notification() - Attempt to notify the owner of this lock_counter
+ *                          that some lock has been released for some zone
+ *                          type.
+ * @counter: The lock_counter.
  *
- * @param counter  The lock_counter
- **/
+ * Will do nothing if another notification is already in progress.
+ */
 static void attempt_notification(struct lock_counter *counter)
 {
 	int prior_state;
@@ -410,14 +395,15 @@ static void attempt_notification(struct lock_counter *counter)
 }
 
 /**
- * Release a reference to a given lock in the specified zone. This method
- * must not be used from the journal zone.
+ * vdo_release_lock_count_reference() - Release a reference to a given lock
+ *                                      in the specified zone.
+ * @counter: The lock_counter.
+ * @lock_number: Which lock to increment.
+ * @zone_type: The type of the zone releasing the reference.
+ * @zone_id: The ID of the zone releasing the reference.
  *
- * @param counter      The lock_counter
- * @param lock_number  Which lock to increment
- * @param zone_type    The type of the zone releasing the reference
- * @param zone_id      The ID of the zone releasing the reference
- **/
+ * Context: This method must not be used from the journal zone.
+ */
 void vdo_release_lock_count_reference(struct lock_counter *counter,
 				      block_count_t lock_number,
 				      enum vdo_zone_type zone_type,
@@ -442,12 +428,13 @@ void vdo_release_lock_count_reference(struct lock_counter *counter,
 }
 
 /**
- * Release a single journal zone reference from the journal zone. This method
- * must be called from the journal zone.
+ * vdo_release_journal_zone_reference() - Release a single journal zone
+ *                                        reference from the journal zone.
+ * @counter: The counter from which to release a reference.
+ * @lock_number: The lock from which to release a reference.
  *
- * @param counter      The counter from which to release a reference
- * @param lock_number  The lock from which to release a reference
- **/
+ * Context: This method must be called from the journal zone.
+ */
 void vdo_release_journal_zone_reference(struct lock_counter *counter,
 					block_count_t lock_number)
 {
@@ -460,13 +447,17 @@ void vdo_release_journal_zone_reference(struct lock_counter *counter,
 }
 
 /**
- * Release a single journal zone reference from any zone. This method shouldn't
- * be called from the journal zone as it would be inefficient; use
- * vdo_release_journal_zone_reference() instead.
+ * vdo_release_journal_zone_reference_from_other_zone() - Release a single
+ *                                                        journal zone
+ *                                                        reference from any
+ *                                                        zone.
+ * @counter: The counter from which to release a reference.
+ * @lock_number: The lock from which to release a reference.
  *
- * @param counter      The counter from which to release a reference
- * @param lock_number  The lock from which to release a reference
- **/
+ * Context: This method shouldn't be called from the journal zone as
+ * it would be inefficient; use vdo_release_journal_zone_reference()
+ * instead.
+ */
 void
 vdo_release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 						   block_count_t lock_number)
@@ -481,11 +472,11 @@ vdo_release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 }
 
 /**
- * Inform a lock counter that an unlock notification was received by the
- * caller.
+ * vdo_acknowledge_lock_unlock() - Inform a lock counter that an unlock
+ *                                 notification was received by the caller.
  *
- * @param counter  The counter to inform
- **/
+ * @counter: The counter to inform.
+ */
 void vdo_acknowledge_lock_unlock(struct lock_counter *counter)
 {
 	smp_wmb();
@@ -493,13 +484,13 @@ void vdo_acknowledge_lock_unlock(struct lock_counter *counter)
 }
 
 /**
- * Prevent the lock counter from issuing notifications.
+ * vdo_suspend_lock_counter() - Prevent the lock counter from issuing
+ *                              notifications.
+ * @counter: The counter.
  *
- * @param counter  The counter
- *
- * @return <code>true</code> if the lock counter was not notifying and hence
- *         the suspend was efficacious
- **/
+ * Return: true if the lock counter was not notifying and hence
+ *         the suspend was efficacious.
+ */
 bool vdo_suspend_lock_counter(struct lock_counter *counter)
 {
 	int prior_state;
@@ -521,12 +512,12 @@ bool vdo_suspend_lock_counter(struct lock_counter *counter)
 }
 
 /**
- * Re-allow notifications from a suspended lock counter.
+ * vdo_resume_lock_counter() - Re-allow notifications from a suspended lock
+ *                             counter.
+ * @counter: The counter.
  *
- * @param counter  The counter
- *
- * @return <code>true</code> if the lock counter was suspended
- **/
+ * Return: true if the lock counter was suspended.
+ */
 bool vdo_resume_lock_counter(struct lock_counter *counter)
 {
 	int prior_state;

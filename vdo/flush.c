@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "flush.h"
@@ -72,11 +57,10 @@ struct flusher {
 };
 
 /**
- * Check that we are on the flusher thread.
- *
- * @param flusher  The flusher
- * @param caller   The function which is asserting
- **/
+ * assert_on_flusher_thread() - Check that we are on the flusher thread.
+ * @flusher: The flusher.
+ * @caller: The function which is asserting.
+ */
 static inline void assert_on_flusher_thread(struct flusher *flusher,
 					    const char *caller)
 {
@@ -86,12 +70,11 @@ static inline void assert_on_flusher_thread(struct flusher *flusher,
 }
 
 /**
- * Convert a generic vdo_completion to a flusher.
+ * as_flusher() - Convert a generic vdo_completion to a flusher.
+ * @completion: The completion to convert.
  *
- * @param completion  The completion to convert
- *
- * @return The completion as a flusher
- **/
+ * Return: The completion as a flusher.
+ */
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion->type,
@@ -100,12 +83,12 @@ static struct flusher *as_flusher(struct vdo_completion *completion)
 }
 
 /**
- * Convert a generic vdo_completion to a vdo_flush.
+ * completion_as_vdo_flush() - Convert a generic vdo_completion to a
+ *                             vdo_flush.
+ * @completion: The completion to convert.
  *
- * @param completion The completion to convert
- *
- * @return The completion as a vdo_flush
- **/
+ * Return: The completion as a vdo_flush.
+ */
 static inline struct vdo_flush *
 completion_as_vdo_flush(struct vdo_completion *completion)
 {
@@ -114,24 +97,23 @@ completion_as_vdo_flush(struct vdo_completion *completion)
 }
 
 /**
- * Convert a vdo_flush's generic wait queue entry back to the vdo_flush.
+ * waiter_as_flush() - Convert a vdo_flush's generic wait queue entry back to
+ *                     the vdo_flush.
+ * @waiter: The wait queue entry to convert.
  *
- * @param waiter  The wait queue entry to convert
- *
- * @return The wait queue entry as a vdo_flush
- **/
+ * Return: The wait queue entry as a vdo_flush.
+ */
 static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 {
 	return container_of(waiter, struct vdo_flush, waiter);
 }
 
 /**
- * Make a flusher for a vdo.
+ * vdo_make_flusher() - Make a flusher for a vdo.
+ * @vdo: The vdo which owns the flusher.
  *
- * @param vdo  The vdo which owns the flusher
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_make_flusher(struct vdo *vdo)
 {
 	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
@@ -154,10 +136,9 @@ int vdo_make_flusher(struct vdo *vdo)
 }
 
 /**
- * Free a flusher.
- *
- * @param flusher  The flusher to free
- **/
+ * vdo_free_flusher() - Free a flusher.
+ * @flusher: The flusher to free.
+ */
 void vdo_free_flusher(struct flusher *flusher)
 {
 	if (flusher == NULL) {
@@ -169,12 +150,12 @@ void vdo_free_flusher(struct flusher *flusher)
 }
 
 /**
- * Get the ID of the thread on which flusher functions should be called.
+ * vdo_get_flusher_thread_id() - Get the ID of the thread on which flusher
+ *                               functions should be called.
+ * @flusher: The flusher to query.
  *
- * @param flusher  The flusher to query
- *
- * @return The ID of the thread which handles the flusher
- **/
+ * Return: The ID of the thread which handles the flusher.
+ */
 thread_id_t vdo_get_flusher_thread_id(struct flusher *flusher)
 {
 	return flusher->thread_id;
@@ -184,13 +165,14 @@ static void notify_flush(struct flusher *flusher);
 static void vdo_complete_flush(struct vdo_flush *flush);
 
 /**
- * Finish the notification process by checking if any flushes have completed
+ * finish_notification() - Finish the notification process.
+ * @completion: The flusher completion.
+ *
+ * Finishes the notification process by checking if any flushes have completed
  * and then starting the notification of the next flush request if one came in
  * while the current notification was in progress. This callback is registered
  * in flush_packer_callback().
- *
- * @param completion  The flusher completion
- **/
+ */
 static void finish_notification(struct vdo_completion *completion)
 {
 	struct waiter *waiter;
@@ -217,12 +199,13 @@ static void finish_notification(struct vdo_completion *completion)
 }
 
 /**
- * Flush the packer now that all of the logical and physical zones have been
+ * flush_packer_callback() - Flush the packer.
+ * @completion: The flusher completion.
+ *
+ * Flushes the packer now that all of the logical and physical zones have been
  * notified of the new flush request. This callback is registered in
  * increment_generation().
- *
- * @param completion  The flusher completion
- **/
+ */
 static void flush_packer_callback(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
@@ -233,12 +216,13 @@ static void flush_packer_callback(struct vdo_completion *completion)
 }
 
 /**
- * Increment the flush generation in a logical zone. If there are more logical
- * zones, go on to the next one, otherwise, prepare the physical zones. This
- * callback is registered both in notify_flush() and in itself.
+ * increment_generation() - Increment the flush generation in a logical zone.
+ * @completion: The flusher as a completion.
  *
- * @param completion  The flusher as a completion
- **/
+ * If there are more logical zones, go on to the next one, otherwise, prepare
+ * the physical zones. This callback is registered both in notify_flush() and
+ * in itself.
+ */
 static void increment_generation(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
@@ -260,10 +244,9 @@ static void increment_generation(struct vdo_completion *completion)
 }
 
 /**
- * Lauch a flush notification.
- *
- * @param flusher  The flusher doing the notification
- **/
+ * notify_flush() - Lauch a flush notification.
+ * @flusher: The flusher doing the notification.
+ */
 static void notify_flush(struct flusher *flusher)
 {
 	struct vdo_flush *flush =
@@ -279,11 +262,11 @@ static void notify_flush(struct flusher *flusher)
 }
 
 /**
- * Start processing a flush request. This callback is registered in
- * launch_flush().
+ * flush_vdo() - Start processing a flush request.
+ * @completion: A flush request (as a vdo_completion)
  *
- * @param completion  A flush request (as a vdo_completion)
- **/
+ * This callback is registered in launch_flush().
+ */
 static void flush_vdo(struct vdo_completion *completion)
 {
 	struct vdo_flush *flush = completion_as_vdo_flush(completion);
@@ -318,10 +301,9 @@ static void flush_vdo(struct vdo_completion *completion)
 }
 
 /**
- * Check whether the flusher has drained.
- *
- * @param flusher  The flusher
- **/
+ * check_for_drain_complete() - Check whether the flusher has drained.
+ * @flusher: The flusher.
+ */
 static void check_for_drain_complete(struct flusher *flusher)
 {
 	bool drained;
@@ -341,10 +323,10 @@ static void check_for_drain_complete(struct flusher *flusher)
 }
 
 /**
- * Attempt to complete any flushes which might have finished.
- *
- * @param flusher  The flusher
- **/
+ * vdo_complete_flushes() - Attempt to complete any flushes which might have
+ *                          finished.
+ * @flusher: The flusher.
+ */
 void vdo_complete_flushes(struct flusher *flusher)
 {
 	sequence_number_t oldest_active_generation = UINT64_MAX;
@@ -381,10 +363,9 @@ void vdo_complete_flushes(struct flusher *flusher)
 }
 
 /**
- * Dump the flusher, in a thread-unsafe fashion.
- *
- * @param flusher  The flusher
- **/
+ * vdo_dump_flusher() - Dump the flusher, in a thread-unsafe fashion.
+ * @flusher: The flusher.
+ */
 void vdo_dump_flusher(const struct flusher *flusher)
 {
 	uds_log_info("struct flusher");
@@ -398,12 +379,14 @@ void vdo_dump_flusher(const struct flusher *flusher)
 
 
 /**
- * Initialize a vdo_flush structure, transferring all the bios in the flusher's
- * waiting_flush_bios list to it. The caller MUST already hold the lock.
+ * initialize_flush() - Initialize a vdo_flush structure.
+ * @flush: The flush to initialize.
+ * @vdo: The vdo being flushed.
  *
- * @param flush  The flush to initialize
- * @param vdo    The vdo being flushed
- **/
+ * Initializes a vdo_flush structure, transferring all the bios in the
+ * flusher's waiting_flush_bios list to it. The caller MUST already hold the
+ * lock.
+ */
 static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 {
 	vdo_initialize_completion(&flush->completion,
@@ -424,17 +407,17 @@ static void launch_flush(struct vdo_flush *flush)
 			       completion->vdo->thread_config->packer_thread,
 			       NULL);
 	vdo_enqueue_completion_with_priority(completion,
-					     VDO_REQ_Q_FLUSH_PRIORITY);
+					     VDO_DEFAULT_Q_FLUSH_PRIORITY);
 }
 
 /**
- * Function called to start processing a flush request. It is called when we
- * receive an empty flush bio from the block layer, and before acknowledging a
- * non-empty bio with the FUA flag set.
+ * vdo_launch_flush() - Function called to start processing a flush request.
+ * @vdo: The vdo.
+ * @bio: The bio containing an empty flush request.
  *
- * @param vdo  The vdo
- * @param bio  The bio containing an empty flush request
- **/
+ * This is called when we receive an empty flush bio from the block layer, and
+ * before acknowledging a non-empty bio with the FUA flag set.
+ */
 void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 {
 	/*
@@ -486,14 +469,15 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 }
 
 /**
- * Release a vdo_flush structure that has completed its work. If there are any
- * pending flush requests whose vdo_flush allocation failed, they will be
- * launched by immediately re-using the released vdo_flush. If there is no
- * spare vdo_flush, the released structure will become the spare. Otherwise,
- * the vdo_flush will be freed.
+ * release_flush() - Release a vdo_flush structure that has completed its
+ *                   work.
+ * @flush: The completed flush structure to re-use or free.
  *
- * @param flush  The completed flush structure to re-use or free
- **/
+ * If there are any pending flush requests whose vdo_flush allocation failed,
+ * they will be launched by immediately re-using the released vdo_flush. If
+ * there is no spare vdo_flush, the released structure will become the spare.
+ * Otherwise, the vdo_flush will be freed.
+ */
 static void release_flush(struct vdo_flush *flush)
 {
 	bool relaunch_flush = false;
@@ -530,11 +514,11 @@ static void release_flush(struct vdo_flush *flush)
 }
 
 /**
- * Function called to complete and free a flush request, registered in
- * vdo_complete_flush().
- *
- * @param completion  The flush request
- **/
+ * vdo_complete_flush_callback() - Function called to complete and free a
+ *                                 flush request, registered in
+ *                                 vdo_complete_flush().
+ * @completion: The flush request.
+ */
 static void vdo_complete_flush_callback(struct vdo_completion *completion)
 {
 	struct vdo_flush *flush = completion_as_vdo_flush(completion);
@@ -564,10 +548,10 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 }
 
 /**
- * Select the bio queue on which to finish a flush request.
- *
- * @param flusher  The flusher finishing the request
- **/
+ * select_bio_queue() - Select the bio queue on which to finish a flush
+ *                      request.
+ * @flusher: The flusher finishing the request.
+ */
 static thread_id_t select_bio_queue(struct flusher *flusher)
 {
 	struct vdo *vdo = flusher->vdo;
@@ -592,10 +576,9 @@ static thread_id_t select_bio_queue(struct flusher *flusher)
 }
 
 /**
- * Complete and free a vdo flush request.
- *
- * @param flush  The flush request
- **/
+ * vdo_complete_flush() - Complete and free a vdo flush request.
+ * @flush: The flush request.
+ */
 static void vdo_complete_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
@@ -609,22 +592,23 @@ static void vdo_complete_flush(struct vdo_flush *flush)
 }
 
 /**
- * Initiate a drain.
+ * initiate_drain() - Initiate a drain.
  *
  * Implements vdo_admin_initiator.
- **/
+ */
 static void initiate_drain(struct admin_state *state)
 {
 	check_for_drain_complete(container_of(state, struct flusher, state));
 }
 
 /**
- * Drain the flusher by preventing any more VIOs from entering the flusher and
- * then flushing. The flusher will be left in the suspended state.
+ * vdo_drain_flusher() - Drain the flusher.
+ * @flusher: The flusher to drain.
+ * @completion: The completion to finish when the flusher has drained.
  *
- * @param flusher     The flusher to drain
- * @param completion  The completion to finish when the flusher has drained
- **/
+ * Drains the flusher by preventing any more VIOs from entering the flusher
+ * and then flushing. The flusher will be left in the suspended state.
+ */
 void vdo_drain_flusher(struct flusher *flusher,
 		       struct vdo_completion *completion)
 {
@@ -636,11 +620,10 @@ void vdo_drain_flusher(struct flusher *flusher,
 }
 
 /**
- * Resume a flusher which has been suspended.
- *
- * @param flusher  The flusher to resume
- * @param parent   The completion to finish when the flusher has resumed
- **/
+ * vdo_resume_flusher() - Resume a flusher which has been suspended.
+ * @flusher: The flusher to resume.
+ * @parent: The completion to finish when the flusher has resumed.
+ */
 void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);

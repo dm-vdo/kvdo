@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef JOURNAL_POINT_H
@@ -26,35 +11,35 @@
 
 typedef uint16_t journal_entry_count_t;
 
-/**
+/*
  * The absolute position of an entry in a recovery journal or slab journal.
- **/
+ */
 struct journal_point {
 	sequence_number_t sequence_number;
 	journal_entry_count_t entry_count;
 };
 
-/**
+/*
  * A packed, platform-independent encoding of a struct journal_point.
- **/
+ */
 struct packed_journal_point {
-	/**
+	/*
 	 * The packed representation is the little-endian 64-bit representation
 	 * of the low-order 48 bits of the sequence number, shifted up 16 bits,
 	 * or'ed with the 16-bit entry count.
 	 *
 	 * Very long-term, the top 16 bits of the sequence number may not always
 	 * be zero, as this encoding assumes--see BZ 1523240.
-	 **/
+	 */
 	__le64 encoded_point;
 } __packed;
 
 /**
- * Move the given journal point forward by one entry.
- *
- * @param point              the journal point to adjust
- * @param entries_per_block  the number of entries in one full block
- **/
+ * vdo_advance_journal_point() - Move the given journal point forward by one
+ *                               entry.
+ * @point: The journal point to adjust.
+ * @entries_per_block: The number of entries in one full block.
+ */
 static inline void
 vdo_advance_journal_point(struct journal_point *point,
 			  journal_entry_count_t entries_per_block)
@@ -67,12 +52,11 @@ vdo_advance_journal_point(struct journal_point *point,
 }
 
 /**
- * Check whether a journal point is valid.
+ * vdo_is_valid_journal_point() - Check whether a journal point is valid.
+ * @point: The journal point.
  *
- * @param point  the journal point
- *
- * @return <code>true</code> if the journal point is valid
- **/
+ * Return: true if the journal point is valid.
+ */
 static inline bool
 vdo_is_valid_journal_point(const struct journal_point *point)
 {
@@ -80,14 +64,13 @@ vdo_is_valid_journal_point(const struct journal_point *point)
 }
 
 /**
- * Check whether the first point precedes the second point.
+ * vdo_before_journal_point() - Check whether the first point precedes the
+ *                              second point.
+ * @first: The first journal point.
+ * @second: The second journal point.
  *
- * @param first   the first journal point
- * @param second  the second journal point
-
- *
- * @return <code>true</code> if the first point precedes the second point.
- **/
+ * Return: true if the first point precedes the second point.
+ */
 static inline bool vdo_before_journal_point(const struct journal_point *first,
 					    const struct journal_point *second)
 {
@@ -97,14 +80,14 @@ static inline bool vdo_before_journal_point(const struct journal_point *first,
 }
 
 /**
- * Check whether the first point is the same as the second point.
+ * vdo_are_equivalent_journal_points() - Check whether the first point is the
+ *                                       same as the second point.
+ * @first: The first journal point.
+ * @second: The second journal point.
  *
- * @param first   the first journal point
- * @param second  the second journal point
- *
- * @return <code>true</code> if both points reference the same logical
- *         position of an entry the journal
- **/
+ * Return: true if both points reference the same logical position of an entry
+ *         in the journal.
+ */
 static inline bool
 vdo_are_equivalent_journal_points(const struct journal_point *first,
 				  const struct journal_point *second)
@@ -114,12 +97,11 @@ vdo_are_equivalent_journal_points(const struct journal_point *first,
 }
 
 /**
- * Encode the journal location represented by a journal_point into a
- * packed_journal_point.
- *
- * @param unpacked  The unpacked input point
- * @param packed    The packed output point
- **/
+ * vdo_pack_journal_point() - Encode the journal location represented by a
+ *                            journal_point into a packed_journal_point.
+ * @unpacked: The unpacked input point.
+ * @packed: The packed output point.
+ */
 static inline void vdo_pack_journal_point(const struct journal_point *unpacked,
 					  struct packed_journal_point *packed)
 {
@@ -128,12 +110,11 @@ static inline void vdo_pack_journal_point(const struct journal_point *unpacked,
 }
 
 /**
- * Decode the journal location represented by a packed_journal_point into a
- * journal_point.
- *
- * @param packed    The packed input point
- * @param unpacked  The unpacked output point
- **/
+ * vdo_unpack_journal_point() - Decode the journal location represented by a
+ *                              packed_journal_point into a journal_point.
+ * @packed: The packed input point.
+ * @unpacked: The unpacked output point.
+ */
 static inline void
 vdo_unpack_journal_point(const struct packed_journal_point *packed,
 			 struct journal_point *unpacked)

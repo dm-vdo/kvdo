@@ -1,25 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "vdo-page-cache.h"
 
+#include <linux/bio.h>
 #include <linux/ratelimit.h>
 
 #include "errors.h"
@@ -30,6 +16,7 @@
 #include "admin-state.h"
 #include "block-map.h"
 #include "constants.h"
+#include "io-submitter.h"
 #include "num-utils.h"
 #include "read-only-notifier.h"
 #include "status-codes.h"
@@ -127,13 +114,14 @@ page_completion_from_waiter(struct waiter *waiter)
 }
 
 /**
- * Allocate components of the cache which require their own allocation. The
- * caller is responsible for all clean up on errors.
+ * allocate_cache_components() - Allocate components of the cache which
+ *                               require their own allocation.
+ * @cache: The cache being constructed.
  *
- * @param cache     The cache being constructed
+ * The caller is responsible for all clean up on errors.
  *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
 	uint64_t size = cache->page_count * (uint64_t) VDO_BLOCK_SIZE;
@@ -156,12 +144,12 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 }
 
 /**
- * Initialize all page info structures and put them on the free list.
+ * initialize_info() - Initialize all page info structures and put them on the
+ *                     free list.
+ * @cache: The cache to initialize.
  *
- * @param cache  The cache to initialize
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int initialize_info(struct vdo_page_cache *cache)
 {
 	struct page_info *info;
@@ -199,24 +187,21 @@ static int initialize_info(struct vdo_page_cache *cache)
 static void write_dirty_pages_callback(struct list_head *entry, void *context);
 
 /**
- * Construct a page cache.
+ * vdo_make_page_cache() - Construct a page cache.
+ * @vdo: The vdo.
+ * @page_count: The number of cache pages to hold.
+ * @read_hook: The function to be called when a page is read into the cache.
+ * @write_hook: The function to be called after a page is written from the
+ *              cache.
+ * @page_context_size: The size of the per-page context that will be passed to
+ *                     the read and write hooks.
+ * @maximum_age: The number of journal blocks before a dirtied page is
+ *               considered old and must be written out.
+ * @zone: The block map zone which owns this cache.
+ * @cache_ptr: A pointer to hold the cache.
  *
- * @param [in]  vdo                 The vdo
- * @param [in]  page_count          The number of cache pages to hold
- * @param [in]  read_hook           The function to be called when a page is
- *                                  read into the cache
- * @param [in]  write_hook          The function to be called after a page is
- *                                  written from the cache
- * @param [in]  page_context_size   The size of the per-page context that will
- *                                  be passed to the read and write hooks
- * @param [in]  maximum_age         The number of journal blocks before a
- *                                  dirtied page is considered old and must be
- *                                  written out
- * @param [in]  zone                The block map zone which owns this cache
- * @param [out] cache_ptr           A pointer to hold the cache
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 int vdo_make_page_cache(struct vdo *vdo,
 			page_count_t page_count,
 			vdo_page_read_function *read_hook,
@@ -275,10 +260,9 @@ int vdo_make_page_cache(struct vdo *vdo,
 }
 
 /**
- * Free the page cache structure.
- *
- * @param cache  The cache to free
- **/
+ * vdo_free_page_cache() - Free the page cache structure.
+ * @cache: The cache to free.
+ */
 void vdo_free_page_cache(struct vdo_page_cache *cache)
 {
 	if (cache == NULL) {
@@ -303,11 +287,11 @@ void vdo_free_page_cache(struct vdo_page_cache *cache)
 }
 
 /**
- * Set the initial dirty period for a page cache.
- *
- * @param cache  The cache
- * @param period The initial dirty period to set
- **/
+ * vdo_set_page_cache_initial_period() - Set the initial dirty period for a
+ *                                       page cache.
+ * @cache: The cache.
+ * @period: The initial dirty period to set.
+ */
 void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache,
 				       sequence_number_t period)
 {
@@ -315,12 +299,12 @@ void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache,
 }
 
 /**
- * Switch the page cache into or out of read-only rebuild mode.
- *
- * @param cache       The cache
- * @param rebuilding  <code>true</code> if the cache should be put into
- *                    read-only rebuild mode, <code>false</code> otherwise
- **/
+ * vdo_set_page_cache_rebuild_mode() - Switch the page cache into or out of
+ *                                     read-only rebuild mode.
+ * @cache: The cache.
+ * @rebuilding: true if the cache should be put into read-only rebuild mode,
+ *              false otherwise.
+ */
 void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 				     bool rebuilding)
 {
@@ -328,11 +312,11 @@ void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 }
 
 /**
- * Assert that a function has been called on the VDO page cache's thread.
- *
- * @param cache          the page cache
- * @param function_name  the name of the function
- **/
+ * assert_on_cache_thread() - Assert that a function has been called on the
+ *                            VDO page cache's thread.
+ * @cache: The page cache.
+ * @function_name: The name of the function.
+ */
 static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
 					  const char *function_name)
 {
@@ -346,10 +330,9 @@ static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
 }
 
 /**
- * Assert that a page cache may issue I/O.
- *
- * @param cache  the page cache
- **/
+ * assert_io_allowed() - Assert that a page cache may issue I/O.
+ * @cache: The page cache.
+ */
 static inline void assert_io_allowed(struct vdo_page_cache *cache)
 {
 	ASSERT_LOG_ONLY(!vdo_is_state_quiescent(&cache->zone->state),
@@ -357,10 +340,9 @@ static inline void assert_io_allowed(struct vdo_page_cache *cache)
 }
 
 /**
- * Log and, if enabled, report cache pressure.
- *
- * @param cache         the page cache
- **/
+ * report_cache_pressure() - Log and, if enabled, report cache pressure.
+ * @cache: The page cache.
+ */
 static void report_cache_pressure(struct vdo_page_cache *cache)
 {
 	ADD_ONCE(cache->stats.cache_pressure, 1);
@@ -377,15 +359,14 @@ static void report_cache_pressure(struct vdo_page_cache *cache)
 }
 
 /**
- * Return the name of a page state.
+ * get_page_state_name() - Return the name of a page state.
+ * @state: A page state.
  *
- * @param state     a page state
+ * If the page state is invalid a static string is returned and the invalid
+ * state is logged.
  *
- * @return a pointer to a static page state name
- *
- * @note If the page state is invalid a static string is returned and the
- *       invalid state is logged.
- **/
+ * Return: A pointer to a static page state name.
+ */
 static const char * __must_check
 get_page_state_name(enum vdo_page_buffer_state state)
 {
@@ -406,11 +387,10 @@ get_page_state_name(enum vdo_page_buffer_state state)
 }
 
 /**
- * Update the counter associated with a given state.
- *
- * @param info   the page info to count
- * @param delta  the delta to apply to the counter
- **/
+ * update_counter() - Update the counter associated with a given state.
+ * @info: The page info to count.
+ * @delta: The delta to apply to the counter.
+ */
 static void update_counter(struct page_info *info, int32_t delta)
 {
 	struct block_map_statistics *stats = &info->cache->stats;
@@ -446,8 +426,8 @@ static void update_counter(struct page_info *info, int32_t delta)
 }
 
 /**
- * Update the lru information for an active page.
- **/
+ * update_lru() - Update the lru information for an active page.
+ */
 static void update_lru(struct page_info *info)
 {
 	struct vdo_page_cache *cache = info->cache;
@@ -458,12 +438,11 @@ static void update_lru(struct page_info *info)
 }
 
 /**
- * Set the state of a page_info and put it on the right list, adjusting
- * counters.
- *
- * @param info       the page_info to modify
- * @param new_state  the new state for the page_info
- **/
+ * set_info_state() - Set the state of a page_info and put it on the right
+ *                    list, adjusting counters.
+ * @info: The page_info to modify.
+ * @new_state: The new state for the page_info.
+ */
 static void set_info_state(struct page_info *info,
 			   enum vdo_page_buffer_state new_state)
 {
@@ -494,11 +473,10 @@ static void set_info_state(struct page_info *info,
 }
 
 /**
- * Set the pbn for an info, updating the map as needed.
- *
- * @param info  The page info
- * @param pbn   The physical block number to set
- **/
+ * set_info_pbn() - Set the pbn for an info, updating the map as needed.
+ * @info: The page info.
+ * @pbn: The physical block number to set.
+ */
 static int __must_check
 set_info_pbn(struct page_info *info, physical_block_number_t pbn)
 {
@@ -527,8 +505,8 @@ set_info_pbn(struct page_info *info, physical_block_number_t pbn)
 }
 
 /**
- * Reset page info to represent an unallocated page.
- **/
+ * reset_page_info() - Reset page info to represent an unallocated page.
+ */
 static int reset_page_info(struct page_info *info)
 {
 	int result = ASSERT(info->busy == 0, "VDO Page must not be busy");
@@ -550,12 +528,11 @@ static int reset_page_info(struct page_info *info)
 }
 
 /**
- * Find a free page.
+ * find_free_page() - Find a free page.
+ * @cache: The page cache.
  *
- * @param cache         the page cache
- *
- * @return a pointer to the page info structure (if found), NULL otherwise
- **/
+ * Return: A pointer to the page info structure (if found), NULL otherwise.
+ */
 static struct page_info * __must_check
 find_free_page(struct vdo_page_cache *cache)
 {
@@ -570,13 +547,12 @@ find_free_page(struct vdo_page_cache *cache)
 }
 
 /**
- * Find the page info (if any) associated with a given pbn.
+ * find_page() - Find the page info (if any) associated with a given pbn.
+ * @cache: The page cache.
+ * @pbn: The absolute physical block number of the page.
  *
- * @param cache  the page cache
- * @param pbn    the absolute physical block number of the page
- *
- * @return the page info for the page if available, or NULL if not
- **/
+ * Return: The page info for the page if available, or NULL if not.
+ */
 static struct page_info * __must_check
 find_page(struct vdo_page_cache *cache, physical_block_number_t pbn)
 {
@@ -588,20 +564,17 @@ find_page(struct vdo_page_cache *cache, physical_block_number_t pbn)
 }
 
 /**
- * Determine which page is least recently used.
+ * select_lru_page() - Determine which page is least recently used.
+ * @cache: The page cache structure.
  *
- * @param cache         the page cache structure
+ * Picks the least recently used from among the non-busy entries at the front
+ * of each of the lru ring. Since whenever we mark a page busy we also put it
+ * to the end of the ring it is unlikely that the entries at the front are
+ * busy unless the queue is very short, but not impossible.
  *
- * @return a pointer to the info structure for a relevant page,
- *         or NULL if no such page can be found. The page can be
- *         dirty or resident.
- *
- * @note Picks the least recently used from among the non-busy entries
- *       at the front of each of the lru ring.
- *       Since whenever we mark a page busy we also put it to the end
- *       of the ring it is unlikely that the entries at the front
- *       are busy unless the queue is very short, but not impossible.
- **/
+ * Return: A pointer to the info structure for a relevant page, or NULL if no
+ * such page can be found. The page can be dirty or resident.
+ */
 static struct page_info * __must_check
 select_lru_page(struct vdo_page_cache *cache)
 {
@@ -619,12 +592,11 @@ select_lru_page(struct vdo_page_cache *cache)
 }
 
 /**
- * Get current cache statistics.
+ * vdo_get_page_cache_statistics() - Get current cache statistics.
+ * @cache: The page cache.
  *
- * @param cache  the page cache
- *
- * @return the statistics
- **/
+ * Return: The statistics.
+ */
 struct block_map_statistics
 vdo_get_page_cache_statistics(const struct vdo_page_cache *cache)
 {
@@ -658,11 +630,11 @@ vdo_get_page_cache_statistics(const struct vdo_page_cache *cache)
 /* ASYNCHRONOUS INTERFACE BEYOND THIS POINT */
 
 /**
- * Helper to complete the VDO Page Completion request successfully.
- *
- * @param info            the page info representing the result page
- * @param vdo_page_comp   the VDO page completion to complete
- **/
+ * complete_with_page() - Helper to complete the VDO Page Completion request
+ *                        successfully.
+ * @info: The page info representing the result page.
+ * @vdo_page_comp: The VDO page completion to complete.
+ */
 static void complete_with_page(struct page_info *info,
 			       struct vdo_page_completion *vdo_page_comp)
 {
@@ -685,11 +657,13 @@ static void complete_with_page(struct page_info *info,
 }
 
 /**
- * Complete a page completion with an error code. Implements waiter_callback.
+ * complete_waiter_with_error() - Complete a page completion with an error
+ *                                code.
+ * @waiter: The page completion, as a waiter.
+ * @result_ptr: A pointer to the error code.
  *
- * @param waiter         The page completion, as a waiter
- * @param result_ptr     A pointer to the error code.
- **/
+ * Implements waiter_callback.
+ */
 static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 {
 	int *result = result_ptr;
@@ -699,24 +673,25 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 }
 
 /**
- * Complete a queue of VDO page completions with an error code.
+ * distribute_error_over_queue() - Complete a queue of VDO page completions
+ *                                 with an error code.
+ * @result: The error result.
+ * @queue: A pointer to the queue (in, out).
  *
- * @param [in]      result      the error result
- * @param [in, out] queue       a pointer to the queue
- *
- * @note upon completion the queue will be empty
- **/
+ * Upon completion the queue will be empty.
+ */
 static void distribute_error_over_queue(int result, struct wait_queue *queue)
 {
 	notify_all_waiters(queue, complete_waiter_with_error, &result);
 }
 
 /**
- * Complete a page completion with a page. Implements waiter_callback.
+ * complete_waiter_with_page() - Complete a page completion with a page.
+ * @waiter: The page completion, as a waiter.
+ * @page_info: The page info to complete with.
  *
- * @param waiter         The page completion, as a waiter
- * @param page_info      The page info to complete with
- **/
+ * Implements waiter_callback.
+ */
 static void complete_waiter_with_page(struct waiter *waiter, void *page_info)
 {
 	struct page_info *info = page_info;
@@ -726,16 +701,15 @@ static void complete_waiter_with_page(struct waiter *waiter, void *page_info)
 }
 
 /**
- * Complete a queue of VDO page completions with a page result.
+ * distribute_page_over_queue() - Complete a queue of VDO page completions
+ *                                with a page result.
+ * @info: The page info describing the page.
+ * @queue: A pointer to a queue of waiters (in, out).
  *
- * @param [in]      info        the page info describing the page
- * @param [in, out] queue       a pointer to a queue of waiters
+ * Upon completion the queue will be empty.
  *
- * @return the number of pages distributed
- *
- * @note upon completion the queue will be empty
- *
- **/
+ * Return: The number of pages distributed.
+ */
 static unsigned int distribute_page_over_queue(struct page_info *info,
 					       struct wait_queue *queue)
 {
@@ -756,15 +730,15 @@ static unsigned int distribute_page_over_queue(struct page_info *info,
 }
 
 /**
- * Set a persistent error which all requests will receive in the future.
+ * set_persistent_error() - Set a persistent error which all requests will
+ *                          receive in the future.
+ * @cache: The page cache.
+ * @context: A string describing what triggered the error.
+ * @result: The error result.
  *
- * @param cache         the page cache
- * @param context       a string describing what triggered the error
- * @param result        the error result
- *
- * Once triggered, all enqueued completions will get this error.
- * Any future requests will result in this error as well.
- **/
+ * Once triggered, all enqueued completions will get this error. Any future
+ * requests will result in this error as well.
+ */
 static void set_persistent_error(struct vdo_page_cache *cache,
 				 const char *context,
 				 int result)
@@ -792,21 +766,20 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 }
 
 /**
- * Initialize a VDO Page Completion, requesting a particular page from the
- * cache.
+ * vdo_init_page_completion() - Initialize a VDO Page Completion, requesting a
+ *                              particular page from the cache.
+ * @page_completion: The vdo_page_completion to initialize.
+ * @cache: The VDO page cache.
+ * @pbn: The absolute physical block of the desired page.
+ * @writable: Whether the page can be modified.
+ * @parent: The parent object.
+ * @callback: The completion callback.
+ * @error_handler: The handler for page errors.
  *
- * @param page_completion  The vdo_page_completion to initialize
- * @param cache            The VDO page cache
- * @param pbn              The absolute physical block of the desired page
- * @param writable         Whether the page can be modified
- * @param parent           The parent object
- * @param callback         The completion callback
- * @param error_handler    The handler for page errors
- *
- * @note Once a completion has occurred for the vdo_get_page() operation,
- *       the underlying page shall be busy (stuck in memory) until the
- *       vdo_completion returned by this operation has been released.
- **/
+ * Once a completion has occurred for the vdo_get_page() operation, the
+ * underlying page shall be busy (stuck in memory) until the vdo_completion
+ * returned by this operation has been released.
+ */
 void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
 			      physical_block_number_t pbn,
@@ -835,14 +808,14 @@ void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 }
 
 /**
- * Helper function to check that a completion represents a successfully
- * completed VDO Page Completion referring to a valid page.
+ * validate_completed_page() - Helper function to check that a completion
+ *                             represents a successfully completed VDO Page
+ *                             Completion referring to a valid page.
+ * @completion: A VDO completion.
+ * @writable: Whether a writable page is required.
  *
- * @param completion    a VDO completion
- * @param writable      whether a writable page is required
- *
- * @return the embedding completion if valid, NULL if not
- **/
+ * Return: The embedding completion if valid, NULL if not.
+ */
 static struct vdo_page_completion * __must_check
 validate_completed_page(struct vdo_completion *completion, bool writable)
 {
@@ -884,13 +857,13 @@ validate_completed_page(struct vdo_completion *completion, bool writable)
 }
 
 /**
- * Check whether a page cache is active (i.e. has any active lookups,
- * outstanding I/O, or pending I/O).
+ * vdo_is_page_cache_active() - Check whether a page cache is active (i.e. has
+ *                              any active lookups, outstanding I/O, or
+ *                              pending I/O).
+ * @cache: The cache to check.
  *
- * @param cache  The cache to check
- *
- * @return <code>true</code> if the cache is active
- **/
+ * Return: true if the cache is active.
+ */
 bool vdo_is_page_cache_active(struct vdo_page_cache *cache)
 {
 	return ((cache->outstanding_reads != 0) ||
@@ -898,11 +871,9 @@ bool vdo_is_page_cache_active(struct vdo_page_cache *cache)
 }
 
 /**
- * vio callback used when a page has been loaded.
- *
- * @param completion  A completion for the vio, the parent of which is a
- *                    page_info.
- **/
+ * page_is_loaded() - Vio callback used when a page has been loaded.
+ * @completion: A completion for the vio, the parent of which is a page_info.
+ */
 static void page_is_loaded(struct vdo_completion *completion)
 {
 	struct page_info *info = completion->parent;
@@ -923,10 +894,9 @@ static void page_is_loaded(struct vdo_completion *completion)
 }
 
 /**
- * Handle page load errors.
- *
- * @param completion  The page read vio
- **/
+ * handle_load_error() - Handle page load errors.
+ * @completion: The page read vio.
+ */
 static void handle_load_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
@@ -934,7 +904,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct vdo_page_cache *cache = info->cache;
 
 	assert_on_cache_thread(cache, __func__);
-
+	record_metadata_io_error(as_vio(completion));
 	vdo_enter_read_only_mode(cache->zone->read_only_notifier, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
@@ -952,11 +922,12 @@ static void handle_load_error(struct vdo_completion *completion)
 }
 
 /**
- * Run the read hook after a page is loaded. This callback is registered in
- * launch_page_load() when there is a read hook.
+ * run_read_hook() - Run the read hook after a page is loaded.
+ * @completion: The page load completion.
  *
- * @param completion  The page load completion
- **/
+ * This callback is registered in launch_page_load() when there is a read
+ * hook.
+ */
 static void run_read_hook(struct vdo_completion *completion)
 {
 	int result;
@@ -972,10 +943,10 @@ static void run_read_hook(struct vdo_completion *completion)
 }
 
 /**
- * Handle a read error during a read-only rebuild.
- *
- * @param completion  The page load completion
- **/
+ * handle_rebuild_read_error() - Handle a read error during a read-only
+ *                               rebuild.
+ * @completion: The page load completion.
+ */
 static void handle_rebuild_read_error(struct vdo_completion *completion)
 {
 	struct page_info *info = completion->parent;
@@ -987,6 +958,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	 * We are doing a read-only rebuild, so treat this as a successful read
 	 * of an uninitialized page.
 	 */
+	record_metadata_io_error(as_vio(completion));
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	vdo_reset_completion(completion);
@@ -997,14 +969,24 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	}
 }
 
+static void load_page_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct page_info *info = vio->completion.parent;
+	struct vdo_page_cache *cache = info->cache;
+	vdo_action *callback =
+		(cache->read_hook != NULL) ? run_read_hook : page_is_loaded;
+
+	continue_vio_after_io(vio, callback, cache->zone->thread_id);
+}
+
 /**
- * Begin the process of loading a page.
+ * launch_page_load() - Begin the process of loading a page.
+ * @info: The page info representing where to load the page.
+ * @pbn: The absolute pbn of the desired page.
  *
- * @param info  the page info representing where to load the page
- * @param pbn   the absolute pbn of the desired page
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int __must_check
 launch_page_load(struct page_info *info, physical_block_number_t pbn)
 {
@@ -1026,36 +1008,48 @@ launch_page_load(struct page_info *info, physical_block_number_t pbn)
 	set_info_state(info, PS_INCOMING);
 	cache->outstanding_reads++;
 	ADD_ONCE(cache->stats.pages_loaded, 1);
-	launch_read_metadata_vio(info->vio,
-				 pbn,
-				 (cache->read_hook != NULL) ?
-				 run_read_hook : page_is_loaded,
-				 (cache->rebuilding ?
-				  handle_rebuild_read_error
-				  : handle_load_error));
+	submit_metadata_vio(info->vio,
+			    pbn,
+			    load_page_endio,
+			    (cache->rebuilding ?
+			     handle_rebuild_read_error :
+			     handle_load_error),
+			    REQ_OP_READ | REQ_PRIO);
 	return VDO_SUCCESS;
 }
 
 static void write_pages(struct vdo_completion *completion);
 
 /**
- * Handle errors flushing the layer.
- *
- * @param completion  The flush vio
- **/
+ * handle_flush_error() - Handle errors flushing the layer.
+ * @completion: The flush vio.
+ */
 static void handle_flush_error(struct vdo_completion *completion)
 {
 	struct vdo_page_cache *cache =
 		((struct page_info *) completion->parent)->cache;
+
+	record_metadata_io_error(as_vio(completion));
 	set_persistent_error(cache, "flush failed", completion->result);
 	write_pages(completion);
 }
 
+static void flush_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vdo_page_cache *cache =
+		((struct page_info *) vio->completion.parent)->cache;
+
+	continue_vio_after_io(vio,
+			      write_pages,
+			      cache->zone->thread_id);
+}
+
 /**
- * Attempt to save the outgoing pages by first flushing the layer.
- *
- * @param cache  The cache
- **/
+ * save_pages() - Attempt to save the outgoing pages by first flushing the
+ *                layer.
+ * @cache: The cache.
+ */
 static void save_pages(struct vdo_page_cache *cache)
 {
 	struct page_info *info;
@@ -1079,15 +1073,16 @@ static void save_pages(struct vdo_page_cache *cache)
 	 * these pages were successfully persisted, and thus must issue a flush
 	 * before each batch of pages is written to ensure this.
 	 */
-	launch_flush_vio(vio, write_pages, handle_flush_error);
+	submit_flush_vio(vio, flush_endio, handle_flush_error);
 }
 
 /**
- * Add a page to the outgoing list of pages waiting to be saved. Once in the
- * list, a page may not be used until it has been written out.
+ * schedule_page_save() - Add a page to the outgoing list of pages waiting to
+ *                        be saved.
+ * @info: The page to save.
  *
- * @param info  The page to save
- **/
+ * Once in the list, a page may not be used until it has been written out.
+ */
 static void schedule_page_save(struct page_info *info)
 {
 	if (info->busy > 0) {
@@ -1114,11 +1109,11 @@ static void write_dirty_pages_callback(struct list_head *expired,
 }
 
 /**
- * Add a page to outgoing pages waiting to be saved, and then start saving
- * pages if another save is not in progress.
- *
- * @param info  The page to save
- **/
+ * launch_page_save() - Add a page to outgoing pages waiting to be saved, and
+ *                      then start saving pages if another save is not in
+ *                      progress.
+ * @info: The page to save.
+ */
 static void launch_page_save(struct page_info *info)
 {
 	schedule_page_save(info);
@@ -1126,14 +1121,15 @@ static void launch_page_save(struct page_info *info)
 }
 
 /**
- * Determine whether a given vdo_page_completion (as a waiter) is requesting a
- * given page number. Implements waiter_match.
+ * completion_needs_page() - Determine whether a given vdo_page_completion (as
+ *                           a waiter) is requesting a given page number.
+ * @waiter: The page completion in question.
+ * @context: A pointer to the pbn of the desired page.
  *
- * @param waiter        The page completion in question
- * @param context       A pointer to the pbn of the desired page
+ * Implements waiter_match.
  *
- * @return true if the page completion is for the desired page number
- **/
+ * Return: true if the page completion is for the desired page number.
+ */
 static bool completion_needs_page(struct waiter *waiter, void *context)
 {
 	physical_block_number_t *pbn = context;
@@ -1142,9 +1138,10 @@ static bool completion_needs_page(struct waiter *waiter, void *context)
 }
 
 /**
- * Allocate a free page to the first completion in the waiting queue,
- * and any other completions that match it in page number.
- **/
+ * allocate_free_page() - Allocate a free page to the first completion in the
+ *                        waiting queue, and any other completions that match
+ *                        it in page number.
+ */
 static void allocate_free_page(struct page_info *info)
 {
 	int result;
@@ -1186,18 +1183,16 @@ static void allocate_free_page(struct page_info *info)
 }
 
 /**
- * Begin the process of discarding a page.
+ * discard_a_page() - Begin the process of discarding a page.
+ * @cache: The page cache.
  *
- * @param cache         the page cache
+ * If no page is discardable, increments a count of deferred frees so that the
+ * next release of a page which is no longer busy will kick off another
+ * discard cycle. This is an indication that the cache is not big enough.
  *
- * @note If no page is discardable, increments a count of deferred frees so
- *       that the next release of a page which is no longer busy will kick
- *       off another discard cycle. This is an indication that the cache is
- *       not big enough.
- *
- * @note If the selected page is not dirty, immediately allocates the page
- *       to the oldest completion waiting for a free page.
- **/
+ * If the selected page is not dirty, immediately allocates the page to the
+ * oldest completion waiting for a free page.
+ */
 static void discard_a_page(struct vdo_page_cache *cache)
 {
 	struct page_info *info = select_lru_page(cache);
@@ -1221,11 +1216,10 @@ static void discard_a_page(struct vdo_page_cache *cache)
 }
 
 /**
- * Helper used to trigger a discard so that the completion can get a different
- * page.
- *
- * @param vdo_page_comp   the VDO Page completion
- **/
+ * discard_page_for_completion() - Helper used to trigger a discard so that
+ *                                 the completion can get a different page.
+ * @vdo_page_comp: The VDO Page completion.
+ */
 static void
 discard_page_for_completion(struct vdo_page_completion *vdo_page_comp)
 {
@@ -1243,10 +1237,10 @@ discard_page_for_completion(struct vdo_page_completion *vdo_page_comp)
 }
 
 /**
- * Helper used to trigger a discard if the cache needs another free page.
- *
- * @param cache         the page cache
- **/
+ * discard_page_if_needed() - Helper used to trigger a discard if the cache
+ *                            needs another free page.
+ * @cache: The page cache.
+ */
 static void discard_page_if_needed(struct vdo_page_cache *cache)
 {
 	if (cache->waiter_count > cache->discard_count) {
@@ -1255,11 +1249,11 @@ static void discard_page_if_needed(struct vdo_page_cache *cache)
 }
 
 /**
- * Advance the dirty period for a page cache.
- *
- * @param cache   The cache to advance
- * @param period  The new dirty period
- **/
+ * vdo_advance_page_cache_period() - Advance the dirty period for a page
+ *                                   cache.
+ * @cache: The cache to advance.
+ * @period: The new dirty period.
+ */
 void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
 				   sequence_number_t period)
 {
@@ -1268,12 +1262,12 @@ void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
 }
 
 /**
- * Inform the cache that a write has finished (possibly with an error).
+ * write_has_finished() - Inform the cache that a write has finished (possibly
+ *                        with an error).
+ * @info: The info structure for the page whose write just completed.
  *
- * @param info  The info structure for the page whose write just completed
- *
- * @return <code>true</code> if the page write was a discard
- **/
+ * Return: true if the page write was a discard.
+ */
 static bool write_has_finished(struct page_info *info)
 {
 	bool was_discard = (info->write_status == WRITE_STATUS_DISCARD);
@@ -1286,15 +1280,16 @@ static bool write_has_finished(struct page_info *info)
 }
 
 /**
- * Handler for page write errors.
- *
- * @param completion  The page write vio
- **/
+ * handle_page_write_error() - Handler for page write errors.
+ * @completion: The page write vio.
+ */
 static void handle_page_write_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct page_info *info = completion->parent;
 	struct vdo_page_cache *cache = info->cache;
+
+	record_metadata_io_error(as_vio(completion));
 
 	/* If we're already read-only, write failures are to be expected. */
 	if (result != VDO_READ_ONLY) {
@@ -1319,12 +1314,22 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	vdo_block_map_check_for_drain_complete(cache->zone);
 }
 
+static void page_is_written_out(struct vdo_completion *completion);
+
+static void write_page_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct page_info *info = vio->completion.parent;
+	struct vdo_page_cache *cache = info->cache;
+
+	continue_vio_after_io(vio, page_is_written_out, cache->zone->thread_id);
+}
+
 /**
- * vio callback used when a page has been written out.
- *
- * @param completion    A completion for the vio, the parent of which
- *                      is embedded in page_info.
- **/
+ * page_is_written_out() - Vio callback used when a page has been written out.
+ * @completion: A completion for the vio, the parent of which is embedded in
+ *              page_info.
+ */
 static void page_is_written_out(struct vdo_completion *completion)
 {
 	bool was_discard, reclaimed;
@@ -1335,14 +1340,16 @@ static void page_is_written_out(struct vdo_completion *completion)
 
 	if (cache->write_hook != NULL) {
 		bool rewrite = cache->write_hook(get_page_buffer(info),
-						cache->zone, info->context);
+						 cache->zone,
+						 info->context);
 		if (rewrite) {
-			launch_write_metadata_vio_with_flush(info->vio,
-							     info->pbn,
-							     page_is_written_out,
-							     handle_page_write_error,
-							     true,
-							     false);
+			submit_metadata_vio(info->vio,
+					    info->pbn,
+					    write_page_endio,
+					    handle_page_write_error,
+					    (REQ_OP_WRITE |
+					     REQ_PRIO |
+					     REQ_PREFLUSH));
 			return;
 		}
 	}
@@ -1370,11 +1377,12 @@ static void page_is_written_out(struct vdo_completion *completion)
 }
 
 /**
- * Write the batch of pages which were covered by the layer flush which just
- * completed. This callback is registered in save_pages().
+ * write_pages() - Write the batch of pages which were covered by the layer
+ *                 flush which just completed.
+ * @flush_completion: The flush vio.
  *
- * @param flush_completion  The flush vio
- **/
+ * This callback is registered in save_pages().
+ */
 static void write_pages(struct vdo_completion *flush_completion)
 {
 	struct vdo_page_cache *cache =
@@ -1405,10 +1413,11 @@ static void write_pages(struct vdo_completion *flush_completion)
 			continue;
 		}
 		ADD_ONCE(info->cache->stats.pages_saved, 1);
-		launch_write_metadata_vio(info->vio,
-					  info->pbn,
-					  page_is_written_out,
-					  handle_page_write_error);
+		submit_metadata_vio(info->vio,
+				    info->pbn,
+				    write_page_endio,
+				    handle_page_write_error,
+				    REQ_OP_WRITE | REQ_PRIO);
 	}
 
 	if (has_unflushed_pages) {
@@ -1421,15 +1430,13 @@ static void write_pages(struct vdo_completion *flush_completion)
 }
 
 /**
- * Release a VDO Page Completion.
+ * vdo_release_page_completion() - Release a VDO Page Completion.
+ * @completion: The completion to release.
  *
- * The page referenced by this completion (if any) will no longer be
- * held busy by this completion. If a page becomes discardable and
- * there are completions awaiting free pages then a new round of
- * page discarding is started.
- *
- * @param completion The completion to release
- **/
+ * The page referenced by this completion (if any) will no longer be held busy
+ * by this completion. If a page becomes discardable and there are completions
+ * awaiting free pages then a new round of page discarding is started.
+ */
 void vdo_release_page_completion(struct vdo_completion *completion)
 {
 	struct page_info *discard_info = NULL;
@@ -1471,11 +1478,11 @@ void vdo_release_page_completion(struct vdo_completion *completion)
 }
 
 /**
- * Helper function to load a page as described by a VDO Page Completion.
- *
- * @param info            the page info representing where to load the page
- * @param vdo_page_comp   the VDO Page Completion describing the page
- **/
+ * load_page_for_completion() - Helper function to load a page as described by
+ *                              a VDO Page Completion.
+ * @info: The page info representing where to load the page.
+ * @vdo_page_comp: The VDO Page Completion describing the page.
+ */
 static void load_page_for_completion(struct page_info *info,
 				     struct vdo_page_completion *vdo_page_comp)
 {
@@ -1493,18 +1500,16 @@ static void load_page_for_completion(struct page_info *info,
 }
 
 /**
- * Asynchronous operation to get a VDO page.
+ * vdo_get_page() - Asynchronous operation to get a VDO page.
+ * @completion: The completion initialized by vdo_init_page_completion().
  *
  * May cause another page to be discarded (potentially writing a dirty page)
  * and the one nominated by the completion to be loaded from disk.
  *
  * When the page becomes available the callback registered in the completion
- * provided is triggered. Once triggered the page is marked busy until
- * the completion is destroyed.
- *
- * @param completion    the completion initialized by
- *                      vdo_init_page_completion().
- **/
+ * provided is triggered. Once triggered the page is marked busy until the
+ * completion is destroyed.
+ */
 void vdo_get_page(struct vdo_completion *completion)
 {
 	struct page_info *info;
@@ -1575,14 +1580,13 @@ void vdo_get_page(struct vdo_completion *completion)
 }
 
 /**
- * Mark a VDO page referenced by a completed vdo_page_completion as dirty.
- *
- * @param completion        a VDO Page Completion whose callback has been
- *                          called
- * @param old_dirty_period  the period in which the page was already dirty (0
- *                          if it wasn't)
- * @param new_dirty_period  the period in which the page is now dirty
- **/
+ * vdo_mark_completed_page_dirty() - Mark a VDO page referenced by a completed
+ *                                   vdo_page_completion as dirty.
+ * @completion: A VDO Page Completion whose callback has been called.
+ * @old_dirty_period: The period in which the page was already dirty (0 if it
+ *                    wasn't).
+ * @new_dirty_period: The period in which the page is now dirty.
+ */
 void vdo_mark_completed_page_dirty(struct vdo_completion *completion,
 				   sequence_number_t old_dirty_period,
 				   sequence_number_t new_dirty_period)
@@ -1604,10 +1608,10 @@ void vdo_mark_completed_page_dirty(struct vdo_completion *completion,
 }
 
 /**
- * Request that a VDO page be written out as soon as it is not busy.
- *
- * @param completion  the vdo_page_completion containing the page
- **/
+ * vdo_request_page_write() - Request that a VDO page be written out as soon
+ *                            as it is not busy.
+ * @completion: The vdo_page_completion containing the page.
+ */
 void vdo_request_page_write(struct vdo_completion *completion)
 {
 	struct page_info *info;
@@ -1629,14 +1633,13 @@ static void *dereference_page_completion(struct vdo_page_completion *completion)
 }
 
 /**
- * Access the raw memory for a read-only page of a completed
- * vdo_page_completion.
+ * vdo_dereference_readable_page() - Access the raw memory for a read-only
+ *                                   page of a completed vdo_page_completion.
+ * @completion: A vdo page completion whose callback has been called.
  *
- * @param completion    a vdo page completion whose callback has been called
- *
- * @return a pointer to the raw memory at the beginning of the page, or
+ * Return: A pointer to the raw memory at the beginning of the page, or
  *         NULL if the page is not available.
- **/
+ */
 const void *vdo_dereference_readable_page(struct vdo_completion *completion)
 {
 	return dereference_page_completion(
@@ -1644,14 +1647,13 @@ const void *vdo_dereference_readable_page(struct vdo_completion *completion)
 }
 
 /**
- * Access the raw memory for a writable page of a completed
- * vdo_page_completion.
+ * vdo_dereference_writable_page() - Access the raw memory for a writable page
+ *                                   of a completed vdo_page_completion.
+ * @completion: A vdo page completion whose callback has been called.
  *
- * @param completion    a vdo page completion whose callback has been called
- *
- * @return a pointer to the raw memory at the beginning of the page, or
- *         NULL if the page is not available, or if the page is read-only
- **/
+ * Return: A pointer to the raw memory at the beginning of the page, or
+ *         NULL if the page is not available, or if the page is read-only.
+ */
 void *vdo_dereference_writable_page(struct vdo_completion *completion)
 {
 	return dereference_page_completion(validate_completed_page(completion,
@@ -1659,15 +1661,17 @@ void *vdo_dereference_writable_page(struct vdo_completion *completion)
 }
 
 /**
- * Get the per-page client context for the page in a page completion whose
- * callback has been invoked. Should only be called after dereferencing the
- * page completion to validate the page.
+ * vdo_get_page_completion_context() - Get the per-page client context for the
+ *                                     page in a page completion whose
+ *                                     callback has been invoked.
+ * @completion: A vdo page completion whose callback has been invoked.
+ * 
+ * Should only be called after dereferencing the page completion to validate
+ * the page.
  *
- * @param completion    a vdo page completion whose callback has been invoked
- *
- * @return a pointer to the per-page client context, or NULL if
- *         the page is not available
- **/
+ * Return: A pointer to the per-page client context, or NULL if
+ *         the page is not available.
+ */
 void *vdo_get_page_completion_context(struct vdo_completion *completion)
 {
 	struct vdo_page_completion *page_completion =
@@ -1678,10 +1682,9 @@ void *vdo_get_page_completion_context(struct vdo_completion *completion)
 }
 
 /**
- * Drain I/O for a page cache.
- *
- * @param cache  The cache to drain
- **/
+ * vdo_drain_page_cache() - Drain I/O for a page cache.
+ * @cache: The cache to drain.
+ */
 void vdo_drain_page_cache(struct vdo_page_cache *cache)
 {
 	assert_on_cache_thread(cache, __func__);
@@ -1695,13 +1698,13 @@ void vdo_drain_page_cache(struct vdo_page_cache *cache)
 }
 
 /**
- * Invalidate all entries in the VDO page cache. There must not be any
- * dirty pages in the cache.
+ * vdo_invalidate_page_cache() - Invalidate all entries in the VDO page cache.
+ * @cache: The cache to invalidate.
+ * 
+ * There must not be any dirty pages in the cache.
  *
- * @param cache  the cache to invalidate
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 {
 	struct page_info *info;

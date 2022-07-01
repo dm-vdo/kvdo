@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "reference-count-rebuild.h"
@@ -35,54 +20,53 @@
 #include "vdo.h"
 #include "vdo-page-cache.h"
 
-/**
+/*
  * A reference count rebuild completion.
  * Note that the page completions kept in this structure are not immediately
  * freed, so the corresponding pages will be locked down in the page cache
  * until the rebuild frees them.
- **/
+ */
 struct rebuild_completion {
-	/** completion header */
+	/* completion header */
 	struct vdo_completion completion;
-	/** the completion for flushing the block map */
+	/* the completion for flushing the block map */
 	struct vdo_completion sub_task_completion;
-	/** the thread on which all block map operations must be done */
+	/* the thread on which all block map operations must be done */
 	thread_id_t logical_thread_id;
-	/** the admin thread */
+	/* the admin thread */
 	thread_id_t admin_thread_id;
-	/** the block map */
+	/* the block map */
 	struct block_map *block_map;
-	/** the slab depot */
+	/* the slab depot */
 	struct slab_depot *depot;
-	/** whether this recovery has been aborted */
+	/* whether this recovery has been aborted */
 	bool aborted;
-	/** whether we are currently launching the initial round of requests */
+	/* whether we are currently launching the initial round of requests */
 	bool launching;
-	/** The number of logical blocks observed used */
+	/* The number of logical blocks observed used */
 	block_count_t *logical_blocks_used;
-	/** The number of block map data blocks */
+	/* The number of block map data blocks */
 	block_count_t *block_map_data_blocks;
-	/** the next page to fetch */
+	/* the next page to fetch */
 	page_count_t page_to_fetch;
-	/** the number of leaf pages in the block map */
+	/* the number of leaf pages in the block map */
 	page_count_t leaf_pages;
-	/** the last slot of the block map */
+	/* the last slot of the block map */
 	struct block_map_slot last_slot;
-	/** number of pending (non-ready) requests*/
+	/* number of pending (non-ready) requests*/
 	page_count_t outstanding;
-	/** number of page completions */
+	/* number of page completions */
 	page_count_t page_count;
-	/** array of requested, potentially ready page completions */
+	/* array of requested, potentially ready page completions */
 	struct vdo_page_completion page_completions[];
 };
 
 /**
- * Convert a vdo_completion to a rebuild_completion.
+ * as_rebuild_completion() - Convert a vdo_completion to a rebuild_completion.
+ * @completion: The completion to convert.
  *
- * @param completion  The completion to convert
- *
- * @return The completion as a rebuild_completion
- **/
+ * Return: The completion as a rebuild_completion.
+ */
 static inline struct rebuild_completion * __must_check
 as_rebuild_completion(struct vdo_completion *completion)
 {
@@ -92,11 +76,12 @@ as_rebuild_completion(struct vdo_completion *completion)
 }
 
 /**
- * Free the rebuild_completion and notify the parent that the block map
- * rebuild is done. This callback is registered in make_rebuild_completion().
+ * finish_rebuild() - Free the rebuild_completion and notify the parent that
+ *                    the block map rebuild is done.
+ * @completion: The rebuild_completion.
  *
- * @param completion  The rebuild_completion
- **/
+ * This callback is registered in make_rebuild_completion().
+ */
 static void finish_rebuild(struct vdo_completion *completion)
 {
 	int result = completion->result;
@@ -107,17 +92,16 @@ static void finish_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Make a new rebuild completion.
+ * make_rebuild_completion() - Make a new rebuild completion.
+ * @vdo: The vdo.
+ * @logical_blocks_used: A pointer to hold the logical blocks used.
+ * @block_map_data_blocks: A pointer to hold the number of block map data
+ *                         blocks.
+ * @parent: The parent of the rebuild completion.
+ * @rebuild_ptr: The new block map rebuild completion.
  *
- * @param [in]  vdo                    The vdo
- * @param [in]  logical_blocks_used    A pointer to hold the logical blocks used
- * @param [in]  block_map_data_blocks  A pointer to hold the number of block map
- *                                     data blocks
- * @param [in]  parent                 The parent of the rebuild completion
- * @param [out] rebuild_ptr            The new block map rebuild completion
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 static int make_rebuild_completion(struct vdo *vdo,
 				   block_count_t *logical_blocks_used,
 				   block_count_t *block_map_data_blocks,
@@ -169,11 +153,12 @@ static int make_rebuild_completion(struct vdo *vdo,
 }
 
 /**
- * Flush the block map now that all the reference counts are rebuilt. This
- * callback is registered in finish_if_done().
+ * flush_block_map_updates() - Flush the block map now that all the reference
+ *                             counts are rebuilt.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * This callback is registered in finish_if_done().
+ */
 static void flush_block_map_updates(struct vdo_completion *completion)
 {
 	uds_log_info("Flushing block map changes");
@@ -184,13 +169,13 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 }
 
 /**
- * Check whether the rebuild is done. If it succeeded, continue by flushing the
- * block map.
+ * finish_if_done() - Check whether the rebuild is done.
+ * @rebuild: The rebuild completion.
  *
- * @param rebuild  The rebuild completion
+ * If it succeeded, continues by flushing the block map.
  *
- * @return <code>true</code> if the rebuild is complete
- **/
+ * Return: true if the rebuild is complete.
+ */
 static bool finish_if_done(struct rebuild_completion *rebuild)
 {
 	if (rebuild->launching || (rebuild->outstanding > 0)) {
@@ -216,11 +201,10 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 }
 
 /**
- * Record that there has been an error during the rebuild.
- *
- * @param rebuild  The rebuild completion
- * @param result   The error result to use, if one is not already saved
- **/
+ * abort_rebuild() - Record that there has been an error during the rebuild.
+ * @rebuild: The rebuild completion.
+ * @result: The error result to use, if one is not already saved.
+ */
 static void abort_rebuild(struct rebuild_completion *rebuild, int result)
 {
 	rebuild->aborted = true;
@@ -228,10 +212,9 @@ static void abort_rebuild(struct rebuild_completion *rebuild, int result)
 }
 
 /**
- * Handle an error loading a page.
- *
- * @param completion  The vdo_page_completion
- **/
+ * handle_page_load_error() - Handle an error loading a page.
+ * @completion: The vdo_page_completion.
+ */
 static void handle_page_load_error(struct vdo_completion *completion)
 {
 	struct rebuild_completion *rebuild =
@@ -243,13 +226,13 @@ static void handle_page_load_error(struct vdo_completion *completion)
 }
 
 /**
- * Rebuild reference counts from a block map page.
+ * rebuild_reference_counts_from_page() - Rebuild reference counts from a
+ *                                        block map page.
+ * @rebuild: The rebuild completion.
+ * @completion: The page completion holding the page.
  *
- * @param rebuild     The rebuild completion
- * @param completion  The page completion holding the page
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int
 rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 				   struct vdo_completion *completion)
@@ -342,11 +325,11 @@ static void fetch_page(struct rebuild_completion *rebuild,
 		       struct vdo_completion *completion);
 
 /**
- * Process a page which has just been loaded. This callback is registered by
- * fetch_page().
+ * page_loaded() - Process a page which has just been loaded.
+ * @completion: The vdo_page_completion for the fetched page.
  *
- * @param completion  The vdo_page_completion for the fetched page
- **/
+ * This callback is registered by fetch_page().
+ */
 static void page_loaded(struct vdo_completion *completion)
 {
 	int result;
@@ -373,11 +356,10 @@ static void page_loaded(struct vdo_completion *completion)
 }
 
 /**
- * Fetch a page from the block map.
- *
- * @param rebuild     the rebuild_completion
- * @param completion  the page completion to use
- **/
+ * fetch_page() - Fetch a page from the block map.
+ * @rebuild: The rebuild_completion.
+ * @completion: The page completion to use.
+ */
 static void fetch_page(struct rebuild_completion *rebuild,
 		       struct vdo_completion *completion)
 {
@@ -409,13 +391,15 @@ static void fetch_page(struct rebuild_completion *rebuild,
 }
 
 /**
- * Rebuild reference counts from the leaf block map pages now that reference
+ * rebuild_from_leaves() - Rebuild reference counts from the leaf block map
+ *                         pages.
+ * @completion: The sub-task completion.
+ *
+ * Rebuilds reference counts from the leaf block map pages now that reference
  * counts have been rebuilt from the interior tree pages (which have been
  * loaded in the process). This callback is registered in
  * vdo_rebuild_reference_counts().
- *
- * @param completion  The sub-task completion
- **/
+ */
 static void rebuild_from_leaves(struct vdo_completion *completion)
 {
 	page_count_t i;
@@ -447,15 +431,14 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 }
 
 /**
- * Process a single entry from the block map tree.
+ * process_entry() - Process a single entry from the block map tree.
+ * @pbn: A pbn which holds a block map tree page.
+ * @completion: The parent completion of the traversal.
  *
- * <p>Implements vdo_entry_callback.
+ * Implements vdo_entry_callback.
  *
- * @param pbn         A pbn which holds a block map tree page
- * @param completion  The parent completion of the traversal
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int process_entry(physical_block_number_t pbn,
 			struct vdo_completion *completion)
 {
@@ -486,15 +469,14 @@ static int process_entry(physical_block_number_t pbn,
 }
 
 /**
- * Rebuild the reference counts from the block map (read-only rebuild).
- *
- * @param [in]  vdo                    The vdo
- * @param [in]  parent                 The completion to notify when the
- *                                     rebuild is complete
- * @param [out] logical_blocks_used    A pointer to hold the logical blocks used
- * @param [out] block_map_data_blocks  A pointer to hold the number of block map
- *                                     data blocks
- **/
+ * vdo_rebuild_reference_counts() - Rebuild the reference counts from the
+ *                                  block map (read-only rebuild).
+ * @vdo: The vdo.
+ * @parent: The completion to notify when the rebuild is complete
+ * @logical_blocks_used: A pointer to hold the logical blocks used.
+ * @block_map_data_blocks: A pointer to hold the number of block map
+ *                         data blocks.
+ */
 void vdo_rebuild_reference_counts(struct vdo *vdo,
 				  struct vdo_completion *parent,
 				  block_count_t *logical_blocks_used,

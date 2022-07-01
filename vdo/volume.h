@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef VOLUME_H
@@ -42,19 +27,8 @@ enum reader_state {
 enum index_lookup_mode {
 	/* Always do lookups in all chapters normally.  */
 	LOOKUP_NORMAL,
-	/*
-	 * Don't do lookups in closed chapters; assume records not in the
-	 * open chapter are always new.  You don't want this normally; it's
-	 * for programs like albfill.  (Even then, with multiple runs using
-	 * the same tag, we may actually duplicate older records, but if
-	 * it's in a separate chapter it won't really matter.)
-	 */
-	LOOKUP_CURRENT_CHAPTER_ONLY,
-	/*
-	 * Only do a subset of lookups needed when rebuilding an index.
-	 * This cannot be set externally.
-	 */
-	LOOKUP_FOR_REBUILD
+	/* Only do a subset of lookups needed when rebuilding an index. */
+	LOOKUP_FOR_REBUILD,
 };
 
 struct volume {
@@ -312,14 +286,12 @@ read_chapter_index_from_volume(const struct volume *volume,
  * This function is only exposed for the use of unit tests.
  *
  * @param volume         The volume containing the page
- * @param request        The request originating the search
  * @param physical_page  The physical page number
  * @param entry_ptr      A pointer to hold the retrieved cached entry
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check get_volume_page_locked(struct volume *volume,
-					struct uds_request *request,
 					unsigned int physical_page,
 					struct cached_page **entry_ptr);
 

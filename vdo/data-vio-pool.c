@@ -2,21 +2,6 @@
 /*
  * Copyright Red Hat
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
  */
 
 #include "data-vio-pool.h"
@@ -35,13 +20,14 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "comparisons.h"
 #include "data-vio.h"
 #include "dump.h"
 #include "vdo.h"
 #include "types.h"
 
-/*
+/**
+ * DOC:
+ *
  * The data_vio_pool maintains the pool of data_vios which a vdo uses to
  * service incoming bios. For correctness, and in order to avoid potentially
  * expensive or blocking memory allocations during normal operation, the number
@@ -165,12 +151,11 @@ struct data_vio_pool {
 	struct data_vio data_vios[];
 };
 
-/*
- * Convert a vdo_completion to a data_vio_pool.
+/**
+ * as_data_vio_pool() - Convert a vdo_completion to a data_vio_pool.
+ * @completion: The completion to convert.
  *
- * @param completion  The completion to convert
- *
- * @return The completion as a data_vio_pool
+ * Return: The completion as a data_vio_pool.
  */
 static inline struct data_vio_pool * __must_check
 as_data_vio_pool(struct vdo_completion *completion)
@@ -187,13 +172,14 @@ static inline uint64_t get_arrival_time(struct bio *bio)
 	return (uint64_t) bio->bi_private;
 }
 
-/*
- * Check whether a data_vio_pool has no outstanding data_vios or waiters while
- * holding the pool's lock.
+/**
+ * check_for_drain_complete_locked() - Check whether a data_vio_pool
+ *                                     has no outstanding data_vios or
+ *                                     waiters while holding the
+ *                                     pool's lock.
+ * @pool: The pool to check.
  *
- * @param pool  The pool to check
- *
- * @return <code>true</code> if the pool has no busy data_vios or waiters
+ * Return: true if the pool has no busy data_vios or waiters.
  */
 static bool check_for_drain_complete_locked(struct data_vio_pool *pool)
 {
@@ -232,18 +218,17 @@ static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 
 	initialize_vio(vio,
 		       bio,
+		       1,
 		       VIO_TYPE_DATA,
 		       VIO_PRIORITY_DATA,
-		       NULL,
-		       vdo,
-		       NULL);
+		       vdo);
 }
 
 static void launch_bio(struct vdo *vdo,
 		       struct data_vio *data_vio,
 		       struct bio *bio)
 {
-	enum vio_operation operation = VIO_WRITE;
+	enum data_vio_operation operation = DATA_VIO_WRITE;
 	logical_block_number_t lbn;
 	reset_data_vio(data_vio, vdo);
 	data_vio->user_bio = bio;
@@ -261,14 +246,14 @@ static void launch_bio(struct vdo *vdo,
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
 		if (data_vio->is_partial) {
 			vdo_count_bios(&vdo->stats.bios_in_partial, bio);
-			operation = VIO_READ_MODIFY_WRITE;
+			operation = DATA_VIO_READ_MODIFY_WRITE;
 		}
 	} else if (data_vio->is_partial) {
 		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
 		operation = ((bio_data_dir(bio) == READ)
-			     ? VIO_READ : VIO_READ_MODIFY_WRITE);
+			     ? DATA_VIO_READ : DATA_VIO_READ_MODIFY_WRITE);
 	} else if (bio_data_dir(bio) == READ) {
-		operation = VIO_READ;
+		operation = DATA_VIO_READ;
 	} else {
 		/*
 		 * Copy the bio data to a char array so that we can continue to
@@ -279,7 +264,7 @@ static void launch_bio(struct vdo *vdo,
 	}
 
 	if (data_vio->user_bio->bi_opf & REQ_FUA) {
-		operation |= VIO_FLUSH_AFTER;
+		operation |= DATA_VIO_FUA;
 	}
 
 	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
@@ -363,13 +348,12 @@ static void update_limiter(struct limiter *limiter)
 	}
 }
 
-/*
- * Ensure that release processing is scheduled.
+/**
+ * schedule_releases() - Ensure that release processing is scheduled.
+ * @pool: The data_vio_pool which has resources to release.
  *
  * If this call switches the state to processing, enqueue. Otherwise, some
  * other thread has already done so.
- *
- * @param pool  The data_vio_pool which has resources to release
  */
 static void schedule_releases(struct data_vio_pool *pool)
 {
@@ -407,10 +391,9 @@ static void reuse_or_release_resources(struct data_vio_pool *pool,
 	}
 }
 
-/*
- * Process a batch of data_vio releases.
- *
- * @param completion  The pool with data_vios to release
+/**
+ * process_release_callback() - Process a batch of data_vio releases.
+ * @completion: The pool with data_vios to release.
  */
 static void process_release_callback(struct vdo_completion *completion)
 {
@@ -505,14 +488,13 @@ static void initialize_limiter(struct limiter *limiter,
 	init_waitqueue_head(&limiter->blocked_threads);
 }
 
-/*
- * Initialize a data_vio pool.
- *
- * @param vdo            The vdo to which the pool will belong
- * @param pool_size      The number of data_vios in the pool
- * @param discard_limit  The maximum number of data_vios which may be used for
- *                       discards
- * @param pool           A pointer to hold the newly allocated pool
+/**
+ * make_data_vio_pool() - Initialize a data_vio pool.
+ * @vdo: The vdo to which the pool will belong.
+ * @pool_size: The number of data_vios in the pool.
+ * @discard_limit: The maximum number of data_vios which may be used for
+ *                 discards.
+ * @pool: A pointer to hold the newly allocated pool.
  */
 int make_data_vio_pool(struct vdo *vdo,
 		       vio_count_t pool_size,
@@ -579,11 +561,11 @@ int make_data_vio_pool(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/*
- * Free a data_vio_pool and the data_vios in it. All data_vios must be
- * returned to the pool before calling this function.
+/**
+ * free_data_vio_pool() - Free a data_vio_pool and the data_vios in it.
+ * @pool: The pool to free (may be NULL).
  *
- * @param pool  The pool to free (may be NULL)
+ * All data_vios must be returned to the pool before calling this function.
  */
 void free_data_vio_pool(struct data_vio_pool *pool)
 {
@@ -646,12 +628,13 @@ static bool acquire_permit(struct limiter *limiter, struct bio *bio)
 	return true;
 }
 
-/*
- * Acquire a data_vio from the pool, assign the bio to it, and send it on its
- * way. This will block if data_vios or discard permits are not available.
+/**
+ * vdo_launch_bio() - Acquire a data_vio from the pool, assign the bio to it,
+ *                    and send it on its way.
+ * @pool: The pool from which to acquire a data_vio.
+ * @bio: The bio to launch.
  *
- * @param pool  The pool from which to acquire a data_vio
- * @param bio   The bio to launch
+ * This will block if data_vios or discard permits are not available.
  */
 void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 {
@@ -676,10 +659,9 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 	launch_bio(pool->completion.vdo, data_vio, bio);
 }
 
-/*
- * Return a data_vio to the pool.
- *
- * @param data_vio  The data_vio to return
+/**
+ * release_data_vio() - Return a data_vio to the pool.
+ * @data_vio: The data_vio to return.
  */
 void release_data_vio(struct data_vio *data_vio)
 {
@@ -687,12 +669,12 @@ void release_data_vio(struct data_vio *data_vio)
 		vdo_from_data_vio(data_vio)->data_vio_pool;
 
 	funnel_queue_put(pool->queue,
-			 &(data_vio_as_completion(data_vio)->work_item.work_queue_entry_link));
+			 &(data_vio_as_completion(data_vio)->work_queue_entry_link));
 	schedule_releases(pool);
 }
 
-/*
- * Initiate a drain.
+/**
+ * initiate_drain() - Initiate a drain.
  *
  * Implements vdo_admin_initiator.
  */
@@ -712,11 +694,11 @@ static void initiate_drain(struct admin_state *state)
 	}
 }
 
-/*
- * Wait asynchronously for all data_vios to be returned to the pool.
- *
- * @param pool        The data_vio_pool to drain
- * @param completion  The completion to notify when the pool has drained
+/**
+ * drain_data_vio_pool() - Wait asynchronously for all data_vios to be
+ *                         returned to the pool.
+ * @pool: The data_vio_pool to drain.
+ * @completion: The completion to notify when the pool has drained.
  */
 void drain_data_vio_pool(struct data_vio_pool *pool,
 			 struct vdo_completion *completion)
@@ -728,11 +710,10 @@ void drain_data_vio_pool(struct data_vio_pool *pool,
 			   initiate_drain);
 }
 
-/*
- * Resume a data_vio pool.
- *
- * @param pool        The pool to resume
- * @param completion  The completion to notify when the pool has resumed
+/**
+ * resume_data_vio_pool() - Resume a data_vio pool.
+ * @pool: The pool to resume.
+ * @completion: The completion to notify when the pool has resumed.
  */
 void resume_data_vio_pool(struct data_vio_pool *pool,
 			  struct vdo_completion *completion)
@@ -755,18 +736,17 @@ static void dump_limiter(const char *name, struct limiter *limiter)
 		      : "has waiters"));
 }
 
-/*
- * Dump a data_vio pool to the log.
- *
- * @param pool       The pool to dump
- * @param dump_vios  Whether to dump the details of each busy data_vio as well
+/**
+ * dump_data_vio_pool() - Dump a data_vio pool to the log.
+ * @pool: The pool to dump.
+ * @dump_vios: Whether to dump the details of each busy data_vio as well.
  */
 void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 {
 	/*
 	 * In order that syslog can empty its buffer, sleep after 35 elements
-	 * for 4ms (till the second clock tick). These numbers chosen in
-	 * October 2012 running on an lfarm.
+	 * for 4ms (till the second clock tick).  These numbers were picked
+	 * based on experiments with lab machines.
 	 */
 	enum { ELEMENTS_PER_BATCH = 35 };
 	enum { SLEEP_FOR_SYSLOG = 4000 };

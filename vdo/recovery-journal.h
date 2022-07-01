@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -44,74 +29,67 @@
  * journals. This log helps to reduce the write amplification of writes by
  * providing amortization of slab journal and block map page updates.
  *
- * The journal consists of a set of on-disk blocks arranged as a
- * circular log with monotonically increasing sequence numbers. Three
- * sequence numbers serve to define the active extent of the
- * journal. The 'head' is the oldest active block in the journal. The
- * 'tail' is the end of the half-open interval containing the active
- * blocks. 'active' is the number of the block actively receiving
- * entries. In an empty journal, head == active == tail. Once any
- * entries are added, tail = active + 1, and head may be any value in
- * the interval [tail - size, active].
+ * The journal consists of a set of on-disk blocks arranged as a circular log
+ * with monotonically increasing sequence numbers. Three sequence numbers serve
+ * to define the active extent of the journal. The 'head' is the oldest active
+ * block in the journal. The 'tail' is the end of the half-open interval
+ * containing the active blocks. 'active' is the number of the block actively
+ * receiving entries. In an empty journal, head == active == tail. Once any
+ * entries are added, tail = active + 1, and head may be any value in the
+ * interval [tail - size, active].
  *
- * The journal also contains a set of in-memory blocks which are used
- * to buffer up entries until they can be committed. In general the
- * number of in-memory blocks ('tail_buffer_count') will be less than
- * the on-disk size. Each in-memory block is also a vdo_completion.
- * Each in-memory block has a vdo_extent which is used to commit that
- * block to disk. The extent's data is the on-disk representation
- * of the journal block. In addition each in-memory block has a
- * buffer which is used to accumulate entries while a partial commit
- * of the block is in progress. In-memory blocks are kept on two
- * rings. Free blocks live on the 'free_tail_blocks' ring. When a block
- * becomes active (see below) it is moved to the 'active_tail_blocks'
- * ring. When a block is fully committed, it is moved back to the
- * 'free_tail_blocks' ring.
+ * The journal also contains a set of in-memory blocks which are used to buffer
+ * up entries until they can be committed. In general the number of in-memory
+ * blocks ('tail_buffer_count') will be less than the on-disk size. Each
+ * in-memory block is also a vdo_completion.  Each in-memory block has a vio
+ * which is used to commit that block to disk. The vio's data is the on-disk
+ * representation of the journal block. In addition each in-memory block has a
+ * buffer which is used to accumulate entries while a partial commit of the
+ * block is in progress. In-memory blocks are kept on two rings. Free blocks
+ * live on the 'free_tail_blocks' ring. When a block becomes active (see below)
+ * it is moved to the 'active_tail_blocks' ring. When a block is fully
+ * committed, it is moved back to the 'free_tail_blocks' ring.
  *
  * When entries are added to the journal, they are added to the active
- * in-memory block, as indicated by the 'active_block' field. If the
- * caller wishes to wait for the entry to be committed, the requesting
- * VIO will be attached to the in-memory block to which the caller's
- * entry was added. If the caller does wish to wait, or if the entry
- * filled the active block, an attempt will be made to commit that
- * block to disk. If there is already another commit in progress, the
- * attempt will be ignored and then automatically retried when the
- * in-progress commit completes. If there is no commit in progress,
- * any VIOs waiting on the block are transferred to the extent. The
- * extent is then written, automatically waking all of the waiters
- * when it completes. When the extent completes, any entries which
- * accumulated in the block are copied to the extent's data buffer.
+ * in-memory block, as indicated by the 'active_block' field. If the caller
+ * wishes to wait for the entry to be committed, the requesting VIO will be
+ * attached to the in-memory block to which the caller's entry was added. If
+ * the caller does wish to wait, or if the entry filled the active block, an
+ * attempt will be made to commit that block to disk. If there is already
+ * another commit in progress, the attempt will be ignored and then
+ * automatically retried when the in-progress commit completes. If there is no
+ * commit in progress, any data_vios waiting on the block are transferred to
+ * the block's vio which is then written, automatically waking all of the
+ * waiters when it completes. When the write completes, any entries which
+ * accumulated in the block are copied to the vio's data buffer.
  *
- * Finally, the journal maintains a set of counters, one for each on
- * disk journal block. These counters are used as locks to prevent
- * premature reaping of journal blocks. Each time a new sequence
- * number is used, the counter for the corresponding block is
- * incremented. The counter is subsequently decremented when that
- * block is filled and then committed for the last time. This prevents
- * blocks from being reaped while they are still being updated. The
- * counter is also incremented once for each entry added to a block,
- * and decremented once each time the block map is updated in memory
- * for that request. This prevents blocks from being reaped while
- * their VIOs are still active. Finally, each in-memory block map page
- * tracks the oldest journal block that contains entries corresponding to
- * uncommitted updates to that block map page. Each time an in-memory block
- * map page is updated, it checks if the journal block for the VIO
- * is earlier than the one it references, in which case it increments
- * the count on the earlier journal block and decrements the count on the
- * later journal block, maintaining a lock on the oldest journal block
- * containing entries for that page. When a block map page has been flushed
- * from the cache, the counter for the journal block it references is
- * decremented. Whenever the counter for the head block goes to 0, the
- * head is advanced until it comes to a block whose counter is not 0
- * or until it reaches the active block. This is the mechanism for
+ * Finally, the journal maintains a set of counters, one for each on disk
+ * journal block. These counters are used as locks to prevent premature reaping
+ * of journal blocks. Each time a new sequence number is used, the counter for
+ * the corresponding block is incremented. The counter is subsequently
+ * decremented when that block is filled and then committed for the last
+ * time. This prevents blocks from being reaped while they are still being
+ * updated. The counter is also incremented once for each entry added to a
+ * block, and decremented once each time the block map is updated in memory for
+ * that request. This prevents blocks from being reaped while their VIOs are
+ * still active. Finally, each in-memory block map page tracks the oldest
+ * journal block that contains entries corresponding to uncommitted updates to
+ * that block map page. Each time an in-memory block map page is updated, it
+ * checks if the journal block for the VIO is earlier than the one it
+ * references, in which case it increments the count on the earlier journal
+ * block and decrements the count on the later journal block, maintaining a
+ * lock on the oldest journal block containing entries for that page. When a
+ * block map page has been flushed from the cache, the counter for the journal
+ * block it references is decremented. Whenever the counter for the head block
+ * goes to 0, the head is advanced until it comes to a block whose counter is
+ * not 0 or until it reaches the active block. This is the mechanism for
  * reclaiming journal space on disk.
  *
- * If there is no in-memory space when a VIO attempts to add an entry,
- * the VIO will be attached to the 'commit_completion' and will be
- * woken the next time a full block has committed. If there is no
- * on-disk space when a VIO attempts to add an entry, the VIO will be
- * attached to the 'reap_completion', and will be woken the next time a
- * journal block is reaped.
+ * If there is no in-memory space when a VIO attempts to add an entry, the VIO
+ * will be attached to the 'commit_completion' and will be woken the next time
+ * a full block has committed. If there is no on-disk space when a VIO attempts
+ * to add an entry, the VIO will be attached to the 'reap_completion', and will
+ * be woken the next time a journal block is reaped.
  **/
 
 struct recovery_journal {

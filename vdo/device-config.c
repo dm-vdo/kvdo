@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "device-config.h"
@@ -43,14 +28,14 @@ static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
 static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
 /**
- * Decide the version number from argv.
+ * get_version_number() - Decide the version number from argv.
  *
- * @param [in]  argc         The number of table values
- * @param [in]  argv         The array of table values
- * @param [out] error_ptr    A pointer to return a error string in
- * @param [out] version_ptr  A pointer to return the version
+ * @argc: The number of table values.
+ * @argv: The array of table values.
+ * @error_ptr: A pointer to return a error string in.
+ * @version_ptr: A pointer to return the version.
  *
- * @return VDO_SUCCESS or an error code
+ * Return: VDO_SUCCESS or an error code.
  **/
 static int get_version_number(int argc,
 			      char **argv,
@@ -236,15 +221,14 @@ static int join_strings(char **substring_array, size_t array_length,
 }
 
 /*
- * Parse a two-valued option into a bool.
+ * parse_bool() - Parse a two-valued option into a bool.
+ * @bool_str: The string value to convert to a bool.
+ * @true_str: The string value which should be converted to true.
+ * @false_str: The string value which should be converted to false.
+ * @bool_ptr: A pointer to return the bool value in.
  *
- * @param [in]  bool_str   The string value to convert to a bool
- * @param [in]  true_str   The string value which should be converted to true
- * @param [in]  false_str  The string value which should be converted to false
- * @param [out] bool_ptr   A pointer to return the bool value in
- *
- * @return VDO_SUCCESS or an error if bool_str is neither true_str
- *                        nor false_str
+ * Return: VDO_SUCCESS or an error if bool_str is neither true_str
+ *         nor false_str.
  */
 static inline int __must_check
 parse_bool(const char *bool_str,
@@ -267,19 +251,20 @@ parse_bool(const char *bool_str,
 }
 
 /**
- * Process one component of a thread parameter configuration string and
- * update the configuration data structure.
+ * process_one_thread_config_spec() - Process one component of a
+ *                                    thread parameter configuration
+ *                                    string and update the
+ *                                    configuration data structure.
+ * @thread_param_type: The type of thread specified.
+ * @count: The thread count requested.
+ * @config: The configuration data structure to update.
  *
  * If the thread count requested is invalid, a message is logged and
  * -EINVAL returned. If the thread name is unknown, a message is logged
  * but no error is returned.
  *
- * @param thread_param_type  The type of thread specified
- * @param count              The thread count requested
- * @param config             The configuration data structure to update
- *
- * @return VDO_SUCCESS or -EINVAL
- **/
+ * Return: VDO_SUCCESS or -EINVAL
+ */
 static int process_one_thread_config_spec(const char *thread_param_type,
 					  unsigned int count,
 					  struct thread_count_config *config)
@@ -354,12 +339,13 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 }
 
 /**
- * Parse one component of a thread parameter configuration string and
- * update the configuration data structure.
- *
- * @param spec    The thread parameter specification string
- * @param config  The configuration data to be updated
- **/
+ * parse_one_thread_config_spec() - Parse one component of a thread
+ *                                  parameter configuration string and
+ *                                  update the configuration data
+ *                                  structure.
+ * @spec: The thread parameter specification string.
+ * @config: The configuration data to be updated.
+ */
 static int parse_one_thread_config_spec(const char *spec,
 					struct thread_count_config *config)
 {
@@ -391,8 +377,13 @@ static int parse_one_thread_config_spec(const char *spec,
 }
 
 /**
- * Parse the configuration string passed and update the specified
- * counts and other parameters of various types of threads to be created.
+ * parse_thread_config_string() - Parse the configuration string
+ *                                passed and update the specified
+ *                                counts and other parameters of
+ *                                various types of threads to be
+ *                                created.
+ * @string: Thread parameter configuration string.
+ * @config: The thread configuration data to update.
  *
  * The configuration string should contain one or more comma-separated specs
  * of the form "typename=number"; the supported type names are "cpu", "ack",
@@ -406,11 +397,8 @@ static int parse_one_thread_config_spec(const char *spec,
  * invalid, and we can't allocate the "reason" strings dynamically. So
  * if an error occurs, we'll log the details and pass back an error.
  *
- * @param string  Thread parameter configuration string
- * @param config  The thread configuration data to update
- *
- * @return VDO_SUCCESS or -EINVAL or -ENOMEM
- **/
+ * Return: VDO_SUCCESS or -EINVAL or -ENOMEM
+ */
 static int parse_thread_config_string(const char *string,
 				      struct thread_count_config *config)
 {
@@ -438,19 +426,19 @@ static int parse_thread_config_string(const char *string,
 }
 
 /**
- * Process one component of an optional parameter string and update
- * the configuration data structure.
+ * process_one_key_value_pair() - Process one component of an optional
+ *                                parameter string and update the
+ *                                configuration data structure.
+ * @key: The optional parameter key name.
+ * @value: The optional parameter value.
+ * @config: The configuration data structure to update.
  *
  * If the value requested is invalid, a message is logged and -EINVAL
  * returned. If the key is unknown, a message is logged but no error
  * is returned.
  *
- * @param key     The optional parameter key name
- * @param value   The optional parameter value
- * @param config  The configuration data structure to update
- *
- * @return VDO_SUCCESS or -EINVAL
- **/
+ * Return: VDO_SUCCESS or -EINVAL
+ */
 static int process_one_key_value_pair(const char *key,
 				      unsigned int value,
 				      struct device_config *config)
@@ -476,15 +464,14 @@ static int process_one_key_value_pair(const char *key,
 }
 
 /**
- * Parse one key/value pair and update the configuration
- * data structure.
+ * parse_one_key_value_pair() - Parse one key/value pair and update
+ *                              the configuration data structure.
+ * @key: The optional key name.
+ * @value: The optional value.
+ * @config: The configuration data to be updated.
  *
- * @param key     The optional key name
- * @param value   The optional value
- * @param config  The configuration data to be updated
- *
- * @return VDO_SUCCESS or error
- **/
+ * Return: VDO_SUCCESS or error.
+ */
 static int parse_one_key_value_pair(const char *key,
 				    const char *value,
 				    struct device_config *config)
@@ -511,7 +498,11 @@ static int parse_one_key_value_pair(const char *key,
 }
 
 /**
- * Parse all key/value pairs from a list of arguments.
+ * parse_key_value_pairs() - Parse all key/value pairs from a list of
+ *                           arguments.
+ * @argc: The total number of arguments in list.
+ * @argv: The list of key/value pairs.
+ * @config: The device configuration data to update.
  *
  * If an error occurs during parsing of a single key/value pair, we deem
  * it serious enough to stop further parsing.
@@ -521,12 +512,8 @@ static int parse_one_key_value_pair(const char *key,
  * invalid, and we can't allocate the "reason" strings dynamically. So
  * if an error occurs, we'll log the details and return the error.
  *
- * @param argc    The total number of arguments in list
- * @param argv    The list of key/value pairs
- * @param config  The device configuration data to update
- *
- * @return VDO_SUCCESS or error
- **/
+ * Return: VDO_SUCCESS or error
+ */
 static int parse_key_value_pairs(int argc,
 				 char **argv,
 				 struct device_config *config)
@@ -547,7 +534,11 @@ static int parse_key_value_pairs(int argc,
 }
 
 /**
- * Parse the configuration string passed in for optional arguments.
+ * parse_optional_arguments() - Parse the configuration string passed
+ *                              in for optional arguments.
+ * @arg_set: The structure holding the arguments to parse.
+ * @error_ptr: Pointer to a buffer to hold the error string.
+ * @config: Pointer to device configuration data to update.
  *
  * For V0/V1 configurations, there will only be one optional parameter;
  * the thread configuration. The configuration string should contain
@@ -559,11 +550,7 @@ static int parse_key_value_pairs(int argc,
  * arguments. They should contain one or more key/value pairs
  * separated by a space.
  *
- * @param arg_set    The structure holding the arguments to parse
- * @param error_ptr  Pointer to a buffer to hold the error string
- * @param config     Pointer to device configuration data to update
- *
- * @return VDO_SUCCESS or error
+ * Return: VDO_SUCCESS or error
  */
 int parse_optional_arguments(struct dm_arg_set *arg_set,
 			     char **error_ptr,
@@ -595,12 +582,11 @@ int parse_optional_arguments(struct dm_arg_set *arg_set,
 }
 
 /**
- * Handle a parsing error.
- *
- * @param config     The config to free
- * @param error_ptr  A place to store a constant string about the error
- * @param error_str  A constant string to store in error_ptr
- **/
+ * handle_parse_error() - Handle a parsing error.
+ * @config: The config to free.
+ * @error_ptr: A place to store a constant string about the error.
+ * @error_str: A constant string to store in error_ptr.
+ */
 static void handle_parse_error(struct device_config *config,
 			       char **error_ptr,
 			       char *error_str)
@@ -610,15 +596,15 @@ static void handle_parse_error(struct device_config *config,
 }
 
 /**
- * Convert the dmsetup table into a struct device_config.
+ * vdo_parse_device_config() - Convert the dmsetup table into a struct
+ *                             device_config.
+ * @argc: The number of table values.
+ * @argv: The array of table values.
+ * @ti: The target structure for this table.
+ * @config_ptr: A pointer to return the allocated config.
  *
- * @param [in]  argc        The number of table values
- * @param [in]  argv        The array of table values
- * @param [in]  ti          The target structure for this table
- * @param [out] config_ptr  A pointer to return the allocated config
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_parse_device_config(int argc,
 			    char **argv,
 			    struct dm_target *ti,
@@ -844,10 +830,10 @@ int vdo_parse_device_config(int argc,
 }
 
 /**
- * Free a device config created by vdo_parse_device_config().
- *
- * @param config  The config to free
- **/
+ * vdo_free_device_config() - Free a device config created by
+ *                            vdo_parse_device_config().
+ * @config: The config to free.
+ */
 void vdo_free_device_config(struct device_config *config)
 {
 	if (config == NULL) {
@@ -870,11 +856,11 @@ void vdo_free_device_config(struct device_config *config)
 }
 
 /**
- * Acquire or release a reference from the config to a vdo.
- *
- * @param config  The config in question
- * @param vdo     The vdo in question
- **/
+ * vdo_set_device_config() - Acquire or release a reference from the
+ *                           config to a vdo.
+ * @config: The config in question.
+ * @vdo: The vdo in question.
+ */
 void vdo_set_device_config(struct device_config *config, struct vdo *vdo)
 {
 	list_del_init(&config->config_list);
@@ -887,17 +873,18 @@ void vdo_set_device_config(struct device_config *config, struct vdo *vdo)
 }
 
 /**
- * Check whether a new device config represents a valid modification to an
- * existing config.
+ * vdo_validate_new_device_config() - Check whether a new device
+ *                                    config represents a valid
+ *                                    modification to an existing
+ *                                    config.
+ * @to_validate: The new config to valudate.
+ * @config: The existing config.
+ * @may_grow: Set to true if growing the logical and physical size of
+ *            the vdo is currently permitted.
+ * @error_ptr: A pointer to hold the reason for any error.
  *
- * @param to_validate  The new config to valudate
- * @param config       The existing config
- * @param may_grow     Set to true if growing the logical and physical size of
- *                     the vdo is currently permitted
- * @param error_ptr    A pointer to hold the reason for any error
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_validate_new_device_config(struct device_config *to_validate,
 				   struct device_config *config,
 				   bool may_grow,

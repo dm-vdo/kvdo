@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "block-map-tree.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -30,6 +17,7 @@
 #include "data-vio.h"
 #include "dirty-lists.h"
 #include "forest.h"
+#include "io-submitter.h"
 #include "kernel-types.h"
 #include "num-utils.h"
 #include "physical-zone.h"
@@ -40,6 +28,7 @@
 #include "types.h"
 #include "vdo.h"
 #include "vdo-page-cache.h"
+#include "vio.h"
 #include "vio-pool.h"
 
 enum {
@@ -439,9 +428,12 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct block_map_tree_zone *zone = entry->context;
 
+	record_metadata_io_error(as_vio(completion));
 	enter_zone_read_only_mode(zone, result);
 	return_to_pool(zone, entry);
 }
+
+static void write_page_endio(struct bio *bio);
 
 static void write_initialized_page(struct vdo_completion *completion)
 {
@@ -449,21 +441,39 @@ static void write_initialized_page(struct vdo_completion *completion)
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) entry->context;
 	struct tree_page *tree_page = (struct tree_page *) entry->parent;
+	struct block_map_page *page = (struct block_map_page *) entry->buffer;
+	unsigned int operation = REQ_OP_WRITE | REQ_PRIO;
 
 	/*
-	 * Set the initialized field of the copy of the page we are writing to
-	 * true. We don't want to set it true on the real page in memory until
-	 * after this write succeeds.
+	 * Now that we know the page has been written at least once, mark
+	 * the copy we are writing as initialized.
 	 */
+	vdo_mark_block_map_page_initialized(page, true);
+
+
+	if (zone->flusher == tree_page) {
+		operation |= REQ_PREFLUSH;
+	}
+
+	submit_metadata_vio(entry->vio,
+			    vdo_get_block_map_page_pbn(page),
+			    write_page_endio,
+			    handle_write_error,
+			    operation);
+}
+
+static void write_page_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct block_map_tree_zone *zone = entry->context;
 	struct block_map_page *page = (struct block_map_page *) entry->buffer;
 
-	vdo_mark_block_map_page_initialized(page, true);
-	launch_write_metadata_vio_with_flush(entry->vio,
-					     vdo_get_block_map_page_pbn(page),
-					     finish_page_write,
-					     handle_write_error,
-					     (zone->flusher == tree_page),
-					     false);
+	continue_vio_after_io(vio,
+			      (vdo_is_block_map_page_initialized(page)
+			       ? finish_page_write
+			       : write_initialized_page),
+			      zone->map_zone->thread_id);
 }
 
 static void write_page(struct tree_page *tree_page,
@@ -497,13 +507,23 @@ static void write_page(struct tree_page *tree_page,
 	/* Clear this now so that we know this page is not on any dirty list. */
 	tree_page->recovery_lock = 0;
 
+	/*
+         * We've already copied the page into the vio which will write it, so
+         * if it was not yet initialized, the first write will indicate that
+         * (for torn write protection). It is now safe to mark it as
+         * initialized in memory since if the write fails, the in memory state
+         * will become irrelevant.
+	 */
 	if (!vdo_mark_block_map_page_initialized(page, true)) {
 		write_initialized_page(completion);
 		return;
 	}
 
-	launch_write_metadata_vio(entry->vio, vdo_get_block_map_page_pbn(page),
-				  write_initialized_page, handle_write_error);
+	submit_metadata_vio(entry->vio,
+			    vdo_get_block_map_page_pbn(page),
+			    write_page_endio,
+			    handle_write_error,
+			    REQ_OP_WRITE | REQ_PRIO);
 }
 
 /*
@@ -740,8 +760,21 @@ static void handle_io_error(struct vdo_completion *completion)
 	struct data_vio *data_vio = entry->parent;
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) entry->context;
+
+	record_metadata_io_error(as_vio(completion));
 	return_vio_to_pool(zone->vio_pool, entry);
 	abort_load(data_vio, result);
+}
+
+static void load_page_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct data_vio *data_vio = entry->parent;
+
+	continue_vio_after_io(vio,
+			      finish_block_map_page_load,
+			      data_vio->logical.zone->thread_id);
 }
 
 static void load_page(struct waiter *waiter, void *context)
@@ -749,15 +782,15 @@ static void load_page(struct waiter *waiter, void *context)
 	struct vio_pool_entry *entry = context;
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct tree_lock *lock = &data_vio->tree_lock;
+	physical_block_number_t pbn =
+		lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 
 	entry->parent = data_vio;
-	entry->vio->completion.callback_thread_id =
-		data_vio->logical.zone->thread_id;
-
-	launch_read_metadata_vio(entry->vio,
-				 lock->tree_slots[lock->height - 1].block_map_slot.pbn,
-				 finish_block_map_page_load,
-				 handle_io_error);
+	submit_metadata_vio(entry->vio,
+			    pbn,
+			    load_page_endio,
+			    handle_io_error,
+			    REQ_OP_READ | REQ_PRIO);
 }
 
 /*
@@ -1041,8 +1074,9 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 }
 
 /*
- * Look up the PBN of the block map page containing the mapping for a data_vio's LBN.
- * All ancestors in the tree will be allocated or loaded, as needed.
+ * Look up the PBN of the block map page containing the mapping for a
+ * data_vio's LBN. All ancestors in the tree will be allocated or loaded, as
+ * needed.
  */
 void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 {

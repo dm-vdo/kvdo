@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "config.h"
@@ -100,7 +85,7 @@ decode_index_config_06_02(struct buffer *buffer,
 				 "%zu bytes read but not decoded",
 				 content_length(buffer));
 	if (result != UDS_SUCCESS) {
-		return UDS_CORRUPT_COMPONENT;
+		return UDS_CORRUPT_DATA;
 	}
 
 	return UDS_SUCCESS;
@@ -176,7 +161,7 @@ decode_index_config_08_02(struct buffer *buffer,
 				 "%zu bytes read but not decoded",
 				 content_length(buffer));
 	if (result != UDS_SUCCESS) {
-		return UDS_CORRUPT_COMPONENT;
+		return UDS_CORRUPT_DATA;
 	}
 
 	return result;
@@ -245,7 +230,7 @@ static int read_version(struct buffered_reader *reader,
 				       "unsupported configuration version: '%.*s'",
 				       INDEX_CONFIG_VERSION_LENGTH,
 				       version_buffer);
-		result = UDS_CORRUPT_COMPONENT;
+		result = UDS_CORRUPT_DATA;
 	}
 
 	return result;

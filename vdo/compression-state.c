@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "compression-state.h"
@@ -142,7 +127,7 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio) ||
-	    vio_requires_flush_after(data_vio_as_vio(data_vio)) ||
+	    data_vio_requires_fua(data_vio) ||
 	    !vdo_get_compressing(vdo_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write

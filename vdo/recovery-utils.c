@@ -1,101 +1,169 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "recovery-utils.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
 
 #include "completion.h"
-#include "extent.h"
+#include "io-submitter.h"
+#include "kernel-types.h"
+#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
+#include "types.h"
 #include "vdo.h"
 #include "vdo-component.h"
 #include "vdo-component-states.h"
+#include "vio.h"
+
+struct journal_loader {
+	struct vdo_completion *parent;
+	thread_id_t thread_id;
+	physical_block_number_t pbn;
+	vio_count_t count;
+	vio_count_t complete;
+	struct vio *vios[];
+};
+
+static void free_journal_loader(struct journal_loader *loader)
+{
+	vio_count_t v;
+
+	if (loader == NULL) {
+		return;
+	}
+
+	for (v = 0; v < loader->count; v++) {
+		free_vio(UDS_FORGET(loader->vios[v]));
+	}
+
+	UDS_FREE(loader);
+}
 
 /**
- * Finish loading the journal by freeing the extent and notifying the parent.
- * This callback is registered in vdo_load_recovery_journal().
- *
- * @param completion  The load extent
+ * finish_journal_load() - Handle the completion of a journal read, and if it
+ *                         is the last one, finish the load by notifying the
+ *                         parent.
  **/
 static void finish_journal_load(struct vdo_completion *completion)
 {
 	int result = completion->result;
-	struct vdo_completion *parent = completion->parent;
+	struct journal_loader *loader = completion->parent;
 
-	vdo_free_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
-	vdo_finish_completion(parent, result);
+	if (++loader->complete == loader->count) {
+		vdo_finish_completion(loader->parent, result);
+		free_journal_loader(loader);
+	}
+}
+
+static void handle_journal_load_error(struct vdo_completion *completion)
+{
+	record_metadata_io_error(as_vio(completion));
+	completion->callback(completion);
+}
+
+static void read_journal_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct journal_loader *loader = vio->completion.parent;
+
+	continue_vio_after_io(vio, finish_journal_load, loader->thread_id);
 }
 
 /**
- * Load the journal data off the disk.
- *
- * @param [in]  journal           The recovery journal to load
- * @param [in]  parent            The completion to notify when the load is
- *                                complete
- * @param [out] journal_data_ptr  A pointer to the journal data buffer (it is
- *                                the caller's responsibility to free this
- *                                buffer)
- **/
+ * vdo_load_recovery_journal() - Load the journal data off the disk.
+ * @journal: The recovery journal to load.
+ * @parent: The completion to notify when the load is complete.
+ * @journal_data_ptr: A pointer to the journal data buffer (it is the
+ *                    caller's responsibility to free this buffer).
+ */
 void vdo_load_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr)
 {
-	physical_block_number_t pbn;
-	struct vdo_extent *extent;
-	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE, char,
-				  __func__, journal_data_ptr);
+	char *ptr;
+	struct journal_loader *loader;
+	physical_block_number_t pbn =
+		vdo_get_fixed_layout_partition_offset(journal->partition);
+	vio_count_t vio_count = DIV_ROUND_UP(journal->size,
+					     MAX_BLOCKS_PER_VIO);
+	block_count_t remaining = journal->size;
+	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE,
+				  char,
+				  __func__,
+				  journal_data_ptr);
+
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	result = vdo_create_extent(parent->vdo, VIO_TYPE_RECOVERY_JOURNAL,
-				   VIO_PRIORITY_METADATA, journal->size,
-				   *journal_data_ptr, &extent);
+	result = UDS_ALLOCATE_EXTENDED(struct journal_loader,
+				       vio_count,
+				       struct vio *,
+				       __func__,
+				       &loader);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	vdo_prepare_completion(&extent->completion, finish_journal_load,
-			       finish_journal_load, parent->callback_thread_id,
-			       parent);
-	pbn = vdo_get_fixed_layout_partition_offset(journal->partition);
-	vdo_launch_metadata_extent(extent, pbn, journal->size, VIO_READ);
+	loader->thread_id = vdo_get_callback_thread_id();
+	loader->parent = parent;
+	ptr = *journal_data_ptr;
+	for (loader->count = 0; loader->count < vio_count; loader->count++) {
+		unsigned short blocks =
+			min(remaining, (block_count_t) MAX_BLOCKS_PER_VIO);
+
+		result = create_multi_block_metadata_vio(parent->vdo,
+							 VIO_TYPE_RECOVERY_JOURNAL,
+							 VIO_PRIORITY_METADATA,
+							 loader,
+							 blocks,
+							 ptr,
+							 &loader->vios[loader->count]);
+		if (result != VDO_SUCCESS) {
+			free_journal_loader(UDS_FORGET(loader));
+			vdo_finish_completion(parent, result);
+			return;
+		}
+
+		ptr += (blocks * VDO_BLOCK_SIZE);
+		remaining -= blocks;
+	}
+
+	for (vio_count = 0;
+	     vio_count < loader->count;
+	     vio_count++, pbn += MAX_BLOCKS_PER_VIO) {
+		submit_metadata_vio(loader->vios[vio_count],
+				    pbn,
+				    read_journal_endio,
+				    handle_journal_load_error,
+				    REQ_OP_READ);
+	}
 }
 
 /**
- * Determine whether the given header describe a valid block for the
- * given journal that could appear at the given offset in the journal.
+ * is_congruent_recovery_journal_block() - Determine whether the given
+ *                                         header describes a valid
+ *                                         block for the given journal
+ *                                         that could appear at the
+ *                                         given offset in the
+ *                                         journal.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
+ * @offset: An offset indicating where the block was in the journal.
  *
- * @param journal  The journal to use
- * @param header   The unpacked block header to check
- * @param offset   An offset indicating where the block was in the journal
- *
- * @return <code>True</code> if the header matches
- **/
+ * Return: True if the header matches.
+ */
 static bool __must_check
 is_congruent_recovery_journal_block(struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
@@ -109,21 +177,21 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 }
 
 /**
- * Find the tail and the head of the journal by searching for the highest
+ * vdo_find_recovery_journal_head_and_tail() - Find the tail and head of the
+ *                                             journal.
+ * @journal: The recovery journal.
+ * @journal_data: The journal data read from disk.
+ * @tail_ptr: A pointer to return the tail found, or if no higher
+ *            block is found, the value currently in the journal.
+ * @block_map_head_ptr: A pointer to return the block map head.
+ * @slab_journal_head_ptr: An optional pointer to return the slab journal head.
+ *
+ * Finds the tail and the head of the journal by searching for the highest
  * sequence number in a block with a valid nonce, and the highest head value
  * among the blocks with valid nonces.
  *
- * @param [in]  journal                The recovery journal
- * @param [in]  journal_data           The journal data read from disk
- * @param [out] tail_ptr               A pointer to return the tail found, or if
- *                                     no higher block is found, the value
- *                                     currently in the journal
- * @param [out] block_map_head_ptr     A pointer to return the block map head
- * @param [out] slab_journal_head_ptr  An optional pointer to return the slab
- *                                     journal head
- *
- * @return  <code>True</code> if there were valid journal blocks
- **/
+ * Return: True if there were valid journal blocks
+ */
 bool vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 					     char *journal_data,
 					     sequence_number_t *tail_ptr,
@@ -178,13 +246,12 @@ bool vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 }
 
 /**
- * Validate a recovery journal entry.
+ * vdo_validate_recovery_journal_entry() - Validate a recovery journal entry.
+ * @vdo: The vdo.
+ * @entry: The entry to validate.
  *
- * @param vdo    The vdo
- * @param entry  The entry to validate
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int
 vdo_validate_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)

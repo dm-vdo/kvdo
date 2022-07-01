@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "bio.h"
@@ -27,10 +12,8 @@
 
 #include "atomic-stats.h"
 #include "kernel-types.h"
-#include "kvio.h"
 #include "vdo.h"
-
-enum { INLINE_BVEC_COUNT = 2 };
+#include "vio.h"
 
 /*
  * Copy bio data to a buffer
@@ -186,6 +169,21 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      physical_block_number_t pbn)
 {
 	int bvec_count, result, offset, len, i;
+	unsigned short blocks;
+
+	if (vio == NULL) {
+		blocks = 1;
+	} else if (vio->type == VIO_TYPE_DATA) {
+		result = ASSERT((vio->block_count == 1),
+				"Data vios may not span multiple blocks");
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+
+		blocks = 1;
+	} else {
+		blocks = vio->block_count;
+	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 	bio_reset(bio);
@@ -198,17 +196,10 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	}
 
 	bio->bi_io_vec = bio->bi_inline_vecs;
-	bio->bi_max_vecs = INLINE_BVEC_COUNT;
-
-	len = VDO_BLOCK_SIZE;
+	bio->bi_max_vecs = blocks + 1;
+	len = VDO_BLOCK_SIZE * blocks;
 	offset = offset_in_page(data);
-	bvec_count = (offset + len + PAGE_SIZE - 1) >> PAGE_SHIFT;
-	result = ASSERT(bvec_count <= INLINE_BVEC_COUNT,
-			"VDO-allocated buffers lie on max %d pages, not %d",
-			INLINE_BVEC_COUNT, bvec_count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+	bvec_count = DIV_ROUND_UP(offset + len, PAGE_SIZE);
 
 	/*
 	 * If we knew that data was always on one page, or contiguous pages,
@@ -243,11 +234,14 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	return VDO_SUCCESS;
 }
 
-int vdo_create_bio(struct bio **bio_ptr)
+int vdo_create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 {
 	struct bio *bio = NULL;
-	int result = UDS_ALLOCATE_EXTENDED(struct bio, INLINE_BVEC_COUNT,
-					   struct bio_vec, "bio", &bio);
+	int result = UDS_ALLOCATE_EXTENDED(struct bio,
+					   size + 1,
+					   struct bio_vec,
+					   "bio",
+					   &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

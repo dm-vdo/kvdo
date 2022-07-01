@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "sync-completion.h"
@@ -31,12 +16,11 @@ struct sync_completion {
 };
 
 /**
- * Convert a vdo_completion to a sync completion.
+ * as_sync_completion() - Convert a vdo_completion to a sync completion.
+ * @completion: The completion to convert.
  *
- * @param completion  The completion to convert
- *
- * @return The completion as a sync completion.
- **/
+ * Return: The completion as a sync completion.
+ */
 static inline struct sync_completion * __must_check
 as_sync_completion(struct vdo_completion *completion)
 {
@@ -47,22 +31,22 @@ as_sync_completion(struct vdo_completion *completion)
 }
 
 /**
- * A vdo_action to signal the waiting thread that a synchronous action is
- * complete. This callback is registered in run_synchrnous_action().
+ * complete_synchronous_action() - A vdo_action to signal the waiting thread
+ *                                 that a synchronous action is complete.
+ * @completion: The sync completion.
  *
- * @param completion  The sync completion
- **/
+ * This callback is registered in run_synchrnous_action().
+ */
 static void complete_synchronous_action(struct vdo_completion *completion)
 {
 	complete(&(as_sync_completion(completion)->completion));
 }
 
 /**
- * A vdo_action to perform a synchronous action registered in
- * vdo_perform_synchronous_action().
- *
- * @param completion  The sync completion
- **/
+ * run_synchronous_action() - A vdo_action to perform a synchronous action
+ *                            registered in vdo_perform_synchronous_action().
+ * @completion: The sync completion.
+ */
 static void run_synchronous_action(struct vdo_completion *completion)
 {
 	completion->callback = complete_synchronous_action;
@@ -70,13 +54,13 @@ static void run_synchronous_action(struct vdo_completion *completion)
 }
 
 /**
- * Launch an action on a VDO thread and wait for it to complete.
- *
- * @param vdo        The vdo
- * @param action     The callback to launch
- * @param thread_id  The thread on which to run the action
- * @param parent     The parent of the sync completion (may be NULL)
- **/
+ * vdo_perform_synchronous_action() - Launch an action on a VDO thread and
+ *                                    wait for it to complete.
+ * @vdo: The vdo.
+ * @action: The callback to launch.
+ * @thread_id: The thread on which to run the action.
+ * @parent: The parent of the sync completion (may be NULL).
+ */
 int vdo_perform_synchronous_action(struct vdo *vdo,
 				   vdo_action *action,
 				   thread_id_t thread_id,

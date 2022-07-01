@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "instance-number.h"
@@ -55,27 +40,29 @@ static unsigned int instance_count;
 static unsigned int next_instance;
 
 /**
- * Return the number of bytes needed to store a bit array of the specified
- * capacity in an array of unsigned longs.
+ * get_bit_array_size() - Return the number of bytes needed to store a
+ *                        bit array of the specified capacity in an
+ *                        array of unsigned longs.
+ * @bit_count: The number of bits the array must hold.
  *
- * @param bit_count  The number of bits the array must hold
- *
- * @return the number of bytes needed for the array reperesentation
- **/
+ * Return: the number of bytes needed for the array reperesentation.
+ */
 static size_t get_bit_array_size(unsigned int bit_count)
 {
 	/* Round up to a multiple of the word size and convert to a byte count. */
-	return (compute_bucket_count(bit_count, BITS_PER_LONG) *
+	return (DIV_ROUND_UP(bit_count, BITS_PER_LONG) *
 		sizeof(unsigned long));
 }
 
 /**
- * Re-allocate the bitmap word array so there will more instance numbers that
- * can be allocated. Since the array is initially NULL, this also initializes
- * the array the first time we allocate an instance number.
+ * grow_bit_array() - Re-allocate the bitmap word array so there will
+ *                    more instance numbers that can be allocated.
  *
- * @return UDS_SUCCESS or an error code from the allocation
- **/
+ * Since the array is initially NULL, this also initializes the array
+ * the first time we allocate an instance number.
+ *
+ * Return: UDS_SUCCESS or an error code from the allocation
+ */
 static int grow_bit_array(void)
 {
 	unsigned int new_count = max(bit_count + BIT_COUNT_INCREMENT,
@@ -134,12 +121,11 @@ static int vdo_allocate_instance_locked(unsigned int *instance_ptr)
 }
 
 /**
- * Allocate an instance number.
+ * vdo_allocate_instance() - Allocate an instance number.
+ * @instance_ptr: An integer to hold the allocated instance number.
  *
- * @param [out] instance_ptr  An integer to hold the allocated instance number
- *
- * @result  UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 int vdo_allocate_instance(unsigned int *instance_ptr)
 {
 	int result;
@@ -152,10 +138,9 @@ int vdo_allocate_instance(unsigned int *instance_ptr)
 }
 
 /**
- * Release an instance number previously allocated.
- *
- * @param instance  The instance number to release
- **/
+ * vdo_release_instance() - Release an instance number previously allocated.
+ * @instance: The instance number to release.
+ */
 void vdo_release_instance(unsigned int instance)
 {
 	mutex_lock(&instance_number_lock);
@@ -176,16 +161,18 @@ void vdo_release_instance(unsigned int instance)
 }
 
 /**
- * Initialize the instance-number tracking data structures.
- **/
+ * vdo_initialize_instance_number_tracking() - Initialize the instance-number
+ *                                             tracking data structures.
+ */
 void vdo_initialize_instance_number_tracking(void)
 {
 	mutex_init(&instance_number_lock);
 }
 
 /**
- * Free up the instance-number tracking data structures.
- **/
+ * vdo_clean_up_instance_number_tracking() - Free up the instance-number
+ *                                           tracking data structures.
+ */
 void vdo_clean_up_instance_number_tracking(void)
 {
 	ASSERT_LOG_ONLY(instance_count == 0,

@@ -1,25 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef HASH_ZONE_H
 #define HASH_ZONE_H
+
+#include <linux/list.h>
 
 #include "uds.h"
 
@@ -27,20 +14,40 @@
 #include "statistics.h"
 #include "types.h"
 
-/**
- * Create a hash zone.
- *
- * @param [in]  vdo          The vdo to which the zone will belong
- * @param [in]  zone_number  The number of the zone to create
- * @param [out] zone_ptr     A pointer to hold the new hash_zone
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check vdo_make_hash_zone(struct vdo *vdo,
-				    zone_count_t zone_number,
-				    struct hash_zone **zone_ptr);
+struct hash_zone {
+	/* Which hash zone this is */
+	zone_count_t zone_number;
 
-void vdo_free_hash_zone(struct hash_zone *zone);
+	/* The thread ID for this zone */
+	thread_id_t thread_id;
+
+	/* Mapping from chunk_name fields to hash_locks */
+	struct pointer_map *hash_lock_map;
+
+	/* List containing all unused hash_locks */
+	struct list_head lock_pool;
+
+	/*
+	 * Statistics shared by all hash locks in this zone. Only modified on
+	 * the hash zone thread, but queried by other threads.
+	 */
+	struct hash_lock_statistics statistics;
+
+	/* Array of all hash_locks */
+	struct hash_lock *lock_array;
+};
+
+struct hash_zones {
+	/* The number of zones */
+	zone_count_t zone_count;
+	/* The hash zones themselves */
+	struct hash_zone zones[];
+};
+
+int __must_check
+vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr);
+
+void vdo_free_hash_zones(struct hash_zones *zones);
 
 thread_id_t __must_check
 vdo_get_hash_zone_thread_id(const struct hash_zone *zone);

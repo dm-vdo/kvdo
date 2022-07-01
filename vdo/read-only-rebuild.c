@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "read-only-rebuild.h"
@@ -68,12 +53,12 @@ struct read_only_rebuild_completion {
 };
 
 /**
- * Convert a generic completion to a read_only_rebuild_completion.
+ * as_read_only_rebuild_completion() - Convert a generic completion to
+ *                                     a read_only_rebuild_completion.
+ * @completion: The completion to convert.
  *
- * @param completion    The completion to convert
- *
- * @return the journal rebuild completion
- **/
+ * Return: The journal rebuild completion.
+ */
 static inline struct read_only_rebuild_completion * __must_check
 as_read_only_rebuild_completion(struct vdo_completion *completion)
 {
@@ -84,9 +69,9 @@ as_read_only_rebuild_completion(struct vdo_completion *completion)
 }
 
 /**
- * Free a rebuild completion and all underlying structures.
- *
- * @param rebuild  The rebuild completion to free
+ * free_rebuild_completion() - Free a rebuild completion and all underlying
+ *                             structures.
+ * @rebuild: The rebuild completion to free.
  */
 static void
 free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
@@ -101,13 +86,13 @@ free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
 }
 
 /**
- * Allocate and initialize a read only rebuild completion.
+ * make_rebuild_completion() - Allocate and initialize a read only rebuild
+ *                             completion.
+ * @vdo: The vdo in question.
+ * @rebuild_ptr: A pointer to return the created rebuild completion.
  *
- * @param [in]  vdo          The vdo in question
- * @param [out] rebuild_ptr  A pointer to return the created rebuild completion
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int
 make_rebuild_completion(struct vdo *vdo,
 			struct read_only_rebuild_completion **rebuild_ptr)
@@ -130,11 +115,12 @@ make_rebuild_completion(struct vdo *vdo,
 }
 
 /**
- * Clean up the rebuild process, whether or not it succeeded, by freeing the
- * rebuild completion and notifying the parent of the outcome.
+ * complete_rebuild() - Clean up the rebuild process.
+ * @completion: The rebuild completion.
  *
- * @param completion  The rebuild completion
- **/
+ * Cleans up the rebuild process, whether or not it succeeded, by freeing the
+ * rebuild completion and notifying the parent of the outcome.
+ */
 static void complete_rebuild(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
@@ -149,10 +135,10 @@ static void complete_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Finish rebuilding, free the rebuild completion and notify the parent.
- *
- * @param completion  The rebuild completion
- **/
+ * finish_rebuild() - Finish rebuilding, free the rebuild completion and
+ *                    notify the parent.
+ * @completion: The rebuild completion.
+ */
 static void finish_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
@@ -169,10 +155,9 @@ static void finish_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Handle a rebuild error.
- *
- * @param completion  The rebuild completion
- **/
+ * abort_rebuild() - Handle a rebuild error.
+ * @completion: The rebuild completion.
+ */
 static void abort_rebuild(struct vdo_completion *completion)
 {
 	uds_log_info("Read-only rebuild aborted");
@@ -180,13 +165,12 @@ static void abort_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Abort a rebuild if there is an error.
+ * abort_rebuild_on_error() - Abort a rebuild if there is an error.
+ * @result: The result to check.
+ * @rebuild: The journal rebuild completion.
  *
- * @param result   The result to check
- * @param rebuild  The journal rebuild completion
- *
- * @return <code>true</code> if the result was an error
- **/
+ * Return: true if the result was an error.
+ */
 static bool __must_check
 abort_rebuild_on_error(int result,
 		       struct read_only_rebuild_completion *rebuild)
@@ -200,11 +184,12 @@ abort_rebuild_on_error(int result,
 }
 
 /**
- * Clean up after finishing the reference count rebuild. This callback is
- * registered in launch_reference_count_rebuild().
+ * finish_reference_count_rebuild() - Clean up after finishing the reference
+ *                                    count rebuild.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * This callback is registered in launch_reference_count_rebuild().
+ */
 static void finish_reference_count_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild = completion->parent;
@@ -222,12 +207,13 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Rebuild the reference counts from the block map now that all journal entries
- * have been applied to the block map. This callback is registered in
- * apply_journal_entries().
+ * launch_reference_count_rebuild() - Rebuild the reference counts from the
+ *                                    block map now that all journal entries
+ *                                    have been applied to the block map.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * This callback is registered in apply_journal_entries().
+ */
 static void launch_reference_count_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild = completion->parent;
@@ -252,14 +238,14 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * Append an array of recovery journal entries from a journal block sector to
- * the array of numbered mappings in the rebuild completion, numbering each
- * entry in the order they are appended.
- *
- * @param rebuild      The journal rebuild completion
- * @param sector       The recovery journal sector with entries
- * @param entry_count  The number of entries to append
- **/
+ * append_sector_entries() - Append an array of recovery journal entries from
+ *                           a journal block sector to the array of numbered
+ *                           mappings in the rebuild completion, numbering
+ *                           each entry in the order they are appended.
+ * @rebuild: The journal rebuild completion.
+ * @sector: The recovery journal sector with entries.
+ * @entry_count: The number of entries to append.
+ */
 static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 				  struct packed_journal_sector *sector,
 				  journal_entry_count_t entry_count)
@@ -294,13 +280,13 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 }
 
 /**
- * Create an array of all valid journal entries, in order, and store
- * it in the rebuild completion.
+ * extract_journal_entries() - Create an array of all valid journal entries,
+ *                             in order, and store it in the rebuild
+ *                             completion.
+ * @rebuild: The journal rebuild completion.
  *
- * @param rebuild  The journal rebuild completion
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 {
 	sequence_number_t i;
@@ -392,12 +378,13 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 }
 
 /**
- * Determine the limits of the valid recovery journal and apply all
- * valid entries to the block map. This callback is registered in
- * load_journal_callback().
+ * apply_journal_entries() - Determine the limits of the valid recovery
+ *                           journal and apply all valid entries to the block
+ *                           map.
+ * @completion: The sub-task completion.
  *
- * @param completion   The sub-task completion
- **/
+ * This callback is registered in load_journal_callback().
+ */
 static void apply_journal_entries(struct vdo_completion *completion)
 {
 	bool found_entries;
@@ -438,10 +425,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
 }
 
 /**
- * Begin loading the journal.
- *
- * @param completion    The sub task completion
- **/
+ * load_journal_callback() - Begin loading the journal.
+ * @completion: The sub task completion.
+ */
 static void load_journal_callback(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
@@ -460,13 +446,15 @@ static void load_journal_callback(struct vdo_completion *completion)
 }
 
 /**
- * Construct a read_only_rebuild_completion and launch it. Apply all valid
- * journal block entries to all vdo structures. Must be launched from logical
- * zone 0.
+ * vdo_launch_rebuild() - Construct a read_only_rebuild_completion and launch
+ *                        it.
+ * @vdo: The vdo to rebuild.
+ * @parent: The completion to notify when the rebuild is complete.
  *
- * @param vdo           The vdo to rebuild
- * @param parent        The completion to notify when the rebuild is complete
- **/
+ * Apply all valid journal block entries to all vdo structures.
+ *
+ * Context: Must be launched from logical zone 0.
+ */
 void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct read_only_rebuild_completion *rebuild;

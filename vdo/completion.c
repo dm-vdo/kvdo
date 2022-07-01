@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "completion.h"
@@ -116,30 +101,6 @@ void vdo_set_completion_result(struct vdo_completion *completion, int result)
 }
 
 /**
- * requires_enqueue() - Check whether a completion's callback must be enqueued,
- *                      or if it can be run on the current thread.
- * @completion: The completion whose callback is to be invoked.
- *
- * Side effect: clears the requeue flag if it is set, so the caller
- * MUST requeue if this returns true.
- *
- * Return: false if the callback must be run on this thread
- *         true if the callback must be enqueued.
- */
-static inline bool __must_check
-requires_enqueue(struct vdo_completion *completion)
-{
-	thread_id_t callback_thread = completion->callback_thread_id;
-
-	if (completion->requeue) {
-		completion->requeue = false;
-		return true;
-	}
-
-	return (callback_thread != vdo_get_callback_thread_id());
-}
-
-/**
  * vdo_invoke_completion_callback_with_priority() - Invoke the callback of
  *                                                  a completion.
  * @completion: The completion whose callback is to be invoked.
@@ -152,9 +113,12 @@ requires_enqueue(struct vdo_completion *completion)
  */
 void
 vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
-					     enum vdo_work_item_priority priority)
+					     enum vdo_completion_priority priority)
 {
-	if (requires_enqueue(completion)) {
+	thread_id_t callback_thread = completion->callback_thread_id;
+
+	if (completion->requeue ||
+	    (callback_thread != vdo_get_callback_thread_id())) {
 		vdo_enqueue_completion_with_priority(completion, priority);
 		return;
 	}
@@ -281,13 +245,6 @@ int vdo_assert_completion_type(enum vdo_completion_type actual,
 		      get_completion_type_name(expected));
 }
 
-static void vdo_enqueued_work(struct vdo_work_item *work_item)
-{
-	vdo_run_completion_callback(container_of(work_item,
-				    struct vdo_completion,
-				    work_item));
-}
-
 /**
  * vdo_enqueue_completion_with_priority() - Enqueue a completion.
  * @completion: The completion to be enqueued.
@@ -298,7 +255,7 @@ static void vdo_enqueued_work(struct vdo_work_item *work_item)
  * priority.
  */
 void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
-					  enum vdo_work_item_priority priority)
+					  enum vdo_completion_priority priority)
 {
 	struct vdo *vdo = completion->vdo;
 	thread_id_t thread_id = completion->callback_thread_id;
@@ -311,23 +268,9 @@ void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 		BUG();
 	}
 
-	setup_work_item(&completion->work_item,
-			vdo_enqueued_work,
-			priority);
-	enqueue_work_queue(vdo->threads[thread_id].queue,
-			   &completion->work_item);
-}
-
-/* Preparing work items */
-void setup_work_item(struct vdo_work_item *item,
-		     vdo_work_function work,
-		     enum vdo_work_item_priority priority)
-{
-	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"setup_work_item not called on enqueued work item");
-	item->work = work;
-	item->stat_table_index = 0;
-	item->priority = priority;
-	item->my_queue = NULL;
+	completion->requeue = false;
+	completion->priority = priority;
+	completion->my_queue = NULL;
+	enqueue_work_queue(vdo->threads[thread_id].queue, completion);
 }
 

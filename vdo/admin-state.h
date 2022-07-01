@@ -1,21 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #ifndef ADMIN_STATE_H
@@ -26,26 +11,26 @@
 
 struct admin_state_code {
 	const char *name;
-	/** Normal operation, data_vios may be active */
+	/* Normal operation, data_vios may be active */
 	bool normal;
-	/** I/O is draining, new requests should not start */
+	/* I/O is draining, new requests should not start */
 	bool draining;
-	/** This is a startup time operation */
+	/* This is a startup time operation */
 	bool loading;
-	/** The next state will be quiescent */
+	/* The next state will be quiescent */
 	bool quiescing;
-	/** The VDO is quiescent, there should be no I/O */
+	/* The VDO is quiescent, there should be no I/O */
 	bool quiescent;
-	/**
+	/*
 	 * Whether an operation is in progress and so no other operation may be
 	 * started
 	 */
 	bool operating;
 };
 
-/**
+/*
  * The state codes.
- **/
+ */
 extern const struct admin_state_code *VDO_ADMIN_STATE_NORMAL_OPERATION;
 extern const struct admin_state_code *VDO_ADMIN_STATE_OPERATING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_FORMATTING;
@@ -71,32 +56,32 @@ extern const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDED_OPERATION;
 extern const struct admin_state_code *VDO_ADMIN_STATE_RESUMING;
 
 struct admin_state {
-	/** The current administrative state */
+	/* The current administrative state */
 	const struct admin_state_code *current_state;
-	/**
+	/*
 	 * The next administrative state (when the current operation finishes)
 	 */
 	const struct admin_state_code *next_state;
-	/** A completion waiting on a state change */
+	/* A completion waiting on a state change */
 	struct vdo_completion *waiter;
-	/** Whether an operation is being initiated */
+	/* Whether an operation is being initiated */
 	bool starting;
-	/** Whether an operation has completed in the initiator */
+	/* Whether an operation has completed in the initiator */
 	bool complete;
 };
 
 /**
- * A method to be called once an admin operation may be initiated.
- **/
+ * typedef vdo_admin_initiator - A method to be called once an admin operation
+ *                               may be initiated.
+ */
 typedef void vdo_admin_initiator(struct admin_state *state);
 
 /**
- * Get the current admin state code.
+ * vdo_get_admin_state_code() - Get the current admin state code.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return The current state
- **/
+ * Return: The current state.
+ */
 static inline const struct admin_state_code * __must_check
 vdo_get_admin_state_code(const struct admin_state *state)
 {
@@ -104,13 +89,13 @@ vdo_get_admin_state_code(const struct admin_state *state)
 }
 
 /**
- * Set the current admin state code. This function should be used primarily for
- * initialization and by adminState internals. Most uses should go through the
- * operation interfaces.
+ * vdo_set_admin_state_code() - Set the current admin state code.
+ * @state: The admin_state to modify.
+ * @code: The code to set.
  *
- * @param state  The admin_state to modify
- * @param code   The code to set
- **/
+ * This function should be used primarily for initialization and by adminState
+ * internals. Most uses should go through the operation interfaces.
+ */
 static inline void
 vdo_set_admin_state_code(struct admin_state *state,
 			 const struct admin_state_code *code)
@@ -119,12 +104,12 @@ vdo_set_admin_state_code(struct admin_state *state,
 }
 
 /**
- * Check whether an admin_state is in normal operation.
+ * vdo_is_state_normal() - Check whether an admin_state is in normal
+ *                         operation.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is normal
- **/
+ * Return: true if the state is normal.
+ */
 static inline bool __must_check
 vdo_is_state_normal(const struct admin_state *state)
 {
@@ -132,12 +117,11 @@ vdo_is_state_normal(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is suspending.
+ * vdo_is_state_suspending() - Check whether an admin_state is suspending.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is suspending
- **/
+ * Return: true if the state is suspending.
+ */
 static inline bool __must_check
 vdo_is_state_suspending(const struct admin_state *state)
 {
@@ -145,12 +129,11 @@ vdo_is_state_suspending(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is saving.
+ * vdo_is_state_saving() - Check whether an admin_state is saving.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is saving
- **/
+ * Return: true if the state is saving.
+ */
 static inline bool __must_check
 vdo_is_state_saving(const struct admin_state *state)
 {
@@ -158,12 +141,11 @@ vdo_is_state_saving(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is saved.
+ * vdo_is_state_saved() - Check whether an admin_state is saved.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is saved
- **/
+ * Return: true if the state is saved.
+ */
 static inline bool __must_check
 vdo_is_state_saved(const struct admin_state *state)
 {
@@ -171,12 +153,11 @@ vdo_is_state_saved(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is draining.
+ * vdo_is_state_draining() - Check whether an admin_state is draining.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is draining
- **/
+ * Return: true if the state is draining.
+ */
 static inline bool __must_check
 vdo_is_state_draining(const struct admin_state *state)
 {
@@ -184,12 +165,11 @@ vdo_is_state_draining(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is loading.
+ * vdo_is_state_loading() - Check whether an admin_state is loading.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is loading
- **/
+ * Return: true if the state is loading.
+ */
 static inline bool __must_check
 vdo_is_state_loading(const struct admin_state *state)
 {
@@ -197,12 +177,11 @@ vdo_is_state_loading(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is resumeing.
+ * vdo_is_state_resuming() - Check whether an admin_state is resuming.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is resumeing
- **/
+ * Return: true if the state is resuming.
+ */
 static inline bool __must_check
 vdo_is_state_resuming(const struct admin_state *state)
 {
@@ -210,12 +189,12 @@ vdo_is_state_resuming(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is doing a clean load.
+ * vdo_is_state_clean_load() - Check whether an admin_state is doing a clean
+ *                             load.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> if the state is a clean load
- **/
+ * Return: true if the state is a clean load.
+ */
 static inline bool __must_check
 vdo_is_state_clean_load(const struct admin_state *state)
 {
@@ -226,12 +205,11 @@ vdo_is_state_clean_load(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is quiescing.
+ * vdo_is_state_quiescing() - Check whether an admin_state is quiescing.
+ * @state: The admin_state to check.
  *
- * @param state  The admin_state to check
- *
- * @return <code>true</code> if the state is quiescing
- **/
+ * Return: true if the state is quiescing.
+ */
 static inline bool __must_check
 vdo_is_state_quiescing(const struct admin_state *state)
 {
@@ -239,12 +217,11 @@ vdo_is_state_quiescing(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state is quiescent.
+ * vdo_is_state_quiescent() - Check whether an admin_state is quiescent.
+ * @state: The admin_state to query.
  *
- * @param state  The admin_state to query
- *
- * @return <code>true</code> is the state is quiescent
- **/
+ * Return: true is the state is quiescent.
+ */
 static inline bool __must_check
 vdo_is_state_quiescent(const struct admin_state *state)
 {
@@ -295,11 +272,10 @@ bool vdo_start_operation_with_waiter(struct admin_state *state,
 bool vdo_finish_operation(struct admin_state *state, int result);
 
 /**
- * Set a result for the current operation.
- *
- * @param state  the admin_state
- * @param result the result to set; if there is no waiter, this is a no-op
- **/
+ * vdo_set_operation_result() - Set a result for the current operation.
+ * @state: the admin_state.
+ * @result: the result to set; if there is no waiter, this is a no-op.
+ */
 static inline void vdo_set_operation_result(struct admin_state *state,
 					    int result)
 {

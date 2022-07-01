@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "ref-counts.h"
+
+#include <linux/bio.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -28,8 +15,8 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "completion.h"
-#include "extent.h"
 #include "header.h"
+#include "io-submitter.h"
 #include "journal-point.h"
 #include "num-utils.h"
 #include "packed-reference-block.h"
@@ -43,6 +30,7 @@
 #include "status-codes.h"
 #include "string-utils.h"
 #include "vdo.h"
+#include "vio.h"
 #include "vio-pool.h"
 #include "wait-queue.h"
 
@@ -50,12 +38,12 @@ static const uint64_t BYTES_PER_WORD = sizeof(uint64_t);
 static const bool NORMAL_OPERATION = true;
 
 /**
- * Return the ref_counts from the ref_counts waiter.
+ * ref_counts_from_waiter() - Return the ref_counts from the ref_counts
+ *                            waiter.
+ * @waiter: The waiter to convert.
  *
- * @param waiter  The waiter to convert
- *
- * @return  The ref_counts
- **/
+ * Return: The ref_counts.
+ */
 static inline struct ref_counts * __must_check
 ref_counts_from_waiter(struct waiter *waiter)
 {
@@ -66,15 +54,16 @@ ref_counts_from_waiter(struct waiter *waiter)
 }
 
 /**
- * Convert the index of a reference counter back to the block number of the
- * physical block for which it is counting references. The index is assumed to
- * be valid and in-range.
+ * index_to_pbn() - Convert the index of a reference counter back to the block
+ *                  number of the physical block for which it is counting
+ *                  references.
+ * @ref_counts: The reference counts object.
+ * @index: The array index of the reference counter.
  *
- * @param ref_counts  The reference counts object
- * @param index       The array index of the reference counter
+ * The index is assumed to be valid and in-range.
  *
- * @return the physical block number corresponding to the index
- **/
+ * Return: The physical block number corresponding to the index.
+ */
 static physical_block_number_t
 index_to_pbn(const struct ref_counts *ref_counts, uint64_t index)
 {
@@ -83,12 +72,12 @@ index_to_pbn(const struct ref_counts *ref_counts, uint64_t index)
 
 
 /**
- * Convert a reference count to a reference status.
+ * vdo_reference_count_to_status() - Convert a reference count to a reference
+ *                                   status.
+ * @count: The count to convert.
  *
- * @param count The count to convert
- *
- * @return  The appropriate reference status
- **/
+ * Return: The appropriate reference status.
+ */
 static enum reference_status __must_check
 vdo_reference_count_to_status(vdo_refcount_t count)
 {
@@ -104,11 +93,10 @@ vdo_reference_count_to_status(vdo_refcount_t count)
 }
 
 /**
- * Reset the free block search back to the first reference counter
- * in the first reference block.
- *
- * @param ref_counts  The ref_counts object containing the search cursor
- **/
+ * vdo_reset_search_cursor() - Reset the free block search back to the first
+ *                             reference counter in the first reference block.
+ * @ref_counts: The ref_counts object containing the search cursor.
+ */
 void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 {
 	struct search_cursor *cursor = &ref_counts->search_cursor;
@@ -124,14 +112,15 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 }
 
 /**
- * Advance the search cursor to the start of the next reference block,
- * wrapping around to the first reference block if the current block is the
- * last reference block.
+ * advance_search_cursor() - Advance the search cursor to the start of the
+ *                           next reference block.
+ * @ref_counts: The ref_counts object containing the search cursor.
+ * 
+ * Wraps around to the first reference block if the current block is the last
+ * reference block.
  *
- * @param ref_counts  The ref_counts object containing the search cursor
- *
- * @return true unless the cursor was at the last reference block
- **/
+ * Return: true unless the cursor was at the last reference block.
+ */
 static bool advance_search_cursor(struct ref_counts *ref_counts)
 {
 	struct search_cursor *cursor = &ref_counts->search_cursor;
@@ -162,22 +151,20 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 }
 
 /**
- * Create a reference counting object.
+ * vdo_make_ref_counts() - Create a reference counting object.
+ * @block_count: The number of physical blocks that can be referenced.
+ * @slab: The slab of the ref counts object.
+ * @origin: The layer PBN at which to save ref_counts.
+ * @read_only_notifier: The context for tracking read-only mode.
+ * @ref_counts_ptr: The pointer to hold the new ref counts object.
  *
- * <p>A reference counting object can keep a reference count for every physical
+ * A reference counting object can keep a reference count for every physical
  * block in the VDO configuration. Since we expect the vast majority of the
  * blocks to have 0 or 1 reference counts, the structure is optimized for that
  * situation.
  *
- * @param [in]  block_count         The number of physical blocks that can be
- *                                  referenced
- * @param [in]  slab                The slab of the ref counts object
- * @param [in]  origin              The layer PBN at which to save ref_counts
- * @param [in]  read_only_notifier  The context for tracking read-only mode
- * @param [out] ref_counts_ptr      The pointer to hold the new ref counts object
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 int vdo_make_ref_counts(block_count_t block_count,
 			struct vdo_slab *slab,
 			physical_block_number_t origin,
@@ -190,9 +177,9 @@ int vdo_make_ref_counts(block_count_t block_count,
 	struct ref_counts *ref_counts;
 	int result = UDS_ALLOCATE_EXTENDED(struct ref_counts,
 					   ref_block_count,
-				       struct reference_block,
-				       "ref counts structure",
-				       &ref_counts);
+					   struct reference_block,
+					   "ref counts structure",
+					   &ref_counts);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -234,10 +221,9 @@ int vdo_make_ref_counts(block_count_t block_count,
 }
 
 /**
- * Free a reference counting object.
- *
- * @param ref_counts  The object to free
- **/
+ * vdo_free_ref_counts() - Free a reference counting object.
+ * @ref_counts: The object to free.
+ */
 void vdo_free_ref_counts(struct ref_counts *ref_counts)
 {
 	if (ref_counts == NULL) {
@@ -249,13 +235,12 @@ void vdo_free_ref_counts(struct ref_counts *ref_counts)
 }
 
 /**
- * Check whether a ref_counts object has active I/O.
+ * has_active_io() - Check whether a ref_counts object has active I/O.
+ * @ref_counts: The ref_counts to check.
  *
- * @param ref_counts  The ref_counts to check
- *
- * @return <code>true</code> if there is reference block I/O or a summary
- *         update in progress
- **/
+ * Return: true if there is reference block I/O or a summary update in
+ *         progress.
+ */
 static bool __must_check has_active_io(struct ref_counts *ref_counts)
 {
 	return ((ref_counts->active_count > 0)
@@ -263,10 +248,9 @@ static bool __must_check has_active_io(struct ref_counts *ref_counts)
 }
 
 /**
- * Check whether a ref_counts is active.
- *
- * @param ref_counts  The ref_counts to check
- **/
+ * vdo_are_ref_counts_active() - Check whether a ref_counts is active.
+ * @ref_counts: The ref_counts to check.
+ */
 bool vdo_are_ref_counts_active(struct ref_counts *ref_counts)
 {
 	const struct admin_state_code *code;
@@ -290,10 +274,9 @@ static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 }
 
 /**
- * Enqueue a block on the dirty queue.
- *
- * @param block  The block to enqueue
- **/
+ * enqueue_dirty_block() - Enqueue a block on the dirty queue.
+ * @block: The block to enqueue.
+ */
 static void enqueue_dirty_block(struct reference_block *block)
 {
 	int result = enqueue_waiter(&block->ref_counts->dirty_blocks,
@@ -305,11 +288,10 @@ static void enqueue_dirty_block(struct reference_block *block)
 }
 
 /**
- * Mark a reference count block as dirty, potentially adding it to the dirty
- * queue if it wasn't already dirty.
- *
- * @param block  The reference block to mark as dirty
- **/
+ * dirty_block() - Mark a reference count block as dirty, potentially adding
+ *                 it to the dirty queue if it wasn't already dirty.
+ * @block: The reference block to mark as dirty.
+ */
 static void dirty_block(struct reference_block *block)
 {
 	if (block->is_dirty) {
@@ -329,12 +311,12 @@ static void dirty_block(struct reference_block *block)
 }
 
 /**
- * Get the stored count of the number of blocks that are currently free.
+ * vdo_get_unreferenced_block_count() - Get the stored count of the number of
+ *                                      blocks that are currently free.
+ * @ref_counts: The ref_counts object.
  *
- * @param  ref_counts  The ref_counts object
- *
- * @return the number of blocks with a reference count of zero
- **/
+ * Return: The number of blocks with a reference count of zero.
+ */
 block_count_t
 vdo_get_unreferenced_block_count(struct ref_counts *ref_counts)
 {
@@ -342,11 +324,11 @@ vdo_get_unreferenced_block_count(struct ref_counts *ref_counts)
 }
 
 /**
- * Get the reference block that covers the given block index.
- *
- * @param ref_counts  The refcounts object
- * @param index       The block index
- **/
+ * vdo_get_reference_block() - Get the reference block that covers the given
+ *                             block index.
+ * @ref_counts: The refcounts object.
+ * @index: The block index.
+ */
 static struct reference_block * __must_check
 vdo_get_reference_block(struct ref_counts *ref_counts,
 			slab_block_number index)
@@ -355,13 +337,12 @@ vdo_get_reference_block(struct ref_counts *ref_counts,
 }
 
 /**
- * Get the reference counter that covers the given physical block number.
- *
- * @param [in]  ref_counts       The refcounts object
- * @param [in]  pbn              The physical block number
- * @param [out] counter_ptr      A pointer to the reference counter
-
- **/
+ * get_reference_counter() - Get the reference counter that covers the given
+ *                           physical block number.
+ * @ref_counts: The refcounts object.
+ * @pbn: The physical block number.
+ * @counter_ptr: A pointer to the reference counter.
+ */
 static int get_reference_counter(struct ref_counts *ref_counts,
 				 physical_block_number_t pbn,
 				 vdo_refcount_t **counter_ptr)
@@ -379,14 +360,13 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 }
 
 /**
- * Determine how many times a reference count can be incremented without
- * overflowing.
+ * vdo_get_available_references() - Determine how many times a reference count
+ *                                  can be incremented without overflowing.
+ * @ref_counts: The ref_counts object.
+ * @pbn: The physical block number.
  *
- * @param  ref_counts  The ref_counts object
- * @param  pbn         The physical block number
- *
- * @return the number of increments that can be performed
- **/
+ * Return: The number of increments that can be performed.
+ */
 uint8_t vdo_get_available_references(struct ref_counts *ref_counts,
 				     physical_block_number_t pbn)
 {
@@ -405,25 +385,18 @@ uint8_t vdo_get_available_references(struct ref_counts *ref_counts,
 }
 
 /**
- * Increment the reference count for a data block.
+ * increment_for_data() - Increment the reference count for a data block.
+ * @ref_counts: The ref_counts responsible for the block.
+ * @block: The reference block which contains the block being updated.
+ * @block_number: The block to update.
+ * @old_status: The reference status of the data block before this increment.
+ * @lock: The pbn_lock associated with this increment (may be NULL).
+ * @counter_ptr: A pointer to the count for the data block (in, out).
+ * @free_status_changed: A pointer which will be set to true if this update
+ *                       changed the free status of the block.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the
- *                                      block
- * @param [in]     block                The reference block which contains the
- *                                      block being updated
- * @param [in]     block_number         The block to update
- * @param [in]     old_status           The reference status of the data block
- *                                      before this increment
- * @param [in]     lock                 The pbn_lock associated with this
- *                                      increment (may be NULL)
- * @param [in,out] counter_ptr          A pointer to the count for the data
- *                                      block
- * @param [out]    free_status_changed  A pointer which will be set to true if
- *                                      this update changed the free status of
- *                                      the block
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int increment_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
 			      slab_block_number block_number,
@@ -464,25 +437,19 @@ static int increment_for_data(struct ref_counts *ref_counts,
 }
 
 /**
- * Decrement the reference count for a data block.
+ * decrement_for_data() - Decrement the reference count for a data block.
+ * @ref_counts: The ref_counts responsible for the block.
+ * @block: The reference block which contains the block being updated.
+ * @block_number: The block to update.
+ * @old_status: The reference status of the data block before this decrement.
+ * @lock: The pbn_lock associated with the block being decremented
+ *        (may be NULL).
+ * @counter_ptr: A pointer to the count for the data block (in, out).
+ * @free_status_changed: A pointer which will be set to true if this update
+ *                       changed the free status of the block.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the
- *                                      block
- * @param [in]     block                The reference block which contains the
- *                                      block being updated
- * @param [in]     block_number         The block to update
- * @param [in]     old_status           The reference status of the data block
- *                                      before this decrement
- * @param [in]     lock                 The pbn_lock associated with the block
- *                                      being decremented (may be NULL)
- * @param [in,out] counter_ptr          A pointer to the count for the data
- *                                      block
- * @param [out]    free_status_changed  A pointer which will be set to true if
- *                                      this update changed the free status of
- *                                      the block
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int decrement_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
 			      slab_block_number block_number,
@@ -526,30 +493,27 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 }
 
 /**
- * Increment the reference count for a block map page. All block map
- * increments should be from provisional to MAXIMUM_REFERENCE_COUNT. Since
- * block map blocks never dedupe they should never be adjusted from any other
- * state. The adjustment always results in MAXIMUM_REFERENCE_COUNT as this
- * value is used to prevent dedupe against block map blocks.
+ * increment_for_block_map() - Increment the reference count for a block map
+ *                             page.
+ * @ref_counts: The ref_counts responsible for the block.
+ * @block: The reference block which contains the block being updated.
+ * @block_number: The block to update.
+ * @old_status: The reference status of the block before this increment.
+ * @lock: The pbn_lock associated with this increment (may be NULL).
+ * @normal_operation: Whether we are in normal operation vs. recovery or
+ *                    rebuild.
+ * @counter_ptr: A pointer to the count for the block (in, out).
+ * @free_status_changed: A pointer which will be set to true if this update
+ *                       changed the free status of the block.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the
- *                                      block
- * @param [in]     block                The reference block which contains the
- *                                      block being updated
- * @param [in]     block_number         The block to update
- * @param [in]     old_status           The reference status of the block
- *                                      before this increment
- * @param [in]     lock                 The pbn_lock associated with this
- *                                      increment (may be NULL)
- * @param [in]     normal_operation     Whether we are in normal operation vs.
- *                                      recovery or rebuild
- * @param [in,out] counter_ptr          A pointer to the count for the block
- * @param [out]    free_status_changed  A pointer which will be set to true if
- *                                      this update changed the free status of
- *                                      the block
+ * All block map increments should be from provisional to
+ * MAXIMUM_REFERENCE_COUNT. Since block map blocks never dedupe they should
+ * never be adjusted from any other state. The adjustment always results in
+ * MAXIMUM_REFERENCE_COUNT as this value is used to prevent dedupe against
+ * block map blocks.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int increment_for_block_map(struct ref_counts *ref_counts,
 				   struct reference_block *block,
 				   slab_block_number block_number,
@@ -599,27 +563,23 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 }
 
 /**
- * Update the reference count of a block.
+ * update_reference_count() - Update the reference count of a block.
+ * @ref_counts: The ref_counts responsible for the block.
+ * @block: The reference block which contains the block being updated.
+ * @block_number: The block to update.
+ * @slab_journal_point: The slab journal point at which this update is
+ *                      journaled.
+ * @operation: How to update the count.
+ * @normal_operation: Whether we are in normal operation vs. recovery
+ *                    or rebuild.
+ * @free_status_changed: A pointer which will be set to true if this update
+ *                       changed the free status of the block.
+ * @provisional_decrement_ptr: A pointer which will be set to true if this
+ *                             update was a decrement of a provisional
+ *                             reference.
  *
- * @param [in]  ref_counts                 The ref_counts responsible for the
- *                                         block
- * @param [in]  block                      The reference block which contains
- *                                         the block being updated
- * @param [in]  block_number               The block to update
- * @param [in]  slab_journal_point         The slab journal point at which this
- *                                         update is journaled
- * @param [in]  operation                  How to update the count
- * @param [in]  normal_operation           Whether we are in normal operation
- *                                         vs. recovery or rebuild
- * @param [out] free_status_changed        A pointer which will be set to true
- *                                         if this update changed the free
- *                                         status of the block
- * @param [out] provisional_decrement_ptr  A pointer which will be set to true
- *                                         if this update was a decrement of a
- *                                         provisional reference
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int
 update_reference_count(struct ref_counts *ref_counts,
 		       struct reference_block *block,
@@ -693,21 +653,17 @@ update_reference_count(struct ref_counts *ref_counts,
 }
 
 /**
- * Adjust the reference count of a block.
+ * vdo_adjust_reference_count() - Adjust the reference count of a block.
+ * @ref_counts: The refcounts object.
+ * @operation: The operation to perform.
+ * @slab_journal_point: The slab journal entry for this adjustment.
+ * @free_status_changed: A pointer which will be set to true if the free status
+ *                       of the block changed.
  *
- * @param [in]  ref_counts           The refcounts object
- * @param [in]  operation            The operation to perform
- * @param [in]  slab_journal_point   The slab journal entry for this adjustment
- * @param [out] free_status_changed  A pointer which will be set to true if the
- *                                   free status of the block changed
- *
- *
- * @return A success or error code, specifically:
- *           VDO_REF_COUNT_INVALID   if a decrement would result in a negative
- *                                   reference count, or an increment in a
- *                                   count greater than MAXIMUM_REFS
- *
- **/
+ * Return: A success or error code, specifically: VDO_REF_COUNT_INVALID if a
+ *         decrement would result in a negative reference count, or an
+ *         increment in a count greater than MAXIMUM_REFS
+ */
 int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 			       struct reference_operation operation,
 			       const struct journal_point *slab_journal_point,
@@ -776,14 +732,14 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 }
 
 /**
- * Adjust the reference count of a block during rebuild.
+ * vdo_adjust_reference_count_for_rebuild() - Adjust the reference count of a
+ *                                            block during rebuild.
+ * @ref_counts: The refcounts object.
+ * @pbn: The number of the block to adjust.
+ * @operation: The operation to perform on the count.
  *
- * @param ref_counts  The refcounts object
- * @param pbn         The number of the block to adjust
- * @param operation   The operation to perform on the count
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 					   physical_block_number_t pbn,
 					   enum journal_operation operation)
@@ -816,16 +772,18 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 }
 
 /**
- * Replay the reference count adjustment from a slab journal entry into the
- * reference count for a block. The adjustment will be ignored if it was
- * already recorded in the reference count.
+ * vdo_replay_reference_count_change() - Replay the reference count adjustment
+ *                                       from a slab journal entry into the
+ *                                       reference count for a block.
+ * @ref_counts: The refcounts object.
+ * @entry_point: The slab journal point for the entry.
+ * @entry: The slab journal entry being replayed.
  *
- * @param ref_counts   The refcounts object
- * @param entry_point  The slab journal point for the entry
- * @param entry        The slab journal entry being replayed
+ * The adjustment will be ignored if it was already recorded in the reference
+ * count.
  *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 				      const struct journal_point *entry_point,
 				      struct slab_journal_entry entry)
@@ -861,17 +819,18 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 
 
 /**
- * Find the array index of the first zero byte in word-sized range of
- * reference counters. The search does no bounds checking; the function relies
- * on the array being sufficiently padded.
+ * find_zero_byte_in_word() - Find the array index of the first zero byte in
+ *                            word-sized range of reference counters.
+ * @word_ptr: A pointer to the eight counter bytes to check.
+ * @start_index: The array index corresponding to word_ptr[0].
+ * @fail_index: The array index to return if no zero byte is found.
  *
- * @param word_ptr     A pointer to the eight counter bytes to check
- * @param start_index  The array index corresponding to word_ptr[0]
- * @param fail_index   The array index to return if no zero byte is found
-
- * @return the array index of the first zero byte in the word, or
- *         the value passed as fail_index if no zero byte was found
- **/
+ * The search does no bounds checking; the function relies on the array being
+ * sufficiently padded.
+ *
+ * Return: The array index of the first zero byte in the word, or
+ *         the value passed as fail_index if no zero byte was found.
+ */
 static inline slab_block_number
 find_zero_byte_in_word(const byte *word_ptr,
 		       slab_block_number start_index,
@@ -897,19 +856,19 @@ find_zero_byte_in_word(const byte *word_ptr,
 }
 
 /**
- * Find the first block with a reference count of zero in the specified range
- * of reference counter indexes. Exposed for unit testing.
+ * vdo_find_free_block() - Find the first block with a reference count of zero
+ *                         in the specified range of reference counter indexes.
+ * @ref_counts: The reference counters to scan.
+ * @start_index: The array index at which to start scanning (included in the
+ *               scan).
+ * @end_index: The array index at which to stop scanning (excluded from the
+ *             scan).
+ * @index_ptr: A pointer to hold the array index of the free block.
  *
- * @param [in]  ref_counts   The reference counters to scan
- * @param [in]  start_index  The array index at which to start scanning
- *                           (included in the scan)
- * @param [in]  end_index    The array index at which to stop scanning
- *                           (excluded from the scan)
- * @param [out] index_ptr    A pointer to hold the array index of the free
- *                           block
+ * Exposed for unit testing.
  *
- * @return true if a free block was found in the specified range
- **/
+ * Return: true if a free block was found in the specified range.
+ */
 static
 bool vdo_find_free_block(const struct ref_counts *ref_counts,
 			 slab_block_number start_index,
@@ -966,15 +925,16 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
 }
 
 /**
- * Search the reference block currently saved in the search cursor for a
- * reference count of zero, starting at the saved counter index.
+ * search_current_reference_block() - Search the reference block currently
+ *                                    saved in the search cursor for a
+ *                                    reference count of zero, starting at the
+ *                                    saved counter index.
+ * @ref_counts: The ref_counts object to search.
+ * @free_index_ptr: A pointer to receive the array index of the zero reference
+ *                  count.
  *
- * @param [in]  ref_counts      The ref_counts object to search
- * @param [out] free_index_ptr  A pointer to receive the array index of the
- *                              zero reference count
- *
- * @return true if an unreferenced counter was found
- **/
+ * Return: true if an unreferenced counter was found.
+ */
 static bool search_current_reference_block(const struct ref_counts *ref_counts,
 					   slab_block_number *free_index_ptr)
 {
@@ -988,16 +948,19 @@ static bool search_current_reference_block(const struct ref_counts *ref_counts,
 }
 
 /**
- * Search each reference block for a reference count of zero, starting at the
- * reference block and counter index saved in the search cursor and searching
- * up to the end of the last reference block. The search does not wrap.
+ * search_reference_blocks() - Search each reference block for a reference
+ *                             count of zero.
+ * @ref_counts: The ref_counts object to search.
+ * @free_index_ptr: A pointer to receive the array index of the zero
+ *                  reference count.
  *
- * @param [in]  ref_counts      The ref_counts object to search
- * @param [out] free_index_ptr  A pointer to receive the array index of the
- *                              zero reference count
+ * Searches each reference block for a reference count of zero, starting at
+ * the reference block and counter index saved in the search cursor and
+ * searching up to the end of the last reference block. The search does not
+ * wrap.
  *
- * @return true if an unreferenced counter was found
- **/
+ * Return: true if an unreferenced counter was found.
+ */
 static bool search_reference_blocks(struct ref_counts *ref_counts,
 				    slab_block_number *free_index_ptr)
 {
@@ -1017,11 +980,11 @@ static bool search_reference_blocks(struct ref_counts *ref_counts,
 }
 
 /**
- * Do the bookkeeping for making a provisional reference.
- *
- * @param ref_counts    The ref_counts
- * @param block_number  The block to reference
- **/
+ * make_provisional_reference() - Do the bookkeeping for making a provisional
+ *                                reference.
+ * @ref_counts: The ref_counts.
+ * @block_number: The block to reference.
+ */
 static void make_provisional_reference(struct ref_counts *ref_counts,
 				       slab_block_number block_number)
 {
@@ -1039,19 +1002,20 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 }
 
 /**
- * Find a block with a reference count of zero in the range of physical block
- * numbers tracked by the reference counter. If a free block is found, that
- * block is allocated by marking it as provisionally referenced, and the
- * allocated block number is returned.
+ * vdo_allocate_unreferenced_block() - Find a block with a reference count of
+ *                                     zero in the range of physical block
+ *                                     numbers tracked by the reference
+ *                                     counter.
+ * @ref_counts: The reference counters to scan.
+ * @allocated_ptr: A pointer to hold the physical block number of the block
+ *                 that was found and allocated.
  *
- * @param [in]  ref_counts     The reference counters to scan
- * @param [out] allocated_ptr  A pointer to hold the physical block number of
- *                             the block that was found and allocated
+ * If a free block is found, that block is allocated by marking it as
+ * provisionally referenced, and the allocated block number is returned.
  *
- * @return VDO_SUCCESS if a free block was found and allocated;
- *         VDO_NO_SPACE if there are no unreferenced blocks;
- *         otherwise an error code
- **/
+ * Return: VDO_SUCCESS if a free block was found and allocated; VDO_NO_SPACE
+ *         if there are no unreferenced blocks; otherwise an error code.
+ */
 int vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
 				    physical_block_number_t *allocated_ptr)
 {
@@ -1081,14 +1045,14 @@ int vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
 }
 
 /**
- * Provisionally reference a block if it is unreferenced.
+ * vdo_provisionally_reference_block() - Provisionally reference a block if it
+ *                                       is unreferenced.
+ * @ref_counts: The reference counters.
+ * @pbn: The PBN to reference.
+ * @lock: The pbn_lock on the block (may be NULL).
  *
- * @param ref_counts  The reference counters
- * @param pbn         The PBN to reference
- * @param lock        The pbn_lock on the block (may be NULL)
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_provisionally_reference_block(struct ref_counts *ref_counts,
 				      physical_block_number_t pbn,
 				      struct pbn_lock *lock)
@@ -1118,13 +1082,12 @@ int vdo_provisionally_reference_block(struct ref_counts *ref_counts,
 
 
 /**
- * Convert a reference_block's generic wait queue entry back into the
- * reference_block.
+ * Waiter_as_reference_block() - Convert a reference_block's generic wait
+ *                               queue entry back into the reference_block.
+ * @waiter: The wait queue entry to convert.
  *
- * @param waiter        The wait queue entry to convert
- *
- * @return  The wrapping reference_block
- **/
+ * Return: The wrapping reference_block.
+ */
 static inline struct reference_block *
 waiter_as_reference_block(struct waiter *waiter)
 {
@@ -1133,8 +1096,9 @@ waiter_as_reference_block(struct waiter *waiter)
 
 
 /**
- * A waiter callback that resets the writing state of ref_counts.
- **/
+ * finish_summary_update() - A waiter callback that resets the writing state
+ *                           of ref_counts.
+ */
 static void finish_summary_update(struct waiter *waiter, void *context)
 {
 	struct ref_counts *ref_counts = ref_counts_from_waiter(waiter);
@@ -1152,10 +1116,10 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 }
 
 /**
- * Update slab summary that the ref_counts object is clean.
- *
- * @param ref_counts    The ref_counts object that is being written
- **/
+ * update_slab_summary_as_clean() - Update slab summary that the ref_counts
+ *                                  object is clean.
+ * @ref_counts: The ref_counts object that is being written.
+ */
 static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 {
 	tail_block_offset_t offset;
@@ -1180,27 +1144,29 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 }
 
 /**
- * Handle an I/O error reading or writing a reference count block.
- *
- * @param completion  The VIO doing the I/O as a completion
- **/
+ * handle_io_error() - Handle an I/O error reading or writing a reference
+ *                     count block.
+ * @completion: The VIO doing the I/O as a completion.
+ */
 static void handle_io_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vio_pool_entry *entry = completion->parent;
 	struct ref_counts *ref_counts =
-		((struct reference_block *)entry->parent)->ref_counts;
+		((struct reference_block *) entry->parent)->ref_counts;
+
+	record_metadata_io_error(as_vio(completion));
 	vdo_return_block_allocator_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	enter_ref_counts_read_only_mode(ref_counts, result);
 }
 
 /**
- * After a reference block has written, clean it, release its locks, and return
- * its VIO to the pool.
- *
- * @param completion  The VIO that just finished writing
- **/
+ * finish_reference_block_write() - After a reference block has written, clean
+ *                                  it, release its locks, and return its VIO
+ *                                  to the pool.
+ * @completion: The VIO that just finished writing.
+ */
 static void finish_reference_block_write(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
@@ -1252,12 +1218,12 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 }
 
 /**
- * Find the reference counters for a given block.
+ * vdo_get_reference_counters_for_block() - Find the reference counters for a
+ *                                          given block.
+ * @block: The reference_block in question.
  *
- * @param block  The reference_block in question
- *
- * @return A pointer to the reference counters for this block
- **/
+ * Return: A pointer to the reference counters for this block.
+ */
 static vdo_refcount_t * __must_check
 vdo_get_reference_counters_for_block(struct reference_block *block)
 {
@@ -1267,11 +1233,11 @@ vdo_get_reference_counters_for_block(struct reference_block *block)
 }
 
 /**
- * Copy data from a reference block to a buffer ready to be written out.
- *
- * @param block   The block to copy
- * @param buffer  The char buffer to fill with the packed block
- **/
+ * vdo_pack_reference_block() - Copy data from a reference block to a buffer
+ *                              ready to be written out.
+ * @block: The block to copy.
+ * @buffer: The char buffer to fill with the packed block.
+ */
 static void
 vdo_pack_reference_block(struct reference_block *block, void *buffer)
 {
@@ -1291,13 +1257,23 @@ vdo_pack_reference_block(struct reference_block *block, void *buffer)
 	}
 }
 
+static void write_reference_block_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct reference_block *block = entry->parent;
+	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
+
+	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
+}
+
 /**
- * After a dirty block waiter has gotten a VIO from the VIO pool, copy its
- * counters and associated data into the VIO, and launch the write.
- *
- * @param block_waiter  The waiter of the dirty block
- * @param vio_context   The VIO returned by the pool
- **/
+ * write_reference_block() - After a dirty block waiter has gotten a VIO from
+ *                           the VIO pool, copy its counters and associated
+ *                           data into the VIO, and launch the write.
+ * @block_waiter: The waiter of the dirty block.
+ * @vio_context: The VIO returned by the pool.
+ */
 static void write_reference_block(struct waiter *block_waiter,
 				  void *vio_context)
 {
@@ -1330,22 +1306,23 @@ static void write_reference_block(struct waiter *block_waiter,
 		   block->ref_counts->statistics->blocks_written + 1);
 	entry->vio->completion.callback_thread_id =
 		block->ref_counts->slab->allocator->thread_id;
-	launch_write_metadata_vio_with_flush(entry->vio,
-					     pbn,
-					     finish_reference_block_write,
-					     handle_io_error,
-					     true,
-					     false);
+	submit_metadata_vio(entry->vio,
+			    pbn,
+			    write_reference_block_endio,
+			    handle_io_error,
+			    REQ_OP_WRITE | REQ_PREFLUSH);
 }
 
 /**
- * Launch the write of a dirty reference block by first acquiring a VIO for it
- * from the pool. This can be asynchronous since the writer will have to wait
- * if all VIOs in the pool are currently in use.
+ * launch_reference_block_write() - Launch the write of a dirty reference
+ *                                  block by first acquiring a VIO for it from
+ *                                  the pool.
+ * @block_waiter: The waiter of the block which is starting to write.
+ * @context: The parent ref_counts of the block.
  *
- * @param block_waiter  The waiter of the block which is starting to write
- * @param context       The parent ref_counts of the block
- **/
+ * This can be asynchronous since the writer will have to wait if all VIOs in
+ * the pool are currently in use.
+ */
 static void launch_reference_block_write(struct waiter *block_waiter,
 					 void *context)
 {
@@ -1371,10 +1348,10 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 }
 
 /**
- * Request a ref_counts object save its oldest dirty block asynchronously.
- *
- * @param ref_counts  The ref_counts object to notify
- **/
+ * vdo_save_oldest_reference_block() - Request a ref_counts object save its
+ *                                     oldest dirty block asynchronously.
+ * @ref_counts: The ref_counts object to notify.
+ */
 static
 void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
 {
@@ -1384,12 +1361,13 @@ void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
 }
 
 /**
- * Request a ref_counts object save several dirty blocks asynchronously. This
- * function currently writes 1 / flush_divisor of the dirty blocks.
+ * vdo_save_several_reference_blocks() - Request a ref_counts object save
+ *                                       several dirty blocks asynchronously.
+ * @ref_counts: The ref_counts object to notify.
+ * @flush_divisor: The inverse fraction of the dirty blocks to write.
  *
- * @param ref_counts       The ref_counts object to notify
- * @param flush_divisor    The inverse fraction of the dirty blocks to write
- **/
+ * This function currently writes 1 / flush_divisor of the dirty blocks.
+ */
 void vdo_save_several_reference_blocks(struct ref_counts *ref_counts,
 				       size_t flush_divisor)
 {
@@ -1412,10 +1390,10 @@ void vdo_save_several_reference_blocks(struct ref_counts *ref_counts,
 }
 
 /**
- * Ask a ref_counts object to save all its dirty blocks asynchronously.
- *
- * @param ref_counts     The ref_counts object to notify
- **/
+ * vdo_save_dirty_reference_blocks() - Ask a ref_counts object to save all its
+ *                                     dirty blocks asynchronously.
+ * @ref_counts: The ref_counts object to notify.
+ */
 void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
 {
 	notify_all_waiters(&ref_counts->dirty_blocks,
@@ -1425,10 +1403,10 @@ void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
 }
 
 /**
- * Mark all reference count blocks as dirty.
- *
- * @param ref_counts  The ref_counts of the reference blocks
- **/
+ * vdo_dirty_all_reference_blocks() - Mark all reference count blocks as
+ *                                    dirty.
+ * @ref_counts: The ref_counts of the reference blocks.
+ */
 void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
@@ -1439,10 +1417,10 @@ void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
 }
 
 /**
- * Clear the provisional reference counts from a reference block.
- *
- * @param block  The block to clear
- **/
+ * clear_provisional_references() - Clear the provisional reference counts
+ *                                  from a reference block.
+ * @block: The block to clear.
+ */
 static void clear_provisional_references(struct reference_block *block)
 {
 	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
@@ -1457,11 +1435,11 @@ static void clear_provisional_references(struct reference_block *block)
 }
 
 /**
- * Unpack reference counts blocks into the internal memory structure.
- *
- * @param packed  The written reference block to be unpacked
- * @param block   The internal reference block to be loaded
- **/
+ * unpack_reference_block() - Unpack reference counts blocks into the internal
+ *                            memory structure.
+ * @packed: The written reference block to be unpacked.
+ * @block: The internal reference block to be loaded.
+ */
 static void unpack_reference_block(struct packed_reference_block *packed,
 				   struct reference_block *block)
 {
@@ -1509,10 +1487,10 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 }
 
 /**
- * After a reference block has been read, unpack it.
- *
- * @param completion  The VIO that just finished reading
- **/
+ * finish_reference_block_load() - After a reference block has been read,
+ *                                 unpack it.
+ * @completion: The VIO that just finished reading.
+ */
 static void finish_reference_block_load(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
@@ -1530,33 +1508,41 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	vdo_check_if_slab_drained(block->ref_counts->slab);
 }
 
+static void load_reference_block_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct reference_block *block = entry->parent;
+	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
+
+	continue_vio_after_io(vio, finish_reference_block_load, thread_id);
+}
+
 /**
- * After a block waiter has gotten a VIO from the VIO pool, load the block.
- *
- * @param block_waiter  The waiter of the block to load
- * @param vio_context   The VIO returned by the pool
- **/
+ * load_reference_block() - After a block waiter has gotten a VIO from the VIO
+ *                          pool, load the block.
+ * @block_waiter: The waiter of the block to load.
+ * @vio_context: The VIO returned by the pool.
+ */
 static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 {
 	struct vio_pool_entry *entry = vio_context;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
 	size_t block_offset = (block - block->ref_counts->blocks);
-	physical_block_number_t pbn = (block->ref_counts->origin + block_offset);
 
 	entry->parent = block;
-
-	entry->vio->completion.callback_thread_id =
-		block->ref_counts->slab->allocator->thread_id;
-	launch_read_metadata_vio(entry->vio, pbn, finish_reference_block_load,
-				 handle_io_error);
+	submit_metadata_vio(entry->vio,
+			    block->ref_counts->origin + block_offset,
+			    load_reference_block_endio,
+			    handle_io_error,
+			    REQ_OP_READ);
 }
 
 /**
- * Load reference blocks from the underlying storage into a pre-allocated
- * reference counter.
- *
- * @param ref_counts  The reference counter to be loaded
- **/
+ * load_reference_blocks() - Load reference blocks from the underlying storage
+ *                           into a pre-allocated reference counter.
+ * @ref_counts: The reference counter to be loaded.
+ */
 static void load_reference_blocks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
@@ -1581,12 +1567,13 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 }
 
 /**
- * Drain all reference count I/O. Depending upon the type of drain being
- * performed (as recorded in the ref_count's vdo_slab), the reference blocks
- * may be loaded from disk or dirty reference blocks may be written out.
+ * vdo_drain_ref_counts() - Drain all reference count I/O.
+ * @ref_counts: The reference counts to drain.
  *
- * @param ref_counts  The reference counts to drain
- **/
+ * Depending upon the type of drain being performed (as recorded in the
+ * ref_count's vdo_slab), the reference blocks may be loaded from disk or
+ * dirty reference blocks may be written out.
+ */
 void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 {
 	struct vdo_slab *slab = ref_counts->slab;
@@ -1634,11 +1621,11 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 }
 
 /**
- * Mark all reference count blocks dirty and cause them to hold locks on slab
- * journal block 1.
- *
- * @param ref_counts  The ref_counts of the reference blocks
- **/
+ * vdo_acquire_dirty_block_locks() - Mark all reference count blocks dirty and
+ *                                   cause them to hold locks on slab journal
+ *                                   block 1.
+ * @ref_counts: The ref_counts of the reference blocks.
+ */
 void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
@@ -1653,10 +1640,9 @@ void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
 }
 
 /**
- * Dump information about this ref_counts structure.
- *
- * @param ref_counts     The ref_counts to dump
- **/
+ * vdo_dump_ref_counts() - Dump information about this ref_counts structure.
+ * @ref_counts: The ref_counts to dump.
+ */
 void vdo_dump_ref_counts(const struct ref_counts *ref_counts)
 {
 	/* Terse because there are a lot of slabs to dump and syslog is lossy. */

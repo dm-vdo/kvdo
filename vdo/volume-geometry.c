@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "volume-geometry.h"
@@ -80,13 +65,13 @@ static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 };
 
 /**
- * Determine whether the supplied release version can be understood by
- * the VDO code.
+ * is_loadable_release_version() - Determine whether the supplied
+ *                                 release version can be understood
+ *                                 by the VDO code.
+ * @version: The release version number to check.
  *
- * @param version  The release version number to check
- *
- * @return <code>True</code> if the given version can be loaded.
- **/
+ * Return: True if the given version can be loaded.
+ */
 static inline bool is_loadable_release_version(release_version_number_t version)
 {
 	unsigned int i;
@@ -105,13 +90,13 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 }
 
 /**
- * Decode the on-disk representation of an index configuration from a buffer.
+ * decode_index_config() - Decode the on-disk representation of an
+ *                         index configuration from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @config: The structure to receive the decoded fields.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param config  The structure to receive the decoded fields
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 static int decode_index_config(struct buffer *buffer,
 			       struct index_config *config)
 {
@@ -142,13 +127,13 @@ static int decode_index_config(struct buffer *buffer,
 
 
 /**
- * Decode the on-disk representation of a volume region from a buffer.
+ * decode_volume_region() - Decode the on-disk representation of a
+ *                          volume region from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @region: The structure to receive the decoded fields.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param region  The structure to receive the decoded fields
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 static int decode_volume_region(struct buffer *buffer,
 				struct volume_region *region)
 {
@@ -174,14 +159,14 @@ static int decode_volume_region(struct buffer *buffer,
 
 
 /**
- * Decode the on-disk representation of a volume geometry from a buffer.
+ * decode_volume_geometry() - Decode the on-disk representation of a
+ *                            volume geometry from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @geometry: The structure to receive the decoded fields.
+ * @version: The geometry block version to decode.
  *
- * @param buffer    A buffer positioned at the start of the encoding
- * @param geometry  The structure to receive the decoded fields
- * @param version   The geometry block version to decode
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 static int decode_volume_geometry(struct buffer *buffer,
 				  struct volume_geometry *geometry,
 				  uint32_t version)
@@ -231,14 +216,14 @@ static int decode_volume_geometry(struct buffer *buffer,
 
 
 /**
- * Decode the on-disk representation of a geometry block, up to but not
- * including the checksum, from a buffer.
+ * decode_geometry_block() - Decode the on-disk representation of a
+ *                           geometry block, up to but not including
+ *                           the checksum, from a buffer.
+ * @buffer: A buffer positioned at the start of the block.
+ * @geometry: The structure to receive the decoded volume geometry fields.
  *
- * @param buffer    A buffer positioned at the start of the block
- * @param geometry  The structure to receive the decoded volume geometry fields
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 static int decode_geometry_block(struct buffer *buffer,
 				 struct volume_geometry *geometry)
 {
@@ -283,11 +268,10 @@ static int decode_geometry_block(struct buffer *buffer,
 }
 
 /**
- * Decode and validate an encoded geometry block.
- *
- * @param block     The encoded geometry block
- * @param geometry  The structure to receive the decoded fields
- **/
+ * vdo_parse_geometry_block() - Decode and validate an encoded geometry block.
+ * @block: The encoded geometry block.
+ * @geometry: The structure to receive the decoded fields.
+ */
 static int __must_check
 vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 {
@@ -328,13 +312,13 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 }
 
 /**
- * Synchronously read a geometry block from a block device.
+ * vdo_read_geometry_block() - Synchronously read a geometry block from a
+ *                             block device.
+ * @bdev: The block device containing the block to read.
+ * @geometry: A volume_geometry to read into.
  *
- * @param bdev       The block device containing the block to read
- * @param geometry   A volume_geometry to read into
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_read_geometry_block(struct block_device *bdev,
 			    struct volume_geometry *geometry)
 {

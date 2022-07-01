@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "vdo-resize.h"
@@ -52,8 +37,8 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 };
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -61,11 +46,11 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Callback to initiate a grow physical, registered in
- * vdo_perform_grow_physical().
+ * grow_physical_callback() - Callback to initiate a grow physical.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * Registered in vdo_perform_grow_physical().
+ */
 static void grow_physical_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -139,10 +124,9 @@ static void grow_physical_callback(struct vdo_completion *completion)
 }
 
 /**
- * Handle an error during the grow physical process.
- *
- * @param completion  The sub-task completion
- **/
+ * handle_growth_error() - Handle an error during the grow physical process.
+ * @completion: The sub-task completion.
+ */
 static void handle_growth_error(struct vdo_completion *completion)
 {
 	vdo_admin_completion_from_sub_task(completion)->phase =
@@ -151,14 +135,15 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**
- * Grow the physical size of the vdo. This method may only be called when the
- * vdo has been suspended and must not be called from a base thread.
+ * vdo_perform_grow_physical() - Grow the physical size of the vdo.
+ * @vdo: The vdo to resize.
+ * @new_physical_blocks: The new physical size in blocks.
  *
- * @param vdo			The vdo to resize
- * @param new_physical_blocks	The new physical size in blocks
+ * Context: This method may only be called when the vdo has been suspended and
+ * must not be called from a base thread.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_perform_grow_physical(struct vdo *vdo,
 			      block_count_t new_physical_blocks)
 {
@@ -209,11 +194,10 @@ int vdo_perform_grow_physical(struct vdo *vdo,
 }
 
 /**
- * Callback to check that we're not in recovery mode, used in
- * vdo_prepare_to_grow_physical().
- *
- * @param completion  The sub-task completion
- **/
+ * check_may_grow_physical() - Callback to check that we're not in recovery
+ *                             mode, used in vdo_prepare_to_grow_physical().
+ * @completion: The sub-task completion.
+ */
 static void check_may_grow_physical(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -242,11 +226,11 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 }
 
 /**
- * Prepare to resize the vdo, allocating memory as needed.
- *
- * @param vdo			The vdo
- * @param new_physical_blocks	The new physical size in blocks
- **/
+ * vdo_prepare_to_grow_physical() - Prepare to resize the vdo, allocating
+ *                                  memory as needed.
+ * @vdo: The vdo.
+ * @new_physical_blocks: The new physical size in blocks.
+ */
 int vdo_prepare_to_grow_physical(struct vdo *vdo,
 				 block_count_t new_physical_blocks)
 {

@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "slab-depot-format.h"
@@ -42,14 +27,14 @@ const struct header VDO_SLAB_DEPOT_HEADER_2_0 = {
 };
 
 /**
- * Compute the number of slabs a depot with given parameters would have.
+ * vdo_compute_slab_count() - Compute the number of slabs a depot with given
+ *                            parameters would have.
+ * @first_block: PBN of the first data block.
+ * @last_block: PBN of the last data block.
+ * @slab_size_shift: Exponent for the number of blocks per slab.
  *
- * @param first_block      PBN of the first data block
- * @param last_block       PBN of the last data block
- * @param slab_size_shift  Exponent for the number of blocks per slab
- *
- * @return The number of slabs
- **/
+ * Return: The number of slabs.
+ */
 slab_count_t __must_check
 vdo_compute_slab_count(physical_block_number_t first_block,
 		       physical_block_number_t last_block,
@@ -61,23 +46,22 @@ vdo_compute_slab_count(physical_block_number_t first_block,
 }
 
 /**
- * Get the size of the encoded state of a slab depot.
- *
- * @return The encoded size of the depot's state
- **/
+ * vdo_get_slab_depot_encoded_size() - Get the size of the encoded state of a
+ *                                     slab depot.
+ * Return: The encoded size of the depot's state.
+ */
 size_t vdo_get_slab_depot_encoded_size(void)
 {
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0);
 }
 
 /**
- * Encode a slab config into a buffer.
+ * encode_slab_config() - Encode a slab config into a buffer.
+ * @config: The config structure to encode.
+ * @buffer: A buffer positioned at the start of the encoding.
  *
- * @param config  The config structure to encode
- * @param buffer  A buffer positioned at the start of the encoding
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 static int encode_slab_config(const struct slab_config *config,
 			      struct buffer *buffer)
 {
@@ -119,13 +103,13 @@ static int encode_slab_config(const struct slab_config *config,
 }
 
 /**
- * Encode the state of a slab depot into a buffer.
+ * vdo_encode_slab_depot_state_2_0() - Encode the state of a slab depot into a
+ *                                     buffer.
+ * @state: The state to encode.
+ * @buffer: The buffer to encode into.
  *
- * @param state   The state to encode
- * @param buffer  The buffer to encode into
- *
- * @return UDS_SUCCESS or an error
- **/
+ * Return: UDS_SUCCESS or an error.
+ */
 int vdo_encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 				    struct buffer *buffer)
 {
@@ -165,13 +149,12 @@ int vdo_encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 }
 
 /**
- * Decode a slab config from a buffer.
+ * decode_slab_config() - Decode a slab config from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @config: The config structure to receive the decoded values.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param config  The config structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 static int decode_slab_config(struct buffer *buffer,
 			      struct slab_config *config)
 {
@@ -223,13 +206,13 @@ static int decode_slab_config(struct buffer *buffer,
 }
 
 /**
- * Decode slab depot component state version 2.0 from a buffer.
+ * vdo_decode_slab_depot_state_2_0() - Decode slab depot component state
+ *                                     version 2.0 from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @state: The state structure to receive the decoded values.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
+ * Return: UDS_SUCCESS or an error code.
+ */
 int vdo_decode_slab_depot_state_2_0(struct buffer *buffer,
 				    struct slab_depot_state_2_0 *state)
 {
@@ -291,18 +274,19 @@ int vdo_decode_slab_depot_state_2_0(struct buffer *buffer,
 }
 
 /**
- * Configure the slab_depot for the specified storage capacity, finding the
+ * vdo_configure_slab_depot() - Configure the slab depot.
+ * @block_count: The number of blocks in the underlying storage.
+ * @first_block: The number of the first block that may be allocated.
+ * @slab_config: The configuration of a single slab.
+ * @zone_count: The number of zones the depot will use.
+ * @state: The state structure to be configured.
+ *
+ * Configures the slab_depot for the specified storage capacity, finding the
  * number of data blocks that will fit and still leave room for the depot
  * metadata, then return the saved state for that configuration.
  *
- * @param [in]  block_count  The number of blocks in the underlying storage
- * @param [in]  first_block  The number of the first block that may be allocated
- * @param [in]  slab_config  The configuration of a single slab
- * @param [in]  zone_count   The number of zones the depot will use
- * @param [out] state        The state structure to be configured
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_configure_slab_depot(block_count_t block_count,
 			     physical_block_number_t first_block,
 			     struct slab_config slab_config,
@@ -351,14 +335,14 @@ int vdo_configure_slab_depot(block_count_t block_count,
 }
 
 /**
- * Measure and initialize the configuration to use for each slab.
+ * vdo_configure_slab() - Measure and initialize the configuration to use for
+ *                        each slab.
+ * @slab_size: The number of blocks per slab.
+ * @slab_journal_blocks: The number of blocks for the slab journal.
+ * @slab_config: The slab configuration to initialize.
  *
- * @param [in]  slab_size            The number of blocks per slab
- * @param [in]  slab_journal_blocks  The number of blocks for the slab journal
- * @param [out] slab_config          The slab configuration to initialize
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 int vdo_configure_slab(block_count_t slab_size,
 		       block_count_t slab_journal_blocks,
 		       struct slab_config *slab_config)
@@ -444,15 +428,16 @@ int vdo_configure_slab(block_count_t slab_size,
 }
 
 /**
- * Get the number of blocks required to save a reference counts state covering
- * the specified number of data blocks.
+ * vdo_get_saved_reference_count_size() - Get the number of blocks required to
+ *                                        save a reference counts state
+ *                                        covering the specified number of
+ *                                        data blocks.
+ * @block_count: The number of physical data blocks that can be referenced.
  *
- * @param block_count  The number of physical data blocks that can be referenced
- *
- * @return The number of blocks required to save reference counts with the
- *         given block count
- **/
+ * Return: The number of blocks required to save reference counts with the
+ *         given block count.
+ */
 block_count_t vdo_get_saved_reference_count_size(block_count_t block_count)
 {
-	return compute_bucket_count(block_count, COUNTS_PER_BLOCK);
+	return DIV_ROUND_UP(block_count, COUNTS_PER_BLOCK);
 }

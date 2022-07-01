@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "vdo-suspend.h"
@@ -66,8 +51,8 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 };
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -90,11 +75,10 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Update the VDO state and save the super block.
- *
- * @param vdo         The vdo being suspended
- * @param completion  The admin_completion's sub-task completion
- **/
+ * write_super_block() - Update the VDO state and save the super block.
+ * @vdo: The vdo being suspended.
+ * @completion: The admin_completion's sub-task completion.
+ */
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
@@ -121,10 +105,10 @@ static void write_super_block(struct vdo *vdo,
 }
 
 /**
- * Callback to initiate a suspend, registered in vdo_suspend().
- *
- * @param completion  The sub-task completion
- **/
+ * suspend_callback() - Callback to initiate a suspend, registered in
+ *                      vdo_suspend().
+ * @completion: The sub-task completion.
+ */
 static void suspend_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -248,13 +232,12 @@ static void suspend_callback(struct vdo_completion *completion)
 }
 
 /**
- * Ensure that the vdo has no outstanding I/O and will issue none until it is
- * resumed.
+ * vdo_suspend() - Ensure that the vdo has no outstanding I/O and will issue
+ *                 none until it is resumed.
+ * @vdo: The vdo to suspend.
  *
- * @param vdo   The vdo to suspend
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_suspend(struct vdo *vdo)
 {
 	const char *device_name;

@@ -1,21 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
  /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
  */
 
 #include "io-submitter.h"
@@ -31,10 +16,10 @@
 #include "atomic-stats.h"
 #include "bio.h"
 #include "data-vio.h"
-#include "kvio.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
+#include "vio.h"
 
 /*
  * Submission of bio operations to the underlying storage device will
@@ -88,10 +73,9 @@ static const struct vdo_work_queue_type bio_queue_type = {
 };
 
 /**
- * Determines which bio counter to use
- *
- * @param vio  the vio associated with the bio
- * @param bio  the bio to count
+ * count_all_bios() - Determine which bio counter to use.
+ * @vio: The vio associated with the bio.
+ * @bio: The bio to count.
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
@@ -111,10 +95,10 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 }
 
 /**
- * Assert that a vio is in the correct bio zone and not in interrupt context.
- *
- * @param vio  The vio to check
- **/
+ * assert_in_bio_zone() - Assert that a vio is in the correct bio zone and
+ *                        not in interrupt context.
+ * @vio: The vio to check.
+ */
 static void assert_in_bio_zone(struct vio *vio)
 {
 	ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
@@ -122,28 +106,19 @@ static void assert_in_bio_zone(struct vio *vio)
 }
 
 /**
- * Update stats and tracing info, then submit the supplied bio to the
- * OS for processing.
- *
- * @param vio       The vio associated with the bio
- * @param bio       The bio to submit to the OS
- **/
+ * send_bio_to_device() - Update stats and tracing info, then submit the
+ *                        supplied bio to the OS for processing.
+ * @vio: The vio associated with the bio.
+ * @bio: The bio to submit to the OS.
+ */
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
 	struct vdo *vdo = vdo_from_vio(vio);
+
 	assert_in_bio_zone(vio);
 	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
-
-	/*
-	 * vdo_get_callback_thread_id() can't be called from interrupt context,
-	 * in which, bio_end_io functions are often called. By setting the
-	 * requeue flag, vio launches from them will skip calling them to check
-	 * if they need to requeue.
-         */
-	vio_as_completion(vio)->requeue = true;
-
 	bio_set_dev(bio, vdo_get_backing_device(vdo));
 	submit_bio_noacct(bio);
 }
@@ -154,31 +129,27 @@ static sector_t get_bio_sector(struct bio *bio)
 }
 
 /**
- * Submits a bio to the underlying block device.  May block if the
- * device is busy.
- *
- * For normal data, vio->bios_merged is the list of all bios collected
- * together in this group; all of them get submitted.
- *
- * @param item  The work item in the vio "owning" the head of the
- *		bio_list to be submitted.
+ * process_vio_io() - Submits a vio's bio to the underlying block device. May
+ *                    block if the device is busy. This callback should be used
+ *                    by vios which did not attempt to merge.
  **/
-static void process_bio_map(struct vdo_work_item *item)
+void process_vio_io(struct vdo_completion *completion)
 {
-	struct vio *vio = work_item_as_vio(item);
+	struct vio *vio = as_vio(completion);
 
 	send_bio_to_device(vio, vio->bio);
 }
 
 /**
- * Extract the list of bios to submit from a vio. The list will always contain
- * at least one entry (the bio for the vio on which it is called), but other
- * bios may have been merged with it as well.
+ * get_bio_list() - Extract the list of bios to submit from a vio.
+ * @vio: The vio submitting I/O.
  *
- * @param vio  The vio submitting I/O
+ * The list will always contain at least one entry (the bio for the
+ * vio on which it is called), but other bios may have been merged
+ * with it as well.
  *
- * @return bio  The head of the bio list to submit
- **/
+ * Return: bio  The head of the bio list to submit.
+ */
 static struct bio *get_bio_list(struct vio *vio)
 {
 	struct bio *bio;
@@ -201,17 +172,19 @@ static struct bio *get_bio_list(struct vio *vio)
 }
 
 /**
- * Submit a data_vio's bio to the storage below along with any bios that have
- * been merged with it. This call may block and so should only be called from a
- * bio thread.
+ * process_data_vio_io() - Submit a data_vio's bio to the storage below
+ *                         along with any bios that have been merged with it.
  *
- * @param completion  The data_vio with bio(s) to submit
- **/
-void process_data_vio_io(struct vdo_completion *completion)
+ * Context: This call may block and so should only be called from a
+ *          bio thread.
+ */
+static void process_data_vio_io(struct vdo_completion *completion)
 {
 	struct bio *bio, *next;
+	struct vio *vio = as_vio(completion);
 
-	for (bio = get_bio_list(as_vio(completion)); bio != NULL; bio = next) {
+	assert_in_bio_zone(vio);
+	for (bio = get_bio_list(vio); bio != NULL; bio = next) {
 		next = bio->bi_next;
 		bio->bi_next = NULL;
 		send_bio_to_device((struct vio *) bio->bi_private, bio);
@@ -219,16 +192,17 @@ void process_data_vio_io(struct vdo_completion *completion)
 }
 
 /**
- * This function will attempt to find an already queued bio that the current
- * bio can be merged with. There are two types of merging possible, forward
- * and backward, which are distinguished by a flag that uses kernel
- * elevator terminology.
+ * get_mergeable_locked() - Attempt to find an already queued bio that the
+ *                          current bio can be merged with.
+ * @map: The bio map to use for merging.
+ * @vio: The vio we want to merge.
+ * @back_merge: Set to true for a back merge, false for a front merge.
  *
- * @param map         The bio map to use for merging
- * @param vio         The vio we want to merge
- * @param back_merge  Set to true for a back merge, false for a front merge
+ * There are two types of merging possible, forward and backward,
+ * which are distinguished by a flag that uses kernel elevator
+ * terminology.
  *
- * @return the vio to merge to, NULL if no merging is possible
+ * Return: the vio to merge to, NULL if no merging is possible.
  */
 static struct vio *get_mergeable_locked(struct int_map *map,
 					struct vio *vio,
@@ -250,8 +224,8 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		return NULL;
 	}
 
-	if (work_item_from_vio(vio)->priority
-	    != work_item_from_vio(vio_merge)->priority) {
+	if (vio_as_completion(vio)->priority
+	    != vio_as_completion(vio_merge)->priority) {
 		return NULL;
 	}
 
@@ -298,7 +272,7 @@ static int merge_to_next_head(struct int_map *bio_map,
 	/*
 	 * Handle "next merge" and "gap fill" cases the same way so as to
 	 * reorder bios in a way that's compatible with using funnel queues
-	 * in work queues.  This avoids removing an existing work item.
+	 * in work queues.  This avoids removing an existing completion.
 	 */
 	int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
@@ -312,13 +286,14 @@ static int merge_to_next_head(struct int_map *bio_map,
 }
 
 /**
- * Attempt to merge a vio's bio with other pending I/Os. Currently this is only
- * used for data_vios, but is broken out for future use with metadata vios.
+ * try_bio_map_merge() - Attempt to merge a vio's bio with other pending I/Os.
+ * @vio: The vio to merge.
  *
- * @param vio  The vio to merge
+ * Currently this is only used for data_vios, but is broken out for
+ * future use with metadata vios.
  *
- * @return whether or not the vio was merged
- **/
+ * Return: whether or not the vio was merged.
+ */
 static bool try_bio_map_merge(struct vio *vio)
 {
 	int result;
@@ -365,12 +340,12 @@ static bool try_bio_map_merge(struct vio *vio)
 }
 
 /**
- * Submit I/O for a data_vio. If possible, this I/O will be merged other
- * pending I/Os. Otherwise, the data_vio will be sent to the appropriate bio
- * zone directly.
+ * submit_data_vio_io() - Submit I/O for a data_vio.
+ * @data_vio: the data_vio for which to issue I/O.
  *
- * @param data_vio  the data_vio for which to issue I/O
- **/
+ * If possible, this I/O will be merged other pending I/Os. Otherwise,
+ * the data_vio will be sent to the appropriate bio zone directly.
+ */
 void submit_data_vio_io(struct data_vio *data_vio)
 {
 	if (try_bio_map_merge(data_vio_as_vio(data_vio))) {
@@ -383,46 +358,79 @@ void submit_data_vio_io(struct data_vio *data_vio)
 }
 
 /**
- * Submit bio but don't block.
+ * vdo_submit_metadata_io() - Submit I/O for a metadata vio.
  *
- * <p>Submits the bio to a helper work queue which sits in a loop submitting
- * bios. The worker thread may block if the target device is busy, which is why
- * we don't want to do the submission in the original calling thread.
+ * The vio is enqueued on a vdo bio queue so that bio submission (which may
+ * block) does not block other vdo threads.
  *
- * <p>The bi_private field of the bio must point to a vio associated with the
- * operation. The bi_end_io callback is invoked when the I/O operation
- * completes.
- *
- * @param bio       the block I/O operation descriptor to submit
- * @param priority  the priority for the operation
- **/
-void vdo_submit_bio(struct bio *bio, enum vdo_work_item_priority priority)
-{
-	struct vio *vio = bio->bi_private;
-	struct io_submitter *submitter = vdo_from_vio(vio)->io_submitter;
+ * That the error handler will run on the correct thread is only true so long
+ * as the thread calling this function, and the thread set in the endio
+ * callback are the same, as well as the fact that no error can occur on the
+ * bio queue. Currently this is true for all callers, but additional care will
+ * be needed if this ever changes.
 
-	bio->bi_next = NULL;
-	setup_vio_work(vio, process_bio_map, priority);
-	enqueue_vio_work(submitter->bio_queue_data[vio->bio_zone].queue, vio);
+ * @vio: the vio for which to issue I/O
+ * @physical: the physical block number to read or write
+ * @callback: the bio endio function which will be called after the I/O
+ *            completes
+ * @error_handler: the handler for submission or I/O errors (may be NULL)
+ * @operation: the type of I/O to perform
+ * @data: the buffer to read or write (may be NULL)
+ **/
+void vdo_submit_metadata_io(struct vio *vio,
+			    physical_block_number_t physical,
+			    bio_end_io_t callback,
+			    vdo_action *error_handler,
+			    unsigned int operation,
+			    char *data)
+{
+	struct vdo_completion *completion = vio_as_completion(vio);
+	int result;
+	const struct admin_state_code *code =
+		vdo_get_admin_state(completion->vdo);
+
+
+	ASSERT_LOG_ONLY(!code->quiescent,
+			"I/O not allowed in state %s",
+			code->name);
+	ASSERT_LOG_ONLY(vio->bio->bi_next == NULL,
+			"metadata bio has no next bio");
+
+	vdo_reset_completion(completion);
+	completion->error_handler = error_handler;
+
+	set_vio_physical(vio, physical);
+	result = vdo_reset_bio_with_buffer(vio->bio,
+					   data,
+					   vio,
+					   callback,
+					   operation | REQ_META,
+					   vio->physical);
+	if (result != VDO_SUCCESS) {
+		continue_vio(vio, result);
+		return;
+	}
+
+	vdo_set_completion_callback(completion,
+				    process_vio_io,
+				    get_vio_bio_zone_thread_id(vio));
+	vdo_invoke_completion_callback_with_priority(completion,
+						     get_metadata_priority(vio));
 }
 
 /**
- * Create an io_submitter structure.
+ * vdo_make_io_submitter() - Create an io_submitter structure.
  *
- * @param [in]  thread_name_prefix   The per-device prefix to use in process
- *                                   names
- * @param [in]  thread_count         Number of bio-submission threads to set up
- * @param [in]  rotation_interval    Interval to use when rotating between
- *                                   bio-submission threads when enqueuing work
- *                                   items
- * @param [in]  max_requests_active  Number of bios for merge tracking
- * @param [in]  vdo                  The vdo which will use this submitter
- * @param [out] io_submitter         Pointer to the new data structure
+ * @thread_count: Number of bio-submission threads to set up.
+ * @rotation_interval: Interval to use when rotating between bio-submission
+ *                     threads when enqueuing completions.
+ * @max_requests_active: Number of bios for merge tracking.
+ * @vdo: The vdo which will use this submitter.
+ * @io_submitter: , pointer to the new data structure.
  *
- * @return VDO_SUCCESS or an error
- **/
-int vdo_make_io_submitter(const char *thread_name_prefix,
-			  unsigned int thread_count,
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_make_io_submitter(unsigned int thread_count,
 			  unsigned int rotation_interval,
 			  unsigned int max_requests_active,
 			  struct vdo *vdo,
@@ -475,7 +483,6 @@ int vdo_make_io_submitter(const char *thread_name_prefix,
 
 		bio_queue_data->queue_number = i;
 		result = vdo_make_thread(vdo,
-					 thread_name_prefix,
 					 vdo->thread_config->bio_threads[i],
 					 &bio_queue_type,
 					 1,
@@ -504,10 +511,10 @@ int vdo_make_io_submitter(const char *thread_name_prefix,
 }
 
 /**
- * Tear down the io_submitter fields as needed for a physical layer.
- *
- * @param [in]  io_submitter  The I/O submitter data to tear down (may be NULL)
- **/
+ * vdo_cleanup_io_submitter() - Tear down the io_submitter fields as needed
+ *                              for a physical layer.
+ * @io_submitter: The I/O submitter data to tear down (may be NULL).
+ */
 void vdo_cleanup_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
@@ -522,14 +529,14 @@ void vdo_cleanup_io_submitter(struct io_submitter *io_submitter)
 }
 
 /**
- * Free the io_submitter fields and structure as needed for a
- * physical layer. This must be called after
- * vdo_cleanup_io_submitter(). It is used to release resources late in
- * the shutdown process to avoid or reduce the chance of race
- * conditions.
+ * vdo_free_io_submitter() - Free the io_submitter fields and structure as
+ *                           needed.
+ * @io_submitter: The I/O submitter data to destroy.
  *
- * @param [in]  io_submitter  The I/O submitter data to destroy
- **/
+ * This must be called after vdo_cleanup_io_submitter(). It is used to
+ * release resources late in the shutdown process to avoid or reduce
+ * the chance of race conditions.
+ */
 void vdo_free_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
