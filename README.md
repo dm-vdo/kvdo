@@ -1,7 +1,7 @@
 # kvdo
 
-A pair of kernel modules which provide pools of deduplicated and/or compressed
-block storage.
+The kernel module component of VDO which provides pools of deduplicated and/or
+compressed block storage.
 
 ## Background
 
@@ -15,7 +15,7 @@ higher-level block devices with data-efficiency capabilities.
 Deduplication is a technique for reducing the consumption of storage resources
 by eliminating multiple copies of duplicate blocks. Compression takes the
 individual unique blocks and shrinks them with coding algorithms; these reduced
-blocks are then efficiently packed together into physical blocks.  Thin
+blocks are then efficiently packed together into physical blocks. Thin
 provisioning manages the mapping from LBAs presented by VDO to where the data
 has actually been stored, and also eliminates any blocks of all zeroes.
 
@@ -29,9 +29,9 @@ reference-counted by the software.
 
 With VDO's compression, multiple blocks (or shared blocks) are compressed with
 the fast LZ4 algorithm, and binned together where possible so that multiple
-compressed blocks fit within a 4 KB block on the underlying storage.  Mapping
+compressed blocks fit within a 4 KB block on the underlying storage. Mapping
 from LBA is to a physical block address and index within it for the desired
-compressed data.  All compressed blocks are individually reference counted for
+compressed data. All compressed blocks are individually reference counted for
 correctness.
 
 Block sharing and block compression are invisible to applications using the
@@ -49,6 +49,7 @@ volumes, and "vdostats" for extracting statistics from those volumes.
 
 ## Documentation
 
+- [RHEL9 VDO Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/deduplicating_and_compressing_logical_volumes_on_rhel/index)
 - [RHEL8 VDO Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deduplicating_and_compressing_storage/index)
 - [RHEL7 VDO Integration Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-integration)
 - [RHEL7 VDO Evaluation Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-evaluation)
@@ -58,16 +59,24 @@ volumes, and "vdostats" for extracting statistics from those volumes.
 Each branch on this project is intended to work with a specific release of
 Enterprise Linux (Red Hat Enterprise Linux, CentOS, etc.). We try to maintain
 compatibility with active Fedora releases, but some modifications may be
-required.
+required and if they become too extensive we may stop providing these updates at
+any point for a particular branch.
 
 Version | Intended Enterprise Linux Release | Supported With Modifications
 ------- | --------------------------------- | -------------------------------
 6.1.x.x | EL7 (3.10.0-*.el7) |
-6.2.x.x | EL8 (4.18.0-*.el8) | Fedora 28, Fedora 29, Fedora 30, Rawhide
+6.2.x.x | EL8 (4.18.0-*.el8) | Supported Fedora releases and Rawhide
+8.x.x.x | EL9 (5.14.0-*.el9) | Supported Fedora releases and Rawhide
+
 * Pre-built versions with the required modifications for the referenced Fedora
   releases can be found
   [here](https://copr.fedorainfracloud.org/coprs/rhawalsh/dm-vdo) and can be
   used by running `dnf copr enable rhawalsh/dm-vdo`.
+
+**The [unstable](https://github.com/dm-vdo/kvdo/tree/unstable) branch provides a
+  snapshot of our most up to date internal code that is targeting the mainline
+  kernel and is currently under test. There are no guarantees of stability from
+  this branch.**
 
 ## Status
 
@@ -78,20 +87,9 @@ repository begins the process of preparing for integration with the upstream
 kernel.
 
 While this software has been relicensed there are a number of issues that must
-still be addressed to be ready for upstream.  These include:
-
-- Conformance with kernel coding standards
-- Use of existing EXPORT_SYMBOL_GPL kernel interfaces where appropriate
-- Refactoring of primitives (e.g. cryptographic) to appropriate kernel
-  subsystems
-- Support for non-x86-64 platforms
-- Refactoring of platform layer abstractions and other changes requested by
-  upstream maintainers
-
-We expect addressing these issues to take some time. In the meanwhile, this
-project allows interested parties to begin using VDO immediately. The
-technology itself is thoroughly tested, mature, and in production use since
-2014 in its previous proprietary form.
+still be addressed to be ready for inclusion into the upstream kernel. To see
+the progress of this effort, visit the [Unstable
+branch](https://github.com/dm-vdo/kvdo/tree/unstable) of this project.
 
 ## Building
 
@@ -99,6 +97,14 @@ In order to build the kernel modules, invoke the following command
 from the top directory of this tree:
 
         make -C /usr/src/kernels/`uname -r` M=`pwd`
+
+To install the compiled modules:
+
+        make -C /usr/src/kernels/`uname -r` M=`pwd` modules_install
+
+* There is a dkms.conf template that can be used in the kvdo.spec file which can
+  take care of building and installing the necessary kernel modules any time a
+  new kernel is booted.
 
 * Patched sources that work with the most recent upstream kernels can be found
   [here](https://github.com/rhawalsh/kvdo).
