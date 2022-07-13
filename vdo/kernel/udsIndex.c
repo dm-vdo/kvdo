@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#17 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#18 $
  */
 
 #include "udsIndex.h"
@@ -204,17 +204,24 @@ static void finishIndexOperation(UdsRequest *udsRequest)
   DataKVIO *dataKVIO = container_of(udsRequest, DataKVIO,
                                     dedupeContext.udsRequest);
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
-  if (compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE)) {
-    KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
-    UDSIndex *index = container_of(kvio->layer->dedupeIndex, UDSIndex, common);
 
-    spin_lock_bh(&index->pendingLock);
-    if (dedupeContext->isPending) {
-      list_del(&dedupeContext->pendingList);
-      dedupeContext->isPending = false;
-    }
-    spin_unlock_bh(&index->pendingLock);
-
+  /*
+   * Note that in timeout cases, we could be running concurrently with
+   * enqueueIndexOperation (trying to change the state from UR_IDLE to
+   * UR_BUSY). If a timeout hasn't happened yet but is about to, we
+   * could be running concurrently with timeoutIndexOperations (trying
+   * to switch UR_BUSY to UR_TIMED_OUT).
+   */
+  KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
+  UDSIndex *index = container_of(kvio->layer->dedupeIndex, UDSIndex, common);
+  bool swapped;
+  spin_lock_bh(&index->pendingLock); // lock out timeoutIndexOperations
+  swapped = compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE);
+  if (swapped) {
+    list_del(&dedupeContext->pendingList);
+  }
+  spin_unlock_bh(&index->pendingLock);
+  if (swapped) {
     dedupeContext->status = udsRequest->status;
     if ((udsRequest->type == UDS_POST) || (udsRequest->type == UDS_QUERY)) {
       DataLocation advice;
@@ -227,7 +234,12 @@ static void finishIndexOperation(UdsRequest *udsRequest)
     invokeDedupeCallback(dataKVIO);
     atomic_dec(&index->active);
   } else {
-    compareAndSwap32(&dedupeContext->requestState, UR_TIMED_OUT, UR_IDLE);
+    /*
+     * Should already be UR_TIMED_OUT. All we need to do is indicate
+     * that the dedupe request is no longer outstanding with UDS.
+     */
+    BUG_ON(!compareAndSwap32(&dedupeContext->requestState, UR_TIMED_OUT,
+                             UR_IDLE));
   }
 }
 
@@ -251,7 +263,6 @@ static void startIndexOperation(KvdoWorkItem *item)
 
   spin_lock_bh(&index->pendingLock);
   list_add_tail(&dedupeContext->pendingList, &index->pendingHead);
-  dedupeContext->isPending = true;
   startExpirationTimer(index, dataKVIO);
   spin_unlock_bh(&index->pendingLock);
 
@@ -261,6 +272,40 @@ static void startIndexOperation(KvdoWorkItem *item)
     udsRequest->status = status;
     finishIndexOperation(udsRequest);
   }
+}
+
+/*****************************************************************************/
+static DataKVIO *dequeueExpiredEntry(UDSIndex *index)
+{
+  DataKVIO *dataKVIO = NULL;
+  DedupeContext *dedupeContext;
+  uint64_t timeoutJiffies = msecs_to_jiffies(albireoTimeoutInterval);
+  unsigned long earliestSubmissionAllowed = jiffies - timeoutJiffies;
+
+  spin_lock_bh(&index->pendingLock);
+  if (!list_empty(&index->pendingHead)) {
+    dataKVIO = list_first_entry(&index->pendingHead, DataKVIO,
+                                dedupeContext.pendingList);
+    dedupeContext = &dataKVIO->dedupeContext;
+    if (earliestSubmissionAllowed <= dedupeContext->submissionTime) {
+      startExpirationTimer(index, dataKVIO);
+      dataKVIO = NULL;
+    } else {
+      list_del(&dedupeContext->pendingList);
+      /*
+       * UR_TIMED_OUT means this thread, not the callback function, has
+       * responsibility for sending this VIO on its way. Separately, when the
+       * callback function gets its turn (which could be the moment the spin
+       * lock is released, below), it can mark the dedupe context as UR_IDLE
+       * and thus available for use (which will only matter when the dataKVIO
+       * reaches the appropriate stage of processing a later bio).
+       */
+      BUG_ON(!compareAndSwap32(&dedupeContext->requestState,
+                               UR_BUSY, UR_TIMED_OUT));
+    }
+  }
+  spin_unlock_bh(&index->pendingLock);
+  return dataKVIO;
 }
 
 /*****************************************************************************/
@@ -275,36 +320,14 @@ static void timeoutIndexOperations(unsigned long arg)
 #else
   UDSIndex *index = (UDSIndex *) arg;
 #endif
-  LIST_HEAD(expiredHead);
-  uint64_t timeoutJiffies = msecs_to_jiffies(albireoTimeoutInterval);
-  unsigned long earliestSubmissionAllowed = jiffies - timeoutJiffies;
-  spin_lock_bh(&index->pendingLock);
+  DataKVIO *dataKVIO;
   index->startedTimer = false;
-  while (!list_empty(&index->pendingHead)) {
-    DataKVIO *dataKVIO = list_first_entry(&index->pendingHead, DataKVIO,
-                                          dedupeContext.pendingList);
-    DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
-    if (earliestSubmissionAllowed <= dedupeContext->submissionTime) {
-      startExpirationTimer(index, dataKVIO);
-      break;
-    }
-    list_del(&dedupeContext->pendingList);
-    dedupeContext->isPending = false;
-    list_add_tail(&dedupeContext->pendingList, &expiredHead);
-  }
-  spin_unlock_bh(&index->pendingLock);
-  while (!list_empty(&expiredHead)) {
-    DataKVIO *dataKVIO = list_first_entry(&expiredHead, DataKVIO,
-                                          dedupeContext.pendingList);
-    DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
-    list_del(&dedupeContext->pendingList);
-    if (compareAndSwap32(&dedupeContext->requestState,
-                         UR_BUSY, UR_TIMED_OUT)) {
-      dedupeContext->status = ETIMEDOUT;
-      invokeDedupeCallback(dataKVIO);
-      atomic_dec(&index->active);
-      kvdoReportDedupeTimeout(dataKVIOAsKVIO(dataKVIO)->layer, 1);
-    }
+  // Pull one entry off at a time until we find an unexpired one.
+  while ((dataKVIO = dequeueExpiredEntry(index)) != NULL) {
+    dataKVIO->dedupeContext.status = ETIMEDOUT;
+    invokeDedupeCallback(dataKVIO);
+    atomic_dec(&index->active);
+    kvdoReportDedupeTimeout(dataKVIOAsKVIO(dataKVIO)->layer, 1);
   }
 }
 

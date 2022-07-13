@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.7.9
+%define kmod_driver_version	6.2.7.17
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,8 +96,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Wed May 04 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.7.9-1
-- Fixed bug which could result in empty flushes being issued to the storage
-  below vdo while suspended.
-- Fixed syntax mismatch which prevented lvm from being able to configure a
-  512MB UDS index.
+* Wed Jul 13 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.7.17-1
+- Fixed a race handling timeouts of dedupe index queries.
+  
