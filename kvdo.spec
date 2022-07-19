@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.1.1.371
+%define kmod_driver_version	8.2.0.2
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -27,7 +27,7 @@ BuildRequires:	glibc
 %if 0%{?rhel} && 0%{?rhel} < 9
 # Fedora doesn't have abi whitelists,
 # And RHEL9 doesn't have it yet.
-BuildRequires:	kernel-abi-whitelists
+BuildRequires:  kernel-abi-whitelists
 %endif
 BuildRequires:  libuuid-devel
 BuildRequires:  redhat-rpm-config
@@ -53,9 +53,9 @@ set -x
 /usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}
 
 %preun
-# Check whether kvdo or uds is loaded, and if so attempt to remove it.  A
-# failure here means there is still something using the module, which should be
-# cleared up before attempting to remove again.
+# Check whether kvdo is loaded, and if so attempt to remove it.  A
+# failure here means there is still something using the module, which
+# should be cleared up before attempting to remove again.
 for module in kvdo uds; do
   if grep -q "^${module}" /proc/modules; then
     modprobe -r ${module}
@@ -78,15 +78,12 @@ PACKAGE_NAME="kvdo"
 PACKAGE_VERSION="%{version}"
 AUTOINSTALL="yes"
 
-BUILT_MODULE_NAME[0]="uds"
-BUILT_MODULE_LOCATION[0]="uds"
+BUILT_MODULE_NAME[0]="kvdo"
+BUILT_MODULE_LOCATION[0]="vdo"
 DEST_MODULE_LOCATION[0]="/kernel/drivers/block/"
+BUILD_DEPENDS[0]=LZ4_COMPRESS
+BUILD_DEPENDS[0]=LZ4_DECOMPRESS
 STRIP[0]="no"
-
-BUILT_MODULE_NAME[1]="kvdo"
-BUILT_MODULE_LOCATION[1]="vdo"
-DEST_MODULE_LOCATION[1]="/kernel/drivers/block/"
-STRIP[1]="no"
 EOF
 
 %clean
@@ -97,5 +94,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu Mar 03 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.1.371-1
+* Sun Jul 17 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.0.2-1
 - See https://github.com/dm-vdo/kvdo.git

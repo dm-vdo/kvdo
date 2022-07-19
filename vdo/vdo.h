@@ -1,214 +1,280 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdo.h#49 $
  */
 
 #ifndef VDO_H
 #define VDO_H
 
+#include <linux/atomic.h>
 #include <linux/blk_types.h>
+#include <linux/crc32.h>
+#include <linux/kobject.h>
+#include <linux/list.h>
 
+#include "thread-registry.h"
+
+#include "admin-completion.h"
+#include "admin-state.h"
+#include "atomic-stats.h"
+#include "data-vio-pool.h"
+#include "device-config.h"
+#include "header.h"
+#include "packer.h"
+#include "statistics.h"
+#include "super-block.h"
+#include "read-only-notifier.h"
+#include "thread-config.h"
 #include "types.h"
+#include "uds.h"
+#include "vdo-component.h"
+#include "vdo-component-states.h"
+#include "vdo-layout.h"
+#include "volume-geometry.h"
+
+
+struct vdo_thread {
+	struct vdo *vdo;
+	thread_id_t thread_id;
+	struct vdo_work_queue *queue;
+	struct registered_thread allocating_thread;
+};
+
+struct vdo {
+	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
+	struct vdo_thread *threads;
+	vdo_action *action;
+	struct vdo_completion *completion;
+	struct vio_tracer *vio_tracer;
+
+	/* The connection to the UDS index */
+	struct dedupe_index *dedupe_index;
+
+	/* The atomic version of the state of this vdo */
+	atomic_t state;
+	/* The full state of all components */
+	struct vdo_component_states states;
+	/*
+	 * A counter value to attach to thread names and log messages to
+	 * identify the individual device.
+	 */
+	unsigned int instance;
+	/* The read-only notifier */
+	struct read_only_notifier *read_only_notifier;
+	/* The load-time configuration of this vdo */
+	struct device_config *device_config;
+	/* The thread mapping */
+	struct thread_config *thread_config;
+
+	/* The super block */
+	struct vdo_super_block *super_block;
+
+	/* Our partitioning of the physical layer's storage */
+	struct vdo_layout *layout;
+
+	/* The block map */
+	struct block_map *block_map;
+
+	/* The journal for block map recovery */
+	struct recovery_journal *recovery_journal;
+
+	/* The slab depot */
+	struct slab_depot *depot;
+
+	/* The compressed-block packer */
+	struct packer *packer;
+	/* Whether incoming data should be compressed */
+	bool compressing;
+
+	/* The handler for flush requests */
+	struct flusher *flusher;
+
+	/* The state the vdo was in when loaded (primarily for unit tests) */
+	enum vdo_state load_state;
+
+	/* The logical zones of this vdo */
+	struct logical_zones *logical_zones;
+
+	/* The physical zones of this vdo */
+	struct physical_zones *physical_zones;
+
+	/* The hash lock zones of this vdo */
+	struct hash_zones *hash_zones;
+
+	/*
+	 * Bio submission manager used for sending bios to the storage
+	 * device.
+	 */
+	struct io_submitter *io_submitter;
+
+	/* The pool of data_vios for servicing incoming bios */
+	struct data_vio_pool *data_vio_pool;
+
+	/* The completion for administrative operations */
+	struct admin_completion admin_completion;
+
+	/* The administrative state of the vdo */
+	struct admin_state admin_state;
+
+	/* Flags controlling administrative operations */
+	const struct admin_state_code *suspend_type;
+	bool allocations_allowed;
+	bool dump_on_shutdown;
+	atomic_t processing_message;
+
+	/*
+	 * Statistics
+	 * Atomic stats counters
+	 */
+	struct atomic_statistics stats;
+	/* Used to gather statistics without allocating memory */
+	struct vdo_statistics stats_buffer;
+	/* Protects the stats_buffer */
+	struct mutex stats_mutex;
+	/* true if sysfs directory is set up */
+	bool sysfs_added;
+	/* Used when shutting down the sysfs statistics */
+	struct completion stats_shutdown;
+
+
+	/* A list of all device_configs referencing this vdo */
+	struct list_head device_config_list;
+
+	/* This VDO's list entry for the device registry */
+	struct list_head registration;
+
+	/* Underlying block device info. */
+	uint64_t starting_sector_offset;
+	struct volume_geometry geometry;
+
+	/* For sysfs */
+	struct kobject vdo_directory;
+	struct kobject stats_directory;
+
+	/* N blobs of context data for LZ4 code, one per CPU thread. */
+	char **compression_context;
+};
+
 
 /**
- * Destroy a vdo instance.
+ * vdo_uses_bio_ack_queue() - Indicate whether the vdo is configured to use a
+ *                            separate work queue for acknowledging received
+ *                            and processed bios.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo to destroy
- **/
-void destroy_vdo(struct vdo *vdo);
-
-/**
- * Add the stats directory to the vdo sysfs directory.
+ * Note that this directly controls the handling of write operations, but the
+ * compile-time flag VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
+ * operations.
  *
- * @param vdo  The vdo
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
-
-/**
- * Get the block device object underlying a vdo.
- *
- * @param vdo  The vdo
- *
- * @return The vdo's current block device
- **/
-struct block_device * __must_check
-get_vdo_backing_device(const struct vdo *vdo);
-
-/**
- * Issue a flush request and wait for it to complete.
- *
- * @param vdo  The vdo
- *
- * @return VDO_SUCCESS or an error
+ * Return: Whether a bio-acknowledgement work queue is in use.
  */
+static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
+{
+	return vdo->device_config->thread_counts.bio_ack_threads > 0;
+}
+
+int __must_check
+vdo_make_thread(struct vdo *vdo,
+		thread_id_t thread_id,
+		const struct vdo_work_queue_type *type,
+		unsigned int queue_count,
+		void *contexts[]);
+
+static inline int __must_check
+vdo_make_default_thread(struct vdo *vdo, thread_id_t thread_id)
+{
+	return vdo_make_thread(vdo, thread_id, NULL, 1, NULL);
+}
+
+int __must_check
+vdo_make(unsigned int instance,
+	 struct device_config *config,
+	 char **reason,
+	 struct vdo **vdo_ptr);
+
+void vdo_destroy(struct vdo *vdo);
+
+int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
+
+int __must_check
+vdo_prepare_to_modify(struct vdo *vdo,
+		      struct device_config *config,
+		      bool may_grow,
+		      char **error_ptr);
+
+struct block_device * __must_check
+vdo_get_backing_device(const struct vdo *vdo);
+
+const char * __must_check
+vdo_get_device_name(const struct dm_target *target);
+
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
-/**
- * Get the admin state of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The code for the vdo's current admin state
- **/
 const struct admin_state_code * __must_check
-get_vdo_admin_state(const struct vdo *vdo);
+vdo_get_admin_state(const struct vdo *vdo);
 
-/**
- * Turn compression on or off.
- *
- * @param vdo     The vdo
- * @param enable  Whether to enable or disable compression
- *
- * @return Whether compression was previously on or off
- **/
-bool set_vdo_compressing(struct vdo *vdo, bool enable);
+bool vdo_set_compressing(struct vdo *vdo, bool enable);
 
-/**
- * Get whether compression is enabled in a vdo.
- *
- * @param vdo  The vdo
- *
- * @return State of compression
- **/
-bool get_vdo_compressing(struct vdo *vdo);
+bool vdo_get_compressing(struct vdo *vdo);
 
-/**
- * Fetch statistics on the correct thread.
- *
- * @param [in]  vdo    The vdo
- * @param [out] stats  The vdo statistics are returned here
- **/
-void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
+void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
-/**
- * Get the number of physical blocks in use by user data.
- *
- * @param vdo  The vdo
- *
- * @return The number of blocks allocated for user data
- **/
-block_count_t __must_check
-get_vdo_physical_blocks_allocated(const struct vdo *vdo);
-
-/**
- * Get the number of unallocated physical blocks.
- *
- * @param vdo  The vdo
- *
- * @return The number of free blocks
- **/
-block_count_t __must_check get_vdo_physical_blocks_free(const struct vdo *vdo);
-
-/**
- * Get the number of physical blocks used by vdo metadata.
- *
- * @param vdo  The vdo
- *
- * @return The number of overhead blocks
- **/
-block_count_t __must_check get_vdo_physical_blocks_overhead(const struct vdo *vdo);
-
-/**
- * Get the thread config of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The thread config
- **/
-const struct thread_config * __must_check
-get_vdo_thread_config(const struct vdo *vdo);
-
-/**
- * Get the id of the callback thread on which a completion is currently
- * running, or -1 if no such thread.
- *
- * @return the current thread ID
- **/
 thread_id_t vdo_get_callback_thread_id(void);
 
-/**
- * Get the configured maximum age of a dirty block map page.
- *
- * @param vdo  The vdo
- *
- * @return The block map era length
- **/
-block_count_t __must_check
-get_vdo_configured_block_map_maximum_age(const struct vdo *vdo);
+enum vdo_state __must_check vdo_get_state(const struct vdo *vdo);
 
-/**
- * Get the configured page cache size of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The number of pages for the page cache
- **/
-page_count_t __must_check get_vdo_configured_cache_size(const struct vdo *vdo);
+void vdo_set_state(struct vdo *vdo, enum vdo_state state);
 
-/**
- * Get the location of the first block of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The location of the first block managed by the vdo
- **/
-physical_block_number_t __must_check
-get_vdo_first_block_offset(const struct vdo *vdo);
+void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent);
 
-/**
- * Check whether the vdo was new when it was loaded.
- *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo was new
- **/
-bool __must_check vdo_was_new(const struct vdo *vdo);
+int vdo_enable_read_only_entry(struct vdo *vdo);
 
-/**
- * Check whether a data_location containing potential dedupe advice is
- * well-formed and addresses a data block in one of the configured physical
- * zones of the vdo. If it is, return the location and zone as a zoned_pbn;
- * otherwise increment statistics tracking invalid advice and return an
- * unmapped zoned_pbn.
- *
- * @param vdo     The vdo
- * @param advice  The advice to validate (NULL indicates no advice)
- * @param lbn     The logical block number of the write that requested advice,
- *                which is only used for debug-level logging of invalid advice
- *
- * @return The zoned_pbn representing the advice, if valid, otherwise an
- *         unmapped zoned_pbn if the advice was invalid or NULL
- **/
-struct zoned_pbn __must_check
-vdo_validate_dedupe_advice(struct vdo *vdo,
-			   const struct data_location *advice,
-			   logical_block_number_t lbn);
+bool __must_check vdo_in_read_only_mode(const struct vdo *vdo);
 
-// TEST SUPPORT ONLY BEYOND THIS POINT
+bool __must_check vdo_in_recovery_mode(const struct vdo *vdo);
 
-/**
- * Dump status information about a vdo to the log for debugging.
- *
- * @param vdo  The vdo to dump
- **/
-void dump_vdo_status(const struct vdo *vdo);
+void vdo_enter_recovery_mode(struct vdo *vdo);
+
+void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name);
+
+void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
+				       zone_count_t logical_zone,
+				       const char *name);
+
+void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
+					zone_count_t physical_zone,
+					const char *name);
+
+static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo,
+					       const char *name) {
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo->thread_config->dedupe_thread),
+			"%s called on dedupe index thread",
+			name);
+}
+
+void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name);
+
+struct hash_zone * __must_check
+vdo_select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
+
+int __must_check vdo_get_physical_zone(const struct vdo *vdo,
+				       physical_block_number_t pbn,
+				       struct physical_zone **zone_ptr);
+
+zone_count_t __must_check
+vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
+
+void vdo_dump_status(const struct vdo *vdo);
+
+
+/*
+ * We start with 0L and postcondition with ~0L to match our historical usage
+ * in userspace.
+ */
+static inline u32 vdo_crc32(const void *buf, unsigned long len)
+{
+	return (crc32(0L, buf, len) ^ ~0L);
+}
 
 #endif /* VDO_H */

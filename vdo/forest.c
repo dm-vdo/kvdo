@@ -1,45 +1,30 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/forest.c#22 $
  */
 
 #include "forest.h"
 
-#include "logger.h"
-#include "memoryAlloc.h"
+#include <linux/bio.h>
 
-#include "blockMap.h"
-#include "blockMapInternals.h"
-#include "blockMapPage.h"
-#include "blockMapTree.h"
-#include "blockMapTreeInternals.h"
+#include "logger.h"
+#include "memory-alloc.h"
+
+#include "block-map.h"
+#include "block-map-page.h"
+#include "block-map-tree.h"
 #include "constants.h"
-#include "dirtyLists.h"
+#include "dirty-lists.h"
 #include "forest.h"
-#include "numUtils.h"
-#include "recoveryJournal.h"
-#include "slabDepot.h"
-#include "slabJournal.h"
+#include "io-submitter.h"
+#include "num-utils.h"
+#include "recovery-journal.h"
+#include "slab-depot.h"
+#include "slab-journal.h"
 #include "types.h"
-#include "vdoInternal.h"
+#include "vdo.h"
 #include "vio.h"
-#include "vioPool.h"
+#include "vio-pool.h"
 
 enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,
@@ -88,19 +73,30 @@ struct cursors {
 	struct cursor cursors[];
 };
 
-/**********************************************************************/
-struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
+/**
+ * *vdo_get_tree_page_by_index() - Get the tree page for a given height and
+ *                                 page index.
+ * @forest: The forest which holds the page.
+ * @root_index: The index of the tree that holds the page.
+ * @height: The height of the desired page.
+ * @page_index: The index of the desired page.
+ *
+ * Return: The requested page.
+ */
+struct tree_page *vdo_get_tree_page_by_index(struct forest *forest,
 					     root_count_t root_index,
 					     height_t height,
 					     page_number_t page_index)
 {
 	page_number_t offset = 0;
 	size_t segment;
+
 	for (segment = 0; segment < forest->segments; segment++) {
 		page_number_t border =
 			forest->boundaries[segment].levels[height - 1];
 		if (page_index < border) {
 			struct block_map_tree *tree = &forest->trees[root_index];
+
 			return &(tree->segments[segment]
 				 .levels[height - 1][page_index - offset]);
 		}
@@ -110,7 +106,6 @@ struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
 	return NULL;
 }
 
-/**********************************************************************/
 static int make_segment(struct forest *old_forest,
 			block_count_t new_pages,
 			struct boundary *new_boundary,
@@ -196,14 +191,14 @@ static int make_segment(struct forest *old_forest,
 
 			segment->levels[height] = page_ptr;
 			if (height == (VDO_BLOCK_MAP_TREE_HEIGHT - 1)) {
-				// Record the root.
+				/* Record the root. */
 				struct block_map_page *page =
-					format_vdo_block_map_page(page_ptr->page_buffer,
+					vdo_format_block_map_page(page_ptr->page_buffer,
 							      forest->map->nonce,
 							      VDO_INVALID_PBN,
 							      true);
 				page->entries[0] =
-					pack_vdo_pbn(forest->map->root_origin + root,
+					vdo_pack_pbn(forest->map->root_origin + root,
 						     VDO_MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
@@ -213,7 +208,6 @@ static int make_segment(struct forest *old_forest,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
 static void deforest(struct forest *forest, size_t first_page_segment)
 {
 	root_count_t root;
@@ -230,6 +224,7 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 
 	for (root = 0; root < forest->map->root_count; root++) {
 		struct block_map_tree *tree = &(forest->trees[root]);
+
 		UDS_FREE(tree->segments);
 	}
 
@@ -237,8 +232,15 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 	UDS_FREE(forest);
 }
 
-/**********************************************************************/
-int make_vdo_forest(struct block_map *map, block_count_t entries)
+/**
+ * vdo_make_forest() - Make a collection of trees for a block_map, expanding
+ *                     the existing forest if there is one.
+ * @map: The block map.
+ * @entries: The number of entries the block map will hold.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_make_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *forest, *old_forest = map->forest;
 	struct boundary new_boundary, *old_boundary = NULL;
@@ -276,8 +278,11 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-void free_vdo_forest(struct forest *forest)
+/**
+ * vdo_free_forest() - Free a forest and all of the segments it contains.
+ * @forest: The forest to free.
+ */
+void vdo_free_forest(struct forest *forest)
 {
 	if (forest == NULL) {
 		return;
@@ -286,10 +291,14 @@ void free_vdo_forest(struct forest *forest)
 	deforest(forest, 0);
 }
 
-/**********************************************************************/
-void abandon_vdo_forest(struct block_map *map)
+/**
+ * vdo_abandon_forest() - Abandon the unused next forest from a block_map.
+ * @map: The block map.
+ */
+void vdo_abandon_forest(struct block_map *map)
 {
 	struct forest *forest = map->next_forest;
+
 	map->next_forest = NULL;
 	if (forest != NULL) {
 		deforest(forest, forest->segments - 1);
@@ -298,8 +307,12 @@ void abandon_vdo_forest(struct block_map *map)
 	map->next_entry_count = 0;
 }
 
-/**********************************************************************/
-void replace_vdo_forest(struct block_map *map)
+/**
+ * vdo_replace_forest() - Replace a block_map's forest with the
+ *                        already-prepared larger forest.
+ * @map: The block map.
+ */
+void vdo_replace_forest(struct block_map *map)
 {
 	if (map->next_forest != NULL) {
 		if (map->forest != NULL) {
@@ -314,11 +327,10 @@ void replace_vdo_forest(struct block_map *map)
 }
 
 /**
- * Finish the traversal of a single tree. If it was the last cursor, finish
- * the traversal.
- *
- * @param cursor  The cursor doing the traversal
- **/
+ * finish_cursor() - Finish the traversal of a single tree. If it was the last
+ *                   cursor, finish the traversal.
+ * @cursor: The cursor doing the traversal.
+ */
 static void finish_cursor(struct cursor *cursor)
 {
 	struct cursors *cursors = cursor->parent;
@@ -331,29 +343,29 @@ static void finish_cursor(struct cursor *cursor)
 
 	UDS_FREE(cursors);
 
-	finish_vdo_completion(parent, VDO_SUCCESS);
+	vdo_finish_completion(parent, VDO_SUCCESS);
 }
 
-/**********************************************************************/
 static void traverse(struct cursor *cursor);
 
 /**
- * Continue traversing a block map tree.
- *
- * @param completion  The VIO doing a read or write
- **/
+ * continue_traversal() - Continue traversing a block map tree.
+ * @completion: The VIO doing a read or write.
+ */
 static void continue_traversal(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *pool_entry = completion->parent;
 	struct cursor *cursor = pool_entry->parent;
+
+	record_metadata_io_error(as_vio(completion));
 	traverse(cursor);
 }
 
 /**
- * Continue traversing a block map tree now that a page has been loaded.
- *
- * @param completion  The VIO doing the read
- **/
+ * finish_traversal_load() - Continue traversing a block map tree now that a
+ *                           page has been loaded.
+ * @completion: The VIO doing the read.
+ */
 static void finish_traversal_load(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
@@ -372,12 +384,23 @@ static void finish_traversal_load(struct vdo_completion *completion)
 	traverse(cursor);
 }
 
+static void traversal_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct cursor *cursor = entry->parent;
+
+	continue_vio_after_io(vio,
+			      finish_traversal_load,
+			      cursor->parent->zone->map_zone->thread_id);
+}
+
 /**
- * Traverse a single block map tree. This is the recursive heart of the
- * traversal process.
+ * traverse() - Traverse a single block map tree.
+ * @cursor: The cursor doing the traversal.
  *
- * @param cursor  The cursor doing the traversal
- **/
+ * This is the recursive heart of the traversal process.
+ */
 static void traverse(struct cursor *cursor)
 {
 	for (; cursor->height < VDO_BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
@@ -388,7 +411,7 @@ static void traverse(struct cursor *cursor)
 				  .levels[height][level->page_index]);
 		struct block_map_page *page =
 			(struct block_map_page *) tree_page->page_buffer;
-		if (!is_vdo_block_map_page_initialized(page)) {
+		if (!vdo_is_block_map_page_initialized(page)) {
 			continue;
 		}
 
@@ -400,12 +423,14 @@ static void traverse(struct cursor *cursor)
 				 level->page_index) + level->slot;
 
 			struct data_location location =
-				unpack_vdo_block_map_entry(&page->entries[level->slot]);
+				vdo_unpack_block_map_entry(&page->entries[level->slot]);
 			if (!vdo_is_valid_location(&location)) {
-				// This entry is invalid, so remove it from the
-				// page.
+				/*
+				 * This entry is invalid, so remove it from the
+				 * page.
+				 */
 				page->entries[level->slot] =
-					pack_vdo_pbn(VDO_ZERO_BLOCK,
+					vdo_pack_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page,
 						    cursor->parent->zone);
@@ -416,11 +441,13 @@ static void traverse(struct cursor *cursor)
 				continue;
 			}
 
-			// Erase mapped entries past the end of the logical
-			// space.
+			/*
+			 * Erase mapped entries past the end of the logical
+			 * space.
+			 */
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					pack_vdo_pbn(VDO_ZERO_BLOCK,
+					vdo_pack_pbn(VDO_ZERO_BLOCK,
 						     VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page,
 						    cursor->parent->zone);
@@ -433,7 +460,7 @@ static void traverse(struct cursor *cursor)
 								       cursor->parent->parent);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						pack_vdo_pbn(VDO_ZERO_BLOCK,
+						vdo_pack_pbn(VDO_ZERO_BLOCK,
 							     VDO_MAPPING_STATE_UNMAPPED);
 					vdo_write_tree_page(tree_page,
 							    cursor->parent->zone);
@@ -450,10 +477,11 @@ static void traverse(struct cursor *cursor)
 			next_level->page_index = entry_index;
 			next_level->slot = 0;
 			level->slot++;
-			launch_read_metadata_vio(cursor->vio_pool_entry->vio,
-						 location.pbn,
-						 finish_traversal_load,
-						 continue_traversal);
+			submit_metadata_vio(cursor->vio_pool_entry->vio,
+					    location.pbn,
+					    traversal_endio,
+					    continue_traversal,
+					    REQ_OP_READ | REQ_PRIO);
 			return;
 		}
 	}
@@ -462,17 +490,17 @@ static void traverse(struct cursor *cursor)
 }
 
 /**
- * Start traversing a single block map tree now that the cursor has a VIO with
- * which to load pages.
+ * launch_cursor() - Start traversing a single block map tree now that the
+ *                   cursor has a VIO with which to load pages.
+ * @waiter: The cursor.
+ * @context: The vio_pool_entry just acquired.
  *
- * <p>Implements waiter_callback.
- *
- * @param waiter   The cursor
- * @param context  The vio_pool_entry just acquired
- **/
+ * Implements waiter_callback.
+ */
 static void launch_cursor(struct waiter *waiter, void *context)
 {
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
+
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
 	vio_as_completion(cursor->vio_pool_entry->vio)->callback_thread_id =
@@ -481,13 +509,13 @@ static void launch_cursor(struct waiter *waiter, void *context)
 }
 
 /**
- * Compute the number of pages used at each level of the given root's tree.
+ * compute_boundary() - Compute the number of pages used at each level of the
+ *                      given root's tree.
+ * @map: The block map.
+ * @root_index: The index of the root to measure.
  *
- * @param map         The block map
- * @param root_index  The index of the root to measure
- *
- * @return The list of page counts as a boundary structure
- **/
+ * Return: The list of page counts as a boundary structure.
+ */
 static struct boundary compute_boundary(struct block_map *map,
 				       root_count_t root_index)
 {
@@ -495,7 +523,7 @@ static struct boundary compute_boundary(struct block_map *map,
 	height_t height;
 
 	page_count_t leaf_pages =
-		compute_vdo_block_map_page_count(map->entry_count);
+		vdo_compute_block_map_page_count(map->entry_count);
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
@@ -504,24 +532,32 @@ static struct boundary compute_boundary(struct block_map *map,
 	 */
 	page_count_t last_tree_root = (leaf_pages - 1) % map->root_count;
 	page_count_t level_pages = leaf_pages / map->root_count;
+
 	if (root_index <= last_tree_root) {
 		level_pages++;
 	}
 
 	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT - 1; height++) {
 		boundary.levels[height] = level_pages;
-		level_pages = compute_bucket_count(level_pages,
-						   VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_pages = DIV_ROUND_UP(level_pages,
+					   VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 	}
 
-	// The root node always exists, even if the root is otherwise unused.
+	/* The root node always exists, even if the root is otherwise unused. */
 	boundary.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1] = 1;
 
 	return boundary;
 }
 
-/**********************************************************************/
-void traverse_vdo_forest(struct block_map *map,
+/**
+ * vdo_traverse_forest() - Walk the entire forest of a block map.
+ * @map: The block map to traverse.
+ * @callback: A function to call with the pbn of each allocated node in
+ *            the forest.
+ * @parent: The completion to notify on each traversed PBN, and when
+ *          the traversal is complete.
+ */
+void vdo_traverse_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent)
 {
@@ -533,12 +569,12 @@ void traverse_vdo_forest(struct block_map *map,
 					   __func__,
 					   &cursors);
 	if (result != VDO_SUCCESS) {
-		finish_vdo_completion(parent, result);
+		vdo_finish_completion(parent, result);
 		return;
 	}
 
 	cursors->map = map;
-	cursors->zone = &(vdo_get_block_map_zone(map, 0)->tree_zone);
+	cursors->zone = &map->zones[0].tree_zone;
 	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = callback;
 	cursors->parent = parent;
