@@ -17,7 +17,7 @@
 #include "completion.h"
 #include "compressed-block.h"
 #include "constants.h"
-#include "hash-zone.h"
+#include "dedupe.h"
 #include "journal-point.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
@@ -180,16 +180,6 @@ struct allocation {
 	bool wait_for_clean_slab;
 };
 
-/* Dedupe support */
-struct dedupe_context {
-	struct uds_request uds_request;
-	struct list_head pending_list;
-	uint64_t submission_jiffies;
-	atomic_t request_state;
-	int status;
-	bool is_pending;
-};
-
 /*
  * A vio for processing user data requests.
  */
@@ -304,13 +294,12 @@ struct data_vio {
          */
 	uint32_t remaining_discard;
 
+	struct dedupe_context *dedupe_context;
+
 	/*
 	 * Fields beyond this point will not be reset when a pooled data_vio
 	 * is reused.
 	 */
-
-	/* Dedupe */
-	struct dedupe_context dedupe_context;
 
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
@@ -1035,7 +1024,7 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
  * set_data_vio_bio_zone_callback() - Set a callback as a bio zone operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
- * 
+ *
  * This function assumes that the physical field of the data_vio's vio has
  * already been set to the pbn to which I/O will be performed.
  */

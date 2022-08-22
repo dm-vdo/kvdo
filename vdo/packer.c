@@ -19,7 +19,7 @@
 #include "compressed-block.h"
 #include "compression-state.h"
 #include "data-vio.h"
-#include "hash-lock.h"
+#include "dedupe.h"
 #include "io-submitter.h"
 #include "pbn-lock.h"
 #include "read-only-notifier.h"

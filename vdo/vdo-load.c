@@ -12,9 +12,8 @@
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "device-config.h"
-#include "hash-zone.h"
 #include "header.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
@@ -186,8 +185,7 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 		return VDO_CANT_ADD_SYSFS_NODE;
 	}
 
-	result = vdo_add_dedupe_index_sysfs(vdo->dedupe_index,
-					    &vdo->vdo_directory);
+	result = vdo_add_dedupe_index_sysfs(vdo->hash_zones);
 	if (result != 0) {
 		return VDO_CANT_ADD_SYSFS_NODE;
 	}
@@ -292,8 +290,7 @@ static void load_callback(struct vdo_completion *completion)
 			 * log scary error messages) if this is known to be a
 			 * newly-formatted volume.
 			 */
-			vdo_start_dedupe_index(vdo->dedupe_index,
-					       was_new(vdo));
+			vdo_start_dedupe_index(vdo->hash_zones, was_new(vdo));
 		}
 
 		vdo->allocations_allowed = false;
@@ -419,7 +416,7 @@ vdo_from_pre_load_sub_task(struct vdo_completion *completion)
  * decode_from_super_block() - Decode the VDO state from the super block and
  *                             validate that it is correct.
  * @vdo: The vdo being loaded.
- * 
+ *
  * On error from this method, the component states must be destroyed
  * explicitly. If this method returns successfully, the component states must
  * not be destroyed.

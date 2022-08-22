@@ -13,7 +13,7 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"
@@ -28,7 +28,7 @@
 enum {
 	RESUME_PHASE_START,
 	RESUME_PHASE_ALLOW_READ_ONLY_MODE,
-	RESUME_PHASE_INDEX,
+	RESUME_PHASE_DEDUPE,
 	RESUME_PHASE_DEPOT,
 	RESUME_PHASE_JOURNAL,
 	RESUME_PHASE_BLOCK_MAP,
@@ -42,7 +42,7 @@ enum {
 static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_START",
 	"RESUME_PHASE_ALLOW_READ_ONLY_MODE",
-	"RESUME_PHASE_INDEX",
+	"RESUME_PHASE_DEDUPE",
 	"RESUME_PHASE_DEPOT",
 	"RESUME_PHASE_JOURNAL",
 	"RESUME_PHASE_BLOCK_MAP",
@@ -136,13 +136,9 @@ static void resume_callback(struct vdo_completion *completion)
 					       vdo_reset_admin_sub_task(completion));
 		return;
 
-	case RESUME_PHASE_INDEX:
-		if (!vdo_is_read_only(vdo->read_only_notifier)) {
-			vdo_resume_dedupe_index(vdo->dedupe_index,
-						vdo->device_config);
-		}
-
-		vdo_complete_completion(vdo_reset_admin_sub_task(completion));
+	case RESUME_PHASE_DEDUPE:
+		vdo_resume_hash_zones(vdo->hash_zones,
+				      vdo_reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_DEPOT:

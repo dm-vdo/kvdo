@@ -22,7 +22,7 @@
 
 #include "logger.h"
 
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "pool-sysfs.h"
 #include "statistics.h"
 #include "vdo.h"
@@ -740,6 +740,18 @@ pool_stats_print_hash_lock_concurrent_hash_collisions(struct vdo_statistics *sta
 static struct pool_stats_attribute pool_stats_attr_hash_lock_concurrent_hash_collisions = {
 	.attr = { .name = "hash_lock_concurrent_hash_collisions", .mode = 0444, },
 	.print = pool_stats_print_hash_lock_concurrent_hash_collisions,
+};
+
+/* Current number of dedupe queries that are in flight */
+static ssize_t
+pool_stats_print_hash_lock_curr_dedupe_queries(struct vdo_statistics *stats, char *buf)
+{
+	return sprintf(buf, "%u\n", stats->hash_lock.curr_dedupe_queries);
+}
+
+static struct pool_stats_attribute pool_stats_attr_hash_lock_curr_dedupe_queries = {
+	.attr = { .name = "hash_lock_curr_dedupe_queries", .mode = 0444, },
+	.print = pool_stats_print_hash_lock_curr_dedupe_queries,
 };
 
 /* number of times VDO got an invalid dedupe advice PBN from UDS */
@@ -1894,30 +1906,6 @@ static struct pool_stats_attribute pool_stats_attr_index_updates_not_found = {
 	.print = pool_stats_print_index_updates_not_found,
 };
 
-/* Current number of dedupe queries that are in flight */
-static ssize_t
-pool_stats_print_index_curr_dedupe_queries(struct vdo_statistics *stats, char *buf)
-{
-	return sprintf(buf, "%u\n", stats->index.curr_dedupe_queries);
-}
-
-static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
-	.attr = { .name = "index_curr_dedupe_queries", .mode = 0444, },
-	.print = pool_stats_print_index_curr_dedupe_queries,
-};
-
-/* Maximum number of dedupe queries that have been in flight */
-static ssize_t
-pool_stats_print_index_max_dedupe_queries(struct vdo_statistics *stats, char *buf)
-{
-	return sprintf(buf, "%u\n", stats->index.max_dedupe_queries);
-}
-
-static struct pool_stats_attribute pool_stats_attr_index_max_dedupe_queries = {
-	.attr = { .name = "index_max_dedupe_queries", .mode = 0444, },
-	.print = pool_stats_print_index_max_dedupe_queries,
-};
-
 struct attribute *vdo_pool_stats_attrs[] = {
 	&pool_stats_attr_data_blocks_used.attr,
 	&pool_stats_attr_overhead_blocks_used.attr,
@@ -1976,6 +1964,7 @@ struct attribute *vdo_pool_stats_attrs[] = {
 	&pool_stats_attr_hash_lock_dedupe_advice_stale.attr,
 	&pool_stats_attr_hash_lock_concurrent_data_matches.attr,
 	&pool_stats_attr_hash_lock_concurrent_hash_collisions.attr,
+	&pool_stats_attr_hash_lock_curr_dedupe_queries.attr,
 	&pool_stats_attr_errors_invalid_advice_pbn_count.attr,
 	&pool_stats_attr_errors_no_space_error_count.attr,
 	&pool_stats_attr_errors_read_only_error_count.attr,
@@ -2072,7 +2061,5 @@ struct attribute *vdo_pool_stats_attrs[] = {
 	&pool_stats_attr_index_queries_not_found.attr,
 	&pool_stats_attr_index_updates_found.attr,
 	&pool_stats_attr_index_updates_not_found.attr,
-	&pool_stats_attr_index_curr_dedupe_queries.attr,
-	&pool_stats_attr_index_max_dedupe_queries.attr,
 	NULL,
 };

@@ -8,7 +8,7 @@
 #include "memory-alloc.h"
 
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "vdo.h"
 
 struct pool_attribute {

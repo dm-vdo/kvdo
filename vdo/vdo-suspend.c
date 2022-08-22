@@ -12,7 +12,7 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"
@@ -26,6 +26,7 @@ enum {
 	SUSPEND_PHASE_START,
 	SUSPEND_PHASE_PACKER,
 	SUSPEND_PHASE_DATA_VIOS,
+	SUSPEND_PHASE_DEDUPE,
 	SUSPEND_PHASE_FLUSHES,
 	SUSPEND_PHASE_LOGICAL_ZONES,
 	SUSPEND_PHASE_BLOCK_MAP,
@@ -40,6 +41,7 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 	"SUSPEND_PHASE_START",
 	"SUSPEND_PHASE_PACKER",
 	"SUSPEND_PHASE_DATA_VIOS",
+	"SUSPEND_PHASE_DEDUPE",
 	"SUSPEND_PHASE_FLUSHES",
 	"SUSPEND_PHASE_LOGICAL_ZONES",
 	"SUSPEND_PHASE_BLOCK_MAP",
@@ -154,15 +156,12 @@ static void suspend_callback(struct vdo_completion *completion)
 				    vdo_reset_admin_sub_task(completion));
 		return;
 
+	case SUSPEND_PHASE_DEDUPE:
+		vdo_drain_hash_zones(vdo->hash_zones,
+				     vdo_reset_admin_sub_task(completion));
+		return;
+
 	case SUSPEND_PHASE_FLUSHES:
-		/*
-		 * Now that we know there are no active data_vios, we can
-		 * suspend the index. We can do this from any thread, so here
-		 * is as good a place as any.
-		 */
-		vdo_suspend_dedupe_index(vdo->dedupe_index,
-					 (vdo->suspend_type
-					  == VDO_ADMIN_STATE_SAVING));
 		vdo_drain_flusher(vdo->flusher,
 				  vdo_reset_admin_sub_task(completion));
 		return;

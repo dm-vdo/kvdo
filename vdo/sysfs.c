@@ -8,7 +8,7 @@
 #include "logger.h"
 
 #include "constants.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "vdo.h"
 
 static int vdo_log_level_show(char *buf,

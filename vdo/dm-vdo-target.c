@@ -8,7 +8,7 @@
 #include "bio.h"
 #include "constants.h"
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "device-registry.h"
 #include "dump.h"
 #include "flush.h"
@@ -147,7 +147,7 @@ static void vdo_status(struct dm_target *ti,
 		       bdevname(vdo_get_backing_device(vdo), name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
-		       vdo_get_dedupe_index_state_name(vdo->dedupe_index),
+		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
 		       vdo_get_compressing(vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
@@ -236,7 +236,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return vdo_message_dedupe_index(vdo->dedupe_index,
+			return vdo_message_dedupe_index(vdo->hash_zones,
 							argv[0]);
 		}
 	}

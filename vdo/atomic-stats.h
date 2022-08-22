@@ -27,7 +27,6 @@ struct atomic_bio_stats {
 struct atomic_statistics {
 	atomic64_t bios_submitted;
 	atomic64_t bios_completed;
-	atomic64_t dedupe_context_busy;
 	atomic64_t flush_out;
 	atomic64_t invalid_advice_pbn_count;
 	atomic64_t no_space_error_count;

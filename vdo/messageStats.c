@@ -18,7 +18,7 @@
  * 02110-1301, USA. 
  */
 
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "messageStats.h"
@@ -676,6 +676,15 @@ int write_hash_lock_statistics(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+	/* Current number of dedupe queries that are in flight */
+	result = write_uint32_t("currDedupeQueries : ",
+				stats->curr_dedupe_queries,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 	result = write_string(NULL, "}", suffix, buf, maxlen);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -900,24 +909,6 @@ int write_index_statistics(char *prefix,
 	/* Number of update calls that added a new entry */
 	result = write_uint64_t("updatesNotFound : ",
 				stats->updates_not_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/* Current number of dedupe queries that are in flight */
-	result = write_uint32_t("currDedupeQueries : ",
-				stats->curr_dedupe_queries,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/* Maximum number of dedupe queries that have been in flight */
-	result = write_uint32_t("maxDedupeQueries : ",
-				stats->max_dedupe_queries,
 				", ",
 				buf,
 				maxlen);

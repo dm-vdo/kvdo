@@ -210,12 +210,9 @@ static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 	 * Zero out the fields which don't need to be preserved (i.e. which
 	 * are not pointers to separately allocated objects).
 	 */
-	memset(data_vio, 0, offsetof(struct data_vio, dedupe_context));
+	memset(data_vio, 0, offsetof(struct data_vio, compression));
 	memset(&data_vio->compression, 0, offsetof(struct compression_state,
 						   block));
-	memset(&data_vio->dedupe_context.pending_list, 0,
-	       sizeof(struct list_head));
-
 	initialize_vio(vio,
 		       bio,
 		       1,

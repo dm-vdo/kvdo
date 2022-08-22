@@ -23,9 +23,8 @@
 #include "bio.h"
 #include "block-map.h"
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "device-registry.h"
-#include "hash-zone.h"
 #include "header.h"
 #include "instance-number.h"
 #include "io-submitter.h"
@@ -295,12 +294,6 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	result = vdo_make_dedupe_index(vdo, &vdo->dedupe_index);
-	if (result != UDS_SUCCESS) {
-		*reason = "Cannot initialize dedupe index";
-		return result;
-	}
-
 	BUG_ON(vdo->device_config->logical_block_size <= 0);
 	BUG_ON(vdo->device_config->owned_device == NULL);
 	result = make_data_vio_pool(vdo,
@@ -356,7 +349,7 @@ static void finish_vdo(struct vdo *vdo)
 	}
 
 	vdo_cleanup_io_submitter(vdo->io_submitter);
-	vdo_finish_dedupe_index(vdo->dedupe_index);
+	vdo_finish_dedupe_index(vdo->hash_zones);
 
 	for (i = 0; i < vdo->thread_config->thread_count; i++) {
 		finish_work_queue(vdo->threads[i].queue);
@@ -394,7 +387,6 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_unregister(vdo);
 	free_data_vio_pool(vdo->data_vio_pool);
 	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
-	vdo_free_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	vdo_free_flusher(UDS_FORGET(vdo->flusher));
 	vdo_free_packer(UDS_FORGET(vdo->packer));
 	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
@@ -825,36 +817,6 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
 	return ((size_t) vdo->device_config->cache_size) * VDO_BLOCK_SIZE;
 }
 
-/**
- * get_hash_lock_statistics() - Tally the hash lock statistics from all the
- *                              hash zones.
- * @hash_zones: The hash zones to query
- *
- * Return: The sum of the hash lock statistics from all hash zones.
- */
-static struct hash_lock_statistics
-get_hash_lock_statistics(const struct hash_zones *zones)
-{
-	zone_count_t zone;
-	struct hash_lock_statistics totals;
-
-	memset(&totals, 0, sizeof(totals));
-
-	for (zone = 0; zone < zones->zone_count; zone++) {
-		struct hash_lock_statistics stats =
-			vdo_get_hash_zone_statistics(&zones->zones[zone]);
-
-		totals.dedupe_advice_valid += stats.dedupe_advice_valid;
-		totals.dedupe_advice_stale += stats.dedupe_advice_stale;
-		totals.concurrent_data_matches +=
-			stats.concurrent_data_matches;
-		totals.concurrent_hash_collisions +=
-			stats.concurrent_hash_collisions;
-	}
-
-	return totals;
-}
-
 static struct error_statistics __must_check
 get_vdo_error_statistics(const struct vdo *vdo)
 {
@@ -993,7 +955,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->journal = vdo_get_recovery_journal_statistics(journal);
 	stats->packer = vdo_get_packer_statistics(vdo->packer);
 	stats->block_map = vdo_get_block_map_statistics(vdo->block_map);
-	stats->hash_lock = get_hash_lock_statistics(vdo->hash_zones);
+	vdo_get_dedupe_statistics(vdo->hash_zones, stats);
 	stats->errors = get_vdo_error_statistics(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
@@ -1007,14 +969,6 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->max_vios =
 		get_data_vio_pool_maximum_requests(vdo->data_vio_pool);
 
-	/*
-	 * vdo_get_dedupe_index_timeout_count() gives the number of timeouts,
-	 * and dedupe_context_busy gives the number of queries not made because
-	 * of earlier timeouts.
-	 */
-	stats->dedupe_advice_timeouts =
-		(vdo_get_dedupe_index_timeout_count(vdo->dedupe_index) +
-		 atomic64_read(&vdo->stats.dedupe_context_busy));
 	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
 	stats->logical_block_size =
 		vdo->device_config->logical_block_size;
@@ -1039,7 +993,6 @@ static void get_vdo_statistics(const struct vdo *vdo,
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 	get_uds_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
-	vdo_get_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }
 
 /**
@@ -1120,9 +1073,7 @@ void vdo_dump_status(const struct vdo *vdo)
 		vdo_dump_physical_zone(&vdo->physical_zones->zones[zone]);
 	}
 
-	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-		vdo_dump_hash_zone(&vdo->hash_zones->zones[zone]);
-	}
+	vdo_dump_hash_zones(vdo->hash_zones);
 }
 
 /**
@@ -1183,39 +1134,6 @@ void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
 			 vdo->thread_config->cpu_thread),
 			"%s called on cpu thread",
 			name);
-}
-
-/**
- * vdo_select_hash_zone() - Select the hash zone responsible for locking a
- *                          given chunk name.
- * @vdo: The vdo containing the hash zones.
- * @name: The chunk name.
- *
- * Return: The hash zone responsible for the chunk name.
- */
-struct hash_zone *vdo_select_hash_zone(const struct vdo *vdo,
-				       const struct uds_chunk_name *name)
-{
-	/*
-	 * Use a fragment of the chunk name as a hash code. To ensure uniform
-	 * distributions, it must not overlap with fragments used elsewhere.
-	 * Eight bits of hash should suffice since the number of hash zones is
-	 * small.
-	 *
-	 * XXX Make a central repository for these offsets ala hashUtils.
-	 * XXX Verify that the first byte is independent enough.
-	 */
-	uint32_t hash = name->name[0];
-
-	/*
-	 * Scale the 8-bit hash fragment to a zone index by treating it as a
-	 * binary fraction and multiplying that by the zone count. If the hash
-	 * is uniformly distributed over [0 .. 2^8-1], then (hash * count / 2^8)
-	 * should be uniformly distributed over [0 .. count-1]. The multiply and
-	 * shift is much faster than a divide (modulus) on X86 CPUs.
-	 */
-	hash = (hash * vdo->thread_config->hash_zone_count) >> 8;
-	return &vdo->hash_zones->zones[hash];
 }
 
 /**

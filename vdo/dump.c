@@ -12,7 +12,7 @@
 
 #include "constants.h"
 #include "data-vio.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "io-submitter.h"
 #include "kernel-types.h"
 #include "logger.h"
@@ -81,7 +81,7 @@ static void do_dump(struct vdo *vdo,
 		}
 	}
 
-	vdo_dump_dedupe_index(vdo->dedupe_index);
+	vdo_dump_hash_zones(vdo->hash_zones);
 	dump_data_vio_pool(vdo->data_vio_pool,
 			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
