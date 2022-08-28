@@ -1,22 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueue.c#30 $
  */
 
 #include "workQueue.h"
@@ -26,133 +10,178 @@
 #include <linux/percpu.h>
 
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
-#include "stringUtils.h"
+#include "string-utils.h"
 
-#include "statusCodes.h"
-
-#include "workItemStats.h"
-#include "workQueueInternals.h"
-#include "workQueueStats.h"
-#include "workQueueSysfs.h"
+#include "completion.h"
+#include "status-codes.h"
 
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
-static void free_simple_work_queue(struct simple_work_queue *queue);
-static void finish_simple_work_queue(struct simple_work_queue *queue);
-
-// Finding the simple_work_queue to actually operate on.
-
 /**
- * Pick the subordinate service queue to use, distributing the work evenly
- * across them.
+ * DOC: Work queue definition.
  *
- * @param queue  The round-robin-type work queue
- *
- * @return A subordinate work queue
- **/
-static inline struct simple_work_queue *
-next_service_queue(struct round_robin_work_queue *queue)
-{
+ * There are two types of work queues: simple, with one worker thread, and
+ * round-robin, which uses a group of the former to do the work, and assigns
+ * work to them in round-robin fashion (roughly). Externally, both are
+ * represented via the same common sub-structure, though there's actually not a
+ * great deal of overlap between the two types internally.
+ */
+struct vdo_work_queue {
+	/* Name of just the work queue (e.g., "cpuQ12") */
+	char *name;
+	bool round_robin_mode;
+	struct vdo_thread *owner;
+	/* Life cycle functions, etc */
+	const struct vdo_work_queue_type *type;
+};
+
+struct simple_work_queue {
+	struct vdo_work_queue common;
+	/* A copy of .thread->pid, for safety in the sysfs support */
+	pid_t thread_pid;
 	/*
-	 * It shouldn't be a big deal if the same rotor gets used for multiple
-	 * work queues. Any patterns that might develop are likely to be
-	 * disrupted by random ordering of multiple work items and migration
-	 * between cores, unless the load is so light as to be regular in
-	 * ordering of tasks and the threads are confined to individual cores;
-	 * with a load that light we won't care.
+	 * Number of priorities actually used, so we don't keep re-checking
+	 * unused funnel queues.
 	 */
-	unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
-	unsigned int index = rotor % queue->num_service_queues;
+	unsigned int num_priority_lists;
 
-	return queue->service_queues[index];
-}
+	struct funnel_queue *priority_lists[VDO_WORK_Q_MAX_PRIORITY + 1];
+	struct task_struct *thread;
+	void *private;
+	/* In a subordinate work queue, a link back to the round-robin parent */
+	struct vdo_work_queue *parent_queue;
+	/* Padding for cache line separation */
+	char pad[CACHE_LINE_BYTES - sizeof(struct vdo_work_queue *)];
+	/* Lock protecting priority_map, num_priority_lists, started */
+	spinlock_t lock;
+	/* Any (0 or 1) worker threads waiting for new work to do */
+	wait_queue_head_t waiting_worker_threads;
+	/*
+	 * Hack to reduce wakeup calls if the worker thread is running. See
+	 * comments in workQueue.c.
+	 *
+	 * FIXME: There is a lot of redundancy with "first_wakeup", though, and
+	 * the pair should be re-examined.
+	 */
+	atomic_t idle;
+	/* Wait list for synchronization during worker thread startup */
+	wait_queue_head_t start_waiters;
+	bool started;
 
-/**
- * Find a simple work queue on which to operate.
- *
- * If the argument is already a simple work queue, use it. If it's a
- * round-robin work queue, pick the next subordinate service queue and use it.
- *
- * @param queue  a work queue (round-robin or simple)
- *
- * @return a simple work queue
- **/
+	/*
+	 * Timestamp (ns) from the submitting thread that decided to wake us
+	 * up; also used as a flag to indicate whether a wakeup is needed.
+	 *
+	 * Written by submitting threads with atomic64_cmpxchg, and by the
+	 * worker thread setting to 0.
+	 *
+	 * If the value is 0, the worker is probably asleep; the submitting
+	 * thread stores a non-zero value and becomes responsible for calling
+	 * wake_up on the worker thread. If the value is non-zero, either the
+	 * worker is running or another thread has the responsibility for
+	 * issuing the wakeup.
+	 *
+	 * The "sleep" mode has periodic wakeups and the worker thread may
+	 * happen to wake up while a completion is being enqueued. If that
+	 * happens, the wakeup may be unneeded but will be attempted anyway.
+	 *
+	 * So the return value from cmpxchg(first_wakeup,0,nonzero) can always
+	 * be done, and will tell the submitting thread whether to issue the
+	 * wakeup or not; cmpxchg is atomic, so no other synchronization is
+	 * needed.
+	 *
+	 * A timestamp is used rather than, say, 1, so that the worker thread
+	 * could record stats on how long it takes to actually get the worker
+	 * thread running.
+	 *
+	 * There is some redundancy between this and "idle" above.
+	 */
+	atomic64_t first_wakeup;
+	/* More padding for cache line separation */
+	char pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
+	/* Last wakeup, in ns. */
+	uint64_t most_recent_wakeup;
+};
+
+struct round_robin_work_queue {
+	struct vdo_work_queue common;
+	struct simple_work_queue **service_queues;
+	unsigned int num_service_queues;
+};
+
 static inline struct simple_work_queue *
-pick_simple_queue(struct vdo_work_queue *queue)
+as_simple_work_queue(struct vdo_work_queue *queue)
 {
-	return (queue->round_robin_mode ?
-			next_service_queue(as_round_robin_work_queue(queue)) :
-			as_simple_work_queue(queue));
+	return ((queue == NULL) ?
+		 NULL :
+		 container_of(queue, struct simple_work_queue, common));
 }
 
-// Processing normal work items.
+static inline struct round_robin_work_queue *
+as_round_robin_work_queue(struct vdo_work_queue *queue)
+{
+	return ((queue == NULL) ?
+		 NULL :
+		 container_of(queue, struct round_robin_work_queue, common));
+}
 
-/**
- * Scan the work queue's work item lists, and dequeue and return the next
- * waiting work item, if any.
+/* Processing normal completions. */
+
+/*
+ * Dequeue and return the next waiting completion, if any.
  *
  * We scan the funnel queues from highest priority to lowest, once; there is
- * therefore a race condition where a high-priority work item can be enqueued
+ * therefore a race condition where a high-priority completion can be enqueued
  * followed by a lower-priority one, and we'll grab the latter (but we'll catch
  * the high-priority item on the next call). If strict enforcement of
  * priorities becomes necessary, this function will need fixing.
- *
- * @param queue  the work queue
- *
- * @return a work item pointer, or NULL
- **/
-static struct vdo_work_item *
-poll_for_work_item(struct simple_work_queue *queue)
+ */
+static struct vdo_completion *
+poll_for_completion(struct simple_work_queue *queue)
 {
-	struct vdo_work_item *item = NULL;
+	struct vdo_completion *completion = NULL;
 	int i;
 
-	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
+	for (i = queue->num_priority_lists - 1; i >= 0; i--) {
 		struct funnel_queue_entry *link =
 			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
-			item = container_of(link,
-					    struct vdo_work_item,
-					    work_queue_entry_link);
+			completion = container_of(link,
+						  struct vdo_completion,
+						  work_queue_entry_link);
 			break;
 		}
 	}
 
-	return item;
+	return completion;
 }
 
-/**
- * Add a work item into the queue and wake the worker thread if it is waiting.
- *
- * @param queue  The work queue
- * @param item   The work item to add
- **/
-static void enqueue_work_queue_item(struct simple_work_queue *queue,
-				    struct vdo_work_item *item)
+static void enqueue_work_queue_completion(struct simple_work_queue *queue,
+					  struct vdo_completion *completion)
 {
-	unsigned int priority;
-
-	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
-			item, item->work, item->stats_function, queue,
-			item->my_queue);
-	if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
-		   "action is in range for queue") != VDO_SUCCESS) {
-		item->action = 0;
+	ASSERT_LOG_ONLY(completion->my_queue == NULL,
+			"completion %px (fn %px) to enqueue (%px) is not already queued (%px)",
+			completion,
+			completion->callback,
+			queue,
+			completion->my_queue);
+	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY) {
+		completion->priority = queue->common.type->default_priority;
 	}
-	priority = READ_ONCE(queue->priority_map[item->action]);
 
-	// Update statistics.
-	update_stats_for_enqueue(&queue->stats, item, priority);
+	if (ASSERT(completion->priority < queue->num_priority_lists,
+		   "priority is in range for queue") != VDO_SUCCESS) {
+		completion->priority = 0;
+	}
 
-	item->my_queue = &queue->common;
+	completion->my_queue = &queue->common;
 
-	// Funnel queue handles the synchronization for the put.
-	funnel_queue_put(queue->priority_lists[priority],
-			 &item->work_queue_entry_link);
+	/* Funnel queue handles the synchronization for the put. */
+	funnel_queue_put(queue->priority_lists[completion->priority],
+			 &completion->work_queue_entry_link);
 
 	/*
 	 * Due to how funnel queue synchronization is handled (just atomic
@@ -182,56 +211,40 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 
 	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
 
-	// Despite the name, there's a maximum of one thread in this list.
+	/* There's a maximum of one thread in this list. */
 	wake_up(&queue->waiting_worker_threads);
 }
 
-/**
- * Run any start hook that may be defined for the work queue.
- *
- * @param queue  The work queue
- **/
 static void run_start_hook(struct simple_work_queue *queue)
 {
-	if (queue->type->start != NULL) {
-		queue->type->start(queue->private);
+	if (queue->common.type->start != NULL) {
+		queue->common.type->start(queue->private);
 	}
 }
 
-/**
- * Run any finish hook that may be defined for the work queue.
- *
- * @param queue  The work queue
- **/
 static void run_finish_hook(struct simple_work_queue *queue)
 {
-	if (queue->type->finish != NULL) {
-		queue->type->finish(queue->private);
+	if (queue->common.type->finish != NULL) {
+		queue->common.type->finish(queue->private);
 	}
 }
 
-/**
- * Wait for the next work item to process, or until kthread_should_stop
+/*
+ * Wait for the next completion to process, or until kthread_should_stop
  * indicates that it's time for us to shut down.
  *
- * If kthread_should_stop says it's time to stop but we have pending work
- * items, return a work item.
+ * If kthread_should_stop says it's time to stop but we have pending
+ * completions return a completion.
  *
- * Update statistics relating to scheduler interactions.
- *
- * @param queue  The work queue to wait on
- *
- * @return the next work item, or NULL to indicate shutdown is requested
- **/
-static struct vdo_work_item *
-wait_for_next_work_item(struct simple_work_queue *queue)
+ * Also update statistics relating to scheduler interactions.
+ */
+static struct vdo_completion *
+wait_for_next_completion(struct simple_work_queue *queue)
 {
-	struct vdo_work_item *item;
+	struct vdo_completion *completion;
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		uint64_t time_before_schedule, schedule_time_ns, run_time_ns;
-
 		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
@@ -247,10 +260,10 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		 * little.)
 		 */
 		atomic_set(&queue->idle, 1);
-		smp_mb(); // store-load barrier between "idle" and funnel queue
+		smp_mb(); /* store-load barrier between "idle" and funnel queue */
 
-		item = poll_for_work_item(queue);
-		if (item != NULL) {
+		completion = poll_for_completion(queue);
+		if (completion != NULL) {
 			break;
 		}
 
@@ -264,151 +277,64 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 			break;
 		}
 
-		time_before_schedule = ktime_get_ns();
-		run_time_ns = time_before_schedule - queue->most_recent_wakeup;
-		// These stats are read from other threads, but are only
-		// written by this thread.
-		WRITE_ONCE(queue->stats.waits, queue->stats.waits + 1);
-		WRITE_ONCE(queue->stats.run_time,
-			   queue->stats.run_time + run_time_ns);
-
 		schedule();
-
-		queue->most_recent_wakeup = ktime_get_ns();
-		schedule_time_ns = (queue->most_recent_wakeup
-				    - time_before_schedule);
-		enter_histogram_sample(queue->stats.schedule_time_histogram,
-				       schedule_time_ns / 1000);
 
 		/*
 		 * Check again before resetting first_wakeup for more accurate
 		 * stats. If it was a spurious wakeup, continue looping.
 		 */
-		item = poll_for_work_item(queue);
-		if (item != NULL) {
+		completion = poll_for_completion(queue);
+		if (completion != NULL) {
 			break;
 		}
 	}
 
-	if (item != NULL) {
-		uint64_t first_wakeup = atomic64_read(&queue->first_wakeup);
-		/*
-		 * We sometimes register negative wakeup latencies without this
-		 * fencing. Whether it's forcing full serialization between the
-		 * read of first_wakeup and the "rdtsc" that might be used
-		 * depending on the clock source that helps, or some extra
-		 * nanoseconds of delay covering for high-resolution clocks not
-		 * being quite in sync between CPUs, is not yet clear.
-		 */
-		smp_rmb();
-		if (first_wakeup != 0) {
-			enter_histogram_sample(
-				queue->stats.wakeup_latency_histogram,
-				(ktime_get_ns() - first_wakeup) / 1000);
-			enter_histogram_sample(
-				queue->stats.wakeup_queue_length_histogram,
-				count_vdo_work_items_pending(
-					&queue->stats.work_item_stats));
-		}
-	}
 	finish_wait(&queue->waiting_worker_threads, &wait);
 	atomic_set(&queue->idle, 0);
 
-	return item;
+	return completion;
 }
 
-/**
- * Execute a work item from a work queue, and do associated bookkeeping.
- *
- * @param queue  the work queue the item is from
- * @param item   the work item to run
- **/
-static void process_work_item(struct simple_work_queue *queue,
-			      struct vdo_work_item *item)
+static void process_completion(struct simple_work_queue *queue,
+			       struct vdo_completion *completion)
 {
-	uint64_t dequeue_time = update_stats_for_dequeue(&queue->stats, item);
-	// Save the index, so we can use it after the work function.
-	unsigned int index = item->stat_table_index;
-
-	if (ASSERT(item->my_queue == &queue->common,
-		   "item %px from queue %px marked as being in this queue (%px)",
-		   item, queue, item->my_queue) == UDS_SUCCESS) {
-		item->my_queue = NULL;
+	if (ASSERT(completion->my_queue == &queue->common,
+		   "completion %px from queue %px marked as being in this queue (%px)",
+		   completion,
+		   queue,
+		   completion->my_queue) == UDS_SUCCESS) {
+		completion->my_queue = NULL;
 	}
 
-	item->work(item);
-	// We just surrendered control of the work item; no more access.
-	item = NULL;
-
-	update_vdo_work_item_stats_for_work_time(&queue->stats.work_item_stats,
-						 index,
-						 dequeue_time);
+	vdo_run_completion_callback(completion);
 }
 
-/**
- * Yield the CPU to the scheduler and update queue statistics accordingly.
- *
- * @param queue  The active queue
- **/
 static void yield_to_scheduler(struct simple_work_queue *queue)
 {
-	unsigned int queue_length;
-	uint64_t run_time_ns, reschedule_time_ns;
-	uint64_t time_before_reschedule, time_after_reschedule;
-	struct vdo_work_queue_stats *stats = &queue->stats;
-
-	/*
-	 * Record the queue length we have *before* rescheduling.
-	 * N.B.: We compute the pending count info here without any
-	 * synchronization, but it's for stats reporting only, so being
-	 * imprecise isn't too big a deal.
-	 */
-	queue_length = count_vdo_work_items_pending(&stats->work_item_stats);
-
-	time_before_reschedule = ktime_get_ns();
 	cond_resched();
-	time_after_reschedule = ktime_get_ns();
-
-	enter_histogram_sample(stats->reschedule_queue_length_histogram,
-			       queue_length);
-
-	run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
-	enter_histogram_sample(stats->run_time_before_reschedule_histogram,
-			       run_time_ns / 1000);
-	WRITE_ONCE(stats->run_time, stats->run_time + run_time_ns);
-
-	reschedule_time_ns = time_after_reschedule - time_before_reschedule;
-	enter_histogram_sample(stats->reschedule_time_histogram,
-			       reschedule_time_ns / 1000);
-	WRITE_ONCE(stats->reschedule_time,
-		   stats->reschedule_time + reschedule_time_ns);
-
-	queue->most_recent_wakeup = time_after_reschedule;
+	queue->most_recent_wakeup = ktime_get_ns();
 }
 
-/**
- * Main loop of the work queue worker thread.
- *
- * Waits for work items and runs them, until told to stop.
- *
- * @param queue  The work queue to run
- **/
 static void service_work_queue(struct simple_work_queue *queue)
 {
 	run_start_hook(queue);
 
 	while (true) {
-		struct vdo_work_item *item = poll_for_work_item(queue);
-		if (item == NULL) {
-			item = wait_for_next_work_item(queue);
+		struct vdo_completion *completion = poll_for_completion(queue);
+
+		if (completion == NULL) {
+			completion = wait_for_next_completion(queue);
 		}
 
-		if (item == NULL) {
-			// No work items but kthread_should_stop was triggered.
+		if (completion == NULL) {
+			/*
+			 * No completions but kthread_should_stop() was
+			 * triggered.
+			 */
 			break;
 		}
 
-		process_work_item(queue, item);
+		process_completion(queue, completion);
 
 		/*
 		 * Be friendly to a CPU that has other work to do, if the
@@ -423,20 +349,12 @@ static void service_work_queue(struct simple_work_queue *queue)
 	run_finish_hook(queue);
 }
 
-/**
- * Initialize per-thread data for a new worker thread and run the work queue.
- * Called in a new thread created by kthread_run().
- *
- * @param ptr  A pointer to the vdo_work_queue to run.
- *
- * @return 0 (indicating success to kthread_run())
- **/
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
 	unsigned long flags;
 
-	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
+	queue->most_recent_wakeup = ktime_get_ns();
 
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
@@ -448,27 +366,50 @@ static int work_queue_runner(void *ptr)
 	return 0;
 }
 
-// Preparing work items
+/* Creation & teardown */
 
-/**********************************************************************/
-void setup_work_item(struct vdo_work_item *item,
-		     vdo_work_function work,
-		     void *stats_function,
-		     unsigned int action)
+static void free_simple_work_queue(struct simple_work_queue *queue)
 {
-	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"setup_work_item not called on enqueued work item");
-	item->work = work;
-	item->stats_function =
-		((stats_function == NULL) ? work : stats_function);
-	item->stat_table_index = 0;
-	item->action = action;
-	item->my_queue = NULL;
+	unsigned int i;
+
+	for (i = 0; i <= VDO_WORK_Q_MAX_PRIORITY; i++) {
+		free_funnel_queue(queue->priority_lists[i]);
+	}
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
 }
 
-// Creation & teardown
+static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
+{
+	struct simple_work_queue **queue_table = queue->service_queues;
+	unsigned int count = queue->num_service_queues;
+	unsigned int i;
 
-/**********************************************************************/
+	queue->service_queues = NULL;
+
+	for (i = 0; i < count; i++) {
+		free_simple_work_queue(queue_table[i]);
+	}
+	UDS_FREE(queue_table);
+	UDS_FREE(queue->common.name);
+	UDS_FREE(queue);
+}
+
+void free_work_queue(struct vdo_work_queue *queue)
+{
+	if (queue == NULL) {
+		return;
+	}
+
+	finish_work_queue(queue);
+
+	if (queue->round_robin_mode) {
+		free_round_robin_work_queue(as_round_robin_work_queue(queue));
+	} else {
+		free_simple_work_queue(as_simple_work_queue(queue));
+	}
+}
+
 static bool queue_started(struct simple_work_queue *queue)
 {
 	unsigned long flags;
@@ -481,77 +422,34 @@ static bool queue_started(struct simple_work_queue *queue)
 	return started;
 }
 
-/**
- * Create a simple work queue with a worker thread.
- *
- * @param [in]  thread_name_prefix The per-device prefix to use in
- *                                 thread names
- * @param [in]  name               The queue name
- * @param [in]  owner              The VDO owning the work queue
- * @param [in]  private            Private data of the queue for use by work
- *                                 items or other queue-specific functions
- * @param [in]  type               The work queue type defining the lifecycle
- *                                 functions, queue actions, priorities, and
- *                                 timeout behavior
- * @param [out] queue_ptr          Where to store the queue handle
- *
- * @return VDO_SUCCESS or an error code
- **/
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
-				  struct vdo *owner,
+				  struct vdo_thread *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
 {
 	struct simple_work_queue *queue;
-	unsigned int num_priority_lists = 1;
 	int i;
 	struct task_struct *thread = NULL;
+	int result;
 
-	int result = UDS_ALLOCATE(1,
-				  struct simple_work_queue,
-				  "simple work queue",
-				  &queue);
+	ASSERT_LOG_ONLY((type->max_priority <= VDO_WORK_Q_MAX_PRIORITY),
+			"queue priority count %u within limit %u",
+			type->max_priority,
+			VDO_WORK_Q_MAX_PRIORITY);
+
+	result = UDS_ALLOCATE(1,
+			      struct simple_work_queue,
+			      "simple work queue",
+			      &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	queue->type = type;
 	queue->private = private;
+	queue->common.type = type;
 	queue->common.owner = owner;
-
-	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
-		const struct vdo_work_queue_action *action =
-			&queue->type->action_table[i];
-		unsigned int code, priority;
-		if (action->name == NULL) {
-			break;
-		}
-		code = action->code;
-		priority = action->priority;
-
-		result = ASSERT(
-			code < WORK_QUEUE_ACTION_COUNT,
-			"invalid action code %u in work queue initialization",
-			code);
-		if (result != VDO_SUCCESS) {
-			UDS_FREE(queue);
-			return result;
-		}
-		result = ASSERT(
-			priority < WORK_QUEUE_PRIORITY_COUNT,
-			"invalid action priority %u in work queue initialization",
-			priority);
-		if (result != VDO_SUCCESS) {
-			UDS_FREE(queue);
-			return result;
-		}
-		queue->priority_map[code] = priority;
-		if (num_priority_lists <= priority) {
-			num_priority_lists = priority + 1;
-		}
-	}
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
@@ -563,24 +461,16 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	init_waitqueue_head(&queue->start_waiters);
 	spin_lock_init(&queue->lock);
 
-	queue->num_priority_lists = num_priority_lists;
-	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+	queue->num_priority_lists = type->max_priority + 1;
+	for (i = 0; i < queue->num_priority_lists; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
 			return result;
 		}
 	}
-	result = initialize_work_queue_stats(&queue->stats, NULL);
-	if (result != 0) {
-		uds_log_error("Cannot initialize statistics tracking: %d",
-			      result);
-		free_simple_work_queue(queue);
-		return result;
-	}
 
 	queue->started = false;
-
 	thread = kthread_run(work_queue_runner,
 			     queue,
 			     "%s:%s",
@@ -608,11 +498,18 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/**
+ * Create a work queue; if multiple threads are requested, completions will be
+ * distributed to them in round-robin fashion.
+ *
+ * Each queue is associated with a struct vdo_thread which has a single vdo
+ * thread id. Regardless of the actual number of queues and threads allocated
+ * here, code outside of the queue implementation will treat this as a single
+ * zone.
+ */
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
-		    struct vdo *owner,
-		    void *private,
+		    struct vdo_thread *owner,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
@@ -625,14 +522,15 @@ int make_work_queue(const char *thread_name_prefix,
 
 	if (thread_count == 1) {
 		struct simple_work_queue *simple_queue;
-		void *context = (thread_privates != NULL) ? thread_privates[0] :
-							    private;
+		void *context = ((thread_privates != NULL)
+				 ? thread_privates[0]
+				 : NULL);
 		result = make_simple_work_queue(thread_name_prefix,
-					        name,
-					        owner,
-					        context,
-					        type,
-					        &simple_queue);
+						name,
+						owner,
+						context,
+						type,
+						&simple_queue);
 		if (result == VDO_SUCCESS) {
 			*queue_ptr = &simple_queue->common;
 		}
@@ -668,8 +566,9 @@ int make_work_queue(const char *thread_name_prefix,
 	*queue_ptr = &queue->common;
 
 	for (i = 0; i < thread_count; i++) {
-		void *context = (thread_privates != NULL) ? thread_privates[i] :
-							    private;
+		void *context = ((thread_privates != NULL)
+				 ? thread_privates[i]
+				 : NULL);
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
@@ -679,7 +578,7 @@ int make_work_queue(const char *thread_name_prefix,
 						&queue->service_queues[i]);
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
-			// Destroy previously created subordinates.
+			/* Destroy previously created subordinates. */
 			free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
@@ -689,36 +588,27 @@ int make_work_queue(const char *thread_name_prefix,
 	return VDO_SUCCESS;
 }
 
-/**
- * Shut down a simple work queue's worker thread.
- *
- * @param queue  The work queue to shut down
- **/
 static void finish_simple_work_queue(struct simple_work_queue *queue)
 {
 	if (queue->thread == NULL) {
 		return;
 	}
 
-	// Reduces (but does not eliminate) the chance of the sysfs support
-	// reporting the pid even after the thread is gone.
+	/*
+	 * Reduces (but does not eliminate) the chance of the sysfs support
+	 * reporting the pid even after the thread is gone.
+	 */
 	WRITE_ONCE(queue->thread_pid, 0);
 
-	// Tells the worker thread to shut down and waits for it to exit.
+	/* Tells the worker thread to shut down and waits for it to exit. */
 	kthread_stop(queue->thread);
 	queue->thread = NULL;
 }
 
-/**
- * Shut down a round-robin work queue's service queues.
- *
- * @param queue  The work queue to shut down
- **/
 static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 {
 	struct simple_work_queue **queue_table = queue->service_queues;
 	unsigned int count = queue->num_service_queues;
-
 	unsigned int i;
 
 	for (i = 0; i < count; i++) {
@@ -726,7 +616,9 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 	}
 }
 
-/**********************************************************************/
+/*
+ * No enqueueing of completions should be done once this function is called.
+ */
 void finish_work_queue(struct vdo_work_queue *queue)
 {
 	if (queue == NULL) {
@@ -734,71 +626,16 @@ void finish_work_queue(struct vdo_work_queue *queue)
 	}
 
 	if (queue->round_robin_mode) {
-		finish_round_robin_work_queue(as_round_robin_work_queue(queue));
+		struct round_robin_work_queue *rrqueue
+			= as_round_robin_work_queue(queue);
+		finish_round_robin_work_queue(rrqueue);
 	} else {
 		finish_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 
-/**
- * Tear down a simple work queue, and decrement the kobject reference
- * count on it.
- *
- * @param queue  The work queue
- **/
-static void free_simple_work_queue(struct simple_work_queue *queue)
-{
-	unsigned int i;
+/* Debugging dumps */
 
-	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-		free_funnel_queue(queue->priority_lists[i]);
-	}
-	cleanup_work_queue_stats(&queue->stats);
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
-}
-
-/**
- * Tear down a round-robin work queue and its service queues, and
- * decrement the kobject reference count on it.
- *
- * @param queue  The work queue
- **/
-static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
-{
-	struct simple_work_queue **queue_table = queue->service_queues;
-	unsigned int count = queue->num_service_queues;
-	unsigned int i;
-
-	queue->service_queues = NULL;
-
-	for (i = 0; i < count; i++) {
-		free_simple_work_queue(queue_table[i]);
-	}
-	UDS_FREE(queue_table);
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
-}
-
-/**********************************************************************/
-void free_work_queue(struct vdo_work_queue *queue)
-{
-	if (queue == NULL) {
-		return;
-	}
-
-	finish_work_queue(queue);
-
-	if (queue->round_robin_mode) {
-		free_round_robin_work_queue(as_round_robin_work_queue(queue));
-	} else {
-		free_simple_work_queue(as_simple_work_queue(queue));
-	}
-}
-
-// Debugging dumps
-
-/**********************************************************************/
 static void dump_simple_work_queue(struct simple_work_queue *queue)
 {
 	const char *thread_status = "no threads";
@@ -809,22 +646,23 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	uds_log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
+	uds_log_info("workQ %px (%s) %s (%c)",
 		     &queue->common,
 		     queue->common.name,
-		     count_vdo_work_items_pending(&queue->stats.work_item_stats),
-		     READ_ONCE(queue->stats.waits),
 		     thread_status,
 		     task_state_report);
 
-	log_vdo_work_item_stats(&queue->stats.work_item_stats);
-	log_work_queue_stats(queue);
-
-	// ->lock spin lock status?
-	// ->waiting_worker_threads wait queue status? anyone waiting?
+	/*
+	 * ->lock spin lock status?
+	 * ->waiting_worker_threads wait queue status? anyone waiting?
+	 */
 }
 
-/**********************************************************************/
+/**
+ * Write to the buffer some info about the completion, for logging.  Since the
+ * common use case is dumping info about a lot of completions to syslog all at
+ * once, the format favors brevity over readability.
+ */
 void dump_work_queue(struct vdo_work_queue *queue)
 {
 	if (queue->round_robin_mode) {
@@ -841,78 +679,159 @@ void dump_work_queue(struct vdo_work_queue *queue)
 	}
 }
 
-/**********************************************************************/
-void dump_work_item_to_buffer(struct vdo_work_item *item,
+static void get_function_name(void *pointer,
 			      char *buffer,
-			      size_t length)
+			      size_t buffer_length)
+{
+	if (pointer == NULL) {
+                /*
+                 * Format "%ps" logs a null pointer as "(null)" with a bunch of
+                 * leading spaces. We sometimes use this when logging lots of
+                 * data; don't be so verbose.
+                 */
+		strncpy(buffer, "-", buffer_length);
+	} else {
+                /*
+                 * Use a non-const array instead of a string literal below to
+                 * defeat gcc's format checking, which doesn't understand that
+                 * "%ps" actually does support a precision spec in Linux kernel
+                 * code.
+                 */
+		static char truncated_function_name_format_string[] = "%.*ps";
+		char *space;
+
+		snprintf(buffer,
+			 buffer_length,
+			 truncated_function_name_format_string,
+			 buffer_length - 1,
+			 pointer);
+
+		space = strchr(buffer, ' ');
+
+		if (space != NULL) {
+			*space = '\0';
+		}
+	}
+}
+
+void dump_completion_to_buffer(struct vdo_completion *completion,
+			       char *buffer,
+			       size_t length)
 {
 	size_t current_length =
 		scnprintf(buffer,
 			  length,
 			  "%.*s/",
 			  TASK_COMM_LEN,
-			  item->my_queue == NULL ? "-" : item->my_queue->name);
+			  (completion->my_queue == NULL ?
+			   "-" :
+			   completion->my_queue->name));
 	if (current_length < length) {
-		vdo_get_function_name(item->stats_function,
-				      buffer + current_length,
-				      length - current_length);
+		get_function_name((void *) completion->callback,
+				  buffer + current_length,
+				  length - current_length);
 	}
 }
 
-// Work submission
-
-/**********************************************************************/
+/* Completion submission */
+/*
+ * If the completion has a timeout that has already passed, the timeout handler
+ * function may be invoked by this function.
+ */
 void enqueue_work_queue(struct vdo_work_queue *queue,
-			struct vdo_work_item *item)
+			struct vdo_completion *completion)
 {
-	enqueue_work_queue_item(pick_simple_queue(queue), item);
+	/*
+	 * Convert the provided generic vdo_work_queue to the simple_work_queue
+	 * to actually queue on.
+	 */
+	struct simple_work_queue *simple_queue = NULL;
+
+	if (!queue->round_robin_mode) {
+		simple_queue = as_simple_work_queue(queue);
+	} else {
+		struct round_robin_work_queue *round_robin
+			= as_round_robin_work_queue(queue);
+
+		/*
+		 * It shouldn't be a big deal if the same rotor gets used for
+		 * multiple work queues. Any patterns that might develop are
+		 * likely to be disrupted by random ordering of multiple
+		 * completions and migration between cores, unless the load is
+		 * so light as to be regular in ordering of tasks and the
+		 * threads are confined to individual cores; with a load that
+		 * light we won't care.
+		 */
+		unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
+		unsigned int index = rotor % round_robin->num_service_queues;
+
+		simple_queue = round_robin->service_queues[index];
+	}
+
+	enqueue_work_queue_completion(simple_queue, completion);
 }
 
-// Misc
+/* Misc */
 
-
-/**
- * Return the work queue pointer recorded at initialization time in
- * the work-queue stack handle initialized on the stack of the current
- * thread, if any.
- *
- * @return the work queue pointer, or NULL
- **/
+/*
+ * Return the work queue pointer recorded at initialization time in the
+ * work-queue stack handle initialized on the stack of the current thread, if
+ * any.
+ */
 static struct simple_work_queue *get_current_thread_work_queue(void)
 {
 	/*
-	 * The kthreadd process has the PF_KTHREAD flag set but a null
-	 * "struct kthread" pointer, which breaks the (initial)
-	 * implementation of kthread_func, which assumes the pointer
-	 * is always non-null. This matters if memory reclamation is
-	 * triggered and causes calls into VDO that get
-	 * here. [VDO-5194]
+	 * In interrupt context, if a vdo thread is what got interrupted, the
+	 * calls below will find the queue for the thread which was
+	 * interrupted. However, the interrupted thread may have been
+	 * processing a completion, in which case starting to process another
+	 * would violate our concurrency assumptions.
+	 */
+	if (in_interrupt()) {
+		return NULL;
+	}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
+	/*
+	 * The kthreadd process has the PF_KTHREAD flag set but a null "struct
+	 * kthread" pointer, which breaks the (initial) implementation of
+	 * kthread_func, which assumes the pointer is always non-null. This
+	 * matters if memory reclamation is triggered and causes calls into VDO
+	 * that get here. [VDO-5194]
 	 *
 	 * There might also be a similar reclamation issue in the
-	 * usermodehelper code path before exec is called, and/or
-	 * kthread setup when allocating the kthread struct itself.
+	 * usermodehelper code path before exec is called, and/or kthread setup
+	 * when allocating the kthread struct itself.
 	 *
-	 * So we check for the null pointer first. The kthread code
-	 * overloads the set_child_tid field to use for its pointer in
-	 * PF_KTHREAD processes. (If PF_KTHREAD is clear, kthread_func
-	 * will return null anyway so we needn't worry about that
+	 * So we check for the null pointer first, on older kernels. The
+	 * kthread code initially overloaded the set_child_tid field to use for
+	 * its pointer in PF_KTHREAD processes. (If PF_KTHREAD is clear,
+	 * kthread_func will return null anyway so we needn't worry about that
 	 * case.)
 	 *
-	 * FIXME: When submitting upstream, make sure kthread_func is
-	 * fixed instead, and drop this check.
+	 * This bug was fixed in the 5.13 kernel release, but the 5.17 kernel
+	 * release changed the task structure field used such that this
+	 * workaround will break things on newer kernels. It shows up as a null
+	 * pointer returned for the current work queue even when running in the
+	 * work queue thread.
+	 *
+	 * Any backports of the 5.13 fix to custom pre-5.13 kernels should have
+	 * no problem with this. Backports of the 5.17 change to 5.13 and later
+	 * should be okay with this #if check; backports to pre-5.13 will need
+	 * further protection.
 	 */
 	if (current->set_child_tid == NULL) {
 		return NULL;
 	}
+#endif
 
 	if (kthread_func(current) != work_queue_runner) {
-		// Not a VDO workQueue thread.
+		/* Not a VDO work queue thread. */
 		return NULL;
 	}
 	return kthread_data(current);
 }
 
-/**********************************************************************/
 struct vdo_work_queue *get_current_work_queue(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
@@ -920,16 +839,23 @@ struct vdo_work_queue *get_current_work_queue(void)
 	return (queue == NULL) ? NULL : &queue->common;
 }
 
-/**********************************************************************/
-struct vdo *get_work_queue_owner(struct vdo_work_queue *queue)
+struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue)
 {
 	return queue->owner;
 }
 
-/**********************************************************************/
+/**
+ * Returns the private data for the current thread's work queue, or NULL if
+ * none or if the current thread is not a work queue thread.
+ */
 void *get_work_queue_private_data(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
 
 	return (queue != NULL) ? queue->private : NULL;
+}
+
+bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
+			    const struct vdo_work_queue_type *type) {
+	return (queue->type == type);
 }

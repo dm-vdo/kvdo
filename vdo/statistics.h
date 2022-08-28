@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
  *
@@ -24,7 +25,7 @@
 #include "types.h"
 
 enum {
-	STATISTICS_VERSION = 34,
+	STATISTICS_VERSION = 35,
 };
 
 struct block_allocator_statistics {
@@ -154,6 +155,8 @@ struct hash_lock_statistics {
 	uint64_t concurrent_data_matches;
 	/** Number of writes whose hash collided with an in-flight write */
 	uint64_t concurrent_hash_collisions;
+	/** Current number of dedupe queries that are in flight */
+	uint32_t curr_dedupe_queries;
 };
 
 /** Counts of error conditions in VDO. */
@@ -204,10 +207,6 @@ struct index_statistics {
 	uint64_t updates_found;
 	/** Number of update calls that added a new entry */
 	uint64_t updates_not_found;
-	/** Current number of dedupe queries that are in flight */
-	uint32_t curr_dedupe_queries;
-	/** Maximum number of dedupe queries that have been in flight */
-	uint32_t max_dedupe_queries;
 };
 
 /** The statistics of the vdo service. */

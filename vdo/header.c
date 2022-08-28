@@ -1,36 +1,32 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/header.c#10 $
  */
 
 #include "header.h"
 
 #include "logger.h"
 #include "permassert.h"
-#include "statusCodes.h"
+#include "status-codes.h"
 
-/**********************************************************************/
-int validate_vdo_version(struct version_number expected_version,
+/**
+ * vdo_validate_version() - Check whether a version matches an expected
+ *                          version.
+ * @expected_version: The expected version.
+ * @actual_version: The version being validated.
+ * @component_name: The name of the component or the calling function
+ *                  (for error logging).
+ *
+ * Logs an error describing a mismatch.
+ *
+ * Return: VDO_SUCCESS             if the versions are the same,
+ *         VDO_UNSUPPORTED_VERSION if the versions don't match.
+ */
+int vdo_validate_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
 {
-	if (!are_same_vdo_version(expected_version, actual_version)) {
+	if (!vdo_are_same_version(expected_version, actual_version)) {
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s version mismatch, expected %d.%d, got %d.%d",
 					      component_name,
@@ -42,13 +38,29 @@ int validate_vdo_version(struct version_number expected_version,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-int validate_vdo_header(const struct header *expected_header,
+/**
+ * vdo_validate_header() - Check whether a header matches expectations.
+ * @expected_header: The expected header.
+ * @actual_header: The header being validated.
+ * @exact_size: If true, the size fields of the two headers must be the same,
+ *              otherwise it is required that actual_header.size >=
+ *              expected_header.size.
+ * @component_name: The name of the component or the calling function
+ *                  (for error logging).
+ *
+ * Logs an error describing the first mismatch found.
+ *
+ * Return: VDO_SUCCESS             if the header meets expectations,
+ *         VDO_INCORRECT_COMPONENT if the component ids don't match,
+ *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match.
+ */
+int vdo_validate_header(const struct header *expected_header,
 			const struct header *actual_header,
 			bool exact_size,
 			const char *component_name)
 {
 	int result;
+
 	if (expected_header->id != actual_header->id) {
 		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
@@ -57,7 +69,7 @@ int validate_vdo_header(const struct header *expected_header,
 					      actual_header->id);
 	}
 
-	result = validate_vdo_version(expected_header->version,
+	result = vdo_validate_version(expected_header->version,
 				      actual_header->version, component_name);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -75,8 +87,14 @@ int validate_vdo_header(const struct header *expected_header,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-int encode_vdo_header(const struct header *header, struct buffer *buffer)
+/**
+ * vdo_encode_header() - Encode a header into a buffer.
+ * @header: The header to encode.
+ * @buffer: The buffer in which to encode the header.
+ *
+ * Return: UDS_SUCCESS or an error.
+ */
+int vdo_encode_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
 
@@ -89,7 +107,7 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 		return result;
 	}
 
-	result = encode_vdo_version_number(header->version, buffer);
+	result = vdo_encode_version_number(header->version, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -97,27 +115,41 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 	return put_uint64_le_into_buffer(buffer, header->size);
 }
 
-/**********************************************************************/
-int encode_vdo_version_number(struct version_number version,
+/**
+ * vdo_encode_version_number() - Encode a version number into a buffer.
+ * @version: The version to encode.
+ * @buffer: The buffer in which to encode the version.
+ *
+ * Return: UDS_SUCCESS or an error.
+ */
+int vdo_encode_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
-	struct packed_version_number packed = pack_vdo_version_number(version);
+	struct packed_version_number packed = vdo_pack_version_number(version);
+
 	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
-/**********************************************************************/
-int decode_vdo_header(struct buffer *buffer, struct header *header)
+/**
+ * vdo_decode_header() - Decode a header from a buffer.
+ * @buffer: The buffer from which to decode the header.
+ * @header: The header structure to decode into.
+ *
+ * Return: UDS_SUCCESS or an error.
+ */
+int vdo_decode_header(struct buffer *buffer, struct header *header)
 {
-	enum component_id id;
+	uint32_t id;
 	uint64_t size;
 	struct version_number version;
 
 	int result = get_uint32_le_from_buffer(buffer, &id);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_version_number(buffer, &version);
+	result = vdo_decode_version_number(buffer, &version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -135,16 +167,23 @@ int decode_vdo_header(struct buffer *buffer, struct header *header)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int decode_vdo_version_number(struct buffer *buffer,
+/**
+ * vdo_decode_version_number() - Decode a version number from a buffer.
+ * @buffer: The buffer from which to decode the version.
+ * @version: The version structure to decode into.
+ *
+ * Return: UDS_SUCCESS or an error.
+ */
+int vdo_decode_version_number(struct buffer *buffer,
 			      struct version_number *version)
 {
 	struct packed_version_number packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	*version = unpack_vdo_version_number(packed);
+	*version = vdo_unpack_version_number(packed);
 	return UDS_SUCCESS;
 }

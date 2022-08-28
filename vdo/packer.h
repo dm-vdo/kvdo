@@ -1,150 +1,113 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/packer.h#13 $
  */
 
 #ifndef PACKER_H
 #define PACKER_H
 
-#include "completion.h"
+#include <linux/list.h>
+
+#include "compiler.h"
+
+#include "admin-state.h"
+#include "block-mapping-state.h"
 #include "statistics.h"
-#include "threadConfig.h"
 #include "types.h"
+#include "wait-queue.h"
 
 enum {
-	DEFAULT_PACKER_INPUT_BINS = 16,
-	DEFAULT_PACKER_OUTPUT_BINS = 256,
+	DEFAULT_PACKER_BINS = 16,
 };
 
-struct packer;
+/*
+ * Each packer_bin holds an incomplete batch of data_vios that only partially
+ * fill a compressed block. The bins are kept in a ring sorted by the amount of
+ * unused space so the first bin with enough space to hold a newly-compressed
+ * data_vio can easily be found. When the bin fills up or is flushed, the first
+ * uncanceled data_vio in the bin is selected to be the agent for that
+ * bin. Upon entering the packer, each data_vio already has its compressed data
+ * in the first slot of the data_vio's compressed_block (overlaid on the
+ * data_vio's scratch_block). So the agent's fragment is already in place.  The
+ * fragments for the other uncanceled data_vios in the bin are packed into the
+ * agent's compressed block. The agent then writes out the compressed block.
+ * If the write is successful, the agent shares its pbn lock which each of the
+ * other data_vios in its compressed block and sends each on its way. Finally
+ * the agent itself continues on the write path as before.
+ *
+ * There is one special bin which is used to hold data_vios which have been
+ * canceled and removed from their bin by the packer. These data_vios need to
+ * wait for the canceller to rendezvous with them (VDO-2809) and so they sit in
+ * this special bin.
+ */
+struct packer_bin {
+	/* List links for packer.packer_bins */
+	struct list_head list;
+	/* The number of items in the bin */
+	slot_number_t slots_used;
+	/*
+	 * The number of compressed block bytes remaining in the current batch
+	 */
+	size_t free_space;
+	/* The current partial batch of data_vios, waiting for more */
+	struct data_vio *incoming[];
+};
 
-/**
- * Make a new block packer.
- *
- * @param [in]  vdo               The vdo to which this packer belongs
- * @param [in]  input_bin_count   The number of partial bins to keep in memory
- * @param [in]  output_bin_count  The number of compressed blocks that can be
- *                                written concurrently
- * @param [out] packer_ptr        A pointer to hold the new packer
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check make_vdo_packer(struct vdo *vdo,
-				 block_count_t input_bin_count,
-				 block_count_t output_bin_count,
+struct packer {
+	/* The ID of the packer's callback thread */
+	thread_id_t thread_id;
+	/* The number of bins */
+	block_count_t size;
+	/* The block size minus header size */
+	size_t bin_data_size;
+	/* The number of compression slots */
+	size_t max_slots;
+	/* A list of all packer_bins, kept sorted by free_space */
+	struct list_head bins;
+	/*
+	 * A bin to hold data_vios which were canceled out of the packer and
+	 * are waiting to rendezvous with the canceling data_vio.
+	 */
+	struct packer_bin *canceled_bin;
+
+	/* The current flush generation */
+	sequence_number_t flush_generation;
+
+	/* The administrative state of the packer */
+	struct admin_state state;
+
+	/*
+	 * Statistics are only updated on the packer thread, but are
+	 * accessed from other threads.
+	 */
+	struct packer_statistics statistics;
+};
+
+int __must_check vdo_make_packer(struct vdo *vdo,
+				 block_count_t bin_count,
 				 struct packer **packer_ptr);
 
-/**
- * Free a block packer.
- *
- * @param packer  The packer to free
- **/
-void free_vdo_packer(struct packer *packer);
+void vdo_free_packer(struct packer *packer);
 
-/**
- * Check whether the compressed data in a data_vio will fit in a packer bin.
- *
- * @param data_vio  The data_vio
- *
- * @return <code>true</code> if the data_vio will fit in a bin
- **/
 bool __must_check
 vdo_data_is_sufficiently_compressible(struct data_vio *data_vio);
 
-/**
- * Get the thread ID of the packer's zone.
- *
- * @param packer  The packer
- *
- * @return The packer's thread ID
- **/
-thread_id_t get_vdo_packer_thread_id(struct packer *packer);
-
-/**
- * Get the current statistics from the packer.
- *
- * @param packer  The packer to query
- *
- * @return a copy of the current statistics for the packer
- **/
 struct packer_statistics __must_check
-get_vdo_packer_statistics(const struct packer *packer);
+vdo_get_packer_statistics(const struct packer *packer);
 
-/**
- * Attempt to rewrite the data in this data_vio as part of a compressed block.
- *
- * @param data_vio  The data_vio to pack
- **/
 void vdo_attempt_packing(struct data_vio *data_vio);
 
-/**
- * Request that the packer flush asynchronously. All bins with at least two
- * compressed data blocks will be written out, and any solitary pending VIOs
- * will be released from the packer. While flushing is in progress, any VIOs
- * submitted to vdo_attempt_packing() will be continued immediately without
- * attempting to pack them.
- *
- * @param packer  The packer to flush
- **/
-void flush_vdo_packer(struct packer *packer);
+void vdo_flush_packer(struct packer *packer);
 
-/**
- * Remove a lock holder from the packer.
- *
- * @param completion  The data_vio which needs a lock held by a data_vio in the
- *                    packer. The data_vio's compression.lock_holder field will
- *                    point to the data_vio to remove.
- **/
-void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion);
+void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion);
 
-/**
- * Increment the flush generation in the packer. This will also cause the
- * packer to flush so that any VIOs from previous generations will exit the
- * packer.
- *
- * @param packer  The packer
- **/
-void increment_vdo_packer_flush_generation(struct packer *packer);
+void vdo_increment_packer_flush_generation(struct packer *packer);
 
-/**
- * Drain the packer by preventing any more VIOs from entering the packer and
- * then flushing.
- *
- * @param packer      The packer to drain
- * @param completion  The completion to finish when the packer has drained
- **/
 void
-drain_vdo_packer(struct packer *packer, struct vdo_completion *completion);
+vdo_drain_packer(struct packer *packer, struct vdo_completion *completion);
 
-/**
- * Resume a packer which has been suspended.
- *
- * @param packer  The packer to resume
- * @param parent  The completion to finish when the packer has resumed
- **/
-void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent);
+void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 
-/**
- * Dump the packer, in a thread-unsafe fashion.
- *
- * @param packer  The packer
- **/
-void dump_vdo_packer(const struct packer *packer);
+void vdo_dump_packer(const struct packer *packer);
 
 #endif /* PACKER_H */
