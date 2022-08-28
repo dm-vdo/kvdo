@@ -1,22 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA. 
- *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/constants.h#5 $
  */
 
 #ifndef CONSTANTS_H
@@ -27,6 +11,12 @@
 #include "types.h"
 
 enum {
+	/**
+         * The maximum number of contiguous PBNs which will go to a single
+         * bio submission queue, assuming there is more than one queue.
+         **/
+	VDO_BIO_ROTATION_INTERVAL_LIMIT = 1024,
+
 	/** The number of entries on a block map page */
 	VDO_BLOCK_MAP_ENTRIES_PER_PAGE = 812,
 
@@ -39,6 +29,14 @@ enum {
 	 * logical space.
 	 **/
 	VDO_BLOCK_MAP_TREE_HEIGHT = 5,
+
+	/** The default number of bio submission queues. */
+	DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT = 4,
+
+	/**
+         * The number of contiguous PBNs to be submitted to a single bio queue.
+	 **/
+	DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL = 64,
 
 	/** The number of trees in the arboreal block map */
 	DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT = 60,
@@ -75,6 +73,11 @@ enum {
 	 **/
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
 
+	/**
+         * The maximum number of total threads in a VDO thread configuration.
+         **/
+	MAXIMUM_VDO_THREADS = 100,
+
 	/** The maximum number of VIOs in the system at once */
 	MAXIMUM_VDO_USER_VIOS = 2048,
 
@@ -95,8 +98,6 @@ enum {
 	/** The size of a sector that will not be torn */
 	VDO_SECTOR_SIZE = 512,
 
-	/** The number of characters needed for a vio operation description */
-	VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH = 25,
 	/** The physical block number reserved for storing the zero block */
 	VDO_ZERO_BLOCK = 0,
 };
@@ -107,7 +108,7 @@ extern const block_count_t MAXIMUM_VDO_LOGICAL_BLOCKS;
 /** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
 extern const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS;
 
-// unit test minimum
+/** unit test minimum */
 extern const block_count_t MINIMUM_VDO_SLAB_JOURNAL_BLOCKS;
 
-#endif // CONSTANTS_H
+#endif /* CONSTANTS_H */
