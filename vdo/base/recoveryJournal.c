@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#31 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#34 $
  */
 
 #include "recoveryJournal.h"
@@ -356,6 +356,8 @@ static void initializeJournalState(RecoveryJournal *journal)
     = getRecoveryJournalBlockNumber(journal, journal->blockMapHead);
   journal->slabJournalHeadBlockNumber
     = getRecoveryJournalBlockNumber(journal, journal->slabJournalHead);
+  journal->availableSpace
+    = journal->entriesPerBlock * getRecoveryJournalLength(journal->size);
 }
 
 /**********************************************************************/

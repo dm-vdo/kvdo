@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#11 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -250,6 +250,9 @@ struct slabJournal {
 
   /** This node is for BlockAllocator to keep a queue of dirty journals */
   RingNode                     dirtyNode;
+
+  /** The type of suspend most recently performed, for use during resume */
+  AdminStateCode               suspendType;
 
   /** The lock for the oldest unreaped block of the journal */
   JournalLock                 *reapLock;

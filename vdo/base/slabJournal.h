@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#11 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -210,6 +210,16 @@ void decodeSlabJournal(SlabJournal *journal);
  **/
 bool requiresScrubbing(const SlabJournal *journal)
   __attribute__((warn_unused_result));
+
+/**
+ * Reset slab journal state, if necessary, for a suspend-resume cycle.
+ *
+ * @param journal       The slab journal to reset
+ *
+ * After a successful save, any info about locks, journal blocks
+ * partially filled, etc., is out of date and should be reset.
+ **/
+void resumeSlabJournal(SlabJournal *journal);
 
 /**
  * Dump the slab journal.

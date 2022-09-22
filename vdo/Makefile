@@ -1,4 +1,4 @@
-VDO_VERSION = 6.2.7.17
+VDO_VERSION = 6.2.8.1
 
 VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))

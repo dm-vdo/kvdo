@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#23 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#26 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -364,6 +364,8 @@ void queueSlab(Slab *slab)
     if (!isSlabJournalBlank(slab->journal)) {
       relaxedAdd64(&allocator->statistics.slabsOpened, 1);
     }
+  } else {
+    resumeSlabJournal(slab->journal);
   }
 
   // All slabs are kept in a priority queue for allocation.

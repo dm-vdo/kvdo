@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#18 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#21 $
  */
 
 #include "slabJournalInternals.h"
@@ -1168,6 +1168,15 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 }
 
 /**********************************************************************/
+void resumeSlabJournal(SlabJournal *journal)
+{
+  if ((journal->suspendType == ADMIN_STATE_SAVING) &&
+      !isVDOReadOnly(journal)) {
+    reopenSlabJournal(journal);
+  }
+}
+
+/**********************************************************************/
 void drainSlabJournal(SlabJournal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
@@ -1181,6 +1190,10 @@ void drainSlabJournal(SlabJournal *journal)
                     "slab is recovered or has no waiters");
   }
 
+  if ((journal->slab->state.state == ADMIN_STATE_SUSPENDING) ||
+      (journal->slab->state.state == ADMIN_STATE_SAVING)) {
+    journal->suspendType = journal->slab->state.state;
+  }
   switch (journal->slab->state.state) {
   case ADMIN_STATE_REBUILDING:
   case ADMIN_STATE_SUSPENDING:
