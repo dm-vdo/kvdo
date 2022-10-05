@@ -121,7 +121,7 @@ int make_uds_bufio(struct io_factory *factory,
 	}
 
 	client = dm_bufio_client_create(
-		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL);
+		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL, 0);
 	if (IS_ERR(client)) {
 		return -PTR_ERR(client);
 	}
