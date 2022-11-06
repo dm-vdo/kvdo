@@ -1528,6 +1528,7 @@ static void verify_endio(struct bio *bio)
 
 	vdo_count_completed_bios(bio);
 	if (result != VDO_SUCCESS) {
+		agent->is_duplicate = false;
 		launch_data_vio_hash_zone_callback(agent, finish_verifying);
 		return;
 	}

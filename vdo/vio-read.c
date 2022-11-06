@@ -132,8 +132,14 @@ static void complete_read(struct vdo_completion *completion)
 static void read_endio(struct bio *bio)
 {
 	struct data_vio *data_vio = vio_as_data_vio(bio->bi_private);
+	int result = blk_status_to_errno(bio->bi_status);
 
 	vdo_count_completed_bios(bio);
+	if (result != VDO_SUCCESS) {
+		continue_data_vio(data_vio, result);
+		return;
+	}
+
 	launch_data_vio_cpu_callback(data_vio,
 				     complete_read,
 				     CPU_Q_COMPLETE_READ_PRIORITY);
