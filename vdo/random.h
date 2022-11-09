@@ -35,7 +35,7 @@ void random_compile_time_assertions(void);
  **/
 static INLINE void fill_randomly(void *ptr, size_t len)
 {
-	prandom_bytes(ptr, len);
+	get_random_bytes(ptr, len);
 }
 
 #define RAND_MAX 2147483647

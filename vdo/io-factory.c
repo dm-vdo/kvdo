@@ -120,8 +120,13 @@ int make_uds_bufio(struct io_factory *factory,
 			UDS_BLOCK_SIZE);
 	}
 
+#ifdef DM_BUFIO_CLIENT_NO_SLEEP
+	client = dm_bufio_client_create(
+		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL, 0);
+#else
 	client = dm_bufio_client_create(
 		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL);
+#endif
 	if (IS_ERR(client)) {
 		return -PTR_ERR(client);
 	}
