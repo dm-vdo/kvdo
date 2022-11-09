@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/random.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/random.h#3 $
  */
 
 #ifndef RANDOM_H
@@ -56,7 +56,7 @@ void randomCompileTimeAssertions(void);
 #ifdef __KERNEL__
 static INLINE void fillRandomly(void *ptr, size_t len)
 {
-  prandom_bytes(ptr, len);
+  get_random_bytes(ptr, len);
 }
 #else
 void fillRandomly(void *ptr, size_t len);

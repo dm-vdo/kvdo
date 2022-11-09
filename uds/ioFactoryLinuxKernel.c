@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#10 $
  */
 
 #include <linux/blkdev.h>
@@ -106,10 +106,17 @@ int makeBufio(IOFactory               *factory,
                                    blockSize, UDS_BLOCK_SIZE);
   }
 
+#ifdef DM_BUFIO_CLIENT_NO_SLEEP
+  struct dm_bufio_client *client = dm_bufio_client_create(factory->bdev,
+                                                          blockSize,
+                                                          reservedBuffers, 0,
+                                                          NULL, NULL, 0);
+#else
   struct dm_bufio_client *client = dm_bufio_client_create(factory->bdev,
                                                           blockSize,
                                                           reservedBuffers, 0,
                                                           NULL, NULL);
+#endif
   if (IS_ERR(client)) {
     return -PTR_ERR(client);
   }

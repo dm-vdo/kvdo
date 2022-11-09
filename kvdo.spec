@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.8.1
+%define kmod_driver_version	6.2.8.4
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,7 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu Sep 22 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.1-1
-- Fixed a bug which could produce a deadlock after multiple saves and
-  resumes of a vdo.
-  
+* Tue Nov 08 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.4-1
+- Adapted to backported kernel changes.
