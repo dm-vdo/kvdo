@@ -129,7 +129,6 @@ static void vdo_status(struct dm_target *ti,
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
 	struct device_config *device_config;
-	char name_buffer[BDEVNAME_SIZE];
 	/*
 	 * N.B.: The DMEMIT macro uses the variables named "sz", "result",
 	 * "maxlen".
@@ -143,8 +142,8 @@ static void vdo_status(struct dm_target *ti,
 		vdo_fetch_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
-		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(vdo_get_backing_device(vdo), name_buffer),
+		DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
+		       vdo_get_backing_device(vdo),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       vdo_get_dedupe_index_state_name(vdo->hash_zones),

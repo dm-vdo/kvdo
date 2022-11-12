@@ -1,4 +1,4 @@
-VDO_VERSION = 8.2.0.21
+VDO_VERSION = 8.2.1.2
 
 SOURCES  = $(notdir $(wildcard $(src)/*.c))
 OBJECTS = $(SOURCES:%.c=%.o)
