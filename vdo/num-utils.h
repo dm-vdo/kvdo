@@ -13,6 +13,5 @@
 #include "types.h"
 
 #include <linux/log2.h>
-#include <linux/math.h>
 
 #endif /* NUM_UTILS_H */
