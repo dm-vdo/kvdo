@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.8.4
+%define kmod_driver_version	6.2.8.6
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,5 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue Nov 08 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.4-1
-- Adapted to backported kernel changes.
+* Tue Dec 13 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.6-1
+- Added a check for 0 length table line arguments.

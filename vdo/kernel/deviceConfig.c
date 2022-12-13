@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#15 $
  */
 
 #include "deviceConfig.h"
@@ -547,6 +547,11 @@ int parseDeviceConfig(int                argc,
   config->owningTarget = ti;
   initializeRing(&config->configNode);
 
+  if (argc == 0) {
+    handleParseError(&config, errorPtr, "Incorrect number of arguments");
+    return VDO_BAD_CONFIGURATION;
+  }
+  
   // Save the original string.
   result = joinStrings(argv, argc, ' ', &config->originalString);
   if (result != VDO_SUCCESS) {
