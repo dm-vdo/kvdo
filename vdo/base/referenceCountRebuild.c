@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#7 $
  */
 
 #include "referenceCountRebuild.h"
@@ -417,6 +417,9 @@ static void rebuildFromLeaves(VDOCompletion *completion)
     .slot = rebuild->blockMap->entryCount % BLOCK_MAP_ENTRIES_PER_PAGE,
     .pbn  = findBlockMapPagePBN(rebuild->blockMap, rebuild->leafPages - 1),
   };
+  if (rebuild->lastSlot.slot == 0) {
+    rebuild->lastSlot.slot = BLOCK_MAP_ENTRIES_PER_PAGE;
+  }
 
   // Prevent any page from being processed until all pages have been launched.
   rebuild->launching = true;

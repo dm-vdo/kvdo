@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.8.6
+%define kmod_driver_version	6.2.8.7
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,5 +96,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue Dec 13 2022 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.6-1
-- Added a check for 0 length table line arguments.
+* Mon Feb 13 2023 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.7-1
+- Fixed bug in read-only rebuild when the logical size of the volume is an
+  exact multiple of 821 4K blocks.
