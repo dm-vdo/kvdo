@@ -411,12 +411,15 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	 * The PBN calculation doesn't work until the tree pages have been
 	 * loaded, so we can't set this value at the start of rebuild.
 	 */
-	rebuild->last_slot = (struct block_map_slot){
+	rebuild->last_slot = (struct block_map_slot) {
 		.slot = rebuild->block_map->entry_count
 			% VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
 		.pbn = vdo_find_block_map_page_pbn(rebuild->block_map,
 						   rebuild->leaf_pages - 1),
 	};
+	if (rebuild->last_slot.slot == 0) {
+		rebuild->last_slot.slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+	}
 
 	/*
 	 * Prevent any page from being processed until all pages have been
