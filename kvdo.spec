@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.8.7
+%define kmod_driver_version	6.2.9.1
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,6 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Mon Feb 13 2023 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.8.7-1
-- Fixed bug in read-only rebuild when the logical size of the volume is an
-  exact multiple of 821 4K blocks.
+* Tue Apr 04 2023 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.9.1-1
+- Updated vdoPrepareForLVM to allow LVM to use larger extents.
