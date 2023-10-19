@@ -6,10 +6,25 @@
 #include <linux/atomic.h>
 #include <linux/blkdev.h>
 #include <linux/mount.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "io-factory.h"
 #include "logger.h"
 #include "memory-alloc.h"
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#ifdef RHEL_RELEASE_CODE
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 4))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
 
 enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 
@@ -30,16 +45,38 @@ void get_uds_io_factory(struct io_factory *factory)
 static int get_block_device_from_name(const char *name,
 				      struct block_device **bdev)
 {
-	dev_t device = name_to_dev_t(name);
+	dev_t device;
+	unsigned int major, minor;
+	char dummy;
+#ifndef VDO_USE_ALTERNATE
+	const struct blk_holder_ops hops = { NULL };
+#endif /* !VDO_USE_ALTERNATE */
 
-	if (device != 0) {
+	/* Extract the major/minor numbers */
+	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
+		device = MKDEV(major, minor);
+		if (MAJOR(device) != major || MINOR(device) != minor) {
+			*bdev = NULL;
+			return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+						      "%s is not a valid block device",
+						      name);
+		}
+#ifdef VDO_USE_ALTERNATE
 		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+#else
+		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL, &hops);
+#endif /* VDO_USE_ALTERNATE */
 	} else {
+#ifdef VDO_USE_ALTERNATE
 		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
+#else
+		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL, &hops);
+#endif /* VDO_USE_ALTERNATE */
 	}
+
 	if (IS_ERR(*bdev)) {
-		uds_log_error_strerror(-PTR_ERR(*bdev),
-				       "%s is not a block device", name);
+		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
+		*bdev = NULL;
 		return UDS_INVALID_ARGUMENT;
 	}
 
@@ -59,7 +96,11 @@ int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 
 	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS) {
+#ifdef VDO_USE_ALTERNATE
 		blkdev_put(bdev, BLK_FMODE);
+#else
+		blkdev_put(bdev, NULL);
+#endif /* VDO_USE_ALTERNATE */
 		return result;
 	}
 
@@ -80,7 +121,11 @@ int replace_uds_storage(struct io_factory *factory, const char *path)
 		return result;
 	}
 
+#ifdef VDO_USE_ALTERNATE
 	blkdev_put(factory->bdev, BLK_FMODE);
+#else
+	blkdev_put(factory->bdev, NULL);
+#endif /* VDO_USE_ALTERNATE */
 	factory->bdev = bdev;
 	return UDS_SUCCESS;
 }
@@ -88,7 +133,11 @@ int replace_uds_storage(struct io_factory *factory, const char *path)
 void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
+#ifdef VDO_USE_ALTERNATE
 		blkdev_put(factory->bdev, BLK_FMODE);
+#else
+		blkdev_put(factory->bdev, NULL);
+#endif /* VDO_USE_ALTERNATE */
 		UDS_FREE(factory);
 	}
 }

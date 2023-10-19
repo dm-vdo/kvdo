@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.2.1.6
+%define kmod_driver_version	8.2.3.3
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -94,5 +94,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Wed Feb 08 2023 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.1.6-1
+* Fri Oct 13 2023 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.3.3-1
 - See https://github.com/dm-vdo/kvdo.git
