@@ -40,12 +40,12 @@ present. When a shared block is overwritten, a new physical block is allocated
 for storing the new block data to ensure that other logical block addresses
 that are mapped to the shared physical block are not modified.
 
-This public source release of VDO includes two kernel modules, and a set of
-userspace tools for managing them. The "kvdo" module implements fine-grained
-storage virtualization, thin provisioning, block sharing, and compression; the
-"uds" module provides memory-efficient duplicate identification. The userspace
-tools include a pair of python scripts, "vdo" for creating and managing VDO
-volumes, and "vdostats" for extracting statistics from those volumes.
+This public source release of VDO includes a kernel module and a set of
+userspace tools for managing storage volumes. The "kvdo" module implements
+fine-grained storage virtualization, thin provisioning, block sharing, and
+compression, as well as memory-efficient duplicate identification. The userspace
+tools include a utility called "vdostats" for extracting statistics from VDO
+volumes, and utilities for analyzing and repairing VDO volumes.
 
 ## Documentation
 
