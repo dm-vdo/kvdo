@@ -144,7 +144,7 @@
  *
  * Bits and bytes are numbered in little endian order. Within a byte, bit 0
  * is the least significant bit (0x1), and bit 7 is the most significant bit
- * (0x80). Within a bit stream, bit 7 is the most signficant bit of byte 0,
+ * (0x80). Within a bit stream, bit 7 is the most significant bit of byte 0,
  * and bit 8 is the least significant bit of byte 1. Within a byte array, a
  * byte's number corresponds to its index in the array.
  *
@@ -353,7 +353,7 @@ static void empty_delta_lists(struct delta_zone *delta_zone)
 	 * Initialize delta lists to be empty. We keep 2 extra delta list
 	 * descriptors, one before the first real entry and one after so that
 	 * we don't need to bounds check the array access when calculating
-	 * preceeding and following gap sizes.
+	 * preceding and following gap sizes.
 	 *
 	 * Because the delta list headers are zeroed, the head guard list will
 	 * already be at offset zero and size zero.

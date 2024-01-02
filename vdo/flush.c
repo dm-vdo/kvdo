@@ -244,7 +244,7 @@ static void increment_generation(struct vdo_completion *completion)
 }
 
 /**
- * notify_flush() - Lauch a flush notification.
+ * notify_flush() - Launch a flush notification.
  * @flusher: The flusher doing the notification.
  */
 static void notify_flush(struct flusher *flusher)
@@ -471,7 +471,7 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 /**
  * release_flush() - Release a vdo_flush structure that has completed its
  *                   work.
- * @flush: The completed flush structure to re-use or free.
+ * @flush: The completed flush structure to reuse or free.
  *
  * If there are any pending flush requests whose vdo_flush allocation failed,
  * they will be launched by immediately re-using the released vdo_flush. If

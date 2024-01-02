@@ -17,7 +17,7 @@
  *
  * This is an unsynchronized but thread-safe data structure when used as
  * intended. There is no mechanism to ensure that only one thread is consuming
- * from the queue. If more than one thread attempts to comsume from the queue,
+ * from the queue. If more than one thread attempts to consume from the queue,
  * the resulting behavior is undefined. Clients must not directly access or
  * manipulate the internals of the queue, which are only exposed for the
  * purpose of allowing the very simple enqueue operation to be inlined.

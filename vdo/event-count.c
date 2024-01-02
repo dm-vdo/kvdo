@@ -65,7 +65,7 @@
  * re-used counter, in order to lose a wakeup due to counter wrap-around. Using
  * a 32-bit state field would greatly increase that chance, but if forced to do
  * so, the implementation could likely tolerate it since callers are supposed
- * to hold tokens for miniscule periods of time.  Fortunately, x64 has 64-bit
+ * to hold tokens for minuscule periods of time.  Fortunately, x64 has 64-bit
  * compare-and-swap, and the performance of interlocked 64-bit operations
  * appears to be about the same as for 32-bit ones, so being paranoid and using
  * 64 bits costs us nothing.
@@ -159,7 +159,7 @@ void event_count_broadcast(struct event_count *count)
 		event_token_t new_state;
 
 		/*
-		 * Check if there are any tokens that have not yet been been
+		 * Check if there are any tokens that have not yet been
 		 * transferred to the semaphore. This is the fast no-waiters
 		 * path.
 		 */

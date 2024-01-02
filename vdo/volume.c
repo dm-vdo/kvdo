@@ -1252,7 +1252,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	 * beginning and end, or somewhere in the middle. Wherever it is, the
 	 * highest and lowest VCNs are adjacent to it. Otherwise the volume is
 	 * cleanly saved and somewhere in the middle of it the highest VCN
-	 * immediately preceeds the lowest one.
+	 * immediately precedes the lowest one.
 	 */
 
 	/* It doesn't matter if this results in a bad spot (UINT64_MAX). */

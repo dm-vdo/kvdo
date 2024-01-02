@@ -79,7 +79,7 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
  *                                           journal saved in a buffer.
  * @buffer: The buffer containing the saved state.
  * @state: A pointer to a recovery journal state to hold the result of a
- *         succesful decode.
+ *         successful decode.
  *
  * Return: VDO_SUCCESS or an error code.
  */

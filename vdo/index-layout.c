@@ -591,7 +591,7 @@ decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 		return result;
 	}
 
-	result = skip_forward(buffer, 4); /* aligment */
+	result = skip_forward(buffer, 4); /* alignment */
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * A collection of lists of dirty elements ordered by age. An element is always
  * placed on the oldest list in which it was dirtied (moving between lists or
  * removing altogether is cheap). Whenever the current period is advanced, any
- * elements older than the maxium age are expired. If an element is to be added
+ * elements older than the maximum age are expired. If an element is to be added
  * with a dirty age older than the maximum age, it is expired immediately.
  */
 struct dirty_lists;

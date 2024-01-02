@@ -4,7 +4,7 @@
  */
 
 /*
- * A read_only_notifier is responsible for propogating the fact that the VDO
+ * A read_only_notifier is responsible for propagating the fact that the VDO
  * has encountered an unrecoverable error to all base threads. It also persists
  * the read-only state to the super block.
  *

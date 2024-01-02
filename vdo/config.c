@@ -273,7 +273,7 @@ static bool are_matching_configurations(struct uds_configuration_8_02 *saved,
 	}
 
 	if (saved->volume_index_mean_delta != user->volume_index_mean_delta) {
-		uds_log_error("Volumee index mean delta (%u) does not match (%u)",
+		uds_log_error("Volume index mean delta (%u) does not match (%u)",
 			      saved->volume_index_mean_delta,
 			      user->volume_index_mean_delta);
 		result = false;

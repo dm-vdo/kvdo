@@ -375,7 +375,7 @@ static INLINE unsigned int page_being_searched(invalidate_counter_t counter)
 }
 
 /**
- * Determines whether a given value indicates that a search is occuring.
+ * Determines whether a given value indicates that a search is occurring.
  *
  * @param invalidate_counter  the invalidate counter value to check
  *

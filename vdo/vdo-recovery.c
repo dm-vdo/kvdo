@@ -231,7 +231,7 @@ make_missing_decref(struct recovery_completion *recovery,
 	}
 
 	/*
-	 * Each synthsized decref needs a unique journal point. Otherwise, in
+	 * Each synthesized decref needs a unique journal point. Otherwise, in
 	 * the event of a crash, we would be unable to tell which synthesized
 	 * decrefs had already been committed in the slab journals. Instead of
 	 * using real recovery journal space for this, we can use fake journal

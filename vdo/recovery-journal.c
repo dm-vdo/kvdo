@@ -220,7 +220,7 @@ static void enter_journal_read_only_mode(struct recovery_journal *journal,
  *                                                      sequence number.
  * @journal: The journal in question.
  *
- * Exposed only so the block map can be initialized therefrom.
+ * Exposed only so the block map can be initialized there from.
  *
  * Return: The sequence number of the tail block.
  */

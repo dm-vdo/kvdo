@@ -66,7 +66,7 @@
  * (currently at most 32) from the pool's funnel queue. For each data_vio, it
  * first checks whether that data_vio was processing a discard. If so, and
  * there is a blocked bio waiting for a discard permit, that permit is
- * notionally transfered to the eldest discard waiter, and that waiter is moved
+ * notionally transferred to the eldest discard waiter, and that waiter is moved
  * to the end of the list of discard bios waiting for a data_vio. If there are
  * no discard waiters, the discard permit is returned to the pool. Next, the
  * data_vio is assigned to the oldest blocked bio which either has a discard

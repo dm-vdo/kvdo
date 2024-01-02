@@ -180,7 +180,7 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
  * and ensuring that dead entries are replaced before any live entries are
  * evicted.
  *
- * The search list is intended to be instantated for each zone thread,
+ * The search list is intended to be instantiated for each zone thread,
  * avoiding any need for synchronization. The structure is allocated on a
  * cache boundary to avoid false sharing of memory cache lines between zone
  * threads.
@@ -465,7 +465,7 @@ size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
  * Assign a new value to the skip_search flag of a cached chapter index.
  *
  * @param chapter      the chapter index cache entry to modify
- * @param skip_search  the new value of the skip_search falg
+ * @param skip_search  the new value of the skip_search flag
  **/
 static INLINE void set_skip_search(struct cached_chapter_index *chapter,
 				   bool skip_search)
@@ -917,7 +917,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 		if (virtual_chapter >= index->oldest_virtual_chapter) {
 			/*
 			 * Evict the least recently used live chapter, or
-			 * replace a dead cache entry, all by rotating the the
+			 * replace a dead cache entry, all by rotating the
 			 * last list entry to the front.
 			 */
 			struct cached_chapter_index *victim =

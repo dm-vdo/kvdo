@@ -629,7 +629,7 @@ static void set_hash_lock(struct data_vio *data_vio,
 	if (old_lock != NULL) {
 		ASSERT_LOG_ONLY(
 			data_vio->hash_zone != NULL,
-			"must have a hash zone when halding a hash lock");
+			"must have a hash zone when holding a hash lock");
 		ASSERT_LOG_ONLY(
 			!list_empty(&data_vio->hash_lock_entry),
 			"must be on a hash lock ring when holding a hash lock");
@@ -1732,7 +1732,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * if we've written the same representation coincidentally
 		 * before, had it become unreferenced, and it just happened to
 		 * be packed together from compressed writes when we go to
-		 * verify the lucky advice. Giving up is a miniscule loss of
+		 * verify the lucky advice. Giving up is a minuscule loss of
 		 * potential dedupe.
 		 *
 		 * 2b) If the advice is for a slot of a compressed block, it's
@@ -2935,8 +2935,8 @@ timeout_index_operations_callback(struct vdo_completion *completion)
 					  DEDUPE_CONTEXT_TIMED_OUT)) {
 			/*
 			 * This context completed between the time the timeout
-			 * fired, and now. We can treat it as a a successful
-			 * query, its requestor is already enqueued to process
+			 * fired, and now. We can treat it as a successful
+			 * query, its requester is already enqueued to process
 			 * it.
 			 */
 			continue;
@@ -2945,7 +2945,7 @@ timeout_index_operations_callback(struct vdo_completion *completion)
 		/*
 		 * Move this context to the timed out list so we won't look at
 		 * it again on a subsequent timeout. Once the index completes
-		 * it, it will be reused. Meanwhile, send its requestor on its
+		 * it, it will be reused. Meanwhile, send its requester on its
 		 * way.
 		 */
 		list_move(&context->list_entry, &zone->timed_out);

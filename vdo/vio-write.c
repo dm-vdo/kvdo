@@ -517,7 +517,7 @@ static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
 }
 
 /**
- * read_old_block_mapping_for_dedupe() - Get the prevoius PBN/LBN mapping.
+ * read_old_block_mapping_for_dedupe() - Get the previous PBN/LBN mapping.
  * @completion: The completion of the write in progress.
  *
  * Gets the previous PBN mapped to this LBN from the block map, so as to make
@@ -991,7 +991,7 @@ static void finish_block_write(struct vdo_completion *completion)
 }
 
 /**
- * write_bio_finished() - This is the bio_end_io functon registered in
+ * write_bio_finished() - This is the bio_end_io function registered in
  *                        write_block() to be called when a data_vio's write
  *                        to the underlying storage has completed.
  * @bio: The bio which has just completed.
@@ -1031,7 +1031,7 @@ static void write_block(struct data_vio *data_vio)
 }
 
 /**
- * acknowledge_write_callback() - Acknowledge a write to the requestor.
+ * acknowledge_write_callback() - Acknowledge a write to the requester.
  * @completion: The data_vio being acknowledged.
  *
  * This callback is registered in allocate_block() and

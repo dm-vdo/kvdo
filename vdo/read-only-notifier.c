@@ -110,7 +110,7 @@ as_notifier(struct vdo_completion *completion)
 }
 
 /**
- * vdo_make_read_only_notifier() - Create a read-only notifer.
+ * vdo_make_read_only_notifier() - Create a read-only notifier.
  * @is_read_only: Whether the VDO is already read-only.
  * @thread_config: The thread configuration of the VDO.
  * @vdo: The VDO.
@@ -508,7 +508,7 @@ bool vdo_is_read_only(struct read_only_notifier *notifier)
  *
  * This method should only be called in cases where the expense of reading
  * atomic state is not a problem. It was introduced in order to allow
- * suppresion of spurious error messages resulting from VIO cleanup racing
+ * suppression of spurious error messages resulting from VIO cleanup racing
  * with read-only notification.
  *
  * Return: true if the VDO has started (and possibly finished)

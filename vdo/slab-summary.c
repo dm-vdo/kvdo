@@ -85,7 +85,7 @@ static void launch_write(struct slab_summary_block *summary_block);
  * @summary_zone: The parent slab_summary_zone.
  * @entries: The entries this block manages.
  * @index: The index of this block in its zone's summary.
- * @slab_summary_block: The block to intialize.
+ * @slab_summary_block: The block to initialize.
  *
  * Return: VDO_SUCCESS or an error.
  */

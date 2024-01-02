@@ -559,7 +559,7 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 
 	/*
-	 * ALB-1429 ... need to check to see if its still queued before
+	 * ALB-1429 ... need to check to see if it's still queued before
 	 * resetting
 	 */
 	if (is_invalid && queued) {

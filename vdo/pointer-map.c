@@ -659,7 +659,7 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map,
  *
  * If the value stored in the map is updated, then the key stored in the map
  * will also be updated with the key provided by this call. The old key will
- * not be returned due to the memory managment assumptions described in the
+ * not be returned due to the memory management assumptions described in the
  * interface header comment.
  *
  * Return: UDS_SUCCESS or an error code.

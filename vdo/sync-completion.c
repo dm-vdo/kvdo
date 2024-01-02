@@ -35,7 +35,7 @@ as_sync_completion(struct vdo_completion *completion)
  *                                 that a synchronous action is complete.
  * @completion: The sync completion.
  *
- * This callback is registered in run_synchrnous_action().
+ * This callback is registered in run_synchronous_action().
  */
 static void complete_synchronous_action(struct vdo_completion *completion)
 {

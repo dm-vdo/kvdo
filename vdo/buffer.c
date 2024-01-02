@@ -269,7 +269,7 @@ byte *get_buffer_contents(struct buffer *buffer)
 }
 
 /*
- * Copy bytes out of a buffer as per get_bytes_fom_buffer(). Memory will be
+ * Copy bytes out of a buffer as per get_bytes_from_buffer(). Memory will be
  * allocated to hold the copy.
  */
 int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
