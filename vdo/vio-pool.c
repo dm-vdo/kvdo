@@ -22,7 +22,7 @@ struct vio_pool {
 	size_t size;
 	/** The list of objects which are available */
 	struct list_head available;
-	/** The queue of requestors waiting for objects from the pool */
+	/** The queue of requesters waiting for objects from the pool */
 	struct wait_queue waiting;
 	/** The number of objects currently in use */
 	size_t busy_count;

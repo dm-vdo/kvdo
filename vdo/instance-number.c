@@ -45,7 +45,7 @@ static unsigned int next_instance;
  *                        array of unsigned longs.
  * @bit_count: The number of bits the array must hold.
  *
- * Return: the number of bytes needed for the array reperesentation.
+ * Return: the number of bytes needed for the array representation.
  */
 static size_t get_bit_array_size(unsigned int bit_count)
 {

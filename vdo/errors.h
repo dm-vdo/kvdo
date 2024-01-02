@@ -30,7 +30,7 @@ enum uds_status_codes {
 	UDS_ASSERTION_FAILED = UDS_ERROR_CODE_BASE + 5,
 	/* A request has been queued for later processing (not an error) */
 	UDS_QUEUED = UDS_ERROR_CODE_BASE + 6,
-	/* A problem has occured with a buffer */
+	/* A problem has occurred with a buffer */
 	UDS_BUFFER_ERROR = UDS_ERROR_CODE_BASE + 7,
 	/* No directory was found where one was expected */
 	UDS_NO_DIRECTORY = UDS_ERROR_CODE_BASE + 8,

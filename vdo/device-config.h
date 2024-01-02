@@ -38,7 +38,7 @@ struct device_config {
 	block_count_t physical_blocks;
 	/*
 	 * This is the number of logical blocks from VDO's internal point of
-	 * view. It is the number of 4K blocks regardles of the value of the
+	 * view. It is the number of 4K blocks regardless of the value of the
 	 * logical_block_size parameter below.
 	 */
 	block_count_t logical_blocks;

@@ -145,7 +145,7 @@ static INLINE void swap_keys(sort_key_t *a, sort_key_t *b)
 }
 
 /**
- * Count the number of times each byte value appears in in the arrays of keys
+ * Count the number of times each byte value appears in the arrays of keys
  * to sort at the current offset, keeping track of the number of non-empty
  * bins, and the index of the first and last non-empty bin.
  *
@@ -156,7 +156,7 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
 {
 	sort_key_t *key_ptr;
 	/*
-	 * Set bogus values that will will be replaced by min and max,
+	 * Set bogus values that will be replaced by min and max,
 	 * respectively.
 	 */
 	bins->first = UINT8_MAX;
@@ -201,7 +201,7 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
  *
  * After the keys are moved to the appropriate pile, we'll need to sort
  * each of the piles by the next radix position.  A new task is put on the
- * stack for each pile containing lots of keys, or a new task is is put on
+ * stack for each pile containing lots of keys, or a new task is put on
  * the list for each pile containing few keys.
  *
  * @param stack      pointer the top of the stack

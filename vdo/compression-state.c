@@ -149,7 +149,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 	}
 
 	/*
-	 * If the orignal bio was a discard, but we got this far because the
+	 * If the original bio was a discard, but we got this far because the
 	 * discard was a partial one (r/m/w), and it is part of a larger
 	 * discard, we cannot compress this vio. We need to make sure the vio
 	 * completes ASAP.
@@ -194,7 +194,7 @@ bool may_pack_data_vio(struct data_vio *data_vio)
  *                             to the packer may block there.
  * @data_vio: The data_vio to check.
  *
- * Any cancelation after this point and before the data_vio is written
+ * Any cancellation after this point and before the data_vio is written
  * out requires this data_vio to be picked up by the canceling
  * data_vio.
  *

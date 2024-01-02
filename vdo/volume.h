@@ -131,7 +131,7 @@ int __must_check enqueue_page_read(struct volume *volume,
  * @note        This routine does something similar to a binary search to find
  *              the location in the volume file where the discontinuity of
  *              chapter numbers occurs.  In a good save, the discontinuity is
- *              a sharp cliff, but if write failures occured during saving
+ *              a sharp cliff, but if write failures occurred during saving
  *              there may be one or more chapters which are partially written.
  *
  * @note        This method takes advantage of the fact that the physical
@@ -370,7 +370,7 @@ find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 				    void *aux);
 
 /**
- * Map a chapter number and page number to a phsical volume page number.
+ * Map a chapter number and page number to a physical volume page number.
  *
  * @param geometry the layout of the volume
  * @param chapter  the chapter number of the desired page

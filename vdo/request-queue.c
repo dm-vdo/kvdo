@@ -50,7 +50,7 @@ enum {
 	/** The minimum time to wait when waiting with a timeout */
 	MINIMUM_WAIT_TIME = DEFAULT_WAIT_TIME / 2,
 
-	/** The maximimum time to wait when waiting with a timeout */
+	/** The maximum time to wait when waiting with a timeout */
 	MAXIMUM_WAIT_TIME = ONE_MILLISECOND
 };
 

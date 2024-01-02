@@ -598,7 +598,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 }
 
 /**
- * vdo_prepare_to_load() - Perpare a vdo for loading by reading structures off
+ * vdo_prepare_to_load() - Prepare a vdo for loading by reading structures off
  *                         disk.
  *
  * This method does not alter the on-disk state. It should be called from the

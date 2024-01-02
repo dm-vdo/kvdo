@@ -73,7 +73,7 @@ static INLINE int __must_check uds_must_use(int value)
  * macro.
  *
  * @param expr      The boolean expression being asserted
- * @param format    A printf() syle format for the message to log on
+ * @param format    A printf() style format for the message to log on
  *                  assertion failure
  * @param arguments Any additional arguments required by the format
  */

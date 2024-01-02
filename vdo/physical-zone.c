@@ -205,7 +205,7 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
  *
  * If a block is allocated, the recipient will also hold a lock on it.
  *
- * Return: VDO_SUCESSS if a block was allocated, or an error code.
+ * Return: VDO_SUCCESS if a block was allocated, or an error code.
  */
 static int allocate_and_lock_block(struct allocation *allocation)
 {

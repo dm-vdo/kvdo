@@ -162,7 +162,7 @@ static uint64_t triage_index_request(struct uds_index *index,
 
 /*
  * Simulate a message to change the sparse cache membership for a single-zone
- * sparse index. This allows us to forgo the complicated locking required by a
+ * sparse index. This allows us to forget the complicated locking required by a
  * multi-zone sparse index. Any other kind of index does nothing here.
  */
 static int simulate_index_zone_barrier_message(struct index_zone *zone,
