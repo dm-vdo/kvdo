@@ -15,7 +15,6 @@
 #include "block-map-tree.h"
 #include "constants.h"
 #include "dirty-lists.h"
-#include "forest.h"
 #include "io-submitter.h"
 #include "num-utils.h"
 #include "recovery-journal.h"

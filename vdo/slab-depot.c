@@ -22,7 +22,6 @@
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot-format.h"
-#include "slab-depot.h"
 #include "slab-journal.h"
 #include "slab-iterator.h"
 #include "slab-summary.h"

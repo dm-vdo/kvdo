@@ -16,7 +16,6 @@
 
 #include "block-allocator.h"
 #include "block-map-entry.h"
-#include "journal-point.h"
 #include "slab.h"
 #include "slab-journal-format.h"
 #include "slab-summary.h"
