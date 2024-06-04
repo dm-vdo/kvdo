@@ -16,11 +16,7 @@
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 4))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0))
+#if (RHEL_RELEASE_CODE == RHEL_RELEASE_VERSION(9, 5)) && (RHEL_RELEASE_EXTRA < 446)
 #define VDO_USE_ALTERNATE
 #endif
 #endif /* !RHEL_RELEASE_CODE */
@@ -35,6 +31,9 @@ enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 struct io_factory {
 	struct block_device *bdev;
 	atomic_t ref_count;
+#ifndef VDO_USE_ALTERNATE
+	struct file *file_handle;
+#endif /* VDO_USE_ALTERNATE */
 };
 
 void get_uds_io_factory(struct io_factory *factory)
@@ -43,40 +42,57 @@ void get_uds_io_factory(struct io_factory *factory)
 }
 
 static int get_block_device_from_name(const char *name,
-				      struct block_device **bdev)
+				      struct io_factory *factory)
 {
 	dev_t device;
 	unsigned int major, minor;
 	char dummy;
-#ifndef VDO_USE_ALTERNATE
 	const struct blk_holder_ops hops = { NULL };
-#endif /* !VDO_USE_ALTERNATE */
 
 	/* Extract the major/minor numbers */
 	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
 		device = MKDEV(major, minor);
 		if (MAJOR(device) != major || MINOR(device) != minor) {
-			*bdev = NULL;
+			factory->bdev = NULL;
 			return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 						      "%s is not a valid block device",
 						      name);
 		}
 #ifdef VDO_USE_ALTERNATE
-		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+		factory->bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL, &hops);
 #else
-		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL, &hops);
+		factory->file_handle = bdev_file_open_by_dev(device, BLK_FMODE, NULL, &hops);
+		if (IS_ERR(factory->file_handle)) {
+			uds_log_error_strerror(-PTR_ERR(factory->file_handle),
+					       "cannot get file handle for %s", name);
+			factory->file_handle = NULL;
+			factory->bdev = NULL;
+			return UDS_INVALID_ARGUMENT;
+		}
+		
+		factory->bdev = file_bdev(factory->file_handle);
 #endif /* VDO_USE_ALTERNATE */
 	} else {
 #ifdef VDO_USE_ALTERNATE
-		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
+		factory->bdev = blkdev_get_by_path(name, BLK_FMODE, NULL, &hops);
 #else
-		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL, &hops);
+		factory->file_handle = bdev_file_open_by_path(name, BLK_FMODE, NULL, &hops);
+		if (IS_ERR(factory->file_handle)) {
+			uds_log_error_strerror(-PTR_ERR(factory->file_handle),
+					       "cannot get file handle for %s", name);
+			factory->file_handle = NULL;
+			factory->bdev = NULL;
+			return UDS_INVALID_ARGUMENT;
+		}
+		
+		factory->bdev = file_bdev(factory->file_handle);
 #endif /* VDO_USE_ALTERNATE */
 	}
 
-	if (IS_ERR(*bdev)) {
-		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
-		*bdev = NULL;
+	if (IS_ERR(factory->bdev)) {
+		uds_log_error_strerror(-PTR_ERR(factory->bdev),
+				       "%s is not a block device", name);
+		factory->bdev = NULL;
 		return UDS_INVALID_ARGUMENT;
 	}
 
@@ -86,25 +102,19 @@ static int get_block_device_from_name(const char *name,
 int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 {
 	int result;
-	struct block_device *bdev;
 	struct io_factory *factory;
-
-	result = get_block_device_from_name(path, &bdev);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
 
 	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS) {
-#ifdef VDO_USE_ALTERNATE
-		blkdev_put(bdev, BLK_FMODE);
-#else
-		blkdev_put(bdev, NULL);
-#endif /* VDO_USE_ALTERNATE */
 		return result;
 	}
 
-	factory->bdev = bdev;
+	result = get_block_device_from_name(path, factory);
+	if (result != UDS_SUCCESS) {
+		put_uds_io_factory(factory);
+		return result;
+	}
+
 	atomic_set_release(&factory->ref_count, 1);
 
 	*factory_ptr = factory;
@@ -114,19 +124,20 @@ int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 int replace_uds_storage(struct io_factory *factory, const char *path)
 {
 	int result;
-	struct block_device *bdev;
+	struct io_factory new_factory;
 
-	result = get_block_device_from_name(path, &bdev);
+	result = get_block_device_from_name(path, &new_factory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 #ifdef VDO_USE_ALTERNATE
-	blkdev_put(factory->bdev, BLK_FMODE);
-#else
 	blkdev_put(factory->bdev, NULL);
+#else
+	fput(factory->file_handle);
+	factory->file_handle = new_factory.file_handle;
 #endif /* VDO_USE_ALTERNATE */
-	factory->bdev = bdev;
+	factory->bdev = new_factory.bdev;
 	return UDS_SUCCESS;
 }
 
@@ -134,9 +145,9 @@ void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
 #ifdef VDO_USE_ALTERNATE
-		blkdev_put(factory->bdev, BLK_FMODE);
-#else
 		blkdev_put(factory->bdev, NULL);
+#else
+		fput(factory->file_handle);
 #endif /* VDO_USE_ALTERNATE */
 		UDS_FREE(factory);
 	}
