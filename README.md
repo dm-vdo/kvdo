@@ -77,6 +77,16 @@ Version | Intended Enterprise Linux Release
   can be found [here](https://copr.fedorainfracloud.org/coprs/rhawalsh/dm-vdo)
   and can be used by running `dnf copr enable rhawalsh/dm-vdo`.
 
+## Upgrades
+
+The latest version of this project is available in the Linux kernel as the
+dm-vdo module starting in version 6.9. If you have a VDO volume created with
+the kvdo module, be sure to shut it down cleanly before switching to the
+dm-vdo module. Failure to do so may result in issues including loss of data.
+
+As with any upgrade, it is advisable to create a snapshot of the device before
+upgrading to the new module.
+
 ## Building
 
 In order to build the kernel modules, invoke the following command

@@ -2949,6 +2949,7 @@ timeout_index_operations_callback(struct vdo_completion *completion)
 		 * way.
 		 */
 		list_move(&context->list_entry, &zone->timed_out);
+		context->requestor->dedupe_context = NULL;
 		continue_data_vio(context->requestor, VDO_SUCCESS);
 		timed_out++;
 	}
@@ -3618,7 +3619,7 @@ acquire_context(struct hash_zone *zone)
 		if (change_context_state(timed_out,
 					 DEDUPE_CONTEXT_TIMED_OUT_COMPLETE,
 					 DEDUPE_CONTEXT_IDLE)) {
-			if (timed_out == NULL) {
+			if (context == NULL) {
 				list_del(&timed_out->list_entry);
 				context = timed_out;
 			} else {

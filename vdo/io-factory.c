@@ -15,10 +15,26 @@
 #include "memory-alloc.h"
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
+#undef VDO_USE_ALTERNATE_2
+#undef VDO_USE_ALTERNATE_3
 #ifdef RHEL_RELEASE_CODE
 #if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 5)) || \
     ((RHEL_RELEASE_CODE == RHEL_RELEASE_VERSION(9, 5)) && (RHEL_RELEASE_EXTRA < 446))
 #define VDO_USE_ALTERNATE
+#define VDO_USE_ALTERNATE_2
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 4))
+#define VDO_USE_ALTERNATE_3
+#endif
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0))
+#define VDO_USE_ALTERNATE
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,7,0))
+#define VDO_USE_ALTERNATE_2
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0))
+#define VDO_USE_ALTERNATE_3
+#endif
+#endif
 #endif
 #endif /* !RHEL_RELEASE_CODE */
 #endif /* !VDO_UPSTREAM */
@@ -32,7 +48,11 @@ enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 struct io_factory {
 	struct block_device *bdev;
 	atomic_t ref_count;
-#ifndef VDO_USE_ALTERNATE
+#ifdef VDO_USE_ALTERNATE
+#ifndef VDO_USE_ALTERNATE_2
+	struct bdev_handle *device_handle;
+#endif /* VDO_USE_ALTERNATE_2 */
+#else
 	struct file *file_handle;
 #endif /* VDO_USE_ALTERNATE */
 };
@@ -48,7 +68,9 @@ static int get_block_device_from_name(const char *name,
 	dev_t device;
 	unsigned int major, minor;
 	char dummy;
+#ifndef VDO_USE_ALTERNATE_3
 	const struct blk_holder_ops hops = { NULL };
+#endif /* VDO_USE_ALTERNATE_3 */
 
 	/* Extract the major/minor numbers */
 	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
@@ -59,8 +81,26 @@ static int get_block_device_from_name(const char *name,
 						      "%s is not a valid block device",
 						      name);
 		}
+
 #ifdef VDO_USE_ALTERNATE
+#ifdef VDO_USE_ALTERNATE_2
+#ifdef VDO_USE_ALTERNATE_3
+		factory->bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+#else
 		factory->bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL, &hops);
+#endif /* VDO_USE_ALTERNATE_3 */
+#else
+		factory->device_handle = bdev_open_by_dev(device, BLK_FMODE, NULL, &hops);
+		if (IS_ERR(factory->device_handle)) {
+			uds_log_error_strerror(-PTR_ERR(factory->device_handle),
+					       "cannot get block device handle for %s", name);
+			factory->device_handle = NULL;
+			factory->bdev = NULL;
+			return UDS_INVALID_ARGUMENT;
+		}
+		
+		factory->bdev = factory->device_handle->bdev;
+#endif /* VDO_USE_ALTERNATE_2 */
 #else
 		factory->file_handle = bdev_file_open_by_dev(device, BLK_FMODE, NULL, &hops);
 		if (IS_ERR(factory->file_handle)) {
@@ -75,7 +115,24 @@ static int get_block_device_from_name(const char *name,
 #endif /* VDO_USE_ALTERNATE */
 	} else {
 #ifdef VDO_USE_ALTERNATE
+#ifdef VDO_USE_ALTERNATE_2
+#ifdef VDO_USE_ALTERNATE_3
+		factory->bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
+#else
 		factory->bdev = blkdev_get_by_path(name, BLK_FMODE, NULL, &hops);
+#endif /* VDO_USE_ALTERNATE_3 */
+#else
+		factory->device_handle = bdev_open_by_path(name, BLK_FMODE, NULL, &hops);
+		if (IS_ERR(factory->device_handle)) {
+			uds_log_error_strerror(-PTR_ERR(factory->device_handle),
+					       "cannot get block device handle for %s", name);
+			factory->device_handle = NULL;
+			factory->bdev = NULL;
+			return UDS_INVALID_ARGUMENT;
+		}
+		
+		factory->bdev = factory->device_handle->bdev;
+#endif /* VDO_USE_ALTERNATE_2 */
 #else
 		factory->file_handle = bdev_file_open_by_path(name, BLK_FMODE, NULL, &hops);
 		if (IS_ERR(factory->file_handle)) {
@@ -133,7 +190,16 @@ int replace_uds_storage(struct io_factory *factory, const char *path)
 	}
 
 #ifdef VDO_USE_ALTERNATE
+#ifdef VDO_USE_ALTERNATE_2
+#ifdef VDO_USE_ALTERNATE_3
+	blkdev_put(factory->bdev, BLK_FMODE);
+#else
 	blkdev_put(factory->bdev, NULL);
+#endif /* VDO_USE_ALTERNATE_3 */
+#else
+	bdev_release(factory->device_handle);
+	factory->device_handle = new_factory.device_handle;
+#endif /* VDO_USE_ALTERNATE_2 */
 #else
 	fput(factory->file_handle);
 	factory->file_handle = new_factory.file_handle;
@@ -146,7 +212,15 @@ void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
 #ifdef VDO_USE_ALTERNATE
+#ifdef VDO_USE_ALTERNATE_2
+#ifdef VDO_USE_ALTERNATE_3
+		blkdev_put(factory->bdev, BLK_FMODE);
+#else
 		blkdev_put(factory->bdev, NULL);
+#endif /* VDO_USE_ALTERNATE_3 */
+#else
+		bdev_release(factory->device_handle);
+#endif /* VDO_USE_ALTERNATE_2 */
 #else
 		fput(factory->file_handle);
 #endif /* VDO_USE_ALTERNATE */
