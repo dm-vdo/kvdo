@@ -4,6 +4,9 @@
  */
 
 #include <linux/module.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "bio.h"
 #include "constants.h"
@@ -91,9 +94,20 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * determine whether to pass down discards. The block layer splits
 	 * large discards on this boundary when this is set.
 	 */
-	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
-				       * VDO_SECTORS_PER_BLOCK);
-
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 6)) || \
+    ((RHEL_RELEASE_CODE == RHEL_RELEASE_VERSION(9, 6)) && (RHEL_RELEASE_EXTRA < 522))
+#define VDO_USE_ALTERNATE
+#endif /* RHEL_RELEASE_CODE */
+#endif /* VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
+	limits->max_discard_sectors =
+		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
+#else
+	limits->max_hw_discard_sectors =
+		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
+#endif
 	/*
 	 * Force discards to not begin or end with a partial block by stating
 	 * the granularity is 4k.
