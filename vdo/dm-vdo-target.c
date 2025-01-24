@@ -73,9 +73,9 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
 	/* The minimum io size for random io */
-	blk_limits_io_min(limits, VDO_BLOCK_SIZE);
+	limits->io_min = VDO_BLOCK_SIZE;
 	/* The optimal io size for streamed/sequential io */
-	blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
+	limits->io_opt = VDO_BLOCK_SIZE;
 
 	/*
 	 * Sets the maximum discard size that will be passed into VDO. This
@@ -96,8 +96,7 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 */
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 6)) || \
-    ((RHEL_RELEASE_CODE == RHEL_RELEASE_VERSION(9, 6)) && (RHEL_RELEASE_EXTRA < 522))
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 6))
 #define VDO_USE_ALTERNATE
 #endif /* RHEL_RELEASE_CODE */
 #endif /* VDO_UPSTREAM */

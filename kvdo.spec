@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.2.5.2
+%define kmod_driver_version	8.2.5.10
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -81,8 +81,6 @@ AUTOINSTALL="yes"
 BUILT_MODULE_NAME[0]="kvdo"
 BUILT_MODULE_LOCATION[0]="vdo"
 DEST_MODULE_LOCATION[0]="/kernel/drivers/block/"
-BUILD_DEPENDS[0]=LZ4_COMPRESS
-BUILD_DEPENDS[0]=LZ4_DECOMPRESS
 STRIP[0]="no"
 EOF
 
@@ -94,5 +92,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue Nov 05 2024 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.5.2-1
+* Thu Jan 23 2025 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.2.5.10-1
 - See https://github.com/dm-vdo/kvdo.git
