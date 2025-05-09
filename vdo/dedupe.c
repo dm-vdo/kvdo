@@ -1029,6 +1029,7 @@ static void process_update_result(struct data_vio *agent)
 	if (change_context_state(context,
 				 DEDUPE_CONTEXT_COMPLETE,
 				 DEDUPE_CONTEXT_IDLE)) {
+		agent->dedupe_context = NULL;
 		release_context(context);
 	}
 }
@@ -2105,6 +2106,7 @@ static void process_query_result(struct data_vio *agent)
 				 DEDUPE_CONTEXT_COMPLETE,
 				 DEDUPE_CONTEXT_IDLE)) {
 		agent->is_duplicate = decode_uds_advice(context);
+		agent->dedupe_context = NULL;
 		release_context(context);
 	}
 }
@@ -3678,14 +3680,13 @@ query_index(struct data_vio *data_vio, enum uds_request_type operation)
 		return;
 	}
 
-	context = acquire_context(zone);
+	context = data_vio->dedupe_context = acquire_context(zone);
 	if (context == NULL) {
 		atomic64_inc(&vdo->hash_zones->dedupe_context_busy);
 		continue_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
 
-	data_vio->dedupe_context = context;
 	context->requestor = data_vio;
 	context->submission_jiffies = jiffies;
 	prepare_uds_request(&context->request, data_vio, operation);
