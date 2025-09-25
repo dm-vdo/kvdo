@@ -174,6 +174,8 @@ static void vdo_status(struct dm_target *ti,
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
+// XXX workaround for LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
+#ifndef __LINUX_BVEC_ITER_H
 	/*
 	 * FIXME: We ought to print more detailed output here, but this is what
 	 * thin does.
@@ -181,6 +183,7 @@ static void vdo_status(struct dm_target *ti,
 	case STATUSTYPE_IMA:
 		*result = '\0';
 		break;
+#endif // 5.15+
 	}
 }
 
