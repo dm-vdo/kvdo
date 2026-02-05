@@ -47,18 +47,6 @@ static INLINE ktime_t seconds_to_ktime(int64_t seconds)
 
 
 /**
- * Convert microseconds to a ktime_t value
- *
- * @param microseconds  A number of microseconds
- *
- * @return the equivalent number of microseconds as a ktime_t
- **/
-static INLINE ktime_t us_to_ktime(int64_t microseconds)
-{
-	return (ktime_t) microseconds * NSEC_PER_USEC;
-}
-
-/**
  * Convert a ktime_t value to seconds
  *
  * @param reltime  The time value
